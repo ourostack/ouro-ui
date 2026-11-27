@@ -5,8 +5,9 @@
  * - The color pairs shadcn's themes lack: success, warning and a foreground for
  *   destructive, with defaults that pass 4.5:1 on shadcn's stock themes. An app or a
  *   theme overrides them like any other variable.
- * - Avatar's eight initials hues, --avatar-1 to --avatar-8, which Avatar mixes toward the
- *   background (the tint) and the foreground (the letters).
+ * - Avatar's eight initials hues, --avatar-1 to --avatar-8, mixed toward the background (the tint,
+ *   --ouro-avatar-tint-*) and the foreground (the letters, --ouro-avatar-ink-*) once on the root and
+ *   on .dark, so no avatar mixes its own.
  * - --ouro-size-*: the fixed sizes of icons, avatars, thumbs and the like, in rem on Tailwind's
  *   quarter-rem steps (--ouro-size-8 is 2rem), named for their step with a dot as an underscore
  *   (--ouro-size-2_5). Density is --spacing, and these do not follow it, so a compact app keeps
@@ -247,6 +248,9 @@
   --ouro-row-hover-shadow: 0 0 0 1px var(--border);
   --ouro-state-hover: 5%;
   --ouro-state-pressed: 12%;
+  /* How far Avatar's tint leans to its hue from the background, and its letters from the foreground (see below). */
+  --ouro-avatar-tint-mix: 18%;
+  --ouro-avatar-ink-mix: 70%;
 }
 
 .dark {
@@ -274,12 +278,40 @@
   --avatar-6: #6cb8f6;
   --avatar-7: #c3a6ec;
   --avatar-8: #ef85e2;
+  --ouro-avatar-tint-mix: 46%;
+  --ouro-avatar-ink-mix: 18%;
   --ouro-backdrop-color: #000000;
   --ouro-glass-tint: 12%;
   --ouro-glass-rim: rgb(255 255 255 / 0.3);
   --ouro-glass-edge: rgb(8 6 4 / 0.35);
   --ouro-glass-solid: #e9e6e1;
   --ouro-count: #d13438;
+}
+
+/* Avatar's colours, mixed once here rather than in every avatar: each hue (and the brand) as the tint behind the
+   initials, mixed toward the background, and the ink of the initials, mixed toward the foreground, so each pair keeps
+   at least 4.5:1. Declared on .dark as on the root, so a .dark element mixes its own scheme's colours for what is in it. */
+@layer base {
+  :root, .dark {
+    --ouro-avatar-tint-1: color-mix(in oklab, var(--avatar-1) var(--ouro-avatar-tint-mix), var(--background));
+    --ouro-avatar-ink-1: color-mix(in oklab, var(--avatar-1) var(--ouro-avatar-ink-mix), var(--foreground));
+    --ouro-avatar-tint-2: color-mix(in oklab, var(--avatar-2) var(--ouro-avatar-tint-mix), var(--background));
+    --ouro-avatar-ink-2: color-mix(in oklab, var(--avatar-2) var(--ouro-avatar-ink-mix), var(--foreground));
+    --ouro-avatar-tint-3: color-mix(in oklab, var(--avatar-3) var(--ouro-avatar-tint-mix), var(--background));
+    --ouro-avatar-ink-3: color-mix(in oklab, var(--avatar-3) var(--ouro-avatar-ink-mix), var(--foreground));
+    --ouro-avatar-tint-4: color-mix(in oklab, var(--avatar-4) var(--ouro-avatar-tint-mix), var(--background));
+    --ouro-avatar-ink-4: color-mix(in oklab, var(--avatar-4) var(--ouro-avatar-ink-mix), var(--foreground));
+    --ouro-avatar-tint-5: color-mix(in oklab, var(--avatar-5) var(--ouro-avatar-tint-mix), var(--background));
+    --ouro-avatar-ink-5: color-mix(in oklab, var(--avatar-5) var(--ouro-avatar-ink-mix), var(--foreground));
+    --ouro-avatar-tint-6: color-mix(in oklab, var(--avatar-6) var(--ouro-avatar-tint-mix), var(--background));
+    --ouro-avatar-ink-6: color-mix(in oklab, var(--avatar-6) var(--ouro-avatar-ink-mix), var(--foreground));
+    --ouro-avatar-tint-7: color-mix(in oklab, var(--avatar-7) var(--ouro-avatar-tint-mix), var(--background));
+    --ouro-avatar-ink-7: color-mix(in oklab, var(--avatar-7) var(--ouro-avatar-ink-mix), var(--foreground));
+    --ouro-avatar-tint-8: color-mix(in oklab, var(--avatar-8) var(--ouro-avatar-tint-mix), var(--background));
+    --ouro-avatar-ink-8: color-mix(in oklab, var(--avatar-8) var(--ouro-avatar-ink-mix), var(--foreground));
+    --ouro-avatar-tint-brand: color-mix(in oklab, var(--primary) var(--ouro-avatar-tint-mix), var(--background));
+    --ouro-avatar-ink-brand: color-mix(in oklab, var(--primary) var(--ouro-avatar-ink-mix), var(--foreground));
+  }
 }
 
 /* Every rounded Ouro element takes the corner shape (only those: setting it on every element slowed paint). The selector has no :where(), so the engine's ancestor filter skips elements outside Ouro before it searches their class. */

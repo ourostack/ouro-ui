@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { cleanupPage, describeViolations, loadPageCode, pageScanTimeout, renderPage, scan, setScheme, settle } from "../../test/render";
 import { headTags, redirectPage, showsMono } from "../head";
 import { redirects, routeFor } from "../routes";
@@ -318,6 +319,18 @@ describe("the header and the theme section", () => {
     await expect.element(xray).not.toBeChecked();
     await userEvent.click(page.getByRole("button", { name: "See how it’s built" }));
     await expect.element(xray).toBeChecked();
+  });
+
+  it("opens X-ray even when animation frames never arrive", async () => {
+    await renderPage("/");
+    const request = window.requestAnimationFrame.bind(window);
+    const frame = vi.spyOn(window, "requestAnimationFrame").mockImplementation(() => request(() => {}));
+    try {
+      await act(() => (page.getByRole("switch", { name: "X-ray" }).element() as HTMLElement).click());
+      await expect.poll(() => document.querySelectorAll("[data-ouro-inspector-outline]").length).toBeGreaterThan(3);
+    } finally {
+      frame.mockRestore();
+    }
   });
 
   it("opens the command palette on ⌘K and repaints from it", async () => {

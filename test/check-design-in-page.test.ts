@@ -123,6 +123,14 @@ describe("findDesignIssues: cramped-heading", () => {
     expect(of("cramped-heading").map((issue) => issue.element)).toEqual(['h3 "Cramped"']);
   });
 
+  it("skips a popover floating over a heading outside it, and still judges a heading inside the popover", () => {
+    render(`
+      <div data-ouro="popover" style="position:absolute;top:0;left:100px;width:300px;height:80px;background:#445"></div>
+      <section style="position:absolute;top:82px;left:100px;width:300px"><h3 style="margin:0;font-size:16px">Under the popover</h3></section>
+      <div popover="manual" style="display:block;position:absolute;top:300px;left:500px;width:300px;margin:0"><div style="height:60px;background:#3a7"></div><h3 style="margin:2px 0 0;font-size:16px">Inside</h3></div>`);
+    expect(of("cramped-heading").map((issue) => issue.element)).toEqual(['h3 "Inside"']);
+  });
+
   it("names the closest of the boxes above a heading", () => {
     render(`<section><div style="height:80px;background:#eef"><div id="inner" style="position:relative;top:4px;height:80px;background:#3a7"></div></div><h2 style="margin:8px 0 0;font-size:40px;line-height:48px">Closest wins</h2></section>`);
     expect(of("cramped-heading").map((issue) => issue.detail)).toEqual(["4px below div#inner; a 40px heading needs 10px"]);

@@ -1,0 +1,1 @@
+- Fixed: Undo is reachable by Tab from a modal popover; the hand-over loads at the page's first focus change, outside its first load.

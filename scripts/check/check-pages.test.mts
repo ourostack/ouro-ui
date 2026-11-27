@@ -390,6 +390,11 @@ describe("Ouro check", () => {
     // Checked as it is, but never a pass.
     assert.deepEqual(result.gated.map((f) => [f.rule, f.element]), [["not-ready", "the page"]]);
     assert.match(result.gated[0]!.detail, /^no ready signal in 0\.2 s/);
+    // A page that never reaches first content is still counted in scanned.visits, not left out of it: zero findings
+    // on an empty report and a page the sweep never reached would otherwise look the same (#3864).
+    assert.equal(result.shots[0]!.ready, false);
+    assert.equal(result.scanned!.visits, 1);
+    assert.equal(result.scanned!.ready, 0);
   });
 
   test("stops its servers and says why when the browser does not start", async () => {

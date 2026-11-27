@@ -321,6 +321,7 @@ export function Popover(props: PopoverProps): JSX.Element {
             ref={popupRef}
             className={className}
             data-ouro-presentation="popover"
+            {...(modal ? { "data-ouro-modal": "" } : {})}
             {...(controlled
               ? {
                   initialFocus: () => (lastInput() === "touch" || lastInput() === "pen" ? popupRef.current : true),

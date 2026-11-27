@@ -218,3 +218,8 @@ export const MosaicOfOne: Story = {
   args: { layout: "mosaic", images: [{ ...coast[2]!, width: 1800, height: 800 }] },
   render: chatColumn,
 };
+
+/** The picture alone, as large as fits, with Previous, its position, Next and Close in one glass group on its corner. */
+export const Fit: Story = {
+  args: { fit: true },
+};

@@ -628,7 +628,7 @@ function MoreButton({ rowKey, name, moreLabel, onMore, className }: { rowKey: st
         className,
       )}
     >
-      <TouchTarget />
+      <TouchTarget fine />
       <span aria-hidden="true">…</span>
       <span className="sr-only">
         {moreLabel} {name}
@@ -1463,7 +1463,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
                       "pointer-fine:hover:bg-[color:var(--ouro-row-pressed,var(--muted))] data-grabbed:bg-accent data-grabbed:text-accent-foreground",
                     )}
                   >
-                    <TouchTarget />
+                    <TouchTarget fine />
                     <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
                       <circle cx="6" cy="4" r="1.2" />
                       <circle cx="10" cy="4" r="1.2" />

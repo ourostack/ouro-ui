@@ -13,7 +13,8 @@ import type { PageIssue } from "./size-check.ts";
 //   inp            how long a press took to paint: for each control the app lists for pressing, the longest event of
 //                  its press, from the press to the next frame drawn after its handlers ran
 //   first-paint-swap  a control the first frames drew that is gone at rest, with another drawn over its place in a later
-//                  frame, and no input between: the first frame's content swapped for what came after it
+//                  frame, and no input between: the first frame's content swapped for what came after it. A control
+//                  still shown when the first input came left after that input, so it is no swap.
 //
 // An element opts out with data-ouro-allow="<rule>" and a reason in data-ouro-allow-why, as the other rules do.
 
@@ -36,6 +37,8 @@ interface Measures {
   paintNode: Element | null;
   events: { start: number; duration: number }[];
   painted: Map<Element, Painted>;
+  /** The first frames' controls still shown when the first input came, or null before any input. */
+  shownAtInput: Set<Element> | null;
   /** Adds a layout-shift entry to the score: kept apart so a test can feed it shifts. */
   add: (entry: { value: number; startTime: number; hadRecentInput: boolean; sources: { node: Node | null; previousRect?: DOMRectReadOnly; currentRect?: DOMRectReadOnly }[] }) => void;
 }
@@ -74,6 +77,7 @@ function listenForMeasures(): void {
     paintNode: null,
     events: [],
     painted: new Map(),
+    shownAtInput: null,
     add(entry) {
       if (entry.hadRecentInput) return;
       // A burst ends after a second without a shift, or five seconds after it began.
@@ -122,7 +126,12 @@ function listenForMeasures(): void {
   const FIRST_FRAMES = 10;
   let frames = 0;
   let input = false;
-  for (const type of ["pointerdown", "keydown", "wheel"]) window.addEventListener(type, () => (input = true), { capture: true, passive: true });
+  const onInput = () => {
+    if (input) return;
+    input = true;
+    m.shownAtInput = new Set([...m.painted.keys()].filter((el) => el.isConnected && el.getClientRects().length > 0 && el.checkVisibility({ opacityProperty: true, visibilityProperty: true })));
+  };
+  for (const type of ["pointerdown", "keydown", "wheel"]) window.addEventListener(type, onInput, { capture: true, passive: true });
   // A skeleton, or an element allowed first-paint-swap with a reason, around a control: no swap is judged for it.
   const skipped = (el: Element) => {
     for (let n: Element | null = el; n; n = n.parentElement) {
@@ -221,7 +230,7 @@ async function findLoadingIssues(budgets: LoadingBudgets): Promise<PageIssue[]> 
     return html.length > 500 ? `${html.slice(0, 500)}…` : html;
   };
   for (const [gone, was] of m.painted) {
-    if (was.skipped || at.has(gone)) continue;
+    if (was.skipped || at.has(gone) || m.shownAtInput?.has(gone)) continue;
     for (const [taker, later] of m.painted) {
       const rect = at.get(taker);
       if (!rect || taken.has(taker) || later.skipped || later.frame <= was.frame || !overlaps(was.box, rect)) continue;

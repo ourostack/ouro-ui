@@ -16,6 +16,7 @@ const steps = [
   ...[
     ["scripts/model-reviews/page.mjs", "docs/guides/model-reviews.md"],
     ["scripts/model-reviews/interviews-page.mjs", "docs/guides/model-interviews.md"],
+    ["scripts/a11y-evidence/page.mjs", "docs/guides/accessibility-evidence.md"],
   ].filter(([, page]) => !isTracked(root, page)),
   ["scripts/control-matrix.mts", "--uncommitted"],
   // gen-docs runs registry.mts --uncommitted after it, for registry.json and llms.txt.

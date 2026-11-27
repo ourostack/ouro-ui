@@ -1,0 +1,1 @@
+{ "product": "harness", "sources": [{ "walker": "mcp-schemas", "module": "dist/m.js", "source": "src/m.ts", "skip": ["src/ouro-ax"] }] }
