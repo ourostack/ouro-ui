@@ -1671,8 +1671,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const anchoring = browserAnchors();
       // Stryker disable next-line ConditionalExpression: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
       if (!anchoring) holdEnd(contentEnd());
-      // Stryker disable next-line ConditionalExpression,EqualityOperator: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
-      else if (endHeld > contentEnd()) holdEnd(0);
+      // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator,CallExpression: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
+      if (anchoring && endHeld > contentEnd()) holdEnd(0);
       const view = scroller.getBoundingClientRect();
       // Finds the anchors among the nodes, in the order they come in the page.
       const find = (nodes: readonly Element[]) => {
