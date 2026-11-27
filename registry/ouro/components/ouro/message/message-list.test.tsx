@@ -944,6 +944,7 @@ describe("MessageList", () => {
     // The app drops the message in the commit right after the list opened at it, before any observer or frame re-centres.
     function Dropped() {
       const [items, setItems] = useState(() => history(30));
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the test needs the synchronous second commit before any frame
       useLayoutEffect(() => setItems((all) => all.filter((item) => item.id !== 10)), []);
       return <Found items={items} initialAnchor="found-10" windowing={false} />;
     }
