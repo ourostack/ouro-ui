@@ -1218,7 +1218,9 @@ function LoadingRows(): JSX.Element | null {
  * empty state beside it says why.
  */
 function CommandList({ children, className, after, snap }: { children: (group: Group, index: number) => ReactNode; className: string; after: ReactNode; snap: boolean }): JSX.Element {
-  const empty = Autocomplete.useFilteredItems().length === 0;
+  const items = Autocomplete.useFilteredItems();
+  const empty = items.length === 0;
+  const hasAfter = after !== null && after !== undefined && after !== false;
   const list = useRef<HTMLDivElement>(null);
   // The list ends on a whole row or heading, never through one: its height is cut to the last bottom edge that fits.
   useLayoutEffect(() => {
@@ -1261,7 +1263,7 @@ function CommandList({ children, className, after, snap }: { children: (group: G
       // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
       window.removeEventListener("resize", fit);
     };
-  });
+  }, [snap, items, hasAfter]);
   return (
     <Autocomplete.List ref={list} hidden={empty} className={className}>
       <Autocomplete.Collection>{children}</Autocomplete.Collection>

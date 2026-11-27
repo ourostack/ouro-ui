@@ -1,0 +1,1 @@
+- Fixed: Command's list cuts its height to a whole row only when its results change, not on every render, so typing no longer forces a layout on each key.
