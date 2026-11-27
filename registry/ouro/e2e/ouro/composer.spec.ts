@@ -82,7 +82,7 @@ test("a reply sent with a quote shows the quote in its bubble", async ({ page })
   const reply = page.getByRole("textbox", { name: "Message Mara" });
   await reply.pressSequentially("I have one");
   await reply.press("Enter");
-  await expect(page.locator("blockquote[data-ouro-message-quote]")).toContainText("Quoting Mara Quill: ");
+  await expect(page.locator("blockquote[data-ouro-message-quote]")).toContainText("Reply to Mara Quill: ");
   await expect(page.getByRole("button", { name: "Remove quote from Mara Quill" })).toHaveCount(0);
 });
 

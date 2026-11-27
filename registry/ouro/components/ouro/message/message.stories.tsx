@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState, type ReactNode } from "react";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import { EmojiText, type EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
@@ -530,6 +531,8 @@ function Replies() {
           author: "Mara Quill",
           excerpt: "Morning! The venue confirmed the long table for Friday. Can someone bring the extension cord for the projector?",
           avatar: <Avatar name="Mara Quill" alt="" size="xs" />,
+          at: "2026-05-04T09:41:00Z",
+          atText: "Today",
           onActivate: show("Mara Quill"),
         }}
       >
@@ -575,8 +578,8 @@ function NotSentConversation() {
 }
 
 /**
- * Replies that quote the message they answer (`quote`): a bar, the author and a line of what
- * they wrote, at the top of the bubble. With `onActivate` the quote is a button that shows the
+ * Replies that quote the message they answer (`quote`): a thin rule, the author, the day it was sent (`at`, or the app's
+ * own words in `atText`) and a line of what they wrote, at the top of the bubble, with no box. With `onActivate` the quote is a button that shows the
  * quoted message; without it, a plain quote.
  */
 export const Quote: Story = {
@@ -591,6 +594,39 @@ export const ReplyInThread: Story = {
   render: () => (
     <Surface>
       <Message variant="chat" role="user" name="Priya Okafor" time="9:45 AM" context="Replied in thread" quote={{ author: "Theo Brandt", excerpt: "I have one. I will bring it with the speakers." }}>
+        Perfect, thank you.
+      </Message>
+    </Surface>
+  ),
+};
+
+/**
+ * A quote's own `context` line above it, with the thread's title as a link, in a bubble that is a button and in one that is not.
+ */
+export const QuoteContext: Story = {
+  parameters: { screenshot: { name: "message-quote-context" } },
+  render: () => (
+    <Surface>
+      <Message
+        variant="chat"
+        role="assistant"
+        name="Theo Brandt"
+        time="9:43 AM"
+        dateTime="2026-05-04T09:43"
+        quote={{
+          author: "Mara Quill",
+          excerpt: "Morning! The venue confirmed the long table for Friday.",
+          at: "2026-05-03T09:41:00Z",
+          context: (
+            <>
+              Replied in thread: <Button size="inline" variant="plain">Friday plans</Button>
+            </>
+          ),
+        }}
+      >
+        I have one. I will bring it with the speakers.
+      </Message>
+      <Message variant="chat" role="user" name="Priya Okafor" time="9:45 AM" dateTime="2026-05-04T09:45" quote={{ author: "Theo Brandt", excerpt: "I have one. I will bring it with the speakers.", at: "2026-05-04T09:43:00Z", atText: "9:43 AM", onActivate: () => {} }}>
         Perfect, thank you.
       </Message>
     </Surface>

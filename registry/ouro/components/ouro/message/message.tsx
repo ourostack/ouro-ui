@@ -9,6 +9,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type HTMLAttributes,
   type JSX,
   type MouseEvent,
@@ -87,7 +88,19 @@ export interface MessageQuote {
    * have drawn a message far up a long conversation, call its `actionsRef.current.reveal(id, { focus: true })`.
    */
   onActivate?: (() => void) | undefined;
-  /** What screen readers hear in place of the author's name, before the excerpt. @default `Quoting ${author}` */
+  /**
+   * When the quoted message was sent, a `Date`, an ISO string or milliseconds. Drawn after the author as
+   * a date in the reader's language and time zone, and read as "Reply to Ana, Mar 3". Use `atText` for the app's own wording.
+   */
+  at?: Date | string | number | undefined;
+  /** The app's own wording for the day of `at` ("Yesterday"), drawn in a `<time dateTime>` in place of the date. Needs `at`. */
+  atText?: string | undefined;
+  /**
+   * A line above the quote, such as "Replied in thread: " and a `Link` or `Button` with the thread's title. It
+   * is outside the quote, so the link is its own control even when the quote has `onActivate`.
+   */
+  context?: ReactNode | undefined;
+  /** What screen readers hear in place of "Reply to" and the author's name, before the excerpt. @default `Reply to ${author}, ${day}` */
   label?: string | undefined;
 }
 
@@ -227,11 +240,10 @@ export interface MessageOwnProps {
   context?: ReactNode | undefined;
   /**
    * The message this one replies to, at the top of the bubble or post, above the text: a bar,
-   * the author and a line of what they wrote, as Composer's `quote` shows it before the reply
-   * is sent. Screen readers hear it first, as "Quoting Ana: …". With `onActivate` it is a
+   * the author and a line of what they wrote, drawn with no box. Screen readers hear it first, as "Reply to Ana, Mar 3: …". With `onActivate` it is a
    * button, to show the quoted message.
    *
-   * @claim "as Composer's `quote` shows it" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer quote > looks as Message's quote does once the reply is sent)
+   * @claim "drawn with no box" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message quote > shows the quote at the top of the message: a bar, the author in semibold and the excerpt on one line, cut with an ellipsis)
    * @claim "Screen readers hear it first, as" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message quote > is read before the text, as the label and the excerpt)
    * @claim "With `onActivate` it is a button" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message quote > is a button with onActivate, named by the quote, which keyboard and pointer press)
    */
@@ -857,12 +869,12 @@ export function Message(props: MessageProps): JSX.Element {
 
   const empty = children === undefined || children === null || children === false || children === "";
   const body = streaming && empty ? typing(streamingLabel) : children;
-  const quoted = quote && quoteBox(quote);
   // A context that is nothing draws no line and leaves no gap above the quote.
   const hasContext = context !== undefined && context !== null && typeof context !== "boolean" && context !== "";
   // Muted as the quote's excerpt is, except on a default message's own primary bubble: that bubble does not re-point
   // the muted token, and a muted line on the primary fill fails 4.5:1, so it takes the bubble's text color.
   const primaryBubble = role === "user" && variant === "default";
+  const quoted = quote && quoteBox(quote, primaryBubble);
   const contextLine = hasContext ? (
     <div
       data-ouro-message-context=""
@@ -1184,28 +1196,69 @@ function avatarSlot(avatar: string | ReactElement | undefined, name: string | nu
   return <Avatar name={name} src={avatar} alt="" size="sm" className={className} {...dot} />;
 }
 
-// The quote: a box on the muted surface with a hairline, as Composer's quote (composer.tsx).
-const quoteClass =
-  "m-0 mb-2 flex min-w-0 items-center gap-2 rounded-ouro-inner bg-muted p-1.5 ring-1 ring-border/60 forced-colors:border forced-colors:border-solid";
+// The quote: no box, a thin rule at its start, the author and one line of the excerpt.
+const quoteClass = "m-0 flex min-w-0 items-stretch gap-2 rounded-ouro-inner p-0";
 // The quote as a button: it highlights while hovered rather than scaling, as a wide row does, and
 // with two lines of text it is taller than a touch target already.
 const quoteButtonClass =
-  "box-border w-full cursor-pointer border-0 text-start font-[inherit] text-inherit pointer-fine:hover:bg-accent " +
+  "box-border w-full cursor-pointer border-0 bg-transparent text-start font-[inherit] text-inherit pointer-fine:hover:bg-accent " +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
+function quoteDay(quote: MessageQuote): { node: ReactNode } | undefined {
+  // Stryker disable next-line ConditionalExpression: an undefined at makes an invalid date, which the next check drops too.
+  if (quote.at === undefined) return undefined;
+  const date = new Date(quote.at);
+  if (!Number.isFinite(date.getTime())) return undefined;
+  if (quote.atText !== undefined) return { node: <time dateTime={date.toISOString()}>{quote.atText}</time> };
+  return { node: <QuoteDay date={date} /> };
+}
+
+// Stryker disable next-line ArrowFunction: React only calls the unsubscribe it is handed on unmount, and there is nothing to undo.
+const subscribeNever = () => () => {};
+
 /**
- * The message a message replies to: the bar, the avatar, the author and the excerpt. Screen
- * readers hear the label ("Quoting Ana") in place of the author's name, then the excerpt.
+ * The quote's day, as LocalDate writes a date but without its weight in the first script: the server and hydration
+ * write it in en-US in UTC, so the markup matches, and the browser then writes it in the reader's language and time zone.
  */
-function quoteBox(quote: MessageQuote): JSX.Element {
+function QuoteDay({ date }: { date: Date }): JSX.Element {
+  // Stryker disable next-line ArrowFunction: the server's snapshot is read only as a condition, where undefined is false too.
+  const browser = useSyncExternalStore(subscribeNever, () => true, () => false);
+  return (
+    <time dateTime={date.toISOString()} suppressHydrationWarning>
+      {date.toLocaleDateString(browser ? undefined : "en-US", { dateStyle: "medium", timeZone: browser ? undefined : "UTC" })}
+    </time>
+  );
+}
+
+// On a default message's own primary bubble, which does not re-point the theme's colors as a filled chat bubble does,
+// the quote's text, rule and hover read as the bubble's: page colors on the primary fill fail 4.5:1.
+const onPrimary = {
+  "--foreground": "var(--primary-foreground)",
+  "--muted-foreground": "var(--primary-foreground)",
+  "--accent": "color-mix(in oklab,var(--primary-foreground) 12%,var(--primary))",
+  "--ring": "var(--primary-foreground)",
+} as CSSProperties;
+
+/**
+ * The message a message replies to: a thin rule, the avatar, the author, the day and the excerpt, under
+ * the `context` line. Screen readers hear "Reply to Ana, <day>" in place of the author's name, then the excerpt.
+ */
+function quoteBox(quote: MessageQuote, primaryBubble: boolean): JSX.Element {
+  const day = quoteDay(quote);
   const body = (
     <>
-      <span aria-hidden="true" data-ouro-message-quote-bar="" className="w-ouro-1 shrink-0 self-stretch rounded-full bg-primary forced-colors:bg-[Highlight]" />
+      <span aria-hidden="true" data-ouro-message-quote-bar="" className={cn("w-0.5 shrink-0 self-stretch rounded-full forced-colors:bg-[Highlight]", primaryBubble ? "bg-primary-foreground/70" : "bg-primary/70")} />
       {quote.avatar}
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="sr-only">{quote.label ?? `Quoting ${quote.author}`}: </span>
+        <span className="sr-only">{quote.label ?? (day ? <>Reply to {quote.author}, {day.node}</> : `Reply to ${quote.author}`)}: </span>
         <span aria-hidden="true" data-ouro-message-quote-author="" className="truncate text-xs font-semibold text-foreground">
           {quote.author}
+          {day ? (
+            <span data-slot="message-quote-day" data-ouro-message-quote-day="" className="font-normal text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
+              {" \u00b7 "}
+              {day.node}
+            </span>
+          ) : null}
         </span>
         <span data-ouro-message-quote-excerpt="" className="truncate text-sm text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
           {quote.excerpt}
@@ -1213,14 +1266,27 @@ function quoteBox(quote: MessageQuote): JSX.Element {
       </span>
     </>
   );
-  return quote.onActivate ? (
-    <button type="button" data-ouro-control="message" data-ouro-part="quote" data-ouro-message-quote="" data-ouro-allow="nested-frame" data-ouro-allow-why="the quote bar is a 4px stroke, which cannot hold a concentric corner" onClick={quote.onActivate} className={cn(quoteClass, quoteButtonClass)}>
+  const why = "the quote rule is a 2px stroke, which cannot hold a concentric corner";
+  // With no context line the quote stands alone, so a message with a quote draws no wrapper for it.
+  const alone = !quote.context;
+  const own = alone ? { className: "mb-2", style: primaryBubble ? onPrimary : undefined } : {};
+  const box = quote.onActivate ? (
+    <button type="button" data-ouro-control="message" data-ouro-part="quote" data-ouro-message-quote="" data-ouro-allow="nested-frame" data-ouro-allow-why={why} onClick={quote.onActivate} className={cn(quoteClass, quoteButtonClass, own.className)} style={own.style}>
       {body}
     </button>
   ) : (
-    <blockquote data-ouro-message-quote="" data-ouro-allow="nested-frame" data-ouro-allow-why="the quote bar is a 4px stroke, which cannot hold a concentric corner" className={quoteClass}>
+    <blockquote data-ouro-message-quote="" data-ouro-allow="nested-frame" data-ouro-allow-why={why} className={cn(quoteClass, own.className)} style={own.style}>
       {body}
     </blockquote>
+  );
+  if (alone) return box;
+  return (
+    <div data-slot="message-quote-group" data-ouro-message-quote-group="" className="mb-2 flex min-w-0 flex-col gap-1" style={primaryBubble ? onPrimary : undefined}>
+      <div data-slot="message-quote-context" data-ouro-message-quote-context="" className="min-w-0 truncate text-xs text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
+        {quote.context}
+      </div>
+      {box}
+    </div>
   );
 }
 
