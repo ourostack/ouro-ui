@@ -11,6 +11,7 @@ import { $getRoot, type ElementNode } from "lexical";
 
 const roots: Root[] = [];
 let mounted: HTMLElement[] = [];
+const nativeMod = /Mac/.test(navigator.platform) ? "Meta" : "Control";
 
 /** Renders and waits for the rich editor, which loads after the first render. */
 async function render(node: ReactNode) {
@@ -170,7 +171,7 @@ describe("Composer rich mode", () => {
     const seen: string[] = [];
     const { editor } = await render(rich({ defaultValue: "trailing word_", onValueChange: (value) => void seen.push(value) }));
     editor.focus();
-    await userEvent.keyboard("{Control>}a{/Control}Xtrailing word_");
+    await userEvent.keyboard(`{${nativeMod}>}a{/${nativeMod}}Xtrailing word_`);
     await expect.poll(() => seen.at(-1)).toBe("Xtrailing word\\_");
   });
 
@@ -281,7 +282,7 @@ describe("Composer rich mode", () => {
     const seen: string[] = [];
     const { editor } = await render(rich({ editorRef: handle, defaultValue: "__bold__", onValueChange: (value) => void seen.push(value) }));
     editor.focus();
-    await userEvent.keyboard("{Control>}a{/Control}");
+    await userEvent.keyboard(`{${nativeMod}>}a{/${nativeMod}}`);
     await act(async () => handle.current!.format("italic"));
     await expect.poll(() => seen.at(-1)).toBe("**_bold_**");
   });
@@ -482,9 +483,9 @@ describe("Composer rich mode", () => {
     editor.focus();
     await userEvent.keyboard("bc");
     await expect.poll(() => editor.textContent).toBe("abc");
-    await userEvent.keyboard("{Control>}z{/Control}");
+    await userEvent.keyboard(`{${nativeMod}>}z{/${nativeMod}}`);
     await expect.poll(() => editor.textContent).toBe("a");
-    await userEvent.keyboard("{Control>}{Shift>}z{/Shift}{/Control}");
+    await userEvent.keyboard(`{${nativeMod}>}{Shift>}z{/Shift}{/${nativeMod}}`);
     await expect.poll(() => editor.textContent).toBe("abc");
   });
 
@@ -501,7 +502,7 @@ describe("Composer rich mode", () => {
     await new Promise((resolve) => setTimeout(resolve, 350));
     await userEvent.keyboard("c");
     await expect.poll(() => editor.textContent).toBe("abc");
-    await userEvent.keyboard("{Control>}z{/Control}");
+    await userEvent.keyboard(`{${nativeMod}>}z{/${nativeMod}}`);
     await expect.poll(() => editor.textContent).toBe("a");
   });
 
@@ -1204,6 +1205,40 @@ describe("Composer rich mode highlights", () => {
     expect(Math.abs(box.top - bold.top)).toBeLessThan(2);
     expect(layer(host)!.getAttribute("aria-hidden")).toBe("true");
     expect(getComputedStyle(layer(host)!).pointerEvents).toBe("none");
+  });
+
+  it("marks only the words a run covers, never a blank line or a list's empty space beside them", async () => {
+    const text = "Hi **all**:\n\n- one\n- two\n\nDone.";
+    const { host, editor } = await render(rich({ defaultValue: text, highlights: [{ start: 0, end: text.length, label: "Suggested" }] }));
+    await expect.poll(() => boxes(host).length).toBeGreaterThan(0);
+    const words: DOMRect[] = [];
+    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      words.push(...[...range.getClientRects()].filter((rect) => rect.width > 0));
+    }
+    const onWords = (box: DOMRect) => words.some((w) => w.top < box.bottom && box.top < w.bottom && w.left <= box.left + 0.5 && box.right <= w.right + 0.5);
+    expect(boxes(host).map((box) => box.getBoundingClientRect()).filter((box) => !onWords(box))).toEqual([]);
+    // And to the end of the last line's words.
+    const done = words.at(-1)!;
+    expect(boxes(host).some((box) => Math.abs(box.getBoundingClientRect().right - done.right) < 1)).toBe(true);
+  });
+
+  it("trims both ends of a highlight that crosses formatting partway through its first and last words", async () => {
+    const { host, editor } = await render(rich({ defaultValue: "Hello **bold** world", highlights: [{ start: 2, end: 17, label: "Suggested" }] }));
+    await expect.poll(() => boxes(host).length).toBe(3);
+    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+    const first = walker.nextNode()!;
+    walker.nextNode();
+    const last = walker.nextNode()!;
+    const range = document.createRange();
+    range.setStart(first, 2);
+    range.setEnd(last, 3);
+    const expected = [...range.getClientRects()].filter((rect) => rect.width > 0);
+    const drawn = boxes(host).map((box) => box.getBoundingClientRect());
+    expect(Math.abs(drawn[0]!.left - expected[0]!.left)).toBeLessThan(1);
+    expect(Math.abs(drawn.at(-1)!.right - expected.at(-1)!.right)).toBeLessThan(1);
   });
 
   it("describes the marks to a screen reader, with their label and the words, beside the description the app gave", async () => {

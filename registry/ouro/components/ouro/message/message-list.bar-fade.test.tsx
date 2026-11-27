@@ -41,7 +41,7 @@ const hover = (id: string) => userEvent.hover(document.getElementById(id)!.query
 const fast = () => parseDuration(getComputedStyle(document.documentElement).getPropertyValue("--ouro-duration-fast"));
 
 // A fade long enough that a loaded runner's round trip to the browser cannot outlast it.
-const slowFade = () => document.documentElement.style.setProperty("--ouro-duration-fast", "1s");
+const slowFade = (duration = "1s") => document.documentElement.style.setProperty("--ouro-duration-fast", duration);
 
 async function shown(id: string) {
   await expect.poll(async () => (await hover(id), document.getElementById(id)!.contains(bar()))).toBe(true);
@@ -113,11 +113,12 @@ describe("MessageList bar fade", () => {
   });
 
   it("keeps the same bar, unfaded, when the pointer comes back during the exit", async () => {
-    slowFade();
     await render();
     await shown("m0");
     await expect.poll(() => bar()!.getAnimations().length).toBe(0);
     const before = bar()!;
+    // An exit no run outlasts: the test is about a return during the exit, and a stalled runner must not turn it into a return after it.
+    slowFade("3600s");
     await userEvent.unhover(document.body);
     expect(before.hasAttribute("data-ending-style")).toBe(true);
     const restyled: string[] = [];
@@ -126,11 +127,11 @@ describe("MessageList bar fade", () => {
     await hover("m0");
     expect(bar()).toBe(before);
     expect(before.hasAttribute("data-ending-style")).toBe(false);
-    await expect.poll(() => before.getAnimations().length).toBe(0);
     watch.disconnect();
     // The exit that ended with the return does not send the bar back through its entrance.
     expect(restyled).toEqual([]);
     expect(bar()).toBe(before);
+    for (const animation of before.getAnimations()) animation.finish();
     expect(getComputedStyle(before).opacity).toBe("1");
   });
 

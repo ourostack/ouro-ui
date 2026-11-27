@@ -28,6 +28,7 @@ export const scoped = [
     reason: "Ouro Current, which only the install test's current variant and the Node script tests run (install-check.mjs takes its stylesheet module); no browser shard, design shard or heavy job loads it",
   },
   { pattern: /^scripts\/lane\.sh$/, tiers: [], components: false, reason: "the lane worktree helper, which people and agents run by hand and no workflow or test runs" },
+  { pattern: /^scripts\/probe-windowing\.mjs$/, tiers: [], components: false, reason: "the MessageList windowing probe, which only the dispatch-only windowing-probe workflow runs" },
   { pattern: /^scripts\/bar-eval\//, tiers: [], components: false, reason: "the bar evaluation, run by hand, which no workflow or test runs" },
   { pattern: /^scripts\/load\.mjs$/, tiers: [], components: false, reason: "the shared CPU-load harness, which only its Node script test and a lane proving a test under load run" },
   { pattern: /^scripts\/scroller-probe\.mjs$/, tiers: [], components: false, reason: "a probe run by hand for #2891, which no workflow or test runs" },

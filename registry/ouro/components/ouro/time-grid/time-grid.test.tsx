@@ -1078,6 +1078,19 @@ describe("TimeGrid", () => {
     expect(warnings()).toEqual([]);
   });
 
+  it("keeps an event's lines in step as a tall grid shrinks and its minimum hour changes", async () => {
+    const half = { id: "half", title: "Standup", start: at(12, "09:30"), end: at(12, "10:00") };
+    const { rerender } = await render({ view: "day", style: { height: 2200 }, hourHeight: 3, events: [half] });
+    const lines = () => titled("Standup").querySelector<HTMLElement>(":scope > span > span[style]")?.style.getPropertyValue("--ouro-lines") || null;
+    expect(lines()).toBe("2");
+    await rerender({ view: "day", style: { height: 400 }, hourHeight: 3, events: [half] });
+    await expect.poll(lines).toBeNull();
+    await rerender({ view: "day", style: { height: 400 }, hourHeight: 5, events: [half] });
+    await expect.poll(lines).toBe("2");
+    await rerender({ view: "day", style: { height: 2200 }, hourHeight: 3, events: [half] });
+    await expect.poll(lines).toBe("2");
+  });
+
   it("counts an event's lines in rem, so a larger root text size draws no more lines than fit", async () => {
     document.documentElement.style.fontSize = "18px";
     onTestFinished(() => {
@@ -3051,6 +3064,43 @@ describe("TimeGrid day summaries", () => {
 });
 
 describe("TimeGrid mount reads", () => {
+  it("measures a populated grid before writing its sizing, without another synchronous layout read", () => {
+    const host = document.createElement("div");
+    host.style.width = "1000px";
+    document.body.append(host);
+    const root = createRoot(host);
+    const RealResizeObserver = globalThis.ResizeObserver;
+    class SilentResizeObserver implements ResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+    globalThis.ResizeObserver = SilentResizeObserver;
+    onTestFinished(() => {
+      globalThis.ResizeObserver = RealResizeObserver;
+      root.unmount();
+      host.remove();
+    });
+
+    const reads = watchLayoutReads();
+    const setProperty = CSSStyleDeclaration.prototype.setProperty;
+    let firstWrite = -1;
+    vi.spyOn(CSSStyleDeclaration.prototype, "setProperty").mockImplementation(function (this: CSSStyleDeclaration, name, value, priority) {
+      const grid = host.querySelector<HTMLElement>("[data-ouro='time-grid']");
+      if (this === grid?.style && (name === "--ouro-time-grid-head" || name === "--ouro-time-grid-fill") && firstWrite < 0) firstWrite = reads.reads.length;
+      setProperty.call(this, name, value, priority);
+    });
+    flushSync(() =>
+      root.render(<TimeGrid {...base} view="week" hourHeight={3} style={{ height: 2200 }} events={[{ id: "early", title: "Early sync", start: at(12, "08:30"), end: at(12, "09:00") }]} renderDaySummary={() => <span>Free</span>} />),
+    );
+    reads.stop();
+
+    const grid = host.querySelector<HTMLElement>("[data-ouro='time-grid']")!;
+    expect(firstWrite).toBeGreaterThanOrEqual(0);
+    expect(reads.reads.slice(firstWrite).filter((read) => read.target instanceof Element && grid.contains(read.target)).map((read) => read.name)).toEqual([]);
+    expect(host.querySelector<HTMLElement>("[data-ouro-event-key] > span > span[style]")?.style.getPropertyValue("--ouro-lines")).toBe("2");
+  });
+
   it("forces no layout while it mounts, then scrolls and fills its room", async () => {
     const host = document.createElement("div");
     host.style.cssText = "height: 400px; display: flex; flex-direction: column";

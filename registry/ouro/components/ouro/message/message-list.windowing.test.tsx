@@ -1433,20 +1433,33 @@ describe("MessageList windowing", () => {
     expect(Math.abs(resting.message.getBoundingClientRect().top - resting.top)).toBeLessThanOrEqual(1);
   });
 
-  it("keeps the space above the first message while the reader is in it once the wheel rests, and lets it go without moving anything as they scroll past it", async () => {
+  it("lets the space above the first message go once the wheel rests at the top, with no need to scroll past it, so the first message sits right under the list's padding (#3733)", async () => {
     const { scroller, content, clock } = await wheelToTheTop();
     await frame();
     const space = content.offsetTop;
     expect(space).toBeGreaterThan(1);
     await restWheel(scroller, clock);
-    // At the top, the space shows: letting it go there would move the content up under the reader.
+    // At the top, nothing on screen needs holding: the step that reached it replaced the view, so the space goes at once.
     expect(scroller.scrollTop).toBe(0);
-    expect(content.offsetTop).toBe(space);
-    const reading = firstVisible(scroller);
-    await scrollTo(scroller, space + 100);
     expect(content.offsetTop).toBe(0);
-    // Only the reader's scroll moved the row.
-    expect(Math.abs(reading.message.getBoundingClientRect().top - (reading.top - space - 100))).toBeLessThanOrEqual(1);
+  });
+
+  it("lets the space above the first message and the held scroll range go once a wheel that stopped at the top rests, with no further turn of the wheel", async () => {
+    const { scroller, content, clock } = await wheelToTheTop();
+    await frame();
+    expect(content.offsetTop).toBeGreaterThan(1);
+    const floor = scroller.querySelector<HTMLElement>("[data-ouro-message-list-floor]")!;
+    expect(floor.style.display).toBe("block");
+    // The step that reached the top was the wheel's last: its scroll ends, as the browser says, and nothing more comes from the reader.
+    scroller.dispatchEvent(new Event("scrollend"));
+    clock.now += 10_000;
+    await expect.poll(() => content.offsetTop).toBe(0);
+    await expect.poll(() => floor.style.display).toBe("");
+    expect(scroller.scrollTop).toBe(0);
+    // At rest, the list asks for no more frames: a rest armed again once the wheel has rested would pay nothing, frame after frame.
+    const asked = vi.spyOn(window, "requestAnimationFrame");
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(asked).not.toHaveBeenCalled();
   });
 
   /**
@@ -1545,7 +1558,9 @@ describe("MessageList windowing", () => {
 
   it("keeps the scroll range to the content's end, below the space above the first message, while the wheel turns, so a row above that comes in shorter never pulls the scroll position", async () => {
     const { scroller, content, clock, space, change } = await spaceAboveWhole();
-    // The wheel rests at the top, so the hold on the range goes, and turns again.
+    // The reader scrolls partway into the space, short of its very top: letting it go there would move what they can see.
+    await scrollTo(scroller, Math.floor(space / 2));
+    // The wheel rests, so the hold on the range goes, and turns again.
     await restWheel(scroller, clock);
     expect(content.offsetTop).toBe(space);
     // Down to the end and 20px back up, without resting: the space stays.

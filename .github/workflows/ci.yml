@@ -735,12 +735,72 @@ jobs:
           path: .vitest/attachments/
           if-no-files-found: ignore
           retention-days: 14
-      # The whole files .github/quarantine.json quarantines (title `*`), which every blocking run leaves out
-      # (scripts/quarantined-files.mjs): a hang in one starves the tests beside it, and no test name fails for the
-      # judge to forgive. They run here, last, in one shard, in a step that never fails the job, so their results
-      # keep reporting (#3785) and nothing waits on them. With no live entry it runs nothing.
-      - if: ${{ !cancelled() && matrix.shard == 1 }}
-        name: Quarantined whole-file tests (reported, not required)
+  quarantined-files:
+    # The whole files .github/quarantine.json quarantines (title `*`), which every blocking run leaves out
+    # (scripts/quarantined-files.mjs): a hang in one starves the tests beside it, and no test name fails for the
+    # judge to forgive. They run here, in their own job beside the browser shards, in a step that never fails the
+    # job, so their results keep reporting (#3785) and no shard's time waits on them. Not part of the ci check.
+    # With no live entry it runs nothing.
+    needs: [plan, yield]
+    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.browser != 'false' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    container:
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    steps:
+      - id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled
+      - id: checkout-again
+        if: steps.checkout.outcome == 'failure'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        continue-on-error: true
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-stalled-again
+      - id: checkout-last
+        if: steps.checkout-again.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 1
+        env:
+          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
+          GIT_TRACE_CURL_NO_DATA: "1"
+          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
+        with:
+          persist-credentials: false
+      - *checkout-tarball
+      - id: pnpm
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        continue-on-error: true
+      - *pnpm-stalled
+      - *pnpm-retry
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - id: install
+        run: pnpm i --frozen-lockfile
+        continue-on-error: true
+      - *pnpm-install-stalled
+      - *pnpm-install-retry
+      - name: Quarantined whole-file tests (reported, not required)
         timeout-minutes: 5
         continue-on-error: true
         env:
@@ -4186,7 +4246,7 @@ jobs:
     # runs, and the runner time the run took from the shared pool. A required check (ruleset
     # 24881709) that fails only a pull request: on a merge group or a push it only warns, so it
     # never bounces a queue entry.
-    needs: [plan, ci, fresh-main, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-current, install-github]
+    needs: [plan, ci, quarantined-files, fresh-main, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-current, install-github]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -4294,8 +4354,8 @@ jobs:
     # Each need is named: a job's if: counts every job above it in needs.*.result, so one skipped fallback shard
     # upstream made !contains(needs.*.result, 'skipped') false on every run.
     name: Full suite passed on tree ${{ needs.plan.outputs.tree }}
-    needs: [plan, ci, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-upgrade, install-current]
-    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.plan.result == 'success' && needs.ci.result == 'success' && needs.motion-coverage.result == 'success' && needs.themes.result == 'success' && needs.conformance.result == 'success' && needs.mutation.result == 'success' && needs.visual.result == 'success' && needs.registry.result == 'success' && needs.e2e.result == 'success' && needs.theme-install.result == 'success' && needs.latency.result == 'success' && needs.lighthouse.result == 'success' && needs.install-gate.result == 'success' && needs.install.result == 'success' && needs.install-upgrade.result == 'success' && needs.install-current.result == 'success' && needs.plan.outputs.tree != '' && needs.plan.outputs.full != 'false' && needs.plan.outputs.browser != 'false' && needs.plan.outputs.design != 'false' && needs.plan.outputs.installs == 'here' && needs.plan.outputs.heavy == 'here' && needs.ci.outputs.fallback != 'true' }}
+    needs: [plan, ci, quarantined-files, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-upgrade, install-current]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.plan.result == 'success' && needs.ci.result == 'success' && needs.quarantined-files.result == 'success' && needs.motion-coverage.result == 'success' && needs.themes.result == 'success' && needs.conformance.result == 'success' && needs.mutation.result == 'success' && needs.visual.result == 'success' && needs.registry.result == 'success' && needs.e2e.result == 'success' && needs.theme-install.result == 'success' && needs.latency.result == 'success' && needs.lighthouse.result == 'success' && needs.install-gate.result == 'success' && needs.install.result == 'success' && needs.install-upgrade.result == 'success' && needs.install-current.result == 'success' && needs.plan.outputs.tree != '' && needs.plan.outputs.full != 'false' && needs.plan.outputs.browser != 'false' && needs.plan.outputs.design != 'false' && needs.plan.outputs.installs == 'here' && needs.plan.outputs.heavy == 'here' && needs.ci.outputs.fallback != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
