@@ -436,10 +436,12 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
             const r = el.getBoundingClientRect();
             return r.width >= i.width / 2 && r.height >= i.height * 0.35;
           });
-          const chips = noHeading && editors.some((el) => el.matches('[role="combobox"]')) && getComputedStyle(inner).flexWrap !== "nowrap"
-            ? [...inner.querySelectorAll('button, [role="button"]')].filter((el) => visibleSet.has(el))
-            : [];
-          const boxes = chips.length ? [...editors, ...chips].map((el) => el.getBoundingClientRect()) : [];
+          const flexItems = (parent: Element): Element[] => [...parent.children].flatMap((el) =>
+            getComputedStyle(el).display === "contents" ? flexItems(el) : visibleSet.has(el) ? [el] : []);
+          const style = getComputedStyle(inner);
+          const chips = noHeading && editors.some((el) => el.matches('[role="combobox"]')) && /flex/.test(style.display) && style.flexWrap !== "nowrap"
+            ? flexItems(inner) : [];
+          const boxes = chips.map((el) => el.getBoundingClientRect());
           const fillsChips = boxes.length > 0
             && Math.max(...boxes.map((r) => r.right)) - Math.min(...boxes.map((r) => r.left)) >= i.width / 2
             && Math.max(...boxes.map((r) => r.bottom)) - Math.min(...boxes.map((r) => r.top)) >= i.height * 0.35;
