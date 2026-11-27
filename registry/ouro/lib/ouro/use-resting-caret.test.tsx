@@ -55,9 +55,13 @@ afterEach(async () => {
 });
 
 describe("resting caret host contract", () => {
-  it("draws the host's caret width, colour and glyph position on fractional padding", async () => {
-    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
-    vi.spyOn(navigator, "vendor", "get").mockReturnValue("Apple Computer, Inc.");
+  it.each([
+    ["MacIntel", "Apple Computer, Inc.", 2, -1],
+    ["MacIntel", "Google Inc.", 1, 0],
+    ["Linux x86_64", "Apple Computer, Inc.", 1, 0],
+  ] as const)("draws the host's caret width, colour and glyph position on fractional padding for %s / %s", async (platform, vendor, width, offset) => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue(platform);
+    vi.spyOn(navigator, "vendor", "get").mockReturnValue(vendor);
     const box = await render() as HTMLTextAreaElement;
     box.style.cssText = "font:20px/28px monospace;letter-spacing:0.13px;width:240px;height:80px;padding:4.5px 8.5px;border:1px solid;box-sizing:border-box;caret-color:rgb(18,52,86)";
     box.value = "MMMMMMMM";
@@ -79,9 +83,9 @@ describe("resting caret host contract", () => {
     await rest(box);
     const steady = caret()!;
     const before = steady.getBoundingClientRect();
-    expect(before.width).toBe(2);
+    expect(before.width).toBe(width);
     expect(before.height).toBe(Math.round(glyphs.getBoundingClientRect().height));
-    expect(before.left).toBe(Math.round(sample.edge) - 1);
+    expect(before.left).toBe(Math.round(sample.edge) + offset);
     expect(getComputedStyle(steady).backgroundColor).toBe("rgb(18, 52, 86)");
     host.style.marginInlineStart = "24px";
     window.dispatchEvent(new Event("resize"));
