@@ -413,9 +413,10 @@ export async function settle(): Promise<void> {
   let before = scrollPositions();
   for (let round = 0; round < 20; round++) {
     // Base UI clears the starting style in a deferred React update. Before that
-    // commit a sheet is offscreen but has no running transition to await.
+    // commit a sheet is offscreen but has no running transition to await, and a toast (which has
+    // no data-open) is still drawn in its starting colours: axe read one at 4.11:1 mid-fade (#3934).
     await vi.waitFor(() => {
-      if (document.querySelector("[data-open][data-starting-style]")) throw new Error("an overlay still has its starting style");
+      if (document.querySelector("[data-starting-style]")) throw new Error("an overlay still has its starting style");
     }, waitOptions);
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     // A pending animation has not started yet: it is unfinished too.
@@ -426,7 +427,7 @@ export async function settle(): Promise<void> {
     const after = scrollPositions();
     const scrolled = after !== before;
     before = after;
-    if (unsettled.length === 0 && !scrolled && !document.querySelector("[data-open][data-starting-style]")) {
+    if (unsettled.length === 0 && !scrolled && !document.querySelector("[data-starting-style]")) {
       if (++quiet === 2) return;
       continue;
     }
