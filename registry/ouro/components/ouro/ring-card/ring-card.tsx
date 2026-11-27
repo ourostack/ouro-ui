@@ -101,9 +101,9 @@ export function RingCard({
     pending?.media != null && pending.media !== "audio" && pending.media !== "video" && ['pending.media must be "audio", "video" or null', '<RingCard pending={{ label: "Connecting...", media: null }} />'],
   ] : /* istanbul ignore next @preserve -- production only */ undefined);
   const choices = [
-    { part: "decline", label: words.decline, hint: words.decline, onClick: onDecline, tone: "destructive", variant: "soft", action: "decline" },
-    { part: "audio", label: words.audio, hint: words.answerAudio, onClick: onAudio, tone: "success", variant: "solid", action: "answer" },
-    { part: "video", label: words.video, hint: words.answerVideo, onClick: onVideo, tone: "success", variant: "solid", action: "answer" },
+    { part: "decline", marker: { "data-ouro-control": "ring-card", "data-ouro-part": "decline" }, label: words.decline, hint: words.decline, onClick: onDecline, tone: "destructive", variant: "soft", action: "decline" },
+    { part: "audio", marker: { "data-ouro-control": "ring-card", "data-ouro-part": "audio" }, label: words.audio, hint: words.answerAudio, onClick: onAudio, tone: "success", variant: "solid", action: "answer" },
+    { part: "video", marker: { "data-ouro-control": "ring-card", "data-ouro-part": "video" }, label: words.video, hint: words.answerVideo, onClick: onVideo, tone: "success", variant: "solid", action: "answer" },
   ] as const;
   return (
     <div
@@ -133,7 +133,7 @@ export function RingCard({
       </div>
       {note && <Text size="sm" tone="muted" lines={2}>{note}</Text>}
       {failure ? (
-        <div className="flex flex-1 flex-col gap-3" data-ouro-part="failure">
+        <div className="flex flex-1 flex-col gap-3" data-slot="failure">
           <div className="flex flex-col gap-1">
             <Text size="sm"><strong>{failure.title}</strong></Text>
             {failure.line && <Text size="sm" tone="muted">{failure.line}</Text>}
@@ -141,7 +141,7 @@ export function RingCard({
           <div className="mt-auto grid">{failure.action}</div>
         </div>
       ) : pending ? (
-        <div className="flex min-h-11 flex-1 items-center justify-center gap-2" data-ouro-part="pending">
+        <div className="flex min-h-11 flex-1 items-center justify-center gap-2" data-slot="pending">
           {pending.media === "audio" || pending.media === "video" ? (
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="size-4 shrink-0">
               {pending.media === "video" ? <path strokeLinejoin="round" d="M4 5h11a2 2 0 0 1 2 2v3l5-3v10l-5-3v3a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" /> : <path strokeLinecap="round" strokeLinejoin="round" d="M7 3H4a1 1 0 0 0-1 1c0 9.4 7.6 17 17 17a1 1 0 0 0 1-1v-3l-5-2-2 2a14 14 0 0 1-7-7l2-2-2-5Z" />}
@@ -155,14 +155,14 @@ export function RingCard({
             {choices.map((choice) => {
               const button = (
                 <Button key={choice.part} size="sm" fullWidth tone={choice.tone} variant={choice.variant}
-                  data-ouro-control="ring-card" data-ouro-part={choice.part} data-ax-action={choice.action} onClick={choice.onClick}>
+                  {...choice.marker} data-ax-action={choice.action} onClick={choice.onClick}>
                   {choice.label}
                 </Button>
               );
               return keys ? <Tooltip key={choice.part} content={`${choice.hint} (${keys[choice.part]})`}>{button}</Tooltip> : button;
             })}
           </div>
-          {chips != null && <div className="flex flex-wrap gap-2" data-ouro-part="chips">{chips}</div>}
+          {chips != null && <div className="flex flex-wrap gap-2" data-slot="chips">{chips}</div>}
         </div>
       )}
     </div>

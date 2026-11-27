@@ -188,7 +188,7 @@ describe("RingCard", () => {
     for (const media of ["audio", "video", null] as const) {
       await rerender(<RingCard {...props} announcement="" pending={{ label: "Please wait", media }} />);
       expect(document.activeElement).toBe(input);
-      expect(card.querySelector('[data-ouro-part="pending"] svg') !== null).toBe(media !== null);
+      expect(card.querySelector('[data-slot="pending"] svg') !== null).toBe(media !== null);
     }
     await rerender(<RingCard {...props} announcement="" failure={{ title: "Not connected", action: null, announcement: "Not connected" }} />);
     expect(document.activeElement).toBe(input);
@@ -230,5 +230,15 @@ describe("RingCard", () => {
     expect(onDecline).not.toHaveBeenCalled();
     expect(onAudio).not.toHaveBeenCalled();
     expect(onVideo).not.toHaveBeenCalled();
+  });
+
+  it("uses the supplied caller photo and keeps long caller context inside the card", async () => {
+    const src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'/%3E";
+    const { card } = await render(<RingCard {...base} avatar={{ src }} caller="Mara Vale of the Northern Walking Society"
+      note={"A note before we set off. ".repeat(20)} />);
+    await expect.poll(() => card.querySelector("img")?.getAttribute("src")).toBe(src);
+    const note = card.querySelector<HTMLElement>(':scope > [data-ouro="text"]')!;
+    expect(note.getBoundingClientRect().height).toBeLessThanOrEqual(Number.parseFloat(getComputedStyle(note).lineHeight) * 2 + 1);
+    expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth);
   });
 });
