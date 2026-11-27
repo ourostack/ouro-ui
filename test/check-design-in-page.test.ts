@@ -311,6 +311,27 @@ describe("findDesignIssues: nested-frame", () => {
     expect(of("nested-frame").map((issue) => issue.element)).toEqual(["div#card in div"]);
   });
 
+  it("distinguishes composite colour and chip fields from a framed card", () => {
+    render(`
+      <div style="width:360px;padding:20px;border:1px solid #888;background:#ddd">
+        <div id="colour" style="display:flex;align-items:center;width:300px;height:48px;border:1px solid #888;background:#fff">
+          <input type="color" aria-label="Pick a colour" style="width:32px;height:32px">
+          <input aria-label="Colour" style="width:240px;height:32px">
+        </div>
+        <div id="chips" style="display:flex;flex-wrap:wrap;width:300px;height:90px;border:1px solid #888;background:#fff">
+          <span style="display:flex;width:100px;height:32px">One<button>Remove one</button></span>
+          <span style="display:flex;width:100px;height:32px">Two<button>Remove two</button></span>
+          <span style="display:flex;width:100px;height:32px">Three<button>Remove three</button></span>
+          <input role="combobox" aria-label="Add a tag" style="width:64px;height:32px">
+        </div>
+        <div id="choice" role="combobox" aria-label="Oven" style="width:300px;height:44px;border:1px solid #888;background:#fff">Fan</div>
+        <div id="card" style="width:300px;height:140px;border:1px solid #888;background:#fff">
+          <label>Name <input></label>
+        </div>
+      </div>`);
+    expect(of("nested-frame").map((issue) => issue.element)).toEqual(["div#card in div"]);
+  });
+
   it("finds a filled box in a rounded corner whose radius isn't the corner's less the inset", () => {
     render(`
       <div id="card" style="background:#eef;border-radius:24px;padding:4px"><div id="flat" style="background:#3a7;height:60px;border-radius:4px"></div></div>
