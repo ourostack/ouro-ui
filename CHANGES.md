@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Added: [MessageList can hold the reader's place before a frame when its host changes the room below](registry/ouro/components/ouro/message/message-list.test.tsx "verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > holds the reader's place synchronously when its host changes the room below)").
