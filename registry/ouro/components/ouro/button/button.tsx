@@ -1,19 +1,54 @@
 "use client";
 
+function stryNS_9fa48() {
+  var g = typeof globalThis === 'object' && globalThis && globalThis.Math === Math && globalThis || new Function("return this")();
+  var ns = g.__stryker__ || (g.__stryker__ = {});
+  if (ns.activeMutant === undefined && g.process && g.process.env && g.process.env.__STRYKER_ACTIVE_MUTANT__) {
+    ns.activeMutant = g.process.env.__STRYKER_ACTIVE_MUTANT__;
+  }
+  function retrieveNS() {
+    return ns;
+  }
+  stryNS_9fa48 = retrieveNS;
+  return retrieveNS();
+}
+stryNS_9fa48();
+function stryCov_9fa48() {
+  var ns = stryNS_9fa48();
+  var cov = ns.mutantCoverage || (ns.mutantCoverage = {
+    static: {},
+    perTest: {}
+  });
+  function cover() {
+    var c = cov.static;
+    if (ns.currentTestId) {
+      c = cov.perTest[ns.currentTestId] = cov.perTest[ns.currentTestId] || {};
+    }
+    var a = arguments;
+    for (var i = 0; i < a.length; i++) {
+      c[a[i]] = (c[a[i]] || 0) + 1;
+    }
+  }
+  stryCov_9fa48 = cover;
+  cover.apply(null, arguments);
+}
+function stryMutAct_9fa48(id) {
+  var ns = stryNS_9fa48();
+  function isActive(id) {
+    if (ns.activeMutant === id) {
+      if (ns.hitCount !== void 0 && ++ns.hitCount > ns.hitLimit) {
+        throw new Error('Stryker: Hit count limit reached (' + ns.hitCount + ')');
+      }
+      return true;
+    }
+    return false;
+  }
+  stryMutAct_9fa48 = isActive;
+  return isActive(id);
+}
 import { Button as BaseButton } from "@base-ui/react/button";
 import { Fragment, isValidElement, useEffect, useRef, useState } from "react";
-import type {
-  AnchorHTMLAttributes,
-  ButtonHTMLAttributes,
-  ComponentType,
-  JSX,
-  KeyboardEvent,
-  MouseEvent,
-  PointerEvent,
-  ReactNode,
-  Ref,
-  SVGProps,
-} from "react";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ComponentType, JSX, KeyboardEvent, MouseEvent, PointerEvent, ReactNode, Ref, SVGProps } from "react";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { fontFor, radiusFor, sizeFor, toneFor } from "@/registry/ouro/lib/ouro/appearance-hints";
@@ -48,14 +83,9 @@ export interface ButtonBaseProps {
    * @claim "A solid primary button, the" test/action-token.test.tsx verify:testExists(test/action-token.test.tsx::the action token > repaints the solid primary Button, as a button and as a link, and leaves every selection on --primary)
    * @default "primary"
    */
-  tone?:
-    | "primary"
-    | "secondary"
-    | "destructive"
-    | "success"
-    | "warning"
-    | (string & { 'danger is "destructive"; accent is "primary"; neutral is "secondary"': never })
-    | undefined;
+  tone?: "primary" | "secondary" | "destructive" | "success" | "warning" | string & {
+    'danger is "destructive"; accent is "primary"; neutral is "secondary"': never;
+  } | undefined;
   /**
    * Visual weight: `solid` for the primary action, `soft` for secondary actions,
    * `outline` for a quiet bordered control, `plain` for a borderless one, and `glass` for a
@@ -71,14 +101,9 @@ export interface ButtonBaseProps {
    * nav item, `aria-current="page"`.
    * @default "solid"
    */
-  variant?:
-    | "solid"
-    | "soft"
-    | "outline"
-    | "plain"
-    | "glass"
-    | (string & { 'From shadcn? Use tone="destructive" or tone="secondary". default is "solid"; ghost and link are "plain"': never })
-    | undefined;
+  variant?: "solid" | "soft" | "outline" | "plain" | "glass" | string & {
+    'From shadcn? Use tone="destructive" or tone="secondary". default is "solid"; ghost and link are "plain"': never;
+  } | undefined;
   /**
    * Control size. `sm`, `md` and `lg` are taller on phones and step down to desktop
    * density from the `sm` breakpoint (640px). `inline` is an action inside a line of text,
@@ -100,13 +125,9 @@ export interface ButtonBaseProps {
    * @claim "it takes the text's size" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::inline size > is at least 24px wide around a one-letter label)
    * @claim "it takes the text's size" registry/ouro/components/ouro/button/button.touch.test.tsx verify:fileLine(registry/ouro/components/ouro/button/button.touch.test.tsx, /44px hit area on a coarse pointer/)
    */
-  size?:
-    | "sm"
-    | "md"
-    | "lg"
-    | "inline"
-    | (string & { 'From shadcn? default is "md"; for icon, pass aria-label with the icon as children': never })
-    | undefined;
+  size?: "sm" | "md" | "lg" | "inline" | string & {
+    'From shadcn? default is "md"; for icon, pass aria-label with the icon as children': never;
+  } | undefined;
   /** Stretches the button to the width of its container. */
   fullWidth?: boolean | undefined;
   /**
@@ -144,122 +165,127 @@ export interface ButtonBaseProps {
   className?: string | undefined;
 
   /** Not a prop. Ouro UI uses `loading`: `<Button loading>`. */
-  isLoading?: { 'Use <Button loading>': never };
+  isLoading?: {
+    'Use <Button loading>': never;
+  };
   /** Not a prop. Ouro UI uses `tone`: `<Button tone="destructive">`. */
-  color?: { 'Use <Button tone="destructive">': never };
+  color?: {
+    'Use <Button tone="destructive">': never;
+  };
   /** Not a prop. To render a link, pass `href`: `<Button href="/recipes">`. For other elements, use parts. */
-  asChild?: { 'Use <Button href="/path">': never };
+  asChild?: {
+    'Use <Button href="/path">': never;
+  };
   /** Not a prop. Ouro UI uses `startIcon`: `<Button startIcon={PlusIcon}>`. */
-  leftIcon?: { 'Use <Button startIcon={Icon}>': never };
+  leftIcon?: {
+    'Use <Button startIcon={Icon}>': never;
+  };
   /** Not a prop. Ouro UI uses `endIcon`: `<Button endIcon={ArrowRightIcon}>`. */
-  rightIcon?: { 'Use <Button endIcon={Icon}>': never };
+  rightIcon?: {
+    'Use <Button endIcon={Icon}>': never;
+  };
 }
 
 /** A Button with `href`: renders a link that looks like a button. */
-export type ButtonLinkProps = ButtonBaseProps &
-  Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof ButtonBaseProps | "type"> & {
-    /**
-     * Where the link goes. Internal paths render through `OuroProvider`'s
-     * `linkComponent` (your router's link); `http(s)://`, `mailto:` and other
-     * absolute URLs render as a plain `<a>`. An absolute URL with
-     * `target="_blank"` always gets `rel="noopener noreferrer"`, merged with
-     * any `rel` you pass.
-     * @claim "`, merged with any `rel` you pass." registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::link branch > merges an explicit rel with noopener noreferrer on an external _blank link)
-     */
-    href: string;
-    /**
-     * Loads the document instead of using the provider's router link, for a server sign-in
-     * or a resource route. A present `download` attribute does the same.
-     * @claim "Loads the document instead of using" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::link branch > uses the document for reloadDocument and downloads, retaining router navigation otherwise)
-     */
-    reloadDocument?: boolean | undefined;
-    /**
-     * Links have no `type`. Remove `href` to make a submit button: `<Button type="submit">`.
-     *
-     * @claim "Links have no `type`" registry/ouro/components/ouro/button/button.test-d.ts verify:fileLine(registry/ouro/components/ouro/button/button.test-d.ts, /\{\schildren:\s"Go";\shref:\s"\/x";\stype:\s"submit"\s\}>\(\)\.not\.toExtend<ButtonProps>/)
-     */
-    type?: never;
-    /** A link cannot be disabled. Remove `href` to render a disabled button, or don't render the link. */
-    disabled?: never;
-    /** Only a button takes a reason. Remove `href` to render a button, or don't render the link. */
-    disabledReason?: never;
-    /** A dialog's default action is a button. Remove `href`: `<Button default onClick={start}>`. */
-    default?: never;
-    ref?: Ref<HTMLAnchorElement> | undefined;
-  };
+export type ButtonLinkProps = ButtonBaseProps & Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof ButtonBaseProps | "type"> & {
+  /**
+   * Where the link goes. Internal paths render through `OuroProvider`'s
+   * `linkComponent` (your router's link); `http(s)://`, `mailto:` and other
+   * absolute URLs render as a plain `<a>`. An absolute URL with
+   * `target="_blank"` always gets `rel="noopener noreferrer"`, merged with
+   * any `rel` you pass.
+   * @claim "`, merged with any `rel` you pass." registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::link branch > merges an explicit rel with noopener noreferrer on an external _blank link)
+   */
+  href: string;
+  /**
+   * Loads the document instead of using the provider's router link, for a server sign-in
+   * or a resource route. A present `download` attribute does the same.
+   * @claim "Loads the document instead of using" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::link branch > uses the document for reloadDocument and downloads, retaining router navigation otherwise)
+   */
+  reloadDocument?: boolean | undefined;
+  /**
+   * Links have no `type`. Remove `href` to make a submit button: `<Button type="submit">`.
+   *
+   * @claim "Links have no `type`" registry/ouro/components/ouro/button/button.test-d.ts verify:fileLine(registry/ouro/components/ouro/button/button.test-d.ts, /\{\schildren:\s"Go";\shref:\s"\/x";\stype:\s"submit"\s\}>\(\)\.not\.toExtend<ButtonProps>/)
+   */
+  type?: never;
+  /** A link cannot be disabled. Remove `href` to render a disabled button, or don't render the link. */
+  disabled?: never;
+  /** Only a button takes a reason. Remove `href` to render a button, or don't render the link. */
+  disabledReason?: never;
+  /** A dialog's default action is a button. Remove `href`: `<Button default onClick={start}>`. */
+  default?: never;
+  ref?: Ref<HTMLAnchorElement> | undefined;
+};
 
 /** A Button without `href`: renders a native `<button>`. */
-export type ButtonButtonProps = ButtonBaseProps &
-  Omit<ButtonHTMLAttributes<HTMLButtonElement>, keyof ButtonBaseProps | "type"> & {
-    /** Not set: this is a `<button>`. Pass `href` to render a link instead. */
-    href?: never;
-    /** Document navigation needs a link: pass `href` with `reloadDocument`. */
-    reloadDocument?: never;
-    /**
-     * The button's role in a form: `submit` sends it, `reset` clears it.
-     * @default "button" (never submits a form by accident)
-     * @claim "never submits a form by accident" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::button branch > renders a native button with type=button and data-ouro)
-     */
-    type?: "button" | "submit" | "reset" | (string & { 'Use "button", "submit" or "reset"; for looks use tone and variant': never }) | undefined;
-    /**
-     * Why the button can't be pressed now. Passing a reason turns the button off without
-     * removing it from the tab order: it takes `aria-disabled`, a press does nothing, keyboard
-     * focus still reaches it, and the reason shows as its tooltip on hover and focus and is read
-     * as its description. Plain `disabled` stays as it is, removed from the tab order and silent.
-     * Pass `undefined` while the button is available, so it keeps its place and focus as it turns
-     * off and on. Use it whenever a button is off and a person would ask why; a loading button
-     * needs no reason, since `loading` says what is happening.
-     * @example
-     * <Button disabledReason={cart.length === 0 ? "Add an item first" : undefined}>Check out</Button>
-     */
-    disabledReason?: string | undefined;
-    /**
-     * The dialog's default action, as on a Mac: Return presses it from anywhere in the dialog
-     * around it, unless focus is in a multi-line field (where Command or Control Return presses
-     * it), on a control that takes Return itself (another button, a link, an option) or in a
-     * list that is open, or Shift or Option is held. Return calls `onClick` with the key's own
-     * `KeyboardEvent`, so an action that needs a person's gesture still gets one, and a submit
-     * button then sends its form once. It tells assistive technology so with
-     * `aria-keyshortcuts`. Give it to one button per dialog, the main action, and keep
-     * the solid look; outside a dialog it does nothing, since Return there belongs to the page.
-     * @claim "The dialog's default action, as" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > is what Return presses from a field in its dialog, with the key's own trusted event)
-     * @claim "Return presses it from anywhere" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > leaves Return to a multi-line field, and takes Command or Control Return from it)
-     * @claim "Return presses it from anywhere" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > leaves Return to a control that takes it itself: another button, a link, a list's option and an open list)
-     * @claim "Return presses it from anywhere" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > leaves Return alone with Shift or Option held, while an input method composes, or when the app took it)
-     * @claim "Return calls `onClick` with the" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > is what Return presses from a field in its dialog, with the key's own trusted event)
-     * @claim "and a submit button then" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > sends its form once as a submit button, and calls onClick alone without a form)
-     * @claim "It tells assistive technology so" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > says so to assistive technology, and looks like the dialog's main action)
-     * @claim "Give it to one button" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > does nothing outside a dialog, where Return belongs to the page)
-     */
-    default?: boolean | undefined;
-    ref?: Ref<HTMLButtonElement> | undefined;
-  };
+export type ButtonButtonProps = ButtonBaseProps & Omit<ButtonHTMLAttributes<HTMLButtonElement>, keyof ButtonBaseProps | "type"> & {
+  /** Not set: this is a `<button>`. Pass `href` to render a link instead. */
+  href?: never;
+  /** Document navigation needs a link: pass `href` with `reloadDocument`. */
+  reloadDocument?: never;
+  /**
+   * The button's role in a form: `submit` sends it, `reset` clears it.
+   * @default "button" (never submits a form by accident)
+   * @claim "never submits a form by accident" registry/ouro/components/ouro/button/button.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::button branch > renders a native button with type=button and data-ouro)
+   */
+  type?: "button" | "submit" | "reset" | string & {
+    'Use "button", "submit" or "reset"; for looks use tone and variant': never;
+  } | undefined;
+  /**
+   * Why the button can't be pressed now. Passing a reason turns the button off without
+   * removing it from the tab order: it takes `aria-disabled`, a press does nothing, keyboard
+   * focus still reaches it, and the reason shows as its tooltip on hover and focus and is read
+   * as its description. Plain `disabled` stays as it is, removed from the tab order and silent.
+   * Pass `undefined` while the button is available, so it keeps its place and focus as it turns
+   * off and on. Use it whenever a button is off and a person would ask why; a loading button
+   * needs no reason, since `loading` says what is happening.
+   * @example
+   * <Button disabledReason={cart.length === 0 ? "Add an item first" : undefined}>Check out</Button>
+   */
+  disabledReason?: string | undefined;
+  /**
+   * The dialog's default action, as on a Mac: Return presses it from anywhere in the dialog
+   * around it, unless focus is in a multi-line field (where Command or Control Return presses
+   * it), on a control that takes Return itself (another button, a link, an option) or in a
+   * list that is open, or Shift or Option is held. Return calls `onClick` with the key's own
+   * `KeyboardEvent`, so an action that needs a person's gesture still gets one, and a submit
+   * button then sends its form once. It tells assistive technology so with
+   * `aria-keyshortcuts`. Give it to one button per dialog, the main action, and keep
+   * the solid look; outside a dialog it does nothing, since Return there belongs to the page.
+   * @claim "The dialog's default action, as" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > is what Return presses from a field in its dialog, with the key's own trusted event)
+   * @claim "Return presses it from anywhere" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > leaves Return to a multi-line field, and takes Command or Control Return from it)
+   * @claim "Return presses it from anywhere" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > leaves Return to a control that takes it itself: another button, a link, a list's option and an open list)
+   * @claim "Return presses it from anywhere" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > leaves Return alone with Shift or Option held, while an input method composes, or when the app took it)
+   * @claim "Return calls `onClick` with the" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > is what Return presses from a field in its dialog, with the key's own trusted event)
+   * @claim "and a submit button then" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > sends its form once as a submit button, and calls onClick alone without a form)
+   * @claim "It tells assistive technology so" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > says so to assistive technology, and looks like the dialog's main action)
+   * @claim "Give it to one button" registry/ouro/components/ouro/button/button.default.test.tsx verify:testExists(registry/ouro/components/ouro/button/button.default.test.tsx::Button default > does nothing outside a dialog, where Return belongs to the page)
+   */
+  default?: boolean | undefined;
+  ref?: Ref<HTMLButtonElement> | undefined;
+};
 
 /** Props for {@link Button}. Passing `href` makes it a link; otherwise it is a `<button>`. */
 export type ButtonProps = ButtonLinkProps | ButtonButtonProps;
 
 // Class strings are literal so the app's Tailwind finds them when it compiles.
-const base =
-  "press relative isolate box-border inline-flex shrink-0 items-center justify-center align-middle " +
-  "rounded-ouro-control border border-solid font-medium whitespace-nowrap " +
-  // A plain button stays borderless at rest in forced colours too, matching a ghost action
-  // elsewhere; its focus-visible outline below still marks it.
-  "forced-colors:data-[variant=plain]:border-0 " +
-  "no-underline select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
-  "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
-  // A state layer in the text color: a light wash on hover, a deeper one while pressed.
-  "before:pointer-events-none before:absolute before:-inset-px before:rounded-[inherit] before:[corner-shape:inherit] before:bg-current " +
-  "before:opacity-0 before:transition-opacity before:duration-(--ouro-duration-fast) before:ease-[ease] " +
-  // Stryker disable next-line StringLiteral: a class string in a class position; test/state-hovers.test.tsx reads its tokens, outside this file's tests
-  "not-data-disabled:not-active:pointer-fine:hover:before:opacity-[var(--ouro-state-hover,8%)] not-data-disabled:active:before:opacity-[var(--ouro-state-pressed,14%)] " +
-  // Where corner-shape is missing, the surface slot paints the background, border and state layer instead (see ouro-base.css).
-  "bg-(--ouro-bg) border-(--ouro-bd) " +
-  // Stryker disable next-line StringLiteral: a class string in a class position, which no test reads
-  "not-data-disabled:not-active:pointer-fine:hover:[--ouro-state:var(--ouro-state-hover,8%)] not-data-disabled:active:[--ouro-state:var(--ouro-state-pressed,14%)] " +
-  // Press feedback: scale only when motion is allowed and the button is enabled.
-  "motion-safe:not-data-disabled:active:scale-(--ouro-press-scale) " +
-  // `data-ouro-off` is set only when `disabledReason` turns the button off, so a loading button (also data-disabled) keeps its own look.
-  "disabled:cursor-not-allowed disabled:opacity-50 data-ouro-off:cursor-not-allowed data-ouro-off:opacity-50 aria-busy:cursor-progress";
+const base = "press relative isolate box-border inline-flex shrink-0 items-center justify-center align-middle " + "rounded-ouro-control border border-solid font-medium whitespace-nowrap " +
+// A plain button stays borderless at rest in forced colours too, matching a ghost action
+// elsewhere; its focus-visible outline below still marks it.
+"forced-colors:data-[variant=plain]:border-0 " + "no-underline select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " + "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
+// A state layer in the text color: a light wash on hover, a deeper one while pressed.
+"before:pointer-events-none before:absolute before:-inset-px before:rounded-[inherit] before:[corner-shape:inherit] before:bg-current " + "before:opacity-0 before:transition-opacity before:duration-(--ouro-duration-fast) before:ease-[ease] " +
+// Stryker disable next-line StringLiteral: a class string in a class position; test/state-hovers.test.tsx reads its tokens, outside this file's tests
+"not-data-disabled:not-active:pointer-fine:hover:before:opacity-[var(--ouro-state-hover,8%)] not-data-disabled:active:before:opacity-[var(--ouro-state-pressed,14%)] " +
+// Where corner-shape is missing, the surface slot paints the background, border and state layer instead (see ouro-base.css).
+"bg-(--ouro-bg) border-(--ouro-bd) " +
+// Stryker disable next-line StringLiteral: a class string in a class position, which no test reads
+"not-data-disabled:not-active:pointer-fine:hover:[--ouro-state:var(--ouro-state-hover,8%)] not-data-disabled:active:[--ouro-state:var(--ouro-state-pressed,14%)] " +
+// Press feedback: scale only when motion is allowed and the button is enabled.
+"motion-safe:not-data-disabled:active:scale-(--ouro-press-scale) " +
+// `data-ouro-off` is set only when `disabledReason` turns the button off, so a loading button (also data-disabled) keeps its own look.
+"disabled:cursor-not-allowed disabled:opacity-50 data-ouro-off:cursor-not-allowed data-ouro-off:opacity-50 aria-busy:cursor-progress";
 
 // Height and padding step down to desktop density at the `sm` breakpoint through two
 // variables, so the button has one unprefixed `h-*` and `px-*` class and the app's own
@@ -268,31 +294,20 @@ const base =
 // class, not a min-height, so an app's or a component's own `h-*` still sets a smaller button.
 const density = "h-[max(var(--ouro-button-h),var(--ouro-size-6))] px-(--ouro-button-px)";
 const sizes = {
-  sm:
-    `${density} gap-1.5 text-sm [--ouro-button-h:calc(var(--spacing)*9)] [--ouro-button-px:calc(var(--spacing)*3)] ` +
-    "sm:[--ouro-button-h:calc(var(--spacing)*8)] sm:[--ouro-button-px:calc(var(--spacing)*2.5)]",
-  md:
-    `${density} gap-2 text-base sm:text-sm [--ouro-button-h:calc(var(--spacing)*11)] [--ouro-button-px:calc(var(--spacing)*4)] ` +
-    "sm:[--ouro-button-h:calc(var(--spacing)*9)] sm:[--ouro-button-px:calc(var(--spacing)*3.5)]",
-  lg:
-    `${density} gap-2 text-base [--ouro-button-h:calc(var(--spacing)*12)] [--ouro-button-px:calc(var(--spacing)*5)] ` +
-    "sm:[--ouro-button-h:calc(var(--spacing)*11)]",
+  sm: `${density} gap-1.5 text-sm [--ouro-button-h:calc(var(--spacing)*9)] [--ouro-button-px:calc(var(--spacing)*3)] ` + "sm:[--ouro-button-h:calc(var(--spacing)*8)] sm:[--ouro-button-px:calc(var(--spacing)*2.5)]",
+  md: `${density} gap-2 text-base sm:text-sm [--ouro-button-h:calc(var(--spacing)*11)] [--ouro-button-px:calc(var(--spacing)*4)] ` + "sm:[--ouro-button-h:calc(var(--spacing)*9)] sm:[--ouro-button-px:calc(var(--spacing)*3.5)]",
+  lg: `${density} gap-2 text-base [--ouro-button-h:calc(var(--spacing)*12)] [--ouro-button-px:calc(var(--spacing)*5)] ` + "sm:[--ouro-button-h:calc(var(--spacing)*11)]",
   // In a line of text, at the text's own size: the padding takes the box to 24px and more, and the
   // negative margin gives that back, so the line keeps its height and the label sits on its baseline.
-  inline: "h-auto min-w-6 px-1 py-[3px] -my-1 gap-1 rounded-ouro-md align-baseline text-[length:inherit] leading-[inherit]",
+  inline: "h-auto min-w-6 px-1 py-[3px] -my-1 gap-1 rounded-ouro-md align-baseline text-[length:inherit] leading-[inherit]"
 } as const;
 
 // Liquid Glass: the theme's glass tint over what is behind, blurred, with its rim as the border and a soft shadow, in a
 // capsule 40px tall (the capsule radius stops at half the height, so Ouro's squircle capsule, a circle for an icon). It stays pressed
 // while the popup it opened is open. Solid, with a defined edge, under reduced transparency or more contrast.
-const glass =
-  "[--ouro-glass-h:calc(var(--spacing)*10)] [--ouro-bd:var(--ouro-glass-rim)] [--ouro-bg:color-mix(in_oklab,var(--ouro-glass)_var(--ouro-glass-tint),transparent)] " +
-  "[--ouro-control-radius:9999px] [--ouro-control-corner-shape:superellipse(1.05)] " +
-  "[--ouro-button-h:var(--ouro-glass-h)] " +
-  "shadow-(--shadow-sm) backdrop-blur-xl aria-expanded:[--ouro-state:var(--ouro-state-pressed,14%)] aria-expanded:before:opacity-[var(--ouro-state-pressed,14%)] " +
-  // Stryker disable next-line StringLiteral: a test cannot emulate reduced transparency (Playwright has no option for it)
-  "[@media(prefers-reduced-transparency:reduce)]:[--ouro-bg:var(--ouro-glass-solid)] [@media(prefers-reduced-transparency:reduce)]:[--ouro-bd:var(--ouro-glass-edge)] [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none " +
-  "contrast-more:[--ouro-bg:var(--ouro-glass-solid)] contrast-more:[--ouro-bd:currentColor] contrast-more:backdrop-blur-none";
+const glass = "[--ouro-glass-h:calc(var(--spacing)*10)] [--ouro-bd:var(--ouro-glass-rim)] [--ouro-bg:color-mix(in_oklab,var(--ouro-glass)_var(--ouro-glass-tint),transparent)] " + "[--ouro-control-radius:9999px] [--ouro-control-corner-shape:superellipse(1.05)] " + "[--ouro-button-h:var(--ouro-glass-h)] " + "shadow-(--shadow-sm) backdrop-blur-xl aria-expanded:[--ouro-state:var(--ouro-state-pressed,14%)] aria-expanded:before:opacity-[var(--ouro-state-pressed,14%)] " +
+// Stryker disable next-line StringLiteral: a test cannot emulate reduced transparency (Playwright has no option for it)
+"[@media(prefers-reduced-transparency:reduce)]:[--ouro-bg:var(--ouro-glass-solid)] [@media(prefers-reduced-transparency:reduce)]:[--ouro-bd:var(--ouro-glass-edge)] [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none " + "contrast-more:[--ouro-bg:var(--ouro-glass-solid)] contrast-more:[--ouro-bd:currentColor] contrast-more:backdrop-blur-none";
 
 // `soft` is the tone at low opacity behind text in the tone, the pattern shadcn uses for
 // destructive, with the text mixed 20% toward the foreground so it keeps 4.5:1 on the
@@ -307,58 +322,49 @@ const glass =
 // soft and outline read one indirection property, --ouro-tone, set per tone by a tiny
 // class below: both formulas are byte for byte Badge's, so a page that renders both
 // shares one pair of generated rules instead of one pair per tone per component.
-const softToneClass =
-  "[--ouro-bd:transparent] [--ouro-bg:color-mix(in_oklab,var(--ouro-tone)_10%,transparent)] text-[color-mix(in_oklab,var(--ouro-tone)_80%,var(--foreground))] contrast-more:[--ouro-bd:currentColor]";
+const softToneClass = "[--ouro-bd:transparent] [--ouro-bg:color-mix(in_oklab,var(--ouro-tone)_10%,transparent)] text-[color-mix(in_oklab,var(--ouro-tone)_80%,var(--foreground))] contrast-more:[--ouro-bd:currentColor]";
 const outlineToneClass = "[--ouro-bd:color-mix(in_oklab,var(--ouro-tone)_45%,transparent)] [--ouro-bg:transparent]";
 const looks = {
   solid: {
-    primary:
-      "[--ouro-bd:transparent] [--ouro-bg:var(--ouro-action,var(--primary))] text-(--ouro-action-foreground,var(--primary-foreground)) " +
-      "not-data-disabled:not-active:pointer-fine:hover:[--ouro-bg:var(--ouro-action-hover,var(--ouro-action,var(--primary)))] " +
-      "not-data-disabled:active:[--ouro-bg:var(--ouro-action-active,var(--ouro-action,var(--primary)))] " +
-      "data-disabled:[--ouro-bg:var(--ouro-action-disabled,var(--ouro-action,var(--primary)))] " +
-      "data-disabled:text-(--ouro-action-disabled-foreground,var(--ouro-action-foreground,var(--primary-foreground))) " +
-      "disabled:opacity-(--ouro-action-disabled-opacity,0.5) data-ouro-off:opacity-(--ouro-action-disabled-opacity,0.5)",
+    primary: "[--ouro-bd:transparent] [--ouro-bg:var(--ouro-action,var(--primary))] text-(--ouro-action-foreground,var(--primary-foreground)) " + "not-data-disabled:not-active:pointer-fine:hover:[--ouro-bg:var(--ouro-action-hover,var(--ouro-action,var(--primary)))] " + "not-data-disabled:active:[--ouro-bg:var(--ouro-action-active,var(--ouro-action,var(--primary)))] " + "data-disabled:[--ouro-bg:var(--ouro-action-disabled,var(--ouro-action,var(--primary)))] " + "data-disabled:text-(--ouro-action-disabled-foreground,var(--ouro-action-foreground,var(--primary-foreground))) " + "disabled:opacity-(--ouro-action-disabled-opacity,0.5) data-ouro-off:opacity-(--ouro-action-disabled-opacity,0.5)",
     secondary: "[--ouro-bd:transparent] [--ouro-bg:var(--secondary)] text-secondary-foreground",
     destructive: "[--ouro-bd:transparent] [--ouro-bg:var(--destructive)] text-destructive-foreground",
     success: "[--ouro-bd:transparent] [--ouro-bg:var(--success)] text-success-foreground",
-    warning: "[--ouro-bd:transparent] [--ouro-bg:var(--warning)] text-warning-foreground",
+    warning: "[--ouro-bd:transparent] [--ouro-bg:var(--warning)] text-warning-foreground"
   },
   soft: {
     primary: `${softToneClass} [--ouro-tone:var(--primary)]`,
     secondary: "[--ouro-bd:transparent] [--ouro-bg:color-mix(in_oklab,var(--secondary)_50%,transparent)] text-secondary-foreground contrast-more:[--ouro-bd:currentColor]",
     destructive: `${softToneClass} [--ouro-tone:var(--destructive)]`,
     success: `${softToneClass} [--ouro-tone:var(--success)]`,
-    warning: `${softToneClass} [--ouro-tone:var(--warning)]`,
+    warning: `${softToneClass} [--ouro-tone:var(--warning)]`
   },
   outline: {
     primary: `${outlineToneClass} [--ouro-tone:var(--primary)] text-foreground`,
     secondary: "[--ouro-bd:var(--border)] [--ouro-bg:transparent] text-foreground",
     destructive: `${outlineToneClass} [--ouro-tone:var(--destructive)] text-destructive`,
     success: `${outlineToneClass} [--ouro-tone:var(--success)] text-success`,
-    warning: `${outlineToneClass} [--ouro-tone:var(--warning)] text-warning`,
+    warning: `${outlineToneClass} [--ouro-tone:var(--warning)] text-warning`
   },
   plain: {
     primary: "[--ouro-bd:transparent] [--ouro-bg:transparent] text-primary",
     secondary: "[--ouro-bd:transparent] [--ouro-bg:transparent] text-foreground",
     destructive: "[--ouro-bd:transparent] [--ouro-bg:transparent] text-destructive",
     success: "[--ouro-bd:transparent] [--ouro-bg:transparent] text-success",
-    warning: "[--ouro-bd:transparent] [--ouro-bg:transparent] text-warning",
+    warning: "[--ouro-bd:transparent] [--ouro-bg:transparent] text-warning"
   },
   glass: {
     primary: `${glass} text-primary`,
     secondary: `${glass} text-foreground`,
     destructive: `${glass} text-destructive`,
     success: `${glass} text-success`,
-    warning: `${glass} text-warning`,
-  },
+    warning: `${glass} text-warning`
+  }
 } as const;
-
 const iconClass = "size-[1.25em] shrink-0";
 
 // An icon passed as children sizes like `startIcon`, unless it carries a size class of its own.
-const iconChildClass =
-  "[&>[data-ouro-label]>svg:not([class*='size-'])]:size-[1.25em] [&>[data-ouro-label]>svg]:shrink-0";
+const iconChildClass = "[&>[data-ouro-label]>svg:not([class*='size-'])]:size-[1.25em] [&>[data-ouro-label]>svg]:shrink-0";
 
 // An icon-only button drops the label's side padding and is at least as wide as it is tall: the height is a floor,
 // never a width, so an icon sits in a square and a child wider than the height keeps its width.
@@ -366,9 +372,7 @@ const iconChildClass =
 // never a width, so an icon sits in a square and a child wider than the height keeps its width. On a fine pointer the
 // square is at least the 24px floor, or the height when that is larger.
 const iconOnlyClass = "min-w-(--ouro-button-h) pointer-fine:min-w-[max(var(--ouro-button-h),var(--ouro-size-6))] [--ouro-button-px:0px] sm:[--ouro-button-px:0px]";
-
 const buttonTypes = ["button", "submit", "reset"] as const;
-
 function buttonHint(token: string): string {
   const size = sizeFor(token, ["sm", "sm", "md", "lg", "lg", "lg", "lg"]);
   if (size) return `size="${size}"`;
@@ -385,7 +389,7 @@ const shadcnVariants: Readonly<Record<string, string>> = {
   destructive: '<Button tone="destructive">',
   secondary: '<Button tone="secondary">',
   ghost: '<Button variant="plain">',
-  link: '<Button variant="plain" href="/path">',
+  link: '<Button variant="plain" href="/path">'
 };
 
 /** The dev message for a variant that is not one of Ouro UI's. */
@@ -399,37 +403,22 @@ function sizeWarning(size: string): readonly [string, string] {
   const fix = size === "icon" ? '<Button aria-label="Add"><PlusIcon /></Button>' : '<Button size="md">';
   return [`size="${size}" is not a size`, fix];
 }
-
-function Spinner({ fadeIn }: { fadeIn: boolean }): JSX.Element {
-  return (
-    <span
-      data-slot="button-spinner"
-      aria-hidden="true"
-      className={cn(
-        "absolute inset-0 flex items-center justify-center transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out)",
-        fadeIn && "starting:opacity-0",
-      )}
-    >
-      <svg
-        data-slot="button-spinner-icon"
-        data-ouro-spinner=""
-        viewBox="0 0 24 24"
-        fill="none"
-        className="size-[1.25em] animate-[ouro-spin_0.8s_linear_infinite] motion-reduce:animate-[ouro-pulse_1.6s_ease-in-out_infinite]"
-      >
+function Spinner({
+  fadeIn
+}: {
+  fadeIn: boolean;
+}): JSX.Element {
+  return <span data-slot="button-spinner" aria-hidden="true" className={cn("absolute inset-0 flex items-center justify-center transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out)", fadeIn && "starting:opacity-0")}>
+      <svg data-slot="button-spinner-icon" data-ouro-spinner="" viewBox="0 0 24 24" fill="none" className="size-[1.25em] animate-[ouro-spin_0.8s_linear_infinite] motion-reduce:animate-[ouro-pulse_1.6s_ease-in-out_infinite]">
         <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" opacity="0.25" />
         <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
       </svg>
-    </span>
-  );
+    </span>;
 }
-
 const preventDefault = (event: MouseEvent) => event.preventDefault();
 
 /** What takes Return itself, so a dialog's default action leaves it be: controls, links, options and an open list. */
-const takesReturn =
-  "button,a[href],select,[contenteditable]:not([contenteditable=false]),input:is([type=button],[type=submit],[type=reset],[type=checkbox],[type=radio],[type=file])," +
-  "[role=button],[role=link],[role=menuitem],[role=menuitemcheckbox],[role=menuitemradio],[role=option],[role=checkbox],[role=radio],[role=switch],[role=tab],[role=treeitem],[aria-expanded=true]";
+const takesReturn = "button,a[href],select,[contenteditable]:not([contenteditable=false]),input:is([type=button],[type=submit],[type=reset],[type=checkbox],[type=radio],[type=file])," + "[role=button],[role=link],[role=menuitem],[role=menuitemcheckbox],[role=menuitemradio],[role=option],[role=checkbox],[role=radio],[role=switch],[role=tab],[role=treeitem],[aria-expanded=true]";
 
 /** Whether this key press is Return for the default action of the dialog `root`. */
 function returnPresses(event: globalThis.KeyboardEvent, root: Element): boolean {
@@ -448,7 +437,9 @@ function elementHasText(node: ReactNode): boolean {
   if (typeof node === "string") return node.trim() !== "";
   if (typeof node === "number") return true;
   if (Array.isArray(node)) return node.some(elementHasText);
-  if (isValidElement<{ children?: ReactNode }>(node) && (typeof node.type === "string" || node.type === Fragment)) return elementHasText(node.props.children);
+  if (isValidElement<{
+    children?: ReactNode;
+  }>(node) && (typeof node.type === "string" || node.type === Fragment)) return elementHasText(node.props.children);
   return false;
 }
 
@@ -500,47 +491,18 @@ export function Button(props: ButtonProps): JSX.Element {
     ...rest
   } = props;
   // A tone, variant or size that is not one of Ouro UI's (a type error) warns and renders the default.
-  const tone = Object.hasOwn(looks.solid, toneProp) ? (toneProp as keyof typeof looks.solid) : "primary";
-  const variant = Object.hasOwn(looks, variantProp) ? (variantProp as keyof typeof looks) : "solid";
-  const size = Object.hasOwn(sizes, sizeProp) ? (sizeProp as keyof typeof sizes) : "md";
-  useAppearanceClassNameCheck(
-    "Button",
-    className,
-    process.env.NODE_ENV !== "production" ? buttonHint : /* istanbul ignore next @preserve -- production only */ "",
-  );
-  useDevWarnings(
-    "Button",
-    process.env.NODE_ENV !== "production"
-      ? () => {
-          const link = rest as { href?: string; type?: string; disabled?: boolean };
-          return [
-            tone !== toneProp && toneWarning("Button", String(toneProp), Object.keys(looks.solid)),
-            variant !== variantProp && variantWarning(String(variantProp)),
-            size !== sizeProp && sizeWarning(String(sizeProp)),
-            isLoading !== undefined && ["isLoading is not a prop", "<Button loading>"],
-            color !== undefined && ["color is not a prop", `<Button tone="${toneFor(`bg-${String(color)}`)}">`],
-            asChild !== undefined && ["asChild is not a prop", '<Button href="/path">'],
-            leftIcon !== undefined && ["leftIcon is not a prop", "<Button startIcon={Icon}>"],
-            rightIcon !== undefined && ["rightIcon is not a prop", "<Button endIcon={Icon}>"],
-            link.href === undefined &&
-              link.type !== undefined &&
-              !buttonTypes.includes(link.type as (typeof buttonTypes)[number]) && [
-                `type="${link.type}" is not a button type; use "button", "submit", "reset"`,
-                Object.hasOwn(looks.solid, link.type) ? `<Button tone="${link.type}">` : '<Button type="button">',
-              ],
-            link.href === undefined &&
-              reloadDocument !== undefined && ["reloadDocument needs href", '<Button href="/path" reloadDocument>'],
-            link.href !== undefined &&
-              link.type !== undefined && [
-                `a link has no type, so type="${link.type}" is ignored`,
-                `<Button type="${link.type}"> without href`,
-              ],
-            link.href !== undefined &&
-              link.disabled !== undefined && ["a link cannot be disabled", "<Button disabled> without href"],
-          ];
-        }
-      : /* istanbul ignore next @preserve -- production only */ undefined,
-  );
+  const tone = Object.hasOwn(looks.solid, toneProp) ? toneProp as keyof typeof looks.solid : "primary";
+  const variant = Object.hasOwn(looks, variantProp) ? variantProp as keyof typeof looks : "solid";
+  const size = Object.hasOwn(sizes, sizeProp) ? sizeProp as keyof typeof sizes : "md";
+  useAppearanceClassNameCheck("Button", className, process.env.NODE_ENV !== "production" ? buttonHint : /* istanbul ignore next @preserve -- production only */"");
+  useDevWarnings("Button", process.env.NODE_ENV !== "production" ? () => {
+    const link = rest as {
+      href?: string;
+      type?: string;
+      disabled?: boolean;
+    };
+    return [tone !== toneProp && toneWarning("Button", String(toneProp), Object.keys(looks.solid)), variant !== variantProp && variantWarning(String(variantProp)), size !== sizeProp && sizeWarning(String(sizeProp)), isLoading !== undefined && ["isLoading is not a prop", "<Button loading>"], color !== undefined && ["color is not a prop", `<Button tone="${toneFor(`bg-${String(color)}`)}">`], asChild !== undefined && ["asChild is not a prop", '<Button href="/path">'], leftIcon !== undefined && ["leftIcon is not a prop", "<Button startIcon={Icon}>"], rightIcon !== undefined && ["rightIcon is not a prop", "<Button endIcon={Icon}>"], link.href === undefined && link.type !== undefined && !buttonTypes.includes(link.type as typeof buttonTypes[number]) && [`type="${link.type}" is not a button type; use "button", "submit", "reset"`, Object.hasOwn(looks.solid, link.type) ? `<Button tone="${link.type}">` : '<Button type="button">'], link.href === undefined && reloadDocument !== undefined && ["reloadDocument needs href", '<Button href="/path" reloadDocument>'], link.href !== undefined && link.type !== undefined && [`a link has no type, so type="${link.type}" is ignored`, `<Button type="${link.type}"> without href`], link.href !== undefined && link.disabled !== undefined && ["a link cannot be disabled", "<Button disabled> without href"]];
+  } : /* istanbul ignore next @preserve -- production only */undefined);
 
   // Speak the busy state when loading turns on. The shared region sits outside the
   // button, so the button's accessible name stays exactly its label.
@@ -557,11 +519,17 @@ export function Button(props: ButtonProps): JSX.Element {
   // (an open list's Return) is seen as taken; the button's latest onClick gets the key's own event.
   const own = useRef<HTMLElement | null>(null);
   const press = useRef<((event: globalThis.KeyboardEvent) => void) | undefined>(undefined);
-  const onClick = (rest as unknown as { onClick?: (event: globalThis.KeyboardEvent) => void }).onClick;
+  const onClick = (rest as unknown as {
+    onClick?: (event: globalThis.KeyboardEvent) => void;
+  }).onClick;
   useEffect(() => {
     press.current = onClick;
   });
-  const pressable = isDefault && rest.href === undefined && !(rest as { disabled?: boolean }).disabled && !(rest as { disabledReason?: string }).disabledReason && !loading;
+  const pressable = isDefault && rest.href === undefined && !(rest as {
+    disabled?: boolean;
+  }).disabled && !(rest as {
+    disabledReason?: string;
+  }).disabledReason && !loading;
   useEffect(() => {
     const root = pressable ? own.current!.closest("[role=dialog],[role=alertdialog]") : null;
     if (!root) return undefined;
@@ -576,9 +544,14 @@ export function Button(props: ButtonProps): JSX.Element {
     root.ownerDocument.addEventListener("keydown", onKeyDown);
     return () => root.ownerDocument.removeEventListener("keydown", onKeyDown);
   }, [pressable]);
-
-  const reason = useDisabledReason(rest as { disabledReason?: string }, (rest as { "aria-describedby"?: string })["aria-describedby"]);
-  const buttonRef = useMergedRef((rest as { ref?: Ref<HTMLElement> }).ref, own);
+  const reason = useDisabledReason(rest as {
+    disabledReason?: string;
+  }, (rest as {
+    "aria-describedby"?: string;
+  })["aria-describedby"]);
+  const buttonRef = useMergedRef((rest as {
+    ref?: Ref<HTMLElement>;
+  }).ref, own);
   // An icon-only button (one element as its whole label, named by aria-label or aria-labelledby) is at least as wide as
   // it is tall, so an icon's button is square, as shadcn's icon size is, and a theme whose controls are capsules draws
   // it as a circle. Its width is a floor, so content that is wider than the height keeps its width.
@@ -586,16 +559,14 @@ export function Button(props: ButtonProps): JSX.Element {
   // Neither does an element whose own children include words: an aria-live span, a <Trans>, or a styled
   // span around text is an ordinary label, named more fully by aria-label, not an icon. A custom
   // component's rendered output isn't known without rendering it, so it still reads as an icon.
-  const named = rest as { "aria-label"?: string; "aria-labelledby"?: string };
-  const iconOnly =
-    size !== "inline" &&
-    !StartIcon &&
-    !EndIcon &&
-    isValidElement<{ width?: unknown; height?: unknown }>(children) &&
-    children.type !== Fragment &&
-    !(children.type === "img" && children.props.width !== children.props.height) &&
-    !elementHasText(children) &&
-    Boolean(named["aria-label"] || named["aria-labelledby"]);
+  const named = rest as {
+    "aria-label"?: string;
+    "aria-labelledby"?: string;
+  };
+  const iconOnly = size !== "inline" && !StartIcon && !EndIcon && isValidElement<{
+    width?: unknown;
+    height?: unknown;
+  }>(children) && children.type !== Fragment && !(children.type === "img" && children.props.width !== children.props.height) && !elementHasText(children) && Boolean(named["aria-label"] || named["aria-labelledby"]);
   // Stryker disable next-line ConditionalExpression: the glass height variable is read only by the glass look, so setting it on another variant's small size changes nothing.
   const classes = cn(base, iconChildClass, sizes[size], iconOnly && iconOnlyClass, looks[variant][tone], variant === "glass" && size === "sm" && "[--ouro-glass-h:calc(var(--spacing)*9)]", fullWidth && "w-full", className);
 
@@ -604,99 +575,58 @@ export function Button(props: ButtonProps): JSX.Element {
   // (axe can check its contrast). It is `isolate`, not `relative`, so it is no containing block
   // for an app's absolutely placed children.
   const fade = cn("isolate transition-opacity duration-(--ouro-duration-fast) ease-(--ouro-ease-out)", loading && "opacity-0");
-  const content = (
-    <>
+  const content = <>
       <TouchTarget />
-      <span
-        data-slot="button-label"
-        data-ouro-label=""
-        // The label takes the room a wider button has, aligned as the button aligns it (centred, or the app's
-        // justify-start), so an end icon after it sits at the end.
-        className={cn("inline-flex grow items-center gap-[inherit] [justify-content:inherit]", fade)}
-      >
+      <span data-slot="button-label" data-ouro-label=""
+    // The label takes the room a wider button has, aligned as the button aligns it (centred, or the app's
+    // justify-start), so an end icon after it sits at the end.
+    className={cn("inline-flex grow items-center gap-[inherit] [justify-content:inherit]", fade)}>
         {StartIcon && <StartIcon aria-hidden="true" className={cn(iconClass, "-ms-0.5")} />}
         {children}
       </span>
       {EndIcon && <EndIcon aria-hidden="true" className={cn(iconClass, fade, "-me-0.5")} />}
-      {loading && <Spinner fadeIn={!initialLoading} />}
-    </>
-  );
-
+      {stryMutAct_9fa48("2") ? loading || <Spinner fadeIn={!initialLoading} /> : stryMutAct_9fa48("1") ? false : stryMutAct_9fa48("0") ? true : (stryCov_9fa48("0", "1", "2"), loading && <Spinner fadeIn={stryMutAct_9fa48("3") ? initialLoading : (stryCov_9fa48("3"), !initialLoading)} />)}
+    </>;
   if (rest.href !== undefined) {
     // `type` and `disabled` are typed `never` on links; drop them if they arrive anyway.
-    const { onClick, type: _type, disabled: _disabled, ...anchorProps } = rest as Omit<ButtonLinkProps, keyof ButtonBaseProps>;
-    return (
-      <RouterLink
-        data-ouro-control="button"
-        data-ouro-part="root"
-        {...anchorProps}
-        reloadDocument={reloadDocument}
-        onClick={loading ? preventDefault : onClick}
-        onAuxClick={loading ? preventDefault : anchorProps.onAuxClick}
-        className={classes}
-        data-ouro="button"
-        data-variant={variant}
-        data-tone={tone}
-        data-loading={loading ? "" : undefined}
-        data-disabled={loading ? "" : undefined}
-        aria-busy={loading || anchorProps["aria-busy"]}
-        aria-disabled={loading || anchorProps["aria-disabled"]}
-      >
+    const {
+      onClick,
+      type: _type,
+      disabled: _disabled,
+      ...anchorProps
+    } = rest as Omit<ButtonLinkProps, keyof ButtonBaseProps>;
+    return <RouterLink data-ouro-control="button" data-ouro-part="root" {...anchorProps} reloadDocument={reloadDocument} onClick={loading ? preventDefault : onClick} onAuxClick={loading ? preventDefault : anchorProps.onAuxClick} className={classes} data-ouro="button" data-variant={variant} data-tone={tone} data-loading={loading ? "" : undefined} data-disabled={loading ? "" : undefined} aria-busy={loading || anchorProps["aria-busy"]} aria-disabled={loading || anchorProps["aria-disabled"]}>
         {content}
-      </RouterLink>
-    );
+      </RouterLink>;
   }
 
   // Stryker disable next-line StringLiteral: a type that is not a button type renders "button", so "" does too.
-  const { ref: _ref, disabled, disabledReason: _reason, type: typeProp = "button", ...buttonProps } = rest as Omit<ButtonButtonProps, keyof ButtonBaseProps>;
+  const {
+    ref: _ref,
+    disabled,
+    disabledReason: _reason,
+    type: typeProp = "button",
+    ...buttonProps
+  } = rest as Omit<ButtonButtonProps, keyof ButtonBaseProps>;
   // A button that opens a dialog (its own, or a component's trigger) holds the page from the press,
   // so a release during a smooth scroll lands on it and its click opens the dialog.
-  const holdsPage =
-    buttonProps["aria-haspopup"] === "dialog"
-      ? {
-          onPointerDown: (event: PointerEvent<HTMLButtonElement>) => {
-            buttonProps.onPointerDown?.(event);
-            holdPageAtPress.dialog.onPointerDown(event);
-          },
-          onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => {
-            buttonProps.onKeyDown?.(event);
-            holdPageAtPress.dialog.onKeyDown(event);
-          },
-        }
-      : {};
+  const holdsPage = buttonProps["aria-haspopup"] === "dialog" ? {
+    onPointerDown: (event: PointerEvent<HTMLButtonElement>) => {
+      buttonProps.onPointerDown?.(event);
+      holdPageAtPress.dialog.onPointerDown(event);
+    },
+    onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => {
+      buttonProps.onKeyDown?.(event);
+      holdPageAtPress.dialog.onKeyDown(event);
+    }
+  } : {};
   // A type that is not a button type would submit forms (the browser's default), so it renders "button".
-  const type = buttonTypes.includes(typeProp as (typeof buttonTypes)[number]) ? (typeProp as (typeof buttonTypes)[number]) : "button";
-  const button = (
-    <BaseButton
-      data-ouro-control="button"
-      data-ouro-part="root"
-      data-slot="button"
-      {...buttonProps}
-      {...holdsPage}
-      ref={buttonRef}
-      type={type}
-      disabled={Boolean(disabled || loading || reason.off)}
-      focusableWhenDisabled={Boolean(reason.off || (loading && !disabled))}
-      className={classes}
-      data-ouro="button"
-      data-variant={variant}
-      data-tone={tone}
-      data-loading={loading ? "" : undefined}
-      data-ouro-off={reason.off ? "" : undefined}
-      data-default={isDefault ? "" : undefined}
-      aria-keyshortcuts={isDefault ? "Enter" : buttonProps["aria-keyshortcuts"]}
-      aria-busy={loading || buttonProps["aria-busy"]}
-      aria-describedby={reason.describedBy}
-    >
-      {reason.note ? (
-        <>
+  const type = buttonTypes.includes(typeProp as typeof buttonTypes[number]) ? typeProp as typeof buttonTypes[number] : "button";
+  const button = <BaseButton data-ouro-control="button" data-ouro-part="root" data-slot="button" {...buttonProps} {...holdsPage} ref={buttonRef} type={type} disabled={Boolean(disabled || loading || reason.off)} focusableWhenDisabled={Boolean(reason.off || loading && !disabled)} className={classes} data-ouro="button" data-variant={variant} data-tone={tone} data-loading={loading ? "" : undefined} data-ouro-off={reason.off ? "" : undefined} data-default={isDefault ? "" : undefined} aria-keyshortcuts={isDefault ? "Enter" : buttonProps["aria-keyshortcuts"]} aria-busy={loading || buttonProps["aria-busy"]} aria-describedby={reason.describedBy}>
+      {reason.note ? <>
           {content}
           {reason.note}
-        </>
-      ) : (
-        content
-      )}
-    </BaseButton>
-  );
+        </> : content}
+    </BaseButton>;
   return reason.wrapped ? <Tooltip content={reason.reason}>{button}</Tooltip> : button;
 }
