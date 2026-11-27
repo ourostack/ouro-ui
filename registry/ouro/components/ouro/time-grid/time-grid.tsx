@@ -780,7 +780,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       // The app's day summaries make the header as tall as they are, which only a measure knows; events scrolled into view stop below it.
       if (summaries) root.style.setProperty("--ouro-time-grid-head", `${headHeight}px`);
       root.style.setProperty("--ouro-time-grid-fill", `${(viewport.clientHeight - headHeight) / 24}px`);
-      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
       setHourPx(((body.offsetHeight / (dayLength / 60)) * 16) / rem);
     };
     // Measured now, before the first paint, when there are events to give lines to, as the fold below is: a hour taller
