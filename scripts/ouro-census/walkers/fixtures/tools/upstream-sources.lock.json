@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "kit",
+      "repository": "ourostack/ouro-ui",
+      "commit": "0000000000000000000000000000000000000000",
+      "files": [{ "sourcePath": "registry/ouro/ax/passthrough.ts", "generatedPath": "src/nested/passthrough.ts", "sha256": "edac6a4aada3ac5508753f87824dbd63096651a17fe6257add309f336d9e2330" }]
+    }
+  ]
+}

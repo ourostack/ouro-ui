@@ -607,6 +607,8 @@ test("a source's passthrough and approvals must be lists", async () => {
   const dir = scratch();
   try {
     await failsWith(args("config-bad-passthrough.json", baselineFile(dir, [])), "passthrough, approvals and reshape must be lists of <file>#<function>");
+    await failsWith(args("config-bad-skip.json", baselineFile(dir, [])), "tool-schemas: skip is a list of folders, on an argv-entries or tool-schemas source only");
+    await failsWith(args("config-skip-wrong-walker.json", baselineFile(dir, [])), "mcp-schemas: skip is a list of folders, on an argv-entries or tool-schemas source only");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
