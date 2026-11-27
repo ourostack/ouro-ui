@@ -286,7 +286,8 @@ export interface ComposerOwnProps {
    * web and mail links, line breaks, and lists and quotes as lines with their Markdown marks; scripts,
    * styles, attributes and other links are dropped and their text kept. ⌘⇧V pastes the text only, a web
    * address pasted over selected text links it, and ⌘K links the selection or takes its link off: over
-   * words that aren't an address it asks for one in its own popover, never the browser's prompt.
+   * words that aren't an address it asks for one in its own popover, never the browser's prompt, and
+   * with just the caret it still asks, the typed address becoming the new link's own text.
    * A `value` or `defaultValue` spelling italic with a star (`*italic*`) or bold with underscores
    * (`__bold__`) reads the same way and writes back out with that same mark, rather than switching
    * to the keys' own underscore or star; plain text keeps a star, an underscore or a tilde bare
@@ -299,6 +300,7 @@ export interface ComposerOwnProps {
    *
    * @claim "`value`, `defaultValue` and `onSend` stay Markdown text" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > shows Markdown marks as formatting, and writes formatting back out as the same Markdown)
    * @claim "over words that aren't an address it asks for one in its own popover, never the browser's prompt" registry/ouro/components/ouro/composer/composer.rich-paste.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich-paste.test.tsx::Composer rich paste > asks for an address in its own popover, never the browser's prompt, and links the words it was asked over)
+   * @claim "with just the caret it still asks, the typed address becoming the new link's own text" registry/ouro/components/ouro/composer/composer.rich-paste.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich-paste.test.tsx::Composer rich paste > asks for a link with just the caret too, the typed address becoming the new link's own text)
    * @claim "as the keys ⌘B, ⌘I, ⌘U, ⌘⇧X and ⌘⇧E" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > formats with the keys: mod+B, mod+I, mod+U, mod+Shift+X for strikethrough and mod+Shift+E for code)
    * @claim "so a page with only plain composers pays nothing for it" scripts/composer-weight.test.mjs verify:testExists(scripts/composer-weight.test.mjs::a page with a plain Composer loads no Lexical with it: the rich editor is a chunk fetched on first use)
    * @claim "until it arrives, and on the server, a plain textarea shows" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > renders the plain textarea on the server and until the editor has loaded, so the first render never touches the editor)
