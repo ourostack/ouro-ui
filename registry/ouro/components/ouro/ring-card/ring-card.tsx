@@ -25,6 +25,8 @@ export interface RingCardProps extends Omit<HTMLAttributes<HTMLDivElement>, "chi
   avatar?: { src?: string | undefined } | undefined;
   /** The ring's assertive announcement, including any page-owned shortcuts. Clear after the person acts. */
   announcement: string;
+  /** Animate a newly received call. Omit for a call already present when the page loads. */
+  arriving?: boolean | undefined;
   /**
    * Optional page-owned shortcuts, shown in tooltips. RingCard registers no keyboard handlers.
    * @claim "RingCard registers no keyboard handlers" registry/ouro/components/ouro/ring-card/ring-card.test.tsx verify:testExists(registry/ouro/components/ouro/ring-card/ring-card.test.tsx::RingCard > leaves page shortcuts to the host)
@@ -65,12 +67,12 @@ export interface RingCardProps extends Omit<HTMLAttributes<HTMLDivElement>, "chi
  *
  * @group Chat
  * @example
- * <RingCard caller="Mara Vale" kind="video" announcement="Mara Vale is calling."
+ * <RingCard arriving caller="Mara Vale" kind="video" announcement="Mara Vale is calling."
  *   onDecline={decline} onAudio={answerAudio} onVideo={answerVideo} />
  * @claim "An incoming call, with the caller" registry/ouro/components/ouro/ring-card/ring-card.test.tsx verify:testExists(registry/ouro/components/ouro/ring-card/ring-card.test.tsx::RingCard > introduces the caller without taking focus from a person's work)
  */
 export function RingCard({
-  caller, kind: kindProp, note, avatar, announcement, keys, onDecline, onAudio, onVideo,
+  caller, kind: kindProp, note, avatar, announcement, arriving = false, keys, onDecline, onAudio, onVideo,
   chips, pending, failure, labels, className, ref, ...rest
 }: RingCardProps): JSX.Element {
   const kind = kindProp === "video" ? "video" : "audio";
@@ -85,13 +87,10 @@ export function RingCard({
   const actionsRef = useFocusHandoff<HTMLDivElement>();
   useLayoutEffect(() => {
     const element = box.current!;
-    const retainHeight = () => {
-      tallest.current = Math.max(tallest.current, element.offsetHeight);
+    const observer = new ResizeObserver((entries) => {
+      tallest.current = Math.max(tallest.current, entries[0]!.borderBoxSize[0]!.blockSize);
       element.style.minHeight = `${tallest.current}px`;
-    };
-    retainHeight();
-    if (element.getAnimations().length) element.setAttribute("data-starting-style", "");
-    const observer = new ResizeObserver(retainHeight);
+    });
     observer.observe(element);
     return () => observer.disconnect();
   });
@@ -119,13 +118,17 @@ export function RingCard({
       data-ouro-part="root"
       data-kind={kind}
       data-state={failure ? "failed" : pending ? "pending" : "ringing"}
+      onTransitionRun={(event) => {
+        if (event.target === event.currentTarget) event.currentTarget.setAttribute("data-starting-style", "");
+        rest.onTransitionRun?.(event);
+      }}
       onTransitionEnd={(event) => {
         if (event.target === event.currentTarget) event.currentTarget.removeAttribute("data-starting-style");
         rest.onTransitionEnd?.(event);
       }}
       className={cn(
         "box-border flex w-full min-w-0 flex-col gap-4 rounded-ouro-xl border border-solid border-border bg-card p-4 text-card-foreground shadow-(--shadow-lg) [--ouro-scroller-surface:var(--card)]",
-        arrival, className,
+        arriving && arrival, className,
       )}
     >
       <div data-slot="ring-card-announcement" role="alert" aria-live="assertive" aria-atomic="true" className="sr-only">{announcement}</div>

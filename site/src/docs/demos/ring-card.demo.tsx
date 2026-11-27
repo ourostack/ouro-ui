@@ -8,6 +8,7 @@ import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 
 export default function RingCardDemo(): JSX.Element {
   const [state, setState] = useState("ringing");
+  const [arrival, setArrival] = useState(0);
   const [media, setMedia] = useState<"audio" | "video" | null>("audio");
   const [replying, setReplying] = useState(false);
   const [replySent, setReplySent] = useState(false);
@@ -19,6 +20,7 @@ export default function RingCardDemo(): JSX.Element {
     <div className="grid w-full max-w-sm gap-6">
       <SegmentedControl label="Call state" hideLabel fullWidth value={state} onValueChange={(next) => {
         setState(next);
+        if (next === "ringing") setArrival((count) => count + 1);
         setReplying(false);
         setReplySent(false);
       }} items={[
@@ -27,6 +29,7 @@ export default function RingCardDemo(): JSX.Element {
         { value: "failed", label: "Failure" },
       ]} />
       <RingCard
+        key={arrival} arriving={arrival > 0}
         caller="Mara Vale" kind="video" note="Shall we take the scenic route?"
         announcement={state === "ringing" ? "Mara Vale is calling with video." : ""}
         onDecline={() => answer(null)} onAudio={() => answer("audio")} onVideo={() => answer("video")}

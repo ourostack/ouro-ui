@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
+import { flushSync } from "react-dom";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { RingCard } from "@/registry/ouro/components/ouro/ring-card/ring-card";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
@@ -51,9 +52,28 @@ function AnsweringDemo() {
         onDecline={() => setPending({ label: "Declining...", media: null })}
         onAudio={() => setPending({ label: "Connecting...", media: "audio" })}
         onVideo={() => setPending({ label: "Connecting...", media: "video" })} />
-      {pending && <Button variant="plain" onClick={() => setPending(null)}>Ring again</Button>}
+      <Button variant="plain" disabledReason={!pending ? "A call is already ringing" : undefined} onClick={() => setPending(null)}>Ring again</Button>
     </div>
   );
 }
 
 export const Answering: Story = { render: () => <AnsweringDemo /> };
+
+function IncomingDemo() {
+  const [incoming, setIncoming] = useState(false);
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      <TextField label="Your draft" name="draft" defaultValue="Meet you by the old bridge" />
+      <Button tone="secondary" disabledReason={incoming ? "A call is already ringing" : undefined} onClick={() => setIncoming(true)}>Receive a call</Button>
+      {incoming && <RingCard {...meta.args} arriving />}
+    </div>
+  );
+}
+
+export const Incoming: Story = {
+  render: () => <IncomingDemo />,
+  play: async ({ canvasElement }) => {
+    flushSync(() => canvasElement.querySelector("button")!.click());
+    await Promise.all(canvasElement.querySelector('[data-ouro="ring-card"]')!.getAnimations({ subtree: true }).map((animation) => animation.finished));
+  },
+};

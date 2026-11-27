@@ -9,6 +9,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { RingCard, type RingCardProps } from "@/registry/ouro/components/ouro/ring-card/ring-card";
 import { ringCardAx } from "@/registry/ouro/components/ouro/ring-card/ring-card-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 import { expectMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 
 const roots: Root[] = [];
@@ -45,12 +46,31 @@ afterEach(async () => {
 });
 
 describe("RingCard", () => {
+  it("observes its height without forcing layout inside the mounting commit", async () => {
+    await render(<RingCard {...base} />);
+    const host = document.createElement("div");
+    document.body.append(host);
+    hosts.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const watch = watchLayoutReads();
+    try {
+      flushSync(() => root.render(<RingCard {...base} />));
+    } finally {
+      watch.stop();
+    }
+    expect(watch.names()).toEqual([]);
+    const card = host.querySelector('[data-ouro="ring-card"]')!;
+    expect(getComputedStyle(card).opacity).toBe("1");
+    expect(card.getAnimations()).toHaveLength(0);
+  });
+
   it("introduces the caller without taking focus from a person's work", async () => {
     const input = document.createElement("input");
     document.body.append(input);
     hosts.push(input);
     input.focus();
-    const { card } = await render(<RingCard {...base} note="A quick question about the trail." />);
+    const { card } = await render(<RingCard {...base} arriving note="A quick question about the trail." />);
     expect(document.activeElement).toBe(input);
     expect(card.dataset.state).toBe("ringing");
     expect(card.querySelector('[data-slot="ring-card-chips"]')).toBeNull();
@@ -119,6 +139,7 @@ describe("RingCard", () => {
   it("replaces choices and chips in place, keeps its height, and gives failure precedence", async () => {
     const props = { ...base, note: "Can we talk before the walk?", chips: <Button size="sm" variant="plain">Message instead</Button> };
     const { card, rerender } = await render(<RingCard {...props} />);
+    await expect.poll(() => Number.parseFloat(card.style.minHeight)).toBeGreaterThan(0);
     const height = card.offsetHeight;
     await rerender(<RingCard {...props} announcement="" pending={{ label: "Connecting...", media: "video" }} />);
     expect(card.dataset.state).toBe("pending");
@@ -177,8 +198,11 @@ describe("RingCard", () => {
       hosts.push(host);
       const root = createRoot(host);
       roots.push(root);
-      flushSync(() => root.render(<RingCard {...base} />));
+      flushSync(() => root.render(<RingCard {...base} arriving />));
       const card = host.querySelector<HTMLElement>('[data-ouro="ring-card"]')!;
+      flushSync(() => card.querySelector("button")!.dispatchEvent(new TransitionEvent("transitionrun", { bubbles: true })));
+      expect(card.hasAttribute("data-starting-style")).toBe(false);
+      flushSync(() => card.dispatchEvent(new TransitionEvent("transitionrun", { bubbles: true })));
       expect(card.getAttribute("data-starting-style")).toBe("");
       flushSync(() => card.querySelector("button")!.dispatchEvent(new TransitionEvent("transitionend", { bubbles: true })));
       expect(card.getAttribute("data-starting-style")).toBe("");
@@ -207,10 +231,12 @@ describe("RingCard", () => {
   it("translates its words, forwards attributes and a ref, and leaves focus outside across states", async () => {
     let ref: HTMLDivElement | null = null;
     const onTransitionEnd = vi.fn();
+    const onTransitionRun = vi.fn();
     const props = {
       ...base, kind: "audio" as const, id: "incoming", className: "mt-4",
       ref: (node: HTMLDivElement | null) => { ref = node; },
       onTransitionEnd,
+      onTransitionRun,
       labels: { region: (caller: string) => `Call: ${caller}`, audioCall: "Voice call", videoCall: "Camera call", decline: "Dismiss", audio: "Voice", video: "Camera", answerAudio: "Use voice", answerVideo: "Use camera" },
     };
     const { card, rerender } = await render(<RingCard {...props} />);
@@ -223,6 +249,10 @@ describe("RingCard", () => {
     card.dispatchEvent(new TransitionEvent("transitionend", { bubbles: true }));
     card.querySelector("button")!.dispatchEvent(new TransitionEvent("transitionend", { bubbles: true }));
     expect(onTransitionEnd).toHaveBeenCalledTimes(2);
+    onTransitionRun.mockClear();
+    card.dispatchEvent(new TransitionEvent("transitionrun", { bubbles: true }));
+    card.querySelector("button")!.dispatchEvent(new TransitionEvent("transitionrun", { bubbles: true }));
+    expect(onTransitionRun).toHaveBeenCalledTimes(2);
     const input = document.createElement("input");
     document.body.append(input);
     hosts.push(input);
