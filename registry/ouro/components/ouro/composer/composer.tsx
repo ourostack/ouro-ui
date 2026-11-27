@@ -473,9 +473,12 @@ function ownAttrsOf(rest: object): Record<string, unknown> {
   return picked;
 }
 
-// The module cache changes only when its explicit load settles.
+// Nothing changes whether this is a client render after hydration, so nothing is subscribed to.
 // Stryker disable next-line ArrowFunction: React ignores what the unsubscribe returns, so an unsubscribe that returns undefined is the same.
 const subscribeNothing = () => () => {};
+const onClient = () => true;
+// Stryker disable next-line ArrowFunction: undefined is as false as false in the state initializer's test, so a server snapshot of undefined is no different there.
+const onServer = () => false;
 
 /**
  * A chat message box: text that grows from one line as the person writes, a send button, and
@@ -657,26 +660,23 @@ export function Composer(props: ComposerProps): JSX.Element {
   const richRef = useRef<RichEditorHandle | null>(null);
   // Some sequences commit an input method's word as a plain insertText with no compositionend (ourostack/ouro-ui#3843): the rich editor sets this once it sees that happen, so a later Enter whose isComposing still reads true (the browser's own composition session never closed) is trusted as composing only until then.
   const richComposed = useRef(false);
-  // A page that already loaded the editor's module (an earlier Composer on it) draws this mount with the editor from its very first render, with no plain box and no swap. The server snapshot is always empty, so hydration still matches the server's plain box and React then draws the editor before the paint.
-  const warm = useSyncExternalStore(
-    subscribeNothing,
-    () => richEditorModule()?.RichEditor,
-    // Stryker disable next-line ArrowFunction: the server snapshot only runs while hydrating server HTML, which test/conformance/hydration.test.tsx covers, never in a client render.
-    () => undefined,
-  );
-  // Only the mount's own format draws from the warm module: a later switch to rich goes through the load below, which hands the focus over from the plain box that had it.
-  const [pristine, setPristine] = useState(true);
-  const [firstFormat] = useState(formatMode);
-  if (pristine && formatMode !== firstFormat) setPristine(false);
-  const [loaded, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>();
-  // Stryker disable next-line ConditionalExpression,LogicalOperator: richOn below also needs the rich format, so the editor drawn for a plain box (or none for a cold page) reads the same.
-  const rich = loaded ?? (formatMode === "rich" && warm && pristine ? { Editor: warm, focus: rest.autoFocus === true } : undefined);
+  // A page that already loaded the editor's module (an earlier Composer on it, or preloadRichEditor()) draws a client-only
+  // mount with the editor from its very first render, with no plain box and no swap, so it takes focus once. The module is
+  // read once, here, at mount: a cold box whose load settles later keeps to the effect below, which leaves a box the person
+  // is in alone until they leave it. A mount that hydrates server HTML draws the plain box the server drew (the server
+  // snapshot is false), and the effect below swaps it, so hydration matches.
+  const clientRender = useSyncExternalStore(subscribeNothing, onClient, onServer);
+  const [rich, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>(() => {
+    const warm = clientRender && formatMode === "rich" ? richEditorModule() : undefined;
+    return warm ? { Editor: warm.RichEditor, focus: rest.autoFocus === true } : undefined;
+  });
   useEffect(() => {
     const richModule = richEditorModule();
     // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral,BlockStatement: loading the editor in plain mode changes nothing a person or a test can read, as richOn below also needs the rich format.
     if (formatMode !== "rich") return;
-    // Stryker disable next-line ConditionalExpression: a module that was already loaded draws the editor above; loading it again would only replace a correct focus flag with a wrong one.
-    if (richModule && pristine) return;
+    // Stryker disable next-line ConditionalExpression: the state initializer above already drew the editor for this same mount, from a module that was already loaded; loading it again would only replace a correct focus flag with a wrong one.
+    /* istanbul ignore if @preserve -- this closure is the one React commits from the mount that set rich, so a test never observes rich already set when this runs */
+    if (rich !== undefined) return;
     // An app that turns rich on with the editor already loaded gets it at once, focus and all (its own change, not the load's).
     if (richModule) {
       setRich({ Editor: richModule.RichEditor, focus: textareaRef.current === document.activeElement });
