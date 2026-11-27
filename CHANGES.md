@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: [Command fits its list once the browser has laid it out, so a typed key makes Command read no layout](registry/ouro/components/ouro/command/command.rows.test.tsx "verify:testExists(registry/ouro/components/ouro/command/command.rows.test.tsx::Command rows > reads no layout while a typed key commits, and fits the list once the browser has laid it out)"); it had lifted the list's cut and measured every row on each render, a forced layout per key that cost a slow computer 30–50 ms of typing.
