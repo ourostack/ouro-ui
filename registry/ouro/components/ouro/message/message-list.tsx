@@ -591,8 +591,6 @@ const STRETCH = 0.25;
 const ARMED = 250;
 /** How long, in ms, after a wheel turn the list leaves the reader's place unwritten, and past the frame it turned in: a scroll position set meanwhile stops the wheel's own scroll. */
 const WHEEL_REST = 80;
-/** At most how far, in px, a scroll at rest that neither the reader nor the list made is put back (onScroll's stray). */
-const STRAY_PX = 3;
 /** How long after the reader's last press, key or touch, or a scroll code asked for, a scroll at rest may still be theirs, in ms. */
 const INPUT_MS = 1000;
 /** A gap between a wheel's events shorter than this is the same turn of the wheel, its events waiting behind long frames; a longer one is a new turn. */
@@ -1331,7 +1329,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // browser draws, so the view stays where it is, though code moved it before the browser reported the scroll.
       const from = indexes.get(String(edge.drawn))!;
       range = [from, Math.min(last, from + WINDOW_ABOVE)];
-    } else range = firstRange(keys.length, sizeOf, initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor), firstView);
+    } else {
+      const anchorIdx = initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor);
+      range = firstRange(keys.length, sizeOf, anchorIdx, firstView);
+    }
     const kept: (number | undefined)[] = [last, indexes.get(focusKey!), reach === null ? undefined : indexes.get(reach.key)];
     // What just arrived after the newest heard, so it is heard, and what still streams, so its end is.
     const since = indexes.get(heard!) ?? last;
@@ -1580,6 +1581,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
   // Keeps the reader's place after messages came, went, moved or changed size: set by the effect below.
   const holdRef = useRef<() => void>(undefined);
+  // The message open() centred on, while its height above was still an estimate. Re-centred once (by hold(), below).
+  const openTargetRef = useRef<HTMLElement | null>(null);
   // How far the content is drawn up (a `translate`) to hold the reader's place while the wheel turns: what the scroll position
   // takes once the wheel rests, or before the reader reaches an end. Set by the effect below.
   const carriedRef = useRef(0);
@@ -1609,6 +1612,34 @@ export function MessageList(props: MessageListProps): JSX.Element {
     toBottom();
     setShowJump(false);
   };
+
+  const inputAt = useRef(Number.NEGATIVE_INFINITY);
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current!;
+    // Code choosing a new place ends a hold, even when it chooses a nearby pixel. Native scroll feedback does not
+    // pass through the setter, so it is told apart by ownership, never by how many pixels it moved.
+    const previousTop = Object.getOwnPropertyDescriptor(scroller, "scrollTop");
+    const topProperty = previousTop ?? Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+    const setTop = (top: number) => {
+      held.current = false;
+      topProperty.set!.call(scroller, top);
+    };
+    Object.defineProperty(scroller, "scrollTop", {
+      configurable: true,
+      get: () => topProperty.get!.call(scroller),
+      set: setTop,
+    });
+    const onFocus = () => void (inputAt.current = performance.now());
+    scroller.addEventListener("focusin", onFocus, true);
+    return () => {
+      scroller.removeEventListener("focusin", onFocus, true);
+      if (Object.getOwnPropertyDescriptor(scroller, "scrollTop")?.set !== setTop) return;
+      if (previousTop) Object.defineProperty(scroller, "scrollTop", previousTop);
+      else Reflect.deleteProperty(scroller, "scrollTop");
+    };
+  },
+  // Stryker disable next-line ArrayDeclaration: a dependency list holding one constant has the same mount/unmount lifetime as an empty one.
+  []);
 
   // Open at the newest message (or at `initialAnchor`), then follow growth (new messages, streaming text, images
   // loading, the keyboard resizing the list) only while pinned. Layout effect and resize
@@ -1787,6 +1818,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       }
       // In the middle of the view, or its top at the view's top when it is taller. The springs are at rest as it opens.
       centre(target);
+      // Heights above it may still be estimates: hold(), below, re-centres on this once they are known.
+      openTargetRef.current = target;
       // Held from here, so older messages loading before the browser reports this scroll leave it where it opened, and
       // following only if it opened at the end (the anchor was the newest).
       keepAnchor();
@@ -1969,8 +2002,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     scroller.addEventListener("wheel", onWheel, { passive: true });
     // When the reader last did something that may scroll the list, besides the wheel (turning), or code asked the list to scroll
     // (scrollTo, scrollBy: a find's smooth scroll to its match, an app's own), which may take frames to get there.
-    let inputAt = Number.NEGATIVE_INFINITY;
-    const onInput = () => void (inputAt = performance.now());
+    const onInput = () => void (inputAt.current = performance.now());
     // Stryker disable next-line BooleanLiteral: passive only tells the browser these listeners never cancel the event; onInput never calls preventDefault, so no test can observe it.
     for (const type of ["pointerdown", "keydown", "touchstart"]) scroller.addEventListener(type, onInput, { capture: true, passive: true });
     const asked = (name: "scrollTo" | "scrollBy") => {
@@ -1982,8 +2014,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     asked("scrollBy");
     // hold()'s write is put back to only until the frame after next: a stray comes in the frame after it, and a scroll later is another's.
     let disarm = 0;
-    const armHeld = () => {
-      held.current = true;
+    const armHeld = (applied: number) => {
+      held.current = applied !== 0;
       // Stryker disable next-line CallExpression: hold() writes again within two frames only in the frame it wrote, whose disarm comes in the same frame either way.
       cancelAnimationFrame(disarm);
       disarm = requestAnimationFrame(() => (disarm = requestAnimationFrame(() => (held.current = false))));
@@ -1991,6 +2023,18 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const hold = () => {
       // A list unmounted before this ran has no scroller left to hold.
       if (scrollerRef.current === null) return;
+      // Re-centres once real heights replace the estimate open() centred on; keepAnchor() refreshes the baseline so
+      // the anchor correction below (same call) finds nothing left to correct.
+      if (openTargetRef.current !== null) {
+        const target = openTargetRef.current;
+        openTargetRef.current = null;
+        if (target.isConnected) {
+          centre(target);
+          // Stryker disable next-line all: the same guard as the place check below, which keeps only a pixel or two of overflow from reading as the end.
+          if (placed !== null) placed = scroller.scrollTop;
+          keepAnchor();
+        }
+      }
       // Away from the bottom, by a scroll the scroll event has not reported yet (code scrolled to a message, a key), stops the following.
       // A list at the old bottom follows. One that was following keeps on when its end came up, though something grew below
       // in the same frame: the browser pulled the scroll down, the reader did not scroll. One the bottom came up to that was
@@ -2048,8 +2092,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
           const before = scroller.scrollTop;
           scroller.scrollTop += moved;
           ownTop.current = heldTop.current = scroller.scrollTop;
-          armHeld();
           const applied = scroller.scrollTop - before;
+          armHeld(applied);
           springsRef.current?.moved(applied);
           // What rounding left over, carried: under a pixel. A move the browser did not apply in full (the list's end or start stopped it, smooth scrolling or snapping took it) is not a debt a later write can pay.
           owed = Math.abs(moved - applied) < 1 ? moved - applied : 0;
@@ -2103,14 +2147,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = (event: Event) => {
-      // Just after hold() kept the reader's place, with nothing from the reader since (a wheel, a touch, a key, a press, the scrollbar's
-      // too), a scroll of a few pixels the list didn't write is none of the reader's: Chromium sometimes moves the scroll position a
-      // pixel or two by itself in the frame after hold() wrote it through rows measured above the view, which moves what the reader is
-      // reading. The list puts hold()'s position back. It stays the place to put back to through the scroll event its write brings, as
-      // the stray move comes a frame later.
+      // Just after hold() kept the place, a native scroll with no input is feedback from that layout, not a new place
+      // chosen by the reader or code. Chromium can coalesce several pixels of it into one event. The hold lasts through
+      // its own scroll event, until the frame after next; input, focus and explicit writes always end it first.
       const stray = scroller.scrollTop - heldTop.current;
-      // Stryker disable next-line EqualityOperator: a stray of exactly STRAY_PX is put back or kept, a pixel either way.
-      if (stray !== 0 && Math.abs(stray) <= STRAY_PX && held.current && !turning() && performance.now() - inputAt > INPUT_MS) {
+      if (stray !== 0 && held.current && !turning() && performance.now() - inputAt.current > INPUT_MS) {
         scrollOwn(-stray);
         return;
       }

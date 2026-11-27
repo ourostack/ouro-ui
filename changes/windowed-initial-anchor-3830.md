@@ -1,0 +1,1 @@
+- Fixed: a windowed MessageList opening with an `initialAnchor` set no longer leaves that row several rows above where it opened; the list re-centres on it once real row heights replace the opening estimate.

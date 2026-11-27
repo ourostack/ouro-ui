@@ -9,7 +9,7 @@ import { $isQuoteNode, QuoteNode, registerRichText } from "@lexical/rich-text";
 import { $findMatchingParent } from "@lexical/utils";
 import { $getNodeByKey, $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, $getState, $setState, createState, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, KEY_ESCAPE_COMMAND, PASTE_COMMAND, type EditorState, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType, type TextNode, type RangeSelection, type NodeKey, type SerializedLexicalNode, type Spread, CONTROLLED_TEXT_INSERTION_COMMAND, DecoratorNode, $isDecoratorNode } from "lexical";
 import { useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
-import type { FocusEventHandler, HTMLAttributes, FormEventHandler, JSX, KeyboardEvent, Ref, SyntheticEvent } from "react";
+import type { FocusEventHandler, HTMLAttributes, FormEventHandler, JSX, KeyboardEvent, MutableRefObject, Ref, SyntheticEvent } from "react";
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { emojiToken, splitEmojiText, toneOf } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
@@ -62,6 +62,8 @@ interface RichEditorProps {
   "data-slot": string;
   /** Sees keys before the editor does, so Enter can send and a mark's key can format. */
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
+  /** Set once a composed word lands as a plain insertText with no compositionend (ourostack/ouro-ui#3843), so Composer's keyDown can stop trusting a stale isComposing. */
+  composedRef: MutableRefObject<boolean>;
   /** Focus the editor when it mounts, with the caret at the end: the person was in the plain box it replaces. */
   autoFocus: boolean;
   /** The form field name the Markdown submits under. */
@@ -395,14 +397,21 @@ function $nodesFromHtml(html: string): LexicalNode[][] {
 }
 
 // ⌘K: takes a link off a selection that holds one, makes a selected web address a link to itself, and otherwise gives back
-// the selection, for the editor to ask for the address in its own popover.
+// the selection, for the editor to ask for the address in its own popover; with just the caret, it still asks, and the
+// typed address becomes the new link's own text.
 function toggleLinkOfSelection(): RangeSelection | null {
   const selection = $getSelection();
-  if (!$isRangeSelection(selection) || selection.isCollapsed()) return null;
+  // Stryker disable next-line ConditionalExpression: this only runs from the editor's own ⌘K handler, inside an update
+  // while the editor still has focus, so $getSelection() is always this RangeSelection; the guard only narrows its type.
+  /* istanbul ignore if @preserve -- only the editor's own ⌘K handler calls this, with its RangeSelection in place; the guard only narrows the type */
+  if (!$isRangeSelection(selection)) return null;
   if (selection.getNodes().some((node) => $isLinkNode(node) || $isLinkNode(node.getParent()))) {
     $toggleLink(null);
     return null;
   }
+  // Stryker disable next-line ConditionalExpression: a collapsed selection's getTextContent() is "", so removing this
+  // branch still falls through to the !href return two lines down and clones the same selection either way.
+  if (selection.isCollapsed()) return selection.clone();
   const href = safeHref(selection.getTextContent());
   if (!href) return selection.clone();
   $toggleLink(href);
@@ -616,7 +625,7 @@ function definedOnly(props: HTMLAttributes<HTMLDivElement>) {
  *
  * @internal
  */
-function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue, highlights, onHighlightsChange, pasteText, comboboxProps, ownAttrs }: RichEditorProps): JSX.Element {
+function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, composedRef, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue, highlights, onHighlightsChange, pasteText, comboboxProps, ownAttrs }: RichEditorProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
   // The Markdown the editor holds, and the callbacks as of the last render, which its listeners read.
@@ -646,14 +655,28 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   // ⌘K over words that aren't an address asks for one in the editor's own popover: the selection it links, and the address typed.
   const [linking, setLinking] = useState<{ selection: RangeSelection; address: string } | null>(null);
   const linkHref = linking ? safeHref(linking.address) : undefined;
-  // Back to the words with the caret where it was, the link added or not.
+  // Back to the words with the caret where it was, the link added or not. With no words to wrap (the caret alone asked),
+  // the typed address becomes the new link's own text instead.
   const endLinking = (href: string | undefined) => {
     const selection = linking!.selection;
+    const collapsed = selection.isCollapsed();
     setLinking(null);
     editorRef.current!.update(() => {
       // Stryker disable next-line CallExpression: a test's popover never moves the real document selection away from the editor, so skipping the restore reads the same selection either way; a person who tabbed to the popover's own field would lose their place without it.
       $setSelection(selection.clone());
-      if (href) $toggleLink(href);
+      if (!href) return;
+      if (!collapsed) {
+        $toggleLink(href);
+        return;
+      }
+      const current = $getSelection();
+      // Stryker disable next-line ConditionalExpression: current is $getSelection() right after $setSelection(selection.clone())
+      // set that very RangeSelection, so it is always one here; the guard only narrows its type for insertNodes below.
+      /* istanbul ignore if @preserve -- current is the RangeSelection $setSelection just set; the guard only narrows the type */
+      if (!$isRangeSelection(current)) return;
+      const link = $createLinkNode(href);
+      link.append($createTextNode(href));
+      current.insertNodes([link]);
     },
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: discrete only forces this update's DOM reconciliation to flush before the function returns; a test that reads the result afterwards, as every one here does, cannot tell a flushed render from a microtask-later one apart.
     { discrete: true });
@@ -697,6 +720,22 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       },
     });
     const root = rootRef.current!;
+    // Some sequences never fire compositionend after an input method commits a word (ourostack/ouro-ui#3843): a plain insertText while composition is still open is the only other signal that word landed, so a later Enter's stale isComposing is not trusted past it.
+    let composing = false;
+    const compositionStart = () => {
+      composing = true;
+      composedRef.current = false;
+    };
+    const compositionEnd = () => {
+      composing = false;
+    };
+    const committedWithoutEnd = (event: Event) => {
+      const { inputType } = event as InputEvent;
+      if (composing && (inputType === "insertText" || inputType === "insertReplacementText")) composedRef.current = true;
+    };
+    root.addEventListener("compositionstart", compositionStart);
+    root.addEventListener("compositionend", compositionEnd);
+    root.addEventListener("beforeinput", committedWithoutEnd);
     // What reads Markdown in, which turns a token into the emoji's picture when the catalogue lists it.
     const reading = [emojiTransformer(() => emoji.current), ...transformers];
     readingRef.current = reading;
@@ -706,7 +745,18 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     let scratch: LexicalEditor | undefined;
     // Stryker disable next-line ObjectLiteral,StringLiteral,BlockStatement: the copy only receives the editor's own state and writes a mark into it, so its options, namespace and error handler are never read
     const copy = () => (scratch ??= createEditor({ namespace: "ouro-composer-offsets", nodes: NODES, onError: /* istanbul ignore next @preserve -- the copy only writes text into states that already hold */ (error) => { throw error; } }));
-    const read = () => (inMarkdown.current ? readMarkdownControl(editor, copy()) : readControl(editor));
+    // One editor state and one DOM selection read the same every time, and an app reads value, selectionStart and
+    // selectionEnd one after another, as often as it likes on each key: each pair is read once.
+    let last: { key: unknown[]; read: ReturnType<typeof readControl> } | undefined;
+    const read = () => {
+      // A document with a window always has a selection: getSelection is null only in a frame that has none.
+      const { anchorNode, anchorOffset, focusNode, focusOffset } = window.getSelection()!;
+      const key = [editor.getEditorState(), inMarkdown.current, anchorNode, anchorOffset, focusNode, focusOffset];
+      const prior = last;
+      if (prior && key.every((part, i) => part === prior.key[i])) return prior.read;
+      last = { key, read: inMarkdown.current ? readMarkdownControl(editor, copy()) : readControl(editor) };
+      return last.read;
+    };
     Object.defineProperties(root, {
       value: { configurable: true, get: () => read().value },
       selectionStart: { configurable: true, get: () => read().start },
@@ -844,6 +894,9 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     return () => {
       // Stryker disable next-line BlockStatement,ArrowFunction,CallExpression: the cleanup runs as the box leaves the page, where nothing is left to read.
       stops.forEach((stop) => stop());
+      root.removeEventListener("compositionstart", compositionStart);
+      root.removeEventListener("compositionend", compositionEnd);
+      root.removeEventListener("beforeinput", committedWithoutEnd);
       // Stryker disable next-line CallExpression: the editor is dropped with the box, so the cleared root is never read.
       editor.setRootElement(null);
       editorRef.current = null;

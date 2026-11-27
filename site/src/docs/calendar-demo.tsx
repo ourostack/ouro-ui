@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type JSX, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type JSX, type RefObject } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Calendar } from "@/registry/ouro/components/ouro/calendar/calendar";
 import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
@@ -102,6 +102,17 @@ interface Draft {
   kind: Kind;
 }
 
+const stateItems = [
+  { value: "week", label: "Full week" },
+  { value: "empty", label: "Empty week" },
+  { value: "loading", label: "Loading" },
+];
+const viewItems = [
+  { value: "day", label: "Day" },
+  { value: "work-week", label: "Work week" },
+  { value: "week", label: "Week" },
+];
+
 function CalendarDemo(): JSX.Element {
   // The week is the reader's, from their clock and time zone, which the prerender doesn't have: it draws an empty box the
   // height of the grid, and the browser draws the week once it has hydrated, so the two never disagree.
@@ -128,6 +139,22 @@ function Screen(): JSX.Element {
   const eventRef = useRef<HTMLElement | null>(null);
   const jumpRef = useRef<HTMLButtonElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const [fit, setFit] = useState(0);
+  const tight = fit > 0;
+  // Below 18rem the State control becomes a Select; below 13.5rem the View control goes and the grid shows a day, as on a phone.
+  const narrow = phone || fit > 1;
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const measure = () => {
+      const rem = root.clientWidth / parseFloat(getComputedStyle(document.documentElement).fontSize);
+      setFit(rem < 13.5 ? 2 : rem < 18 ? 1 : 0);
+    };
+    measure();
+    const watch = new ResizeObserver(measure);
+    watch.observe(root);
+    return () => watch.disconnect();
+  }, []);
   // A delete, a save or a date pick hands focus to the grid's event stop as its overlay closes; any other close returns focus to where it was opened from.
   const toGrid = useRef(false);
   const stopOfGrid = () => rootRef.current?.querySelector<HTMLElement>('[data-ouro="time-grid"] [tabindex="0"]') ?? null;
@@ -268,20 +295,15 @@ function Screen(): JSX.Element {
         }
       }}
     >
-      <div className="min-w-0 overflow-x-auto" style={{ display: "grid", gridTemplateColumns: "minmax(min-content, max-content)" }}>
-        <SegmentedControl
-          label="State"
-          value={stage}
-          onValueChange={(value) => setStage(value as Stage)}
-          items={[
-            { value: "week", label: "Full week" },
-            { value: "empty", label: "Empty week" },
-            { value: "loading", label: "Loading" },
-          ]}
-        />
+      <div className="min-w-0">
+        {tight ? (
+          <Select label="State" className="w-full" value={stage} onValueChange={(value) => setStage(value as Stage)} options={stateItems} />
+        ) : (
+          <SegmentedControl label="State" value={stage} onValueChange={(value) => setStage(value as Stage)} items={stateItems} />
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <TimeGridNav date={date} view={phone ? "day" : view} onDateChange={setDate} disabled={stage === "loading"} />
+        <TimeGridNav date={date} view={narrow ? "day" : view} onDateChange={setDate} disabled={stage === "loading"} />
         <Heading level={2} size="md" className="me-auto min-w-0 max-sm:order-first max-sm:basis-full">
           {heading}
         </Heading>
@@ -292,19 +314,9 @@ function Screen(): JSX.Element {
           }}>
           Go to date
         </Button>
-        {phone ? null : (
-          <div className="max-w-full min-w-0 overflow-x-auto">
-            <SegmentedControl
-              label="View"
-              hideLabel
-              value={view}
-              onValueChange={(value) => setView(value as TimeGridView)}
-              items={[
-                { value: "day", label: "Day" },
-                { value: "work-week", label: "Work week" },
-                { value: "week", label: "Week" },
-              ]}
-            />
+        {narrow ? null : (
+          <div className="max-w-full min-w-0">
+            <SegmentedControl label="View" hideLabel value={view} onValueChange={(value) => setView(value as TimeGridView)} items={viewItems} />
           </div>
         )}
         <Button size="sm" onClick={newEvent}>New event</Button>
@@ -339,11 +351,11 @@ function Screen(): JSX.Element {
             ))}
           </div>
         ) : (
-          <div className="h-full" style={phone ? undefined : { minWidth: "36rem" }}>
+          <div className="h-full" style={narrow ? undefined : { minWidth: "36rem" }}>
           <TimeGrid
             label={label}
             date={date}
-            view={phone ? "day" : view}
+            view={narrow ? "day" : view}
             locale={weekLocale}
             // An empty week has nothing to mark the time against, so the now line stays off it.
             now={stage === "empty" ? "1970-01-01T00:00:00Z" : undefined}
