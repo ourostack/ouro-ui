@@ -38,6 +38,9 @@ async function start(ids: string[], { hidden = false } = {}) {
   return (next: string[]) => act(async () => root.render(<Chat ids={next} />));
 }
 
+const frames = async (count: number) => {
+  for (let frame = 0; frame < count; frame++) await new Promise((resolve) => requestAnimationFrame(resolve));
+};
 const bubble = (id: string) => document.getElementById(id)!.querySelector<HTMLElement>('[data-ouro-part="bubble"]')!;
 const bounce = () => parseDuration(getComputedStyle(document.documentElement).getPropertyValue("--ouro-duration-bounce"));
 const fast = () => parseDuration(getComputedStyle(document.documentElement).getPropertyValue("--ouro-duration-fast"));
@@ -82,11 +85,23 @@ describe("MessageList arrival", () => {
     await render(["u1", "a1", "u2"]);
     const article = document.getElementById("u2")!;
     expect(article.hasAttribute("data-starting-style")).toBe(true);
+    // Paused, the arrival cannot end on its own while the test waits.
+    for (const animation of article.getAnimations({ subtree: true })) animation.pause();
     bubble("u2").dispatchEvent(new AnimationEvent("animationend", { animationName: "ouro-pulse", bubbles: true }));
+    await frames(3);
     expect(article.hasAttribute("data-starting-style")).toBe(true);
     bubble("u2").dispatchEvent(new AnimationEvent("animationend", { animationName: "ouro-message-sent", bubbles: true }));
     // It stays a frame, so the finished animation is not dropped in the same moment it ends.
     expect(article.hasAttribute("data-starting-style")).toBe(true);
+    await expect.poll(() => article.hasAttribute("data-starting-style")).toBe(false);
+  });
+
+  it("drops the mark when the arrival is cancelled", async () => {
+    const render = await start(["u1", "a1"]);
+    await render(["u1", "a1", "u2"]);
+    const article = document.getElementById("u2")!;
+    for (const animation of article.getAnimations({ subtree: true })) animation.pause();
+    bubble("u2").dispatchEvent(new AnimationEvent("animationcancel", { animationName: "ouro-message-sent", bubbles: true }));
     await expect.poll(() => article.hasAttribute("data-starting-style")).toBe(false);
   });
 
