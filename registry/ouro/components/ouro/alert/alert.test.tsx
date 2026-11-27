@@ -164,6 +164,30 @@ describe("Alert", () => {
     expect(narrow.alert.getBoundingClientRect().bottom - last.bottom).toBeCloseTo(17, 0);
   });
 
+  it("lets an action beside its title shrink, so a row of buttons in it scrolls inside the alert", async () => {
+    const { alert } = await render(
+      <div style={{ width: "420px" }}>
+        <Alert
+          tone="warning"
+          title="4 need your answer"
+          action={
+            <div data-testid="strip" style={{ display: "flex", flexWrap: "nowrap", overflowX: "auto", gap: "8px" }}>
+              {["Design review", "Planning", "Architecture forum", "Quarterly review"].map((name) => (
+                <Button key={name} size="sm" style={{ flex: "none" }}>
+                  {name}
+                </Button>
+              ))}
+            </div>
+          }
+        />
+      </div>,
+    );
+    const strip = alert.querySelector<HTMLElement>("[data-testid='strip']")!;
+    const body = alert.querySelector("[data-slot='alert-body']")!.getBoundingClientRect();
+    expect(alert.querySelector("[data-ouro-alert-action]")!.getBoundingClientRect().right).toBeLessThanOrEqual(body.right + 0.5);
+    expect(strip.scrollWidth).toBeGreaterThan(strip.clientWidth);
+  });
+
   it("shows a dismiss button with onDismiss, named by dismissLabel", async () => {
     const onDismiss = vi.fn();
     await render(<Alert title="Saved" onDismiss={onDismiss} />);

@@ -1,0 +1,1 @@
+- Fixed: a rich `Composer` the person isn't in no longer takes focus when the app changes its `value`, such as a draft an app writes while the person is in a dialog.
