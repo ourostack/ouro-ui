@@ -63,6 +63,19 @@ function Controlled({ onSend, onPick, defaultValue = "" }: { onSend?: (text: str
 }
 
 describe("Composer rich mentions and emoji", () => {
+  it("imports a link followed by a colon as a link rather than part of an emoji token", async () => {
+    const markdown = "Read [the guide](https://example.test/guide): then reply.";
+    const onSend = vi.fn();
+    const { editor } = await render(<Composer label="Message" format="rich" defaultValue={markdown} onSend={onSend} />);
+    const link = editor.querySelector("a");
+    expect(link?.textContent).toBe("the guide");
+    expect(link?.getAttribute("href")).toBe("https://example.test/guide");
+    expect(editor.textContent).toBe("Read the guide: then reply.");
+    editor.focus();
+    await userEvent.keyboard("{Enter}");
+    expect(onSend).toHaveBeenCalledWith(markdown, expect.anything());
+  });
+
   it("opens the list for a trigger typed in the rich box, and Enter picks in place of the trigger and query without sending", async () => {
     const onSend = vi.fn();
     const onPick = vi.fn();
