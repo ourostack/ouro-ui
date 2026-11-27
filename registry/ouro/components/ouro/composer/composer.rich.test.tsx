@@ -69,7 +69,7 @@ describe("Composer rich mode", () => {
   });
 
   it("draws the editor directly, with no plain box first, once a page has already loaded its module", async () => {
-    // A render anywhere on the page warms the module cache the layout effect below reads from.
+    // A render anywhere on the page warms the module cache the state initializer below reads from.
     await render(rich());
     const host = document.createElement("div");
     document.body.append(host);
@@ -82,21 +82,43 @@ describe("Composer rich mode", () => {
   });
 
   it("draws the editor within the same commit as the warm mount, before the usual async load could ever run", async () => {
-    // A render anywhere on the page warms the module cache the layout effect below reads from.
+    // A render anywhere on the page warms the module cache the state initializer below reads from.
     await render(rich());
     const host = document.createElement("div");
     document.body.append(host);
     mounted.push(host);
     const root = createRoot(host);
     roots.push(root);
-    // flushSync forces the synchronous layout effect to commit without giving the later, async
-    // effect a chance to resolve first, so this catches a plain-then-swap flash the eventual
-    // state alone cannot: the async effect would draw the same editor a tick later regardless.
+    // flushSync renders synchronously, with no chance for any effect or async load to run first, so this confirms the editor
+    // comes from the component's own first render, not drawn in afterward by an effect: the async effect would draw the same
+    // editor a tick later regardless.
     flushSync(() => root.render(rich({ placeholder: "Write a message" })));
     expect(host.querySelector("textarea")).toBeNull();
     expect(host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
     // Let the later effect settle before the next test unmounts this root.
     await act(async () => {});
+  });
+
+  it("focuses once, not twice, mounting a box that asks for focus once a page has already loaded the module", async () => {
+    // A render anywhere on the page warms the module cache the state initializer below reads from.
+    await render(rich());
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    let focusMoves = 0;
+    const onFocusIn = () => {
+      focusMoves += 1;
+    };
+    document.addEventListener("focusin", onFocusIn);
+    try {
+      await act(async () => root.render(rich({ autoFocus: true })));
+    } finally {
+      document.removeEventListener("focusin", onFocusIn);
+    }
+    expect(host.querySelector("textarea")).toBeNull();
+    expect(focusMoves).toBe(1);
   });
 
   it("carries the caret over when the person was already typing in the plain box", async () => {
