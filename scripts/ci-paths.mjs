@@ -29,6 +29,7 @@ export const scoped = [
   },
   { pattern: /^scripts\/lane\.sh$/, tiers: [], components: false, reason: "the lane worktree helper, which people and agents run by hand and no workflow or test runs" },
   { pattern: /^scripts\/bar-eval\//, tiers: [], components: false, reason: "the bar evaluation, run by hand, which no workflow or test runs" },
+  { pattern: /^scripts\/load\.mjs$/, tiers: [], components: false, reason: "the shared CPU-load harness, which only its Node script test and a lane proving a test under load run" },
   { pattern: /^scripts\/scroller-probe\.mjs$/, tiers: [], components: false, reason: "a probe run by hand for #2891, which no workflow or test runs" },
   { pattern: /^scripts\/chromium-floor-smoke\.mjs$/, tiers: [], components: false, reason: "the Chromium floor smoke test, which only the report-only chromium-floor-smoke.yml workflow runs" },
   { pattern: /^scripts\/lcd-text\//, tiers: [], components: false, reason: "the Vitest config for the scrollers' LCD-text surface tests, which only the report-only lcd-text-windows.yml workflow runs" },
