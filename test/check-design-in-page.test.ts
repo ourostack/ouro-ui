@@ -265,6 +265,22 @@ describe("findDesignIssues: nested-frame", () => {  it("finds a frame hugging a 
     ]);
   });
 
+  it("finds lighter framed surfaces at different insets and leaves unfilled, darker, hidden and allowed ones alone", () => {
+    render(`
+      <div id="shell" style="position:relative;box-sizing:border-box;width:360px;height:340px;overflow:hidden;border:1px solid #888;background:#c8cdd1;padding:20px">
+        <div id="near" style="width:160px;height:50px;border:1px solid #888;background:#fff">First</div>
+        <div id="far" style="width:160px;height:50px;margin:60px 0 0 80px;border:1px solid #888;background:#fff">Second</div>
+        <div style="width:160px;height:40px;border:1px solid #888">Unfilled</div>
+        <div style="width:160px;height:40px;border:1px solid #888;background:#9ba0a4">Darker</div>
+        <div data-ouro-allow="nested-frame" data-ouro-allow-why="a deliberate framed example" style="width:160px;height:40px;border:1px solid #888;background:#fff">Allowed</div>
+        <div style="position:absolute;top:500px;width:160px;height:40px;border:1px solid #888;background:#fff">Clipped away</div>
+      </div>`);
+    expect(of("nested-frame").map((issue) => issue.element)).toEqual([
+      "div#near in div#shell",
+      "div#far in div#shell",
+    ]);
+  });
+
   it("finds a filled box in a rounded corner whose radius isn't the corner's less the inset", () => {
     render(`
       <div id="card" style="background:#eef;border-radius:24px;padding:4px"><div id="flat" style="background:#3a7;height:60px;border-radius:4px"></div></div>
@@ -352,6 +368,49 @@ describe("findDesignIssues: cut-off-edge", () => {
       }),
     ]);
   });
+
+  it("names the clipped sides after scrolling without changing the scroll position", () => {
+    render(`
+      <div style="width:360px;height:320px;background:#eee">
+        <div id="scroller" style="width:340px;height:190px;overflow:auto;background:#eee">
+          <div style="height:80px">One note</div><div style="height:80px">Two notes</div>
+          <div style="height:80px">Three notes</div><div style="height:80px">Four notes</div>
+        </div>
+      </div>`);
+    const scroller = host.querySelector<HTMLElement>("#scroller")!;
+    scroller.scrollTop = 30;
+    const before = scroller.scrollTop;
+    const issues = of("cut-off-edge");
+    expect(issues).toHaveLength(1);
+    expect(issues[0]!.detail).toMatch(/top/i);
+    expect(issues[0]!.detail).toMatch(/bottom/i);
+    expect(scroller.scrollTop).toBe(before);
+  });
+
+  it("finds a horizontal list cut off before the window edge", () => {
+    render(`
+      <div style="width:360px;height:180px;background:#eee">
+        <div id="strip" style="display:flex;width:240px;height:100px;overflow:auto;background:#eee">
+          <button style="flex:none;width:100px">First</button><button style="flex:none;width:100px">Second</button><button style="flex:none;width:100px">Third</button>
+        </div>
+      </div>`);
+    const issues = of("cut-off-edge");
+    expect(issues).toHaveLength(1);
+    expect(issues[0]!.element).toContain("div#strip");
+    expect(issues[0]!.detail).toMatch(/right/i);
+  });
+
+  it("passes a surface step, a visible edge, a fade, content that fits, a viewport edge and an opted-out scroller", () => {
+    const rows = `<div style="height:80px">One</div><div style="height:80px">Two</div><div style="height:80px">Three</div>`;
+    render(`
+      <div style="width:360px;height:100px;background:#fff"><div style="width:340px;height:80px;overflow:auto;background:#e6e8eb">${rows}</div></div>
+      <div style="width:360px;height:100px;background:#eee"><div style="box-sizing:border-box;width:340px;height:80px;overflow:auto;background:#eee;border-bottom:1px solid #888">${rows}</div></div>
+      <div style="width:360px;height:100px;background:#eee"><div style="width:340px;height:80px;overflow:auto;background:#eee;mask-image:linear-gradient(to bottom,#000 70%,transparent)">${rows}</div></div>
+      <div style="width:360px;height:100px;background:#eee"><div style="width:340px;height:80px;overflow:auto;background:#eee">Fits</div></div>
+      <div style="width:360px;height:100px;background:#eee"><div data-ouro-allow="cut-off-edge" data-ouro-allow-why="a deliberate example" style="width:340px;height:80px;overflow:auto;background:#eee">${rows}</div></div>
+      <div style="position:fixed;bottom:0;left:0;width:300px;height:80px;overflow:auto;background:#fff">${rows}</div>`);
+    expect(of("cut-off-edge")).toEqual([]);
+  });
 });
 
 describe("findDesignIssues: pane-edge", () => {
@@ -376,6 +435,41 @@ describe("findDesignIssues: pane-edge", () => {
       }),
     ]));
     expect(of("pane-edge")).toHaveLength(2);
+  });
+
+  it("finds a horizontal pane boundary and a hairline between differently coloured panes", () => {
+    render(`
+      <div style="display:flex;flex-direction:column;width:340px;height:340px">
+        <section id="upper" style="height:170px;background:#eee">Overview</section>
+        <section id="lower" style="height:170px;background:#eee">Details</section>
+      </div>
+      <div style="display:flex;width:360px;height:200px;margin-top:24px">
+        <aside id="left" style="width:170px;background:#e5e5e5">Collections</aside>
+        <div style="width:1px;background:#888"></div>
+        <main id="right" style="width:189px;background:#fff">Details</main>
+      </div>`);
+    expect(of("pane-edge").map((issue) => issue.element)).toEqual([
+      expect.stringMatching(/upper.*lower/),
+      expect.stringMatching(/left.*right/),
+    ]);
+  });
+
+  it("passes a surface step with no line, a gap, small regions and a pane opted out with a reason", () => {
+    render(`
+      <div style="display:flex;width:360px;height:180px">
+        <aside style="width:170px;background:#f5f5f7">Folders</aside><main style="width:190px;background:#fff">Notes</main>
+      </div>
+      <div style="display:flex;gap:8px;width:360px;height:180px;margin-top:12px">
+        <aside style="width:170px;background:#eee">Folders</aside><main style="width:180px;background:#eee">Notes</main>
+      </div>
+      <div style="display:flex;width:300px;height:80px;margin-top:12px">
+        <div style="width:150px;background:#eee">One</div><div style="width:150px;background:#eee">Two</div>
+      </div>
+      <div style="display:flex;width:360px;height:180px;margin-top:12px">
+        <aside data-ouro-allow="pane-edge" data-ouro-allow-why="a deliberate example" style="width:170px;background:#eee">Folders</aside>
+        <main style="width:190px;background:#eee">Notes</main>
+      </div>`);
+    expect(of("pane-edge")).toEqual([]);
   });
 });
 
