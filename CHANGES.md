@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Fixed: Command's list no longer ends on a group heading with none of its rows; the cut falls after a whole row and the list fills the room ([test](registry/ouro/components/ouro/command/command.rows.test.tsx "verify:testExists(registry/ouro/components/ouro/command/command.rows.test.tsx::Command rows > never ends the list on a group heading with none of its rows, at any height)")).
+- Fixed: [a rich Composer's highlight marks only the words it covers, never a blank line or a list's empty space beside them](registry/ouro/components/ouro/composer/composer.rich.test.tsx "verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode highlights > marks only the words a run covers, never a blank line or a list's empty space beside them)"), where a mark over several blocks drew a box as wide as the editor over each blank line and list.
