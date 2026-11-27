@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SceneState } from "./scene";
 import { markStep } from "./stepping";
 
-/** A whole SceneState, with only the fields a case cares about given explicitly. */
+/**
+ * A whole SceneState, with only the fields a case cares about given explicitly. `changedAt` defaults to the
+ * current (possibly mocked) clock, so a case that sets `now.mockReturnValue(t)` right before building the
+ * state its call marks as current gets that same `t` without naming it twice.
+ */
 const state = (overrides: Partial<SceneState> = {}): SceneState => ({
   depth: 0,
   band: "sunlit",
@@ -12,6 +16,7 @@ const state = (overrides: Partial<SceneState> = {}): SceneState => ({
   speed: "half",
   dives: 0,
   rings: 0,
+  changedAt: performance.now(),
   ...overrides,
 });
 

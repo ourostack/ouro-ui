@@ -79,6 +79,31 @@ export const Removable: Story = {
   render: () => <Composer />,
 };
 
+const crumbPhoto =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d97706"/><stop offset="1" stop-color="#7c2d12"/></linearGradient></defs><rect width="64" height="64" fill="url(#c)"/><circle cx="20" cy="18" r="5" fill="#fef3c7" fill-opacity=".6"/><circle cx="44" cy="30" r="7" fill="#fef3c7" fill-opacity=".5"/><circle cx="30" cy="46" r="4" fill="#fef3c7" fill-opacity=".6"/></svg>',
+  );
+
+function PreviewComposer() {
+  const [attached, setAttached] = useState(true);
+  return (
+    <Surface>
+      {attached && <Attachment name="crumb.jpg" size={348_160} contentType="image/jpeg" preview={crumbPhoto} onRemove={() => setAttached(false)} />}
+      <Attachment name="bake-schedule.xlsx" size={18_432} href="#schedule" />
+      <Button variant="outline" tone="secondary" onClick={() => setAttached(true)}>
+        Attach photo
+      </Button>
+    </Surface>
+  );
+}
+
+/** A picture waiting to be sent shows itself, about 56px square, instead of a 20px icon beside its name; the name still reads to screen readers, and the remove button sits on its corner. */
+export const Preview: Story = {
+  parameters: { screenshot: { name: "attachment-preview" } },
+  render: () => <PreviewComposer />,
+};
+
 /** An icon for each kind of file, picked from the MIME type or the name's extension: documents, spreadsheets, slides and PDFs in the colors people know them by. */
 export const Kinds: Story = {
   render: () => (

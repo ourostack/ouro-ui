@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { balance, browserBalance, collectTimings, drivesBrowser, e2eFiles, filesWithin, installFiles, installShard, installSpecs, installSpecShard, parseShard, ownJobs, projectOf, readTimings, shardKeys, slicedSuites } from "./shard.mjs";
+import { quarantinedFiles } from "./quarantined-files.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
 import { treeFiles } from "./tree.mjs";
@@ -283,4 +284,29 @@ test("an install shard takes the app's shipped specs by the time each took here,
   // Every shipped spec has a time here.
   const shipped = readdirSync(join(root, "registry/ouro/e2e/ouro")).filter((file) => file.endsWith(".spec.ts"));
   assert.deepEqual(shipped.filter((file) => !(`registry/ouro/e2e/ouro/${file}` in readTimings("e2e"))), []);
+});
+
+test("a live whole-file quarantine entry's file is left out of every blocking shard and runs only in the non-blocking step, and an expired or removed entry lifts that", () => {
+  const file = "registry/ouro/components/ouro/message/message-list.windowing.test.tsx";
+  const entry = (title, expiry) => ({ project: "ouro-chromium", file, title, expiry });
+  const now = new Date("2026-11-20T00:00:00Z");
+  assert.deepEqual(quarantinedFiles([entry("*", "2026-11-27T00:00:00Z"), { ...entry("*", "2026-11-27T00:00:00Z"), project: "ouro-webkit" }], now), [file]);
+  assert.deepEqual(quarantinedFiles([entry("one test", "2026-11-27T00:00:00Z")], now), []);
+  assert.deepEqual(quarantinedFiles([entry("*", "2026-11-19T00:00:00Z")], now), []);
+  assert.deepEqual(quarantinedFiles([], now), []);
+
+  const app = scratch();
+  const apart = join(app, "src/components/ouro/message");
+  mkdirSync(apart, { recursive: true });
+  for (const name of ["message-list.windowing.test.tsx", "message.test.tsx"]) writeFileSync(join(apart, name), "");
+  assert.deepEqual(installFiles(app, [file]), ["src/components/ouro/message/message.test.tsx"]);
+  assert.deepEqual(installFiles(app, []), ["src/components/ouro/message/message-list.windowing.test.tsx", "src/components/ouro/message/message.test.tsx"]);
+
+  const config = readFileSync(join(root, "vitest.config.ts"), "utf8");
+  assert.match(config, /\.\.\.\(quarantinedOnly \? \{ include: quarantinedList \} : \{\}\)/);
+  assert.match(config, /\.\.\.\(quarantinedOnly \? \[\] : quarantinedList\)/);
+  const ci = readFileSync(join(root, ".github/workflows/ci.yml"), "utf8");
+  const step = /- if: \$\{\{ !cancelled\(\) && matrix\.shard == 1 \}\}\n {8}name: Quarantined whole-file tests[^\n]*\n[\s\S]*?run: pnpm exec vitest run\n/.exec(ci)?.[0] ?? "";
+  assert.match(step, /continue-on-error: true/);
+  assert.match(step, /OURO_QUARANTINED_ONLY: "1"/);
 });

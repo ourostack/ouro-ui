@@ -965,6 +965,18 @@ describe("MessageList", () => {
     expect(top()).toBe(placed);
   });
 
+  it("follows its end down when the content's padding shrinks, which changes its border box but not its content box", async () => {
+    const { scroller } = await render(<Chat items={history(30)} />);
+    await settle(scroller);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    content.style.paddingBottom = "190px";
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    content.style.paddingBottom = "0px";
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+  });
+
   it("keeps the message it opened at in place when older messages load before the browser reports the scroll", async () => {
     const items = history(30, 10);
     const { scroller } = await render(<Found windowing={false} items={[]} />);

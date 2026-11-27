@@ -35,6 +35,15 @@ export interface AttachmentOwnProps {
   /** An icon to show instead of the one for the file's kind, such as the app's own file-type icons. */
   icon?: ReactNode;
   /**
+   * The picture itself, in place of the icon: a square about 56px, an image's `src` (shown with `object-cover`) or
+   * any node already sized to fill the square. With `onRemove` its ✕ sits on the picture's corner instead of beside
+   * the name. The name and size still read to screen readers, so `onOpen` and `href` still name the control by them.
+   * Takes over from `icon` when both are passed.
+   *
+   * @claim "a square about 56px" registry/ouro/theme/ouro-base.css verify:fileLine(registry/ouro/theme/ouro-base.css, /--ouro-size-14: 3\.5rem;/)
+   */
+  preview?: ReactNode;
+  /**
    * Opens the file in the app, for example in a `Lightbox`. Without `href` the attachment is a button that calls it.
    * With `href` it stays a link: a plain click calls it instead of following the link, and a click with a modifier
    * key (a new tab, a new window) or the middle button follows the link as usual.
@@ -70,6 +79,8 @@ export interface AttachmentOwnProps {
   onDelete?: { 'Use <Attachment name="menu.pdf" onRemove={remove} />': never };
   /** Not a prop. Use `onRemove`: `<Attachment name="menu.pdf" onRemove={remove} />`. */
   onDismiss?: { 'Use <Attachment name="menu.pdf" onRemove={remove} />': never };
+  /** Not a prop. The picture itself is `preview`: `<Attachment name="crumb.jpg" preview={file.url} />`. */
+  thumbnail?: { 'Use <Attachment name="crumb.jpg" preview={file.url} />': never };
 }
 
 /** Props for {@link Attachment}: its own props and the `<div>` attributes it passes through. */
@@ -159,9 +170,10 @@ function kindOf(contentType: string | undefined, name: string): AttachmentKind {
 
 /**
  * A file attached to a chat message, or waiting to be sent with one: an icon for its kind,
- * its name and size. With `href` it is a link that opens or downloads the file; with
- * `onOpen` it opens the file in the app, such as in a `Lightbox`; with `onRemove` it has a
- * remove button, named after the file, for the composer. Long names truncate.
+ * its name and size, or with `preview` the picture itself. With `href` it is a link that
+ * opens or downloads the file; with `onOpen` it opens the file in the app, such as in a
+ * `Lightbox`; with `onRemove` it has a remove button, named after the file, for the
+ * composer. Long names truncate.
  *
  * Use `Link` instead for a link that is not a file, and `Avatar` for a person's picture.
  *
@@ -172,6 +184,7 @@ function kindOf(contentType: string | undefined, name: string): AttachmentKind {
  * <Attachment name="menu.pdf" size={file.size} contentType={file.type} href={file.url} />
  * <Attachment name={file.name} size={file.size} onRemove={() => remove(file)} />
  * <Attachment name="crumb.jpg" contentType="image/jpeg" href={file.url} onOpen={() => showInLightbox(file)} />
+ * <Attachment name="crumb.jpg" preview={objectUrl} onRemove={() => remove(file)} />
  */
 export function Attachment(props: AttachmentProps): JSX.Element {
   const {
@@ -182,6 +195,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
     contentType,
     kind: kindProp,
     icon,
+    preview,
     onOpen,
     onRemove,
     removeLabel = (file: string) => `Remove ${file}`,
@@ -195,10 +209,12 @@ export function Attachment(props: AttachmentProps): JSX.Element {
     url,
     onDelete,
     onDismiss,
+    thumbnail,
     ...rest
   } = props;
   const name = nameProp ?? "";
   const kind: AttachmentKind = (kinds as readonly string[]).includes(kindProp as string) ? (kindProp as AttachmentKind) : kindOf(contentType, name);
+  const hasPreview = preview !== undefined && preview !== null && preview !== false;
   useAppearanceClassNameCheck(
     "Attachment",
     className,
@@ -217,6 +233,8 @@ export function Attachment(props: AttachmentProps): JSX.Element {
             `${onDelete !== undefined ? "onDelete" : "onDismiss"} is not a prop`,
             '<Attachment name="menu.pdf" onRemove={remove} />',
           ],
+          thumbnail !== undefined && ["thumbnail is not a prop", '<Attachment name="crumb.jpg" preview={file.url} />'],
+          hasPreview && icon !== undefined && ["icon does nothing with preview: preview draws the picture instead", '<Attachment name="crumb.jpg" preview={file.url} />'],
           download !== undefined && href === undefined && ["download needs href, the file to download", '<Attachment name="menu.pdf" href="/menu.pdf" download />'],
           size !== undefined && !validSize(size) && [`size={${String(size)}} is not a byte count`, '<Attachment name="menu.pdf" size={file.size} />'],
           kindProp !== undefined && kind !== kindProp && [`kind="${String(kindProp)}" is not a kind; use "doc", "sheet", "slides", "pdf", "image", "video", "audio", "zip", "code" or "file"`, '<Attachment name="notes" kind="doc" />'],
@@ -225,14 +243,19 @@ export function Attachment(props: AttachmentProps): JSX.Element {
   );
   const body = (
     <>
-      {icon === undefined || icon === null || icon === false ? (
+      {hasPreview ? (
+        <span aria-hidden="true" data-ouro-attachment-preview="" data-slot="attachment-preview" className="flex size-ouro-14 shrink-0 items-center justify-center overflow-hidden rounded-ouro-md bg-muted">
+          {typeof preview === "string" ? <img src={preview} alt="" data-slot="attachment-preview-image" className="size-full object-cover" /> : preview}
+        </span>
+      ) : icon === undefined || icon === null || icon === false ? (
         <FileIcon kind={kind} />
       ) : (
         <span aria-hidden="true" data-ouro-attachment-icon={kind} className="flex size-ouro-5 shrink-0 items-center justify-center text-muted-foreground [&_svg]:size-ouro-5">
           {icon}
         </span>
       )}
-      <span data-slot="attachment-body" className="flex min-w-0 flex-1 flex-col">
+      {/* With preview, the picture is the visual; the name and size still read to screen readers. */}
+      <span data-slot="attachment-body" className={cn("flex min-w-0 flex-1 flex-col", hasPreview && "sr-only")}>
         <span data-ouro-attachment-name="" title={name} className="truncate font-medium">
           {name}
         </span>
@@ -250,7 +273,7 @@ export function Attachment(props: AttachmentProps): JSX.Element {
       </span>
     </>
   );
-  const inner = "flex min-h-ouro-11 min-w-0 flex-1 items-center gap-2 px-3 pointer-fine:min-h-ouro-9";
+  const inner = cn("flex min-h-ouro-11 min-w-0 flex-1 items-center gap-2 px-3 pointer-fine:min-h-ouro-9", hasPreview && "p-1.5");
   const openableClass = "press rounded-[inherit] text-inherit no-underline pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground motion-safe:active:scale-(--ouro-press-scale)";
   // A remove button that removes the attachment hands its focus to the next one, or the one before.
   const merged = useMergedRef(ref, useFocusHandoff<HTMLDivElement>());
@@ -299,10 +322,13 @@ export function Attachment(props: AttachmentProps): JSX.Element {
           data-ouro-part="remove"
           onClick={onRemove}
           className={cn(
-            "press relative m-0 box-border inline-flex size-ouro-11 shrink-0 pointer-fine:me-1.5 pointer-fine:size-ouro-7 items-center justify-center rounded-ouro-md border-0 bg-transparent p-0",
-            "cursor-pointer text-muted-foreground touch-manipulation pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground",
+            "press m-0 box-border inline-flex size-ouro-11 shrink-0 items-center justify-center border-0 p-0",
+            "cursor-pointer text-muted-foreground touch-manipulation",
             "motion-safe:active:scale-(--ouro-press-scale)",
             focusRing,
+            hasPreview
+              ? "absolute end-2 top-2 rounded-full bg-card shadow-(--shadow-sm) ring-1 ring-border/60 pointer-fine:size-ouro-7 pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground"
+              : "relative rounded-ouro-md bg-transparent pointer-fine:me-1.5 pointer-fine:size-ouro-7 pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground",
           )}
         >
           <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="size-ouro-4">

@@ -20,8 +20,8 @@
 //
 // On a pull request CI also sets PR_TITLE and PR_BODY: GitHub copies the co-author trailers a cloud session's
 // commit signer forces onto branch commits into the squash commit unless the merge passes its own message (gh ouro-pr
-// does, and so does Desk's merge-when-green relay), so the commits' authors and committers are judged but their
-// messages are not, and the pull request's title and body are, as the message that lands. The merge queue's squash
+// does, and so does Desk's merge-when-green relay), so the commits' authors and committers are judged, their
+// messages only for the co-author lines the repository's "No AI co-author credit" ruleset refuses, and the pull request's title and body in full, as the message that lands. The merge queue's squash
 // commits, and any run without PR_TITLE, are judged in full.
 //
 //   node scripts/attribution.mjs <base> <head>   checks the commits in base..head
@@ -64,6 +64,8 @@ const LINE_TERMINATOR = /\r\n|[\n\r\u2028\u2029\u0085]/;
 const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]|(?![\t\n\r])\p{Cc}/gu;
 /** A hidden character may sit inside a word or stand between words, so a line is read with them removed and with them as spaces. */
 const FILLER = INVISIBLE;
+/** The "No AI co-author credit" ruleset's pattern for a commit message, as the ruleset writes it. */
+const RULESET_CREDIT = /co-authored-by:[^\n]*(\[bot\]|copilot)/i;
 const GENERATED = /(?<![a-z])generated\s+(?:with|by)(?![a-z])(.*)$/i;
 const ROBOT_FOOTER = /🤖.*(?<![a-z])generated(?![a-z])/iu;
 
@@ -101,7 +103,13 @@ export function problems(commits, { messages = true } = {}) {
         if ((generated && AI_TOOL.test(generated[1])) || ROBOT_FOOTER.test(line)) return report(field, `"${raw.trim()}" says an AI tool wrote it`, REWORD);
       }
     };
-    if (!messages) continue;
+    if (!messages) {
+      // The repository's "No AI co-author credit" ruleset refuses these lines in a branch commit whatever lands in the squash.
+      commit.message.split(LINE_TERMINATOR).forEach((raw, index) => {
+        if (RULESET_CREDIT.test(raw)) report(`message line ${index + 1}`, `"${raw.trim()}" credits an AI tool or a bot, which the "No AI co-author credit" ruleset refuses`, UNCREDIT);
+      });
+      continue;
+    }
     const before = found.length;
     commit.message.split(LINE_TERMINATOR).forEach((raw, index) => read(raw, `message line ${index + 1}`));
     if (found.length === before && commit.message.includes("\u0085")) commit.message.split(/\r\n|[\n\r\u2028\u2029]/).forEach((raw, index) => read(raw, `message line ${index + 1}`));

@@ -5,6 +5,7 @@ import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { App, loadPage } from "../src/app";
 import { docsItems } from "../src/docs/items";
 import { waitingIslands } from "../src/voyage/chapters/island";
+import { scrollPositions } from "../../test/scroll-rest";
 import { audit, axeExclude, describeFindings, type GateFinding } from "@/registry/ouro/lib/ouro/testing/axe";
 
 let mounted: { root: Root; host: HTMLElement } | undefined;
@@ -117,12 +118,23 @@ export async function settle(): Promise<void> {
   // (ScrollArea's observer): wait for the fonts first, so a scan doesn't land between the two (#1620).
   // Bounded: a face that never finishes loading would otherwise hold the test to its time limit, naming nothing (#2149).
   await Promise.race([document.fonts.ready, new Promise((resolve) => setTimeout(resolve, 3000))]);
+  // A scroll made by code is no animation, and what it brings (a Jump to latest pill) comes only when it ends: the page
+  // is at rest when nothing runs and nothing scrolled since the round before (#3913).
+  let quiet = 0;
+  let before = scrollPositions();
   for (let round = 0; round < 50; round++) {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const running = document
       .getAnimations()
       .filter((animation) => Number.isFinite(animation.effect?.getComputedTiming().endTime) && animation.playState === "running");
-    if (running.length === 0) return;
+    const after = scrollPositions();
+    const scrolled = after !== before;
+    before = after;
+    if (running.length === 0 && !scrolled) {
+      if (++quiet === 3) return;
+      continue;
+    }
+    quiet = 0;
     for (const animation of running) animation.finish();
     await Promise.all(running.map((animation) => animation.finished.catch(() => undefined)));
   }

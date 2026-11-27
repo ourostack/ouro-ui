@@ -58,7 +58,7 @@ npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.570   # with their no
 
 Guides: [Ouro AX](docs/guides/ax.md), [add AX to an app you already have](docs/guides/ax-standalone.md), [make your CLI conformant](docs/guides/ax-adopt.md), [the claims](docs/guides/ax-standard.md), [the X-ray](docs/guides/ax-conformance.md), [the evaluation](docs/guides/ax-eval.md), and [what an agent harness owes its model](docs/guides/agent-harness.md). The items' pages are in [docs/ax](docs/ax/).
 
-**Build with it, and give back what you learn.** Interfaces that an agent or person uses, in your tools and your products alike, can follow Ouro UI's guidance: Ouro HX for screens, Ouro AX for agents. When an interface teaches you something general, contribute it back here as a principle, a component or a check with a test, kept generic, so the other products and tools that use Ouro UI get it too. A tool that needs an instruction booklet is a design bug: put the guidance in its surface (tool descriptions, replies, errors, automatic hooks).
+**Build with it, and give back what you learn.** Interfaces that an agent or person uses, in your tools and your products alike, can follow Ouro UI's guidance: Ouro HX for screens, Ouro AX for agents. When an interface teaches you something general, contribute it back here as a principle, a component or a check with a test, kept generic, so the other products and tools that use Ouro UI get it too. Only maintainers write here: if you can't, change or build the component in your own project, in a marked place, with a note of what it does and which Ouro UI release it starts from, and open a pull request from a fork or give it to a maintainer's agent to port; once a release carries it, you delete your copy. A tool that needs an instruction booklet is a design bug: put the guidance in its surface (tool descriptions, replies, errors, automatic hooks).
 
 ## Ouro HX
 
@@ -905,7 +905,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 
 ### Chat
 
-- **Attachment** — A file attached to a chat message, or waiting to be sent with one: an icon for its kind, its name and size. [Docs](docs/Attachment.md)
+- **Attachment** — A file attached to a chat message, or waiting to be sent with one: an icon for its kind, its name and size, or with `preview` the picture itself. [Docs](docs/Attachment.md)
 - **AttentionCard** — Something that waits on the person: a mention, a question asked of them or a request still unanswered. [Docs](docs/AttentionCard.md)
 - **ChatHeader** — The bar above an open chat: who it is with, and what you can do there. [Docs](docs/ChatHeader.md)
 - **Composer** — A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. [Docs](docs/Composer.md)

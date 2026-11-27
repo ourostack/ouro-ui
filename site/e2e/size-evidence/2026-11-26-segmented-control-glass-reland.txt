@@ -1,0 +1,7 @@
+Re-land of the SegmentedControl glass variant after its revert. Measured with node scripts/pattern-size.mjs (gzip bytes, adds over bare-app).
+
+main before:   dashboard CSS 10843, list-detail JS 86551 CSS 10402, settings JS 105211 CSS 14204
+this branch:   dashboard JS 86591 CSS 11127, list-detail JS 86889 CSS 10829, settings JS 105581 CSS 14586
+docs-shell CSS: 28044 of 28672 (under its ceiling)
+
+The glass classes reuse ButtonGroup's tokens. Moving them into ouro-base was tried and rejected: it raised bare-app CSS for every app. The three pattern ceilings rise by the measured growth plus a small margin.
