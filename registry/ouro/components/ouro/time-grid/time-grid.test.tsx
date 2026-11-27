@@ -325,7 +325,9 @@ describe("TimeGrid date and layout math", () => {
   });
 
   it("counts the lines an event's height holds", () => {
-    expect([15, 30, 44, 45, 60, 90, 120].map(lineCount)).toEqual([1, 1, 1, 2, 2, 4, 5]);
+    expect([15, 30, 44, 45, 60, 90, 120].map((minutes) => lineCount(minutes))).toEqual([1, 1, 1, 2, 2, 4, 5]);
+    // At a taller hour, the same minutes hold more lines.
+    expect([15, 30, 60].map((minutes) => lineCount(minutes, 80))).toEqual([1, 2, 4]);
   });
 
   it("finds the week's days from the locale, without its weekend for a work week", () => {
@@ -1008,6 +1010,42 @@ describe("TimeGrid", () => {
     expect(warnings()).toEqual([]);
   });
 
+  it("gives an event's title the lines it needs before its time, which steps out whole where no line is left", async () => {
+    await render({
+      view: "week",
+      events: [
+        { id: "long", title: "Architecture retrospective", start: at(12, "13:00"), end: at(12, "14:00") },
+        { id: "short", title: "Sync", start: at(12, "15:00"), end: at(12, "16:00") },
+      ],
+    });
+    const parts = (title: string) => {
+      const text = titled(title).querySelector<HTMLElement>(":scope > span:not([data-ouro-touch-target])")!;
+      return { text: text.getBoundingClientRect(), title: text.firstElementChild as HTMLElement, time: text.querySelector<HTMLElement>("[data-slot='time-grid-event-time']")!.getBoundingClientRect() };
+    };
+    const long = parts("Architecture retrospective");
+    // A title two words long in a day too narrow for them on one line: both lines, whole, and the time beside the event
+    // rather than cut under it.
+    expect(long.title.getBoundingClientRect().height).toBeGreaterThan(20);
+    expect(long.title.scrollHeight).toBeLessThanOrEqual(long.title.clientHeight);
+    expect(long.title.getBoundingClientRect().bottom).toBeLessThanOrEqual(long.text.bottom + 1);
+    expect(long.time.left).toBeGreaterThanOrEqual(long.text.right);
+    const short = parts("Sync");
+    expect(short.time.left).toBeLessThan(short.text.right);
+    expect(short.time.bottom).toBeLessThanOrEqual(short.text.bottom + 1);
+    expect(plain(titled("Architecture retrospective").getAttribute("aria-label"))).toBe("Architecture retrospective, 1:00 – 2:00 PM, Thursday");
+  });
+
+  it("draws the hour hourHeight asks for, and gives a short event the lines it holds", async () => {
+    const { grid, rerender } = await render({ view: "day", events: [{ id: "half", title: "Standup", start: at(12, "09:30"), end: at(12, "10:00") }] });
+    const body = grid.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;
+    // At the shortest hour a half hour holds one line, the title and its start.
+    expect(titled("Standup").querySelector(":scope > span > .truncate")).not.toBeNull();
+    await rerender({ view: "day", hourHeight: 5, events: [{ id: "half", title: "Standup", start: at(12, "09:30"), end: at(12, "10:00") }] });
+    expect(body.offsetHeight).toBe(24 * 80);
+    await expect.poll(() => titled("Standup").querySelector<HTMLElement>(":scope > span > span[style]")?.style.getPropertyValue("--ouro-lines")).toBe("2");
+    expect(warnings()).toEqual([]);
+  });
+
   it("shows the title first, then the time and the description as the event's height allows", async () => {
     await render({
       view: "day",
@@ -1027,7 +1065,7 @@ describe("TimeGrid", () => {
     expect(parts("Launch rehearsal")).toEqual(["Launch rehearsal", "3:00 – 4:30 PM", "Room 4"]);
     expect(parts("Writing")).toEqual(["Writing", "5:00 – 6:30 PM"]);
     const lines = (title: string) => titled(title).querySelector<HTMLElement>(":scope > span > span[style]")!.style.getPropertyValue("--ouro-lines");
-    expect([lines("Design review"), lines("Launch rehearsal"), lines("Writing")]).toEqual(["1", "2", "3"]);
+    expect([lines("Design review"), lines("Launch rehearsal"), lines("Writing")]).toEqual(["2", "4", "4"]);
     expect(parts("Workshop")).toEqual(["Workshop", "7:00 – 8:15 PM", "Lab"]);
     expect(titled("Workshop").querySelectorAll('[dir="auto"]')).toHaveLength(1);
     expect(plain(titled("Check-in").getAttribute("aria-label"))).toBe("Check-in, 9:00 – 9:45 PM, Thursday");
