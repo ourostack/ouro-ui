@@ -587,17 +587,21 @@ function domPoint(editor: LexicalEditor, clean: number): [Node, number] {
     return type === "text" ? [domTextNode(dom), offset] : [dom, offset];
   });
 }
-// The lines of text a range holds. Its own client rects also hold the box of each element it wholly holds, as wide as the
-// editor: a blank line's paragraph, a list and its items, which would mark the empty space beside and between the words.
+// The lines of text, and the emoji pictures, a range holds. Its own client rects also hold the box of each element it
+// wholly holds, as wide as the editor: a blank line's paragraph, a list and its items, which would mark the empty space
+// beside and between the words.
 function textRects(range: Range): DOMRect[] {
   const root = range.commonAncestorContainer;
   if (root.nodeType === Node.TEXT_NODE) return [...range.getClientRects()];
   const rects: DOMRect[] = [];
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
+    acceptNode: (node) => (node.nodeType === Node.TEXT_NODE || node.nodeName === "IMG" ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP),
+  });
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
     if (!range.intersectsNode(node)) continue;
     const part = document.createRange();
-    part.selectNodeContents(node);
+    if (node.nodeType === Node.TEXT_NODE) part.selectNodeContents(node);
+    else part.selectNode(node);
     if (node === range.startContainer) part.setStart(node, range.startOffset);
     if (node === range.endContainer) part.setEnd(node, range.endOffset);
     rects.push(...part.getClientRects());
