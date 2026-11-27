@@ -241,4 +241,23 @@ describe("RingCard", () => {
     expect(note.getBoundingClientRect().height).toBeLessThanOrEqual(Number.parseFloat(getComputedStyle(note).lineHeight) * 2 + 1);
     expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth);
   });
+
+  it("places the calm line where the choices were rather than centering it in the reserved space", async () => {
+    const props = { ...base, chips: <Button size="sm" variant="plain">Message instead</Button> };
+    const { card, rerender } = await render(<RingCard {...props} />);
+    const rect = card.querySelector("button")!.getBoundingClientRect();
+    await rerender(<RingCard {...props} announcement="" pending={{ label: "Connecting audio...", media: "audio" }} />);
+    const line = card.querySelector('[data-slot="pending"] [data-ouro="text"]')!.getBoundingClientRect();
+    expect(Math.abs((line.top + line.bottom) / 2 - (rect.top + rect.bottom) / 2)).toBeLessThanOrEqual(4);
+  });
+
+  it("hands focus on when a recovery control is replaced by a connecting line", async () => {
+    const { rerender } = await render(<>
+      <RingCard {...base} announcement="" failure={{ title: "Video unavailable", line: "Use audio instead.", action: <Button>Answer with audio</Button>, announcement: "Video unavailable. Use audio instead." }} />
+      <Button>Continue draft</Button>
+    </>);
+    page.getByRole("button", { name: "Answer with audio", exact: true }).element().focus();
+    await rerender(<><RingCard {...base} announcement="" pending={{ label: "Connecting audio...", media: "audio" }} /><Button>Continue draft</Button></>);
+    await expect.poll(() => document.activeElement?.textContent).toBe("Continue draft");
+  });
 });

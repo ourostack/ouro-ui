@@ -25,7 +25,7 @@ type Story = StoryObj<typeof meta>;
 export const Playground: Story = {};
 export const AudioCall: Story = { args: { kind: "audio", announcement: "Mara Vale is calling with audio.", note: undefined } };
 export const Shortcuts: Story = { args: { keys: { decline: "Esc", audio: "Shift+A", video: "Shift+V" } } };
-export const QuietAlternatives: Story = { args: { chips: <Button size="sm" variant="plain">Message instead</Button> } };
+export const QuietAlternatives: Story = { args: { chips: <Button size="sm" tone="secondary" variant="soft">Message instead</Button> } };
 export const Connecting: Story = { args: { announcement: "", pending: { label: "Connecting...", media: "video" } } };
 export const Declining: Story = { args: { announcement: "", pending: { label: "Declining...", media: null } } };
 export const Failure: Story = {
