@@ -1095,6 +1095,7 @@
     "registry/ouro/e2e/ouro/relative-time.spec.ts": 9601,
     "registry/ouro/e2e/ouro/reorderable.spec.ts": 23255,
     "registry/ouro/e2e/ouro/resizable.spec.ts": 3455,
+    "registry/ouro/e2e/ouro/ring-card.spec.ts": 2252,
     "registry/ouro/e2e/ouro/route-progress.spec.ts": 5930,
     "registry/ouro/e2e/ouro/row.spec.ts": 7815,
     "registry/ouro/e2e/ouro/scroll-area.spec.ts": 7196,
