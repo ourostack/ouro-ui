@@ -62,10 +62,11 @@ test("squircle-paint finds a descendant's square fill beyond a squircle, but pas
     body { background: linear-gradient(110deg, #f8f3e7, #dce8f4); }
     .surface { position: relative; width: 220px; height: 140px; border-radius: 32px; background: #557799; }
     .broken { clip-path: none !important; }
+    .sound { overflow: hidden; }
     .fill { position: absolute; inset: 0; background: #cc6655; }
   `);
   const fixture = (broken: boolean) => page(
-    `<h1>Projects</h1><div id="surface" class="surface${broken ? " broken" : ""}"><div class="fill"></div></div>`,
+    `<h1>Projects</h1><div id="surface" class="surface${broken ? " broken" : " sound"}"><div class="fill"></div></div>`,
     `<style>${css}</style>`,
   );
   const leaked = (await scan("paint-broken", fixture(true))).findings.filter((finding) => finding.rule === "squircle-paint");

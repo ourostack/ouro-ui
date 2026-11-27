@@ -90,6 +90,8 @@ interface DesignOptions {
   cornerShape?: boolean;
   /** The radius, in CSS pixels, under which a circle's arc and a squircle's look alike. */
   squirclePx?: number;
+  /** Keep the original nested-frame corner finding; the runner uses corners-nest instead. */
+  legacyCorners?: boolean;
 }
 
 interface CornerMedia {
@@ -115,7 +117,7 @@ interface CornerReading {
   corners: string[];
 }
 
-function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5, readingPx = 24, cornerShape = CSS.supports("corner-shape", "squircle"), squirclePx = 4, lineGapPx = 6, badgeSlackPx = 0.75, textSlackPx = 2.5, fieldSlackPx = 1.5, inkSlackPx = 1 }: DesignOptions = {}): PageIssue[] {
+function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5, readingPx = 24, cornerShape = CSS.supports("corner-shape", "squircle"), squirclePx = 4, lineGapPx = 6, badgeSlackPx = 0.75, textSlackPx = 2.5, fieldSlackPx = 1.5, inkSlackPx = 1, legacyCorners = true }: DesignOptions = {}): PageIssue[] {
   const issues: PageIssue[] = [];
   const counter = window as unknown as { __ouroCheckRef?: number };
   const ref = (el: Element) => {
@@ -380,7 +382,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const r = el.getBoundingClientRect();
     return Math.min(px(getComputedStyle(el).borderTopLeftRadius), r.width / 2, r.height / 2);
   };
-  for (const outer of visible) {
+  for (const outer of legacyCorners ? visible : []) {
     const os = getComputedStyle(outer);
     const radius = radiusOf(outer);
     // Only a corner people see: a visible frame or fill, which doesn't clip what is in it, around a child near enough

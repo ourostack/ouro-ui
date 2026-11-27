@@ -9,6 +9,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import type { Browser, BrowserType, Page, Request } from "playwright";
+import { findCornerIssues } from "./corner-check.ts";
 import { findDesignIssues, listCornerMedia, mediaDrawn, readCorners, shownCorners, type CornerReading } from "./design-check.ts";
 import { findImageFades } from "./fade-check.ts";
 import { ALIASES, behindModal, boxOf, veiled, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, listPersonSignals, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
@@ -180,6 +181,8 @@ interface Gate {
   // Where long lines are checked, and against what: a page glob (two stars for all pages) holds the page's prose, a
   // CSS selector ("main .chat-message") holds what it matches. Without one the rule is off.
   measure?: Record<string, string>;
+  // The host window's corner radius, in CSS pixels, when its edge lies outside the page.
+  windowRadius?: number;
   // false: walk nothing, so jank measures no page.
   walk?: boolean;
   // The states a page reaches by presses, each checked as a page of its own: the page as the check names it ("/" or
@@ -274,6 +277,7 @@ const LABELS: Record<string, string> = {
   "giant-picture": "giant picture",
   "cramped-heading": "cramped heading",
   "nested-frame": "frame in a frame",
+  "corners-nest": "corners do not nest",
   "doubled-line": "line drawn twice",
   "count-badge": "count badge out of place",
   "off-centre-text": "text off centre",
@@ -345,6 +349,7 @@ const HINTS: Record<string, string> = {
   "giant-picture": "show the work itself (the component, a screenshot) or a small picture beside the words, not a banner",
   "cramped-heading": "give the heading room: more space above it than between it and what follows",
   "nested-frame": "draw one frame: drop the inner border, or make the inner radius the outer one less the inset",
+  "corners-nest": "make each inner corner a squircle with the outer radius less its inset",
   "doubled-line": "keep one line: drop the inner divider where a frame or another divider already separates, or give the two room apart",
   "off-centre-text": "even the padding above and below the words, or centre the row with align-items: center rather than end, and centre a line on its cap height (text-box: trim-both cap alphabetic) where the font sits it high or low",
   "off-centre-ink": "centre the control's content with flex and align-items: center, give the icon an even box, and draw a more or overflow control as an icon, never a typed \u2026, which rests on the text's baseline",
@@ -1142,7 +1147,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       await page.evaluate(decodeImages);
       shown.push(...(await page.evaluate(findSizeIssues, { measures: measuresFor(config, target.page) })));
       shown.push(...(await page.evaluate(findImageFades)));
-      shown.push(...(await page.evaluate(findDesignIssues, {})));
+      shown.push(...(await page.evaluate(findDesignIssues, { legacyCorners: false })));
+      shown.push(...(await page.evaluate(findCornerIssues, config.windowRadius === undefined ? {} : { windowRadius: config.windowRadius })));
       shown.push(...(await page.evaluate(findTextIssues)));
       shown.push(...(await page.evaluate(findLayoutIssues, {})));
       shown.push(...(await page.evaluate(findThemeIssues, {})));
@@ -1765,10 +1771,11 @@ async function readJson<T>(file: string): Promise<T> {
 }
 
 // What is wrong with a config's press and state settings, which JSON leaves unchecked: a string would read as its letters.
-function configProblem({ press, pressRepeat, pressAll, pressLimit, states, waive, firstRun, usability, decisions }: Gate): string | null {
+function configProblem({ press, pressRepeat, pressAll, pressLimit, states, waive, firstRun, usability, decisions, windowRadius }: Gate): string | null {
   const waived = Object.entries(waive ?? {}).find(([, rules]) => Object.hasOwn(Object(rules), "blurry-image"));
   if (waived)
     return `"waive" > "${waived[0]}" waives blurry-image, which cannot be waived: remove it, and give each picture it reports a larger source, or a srcset whose largest file covers its drawn width at 2x.`;
+  if (windowRadius !== undefined && !(typeof windowRadius === "number" && Number.isFinite(windowRadius) && windowRadius >= 0)) return '"windowRadius" takes the native window corner radius as a non-negative number of CSS pixels.';
   if (press !== undefined && !(Array.isArray(press) && press.every((selector) => typeof selector === "string" && selector.trim() !== ""))) return '"press" takes a list of CSS selectors, such as ["[role=tab]"].';
   if (pressRepeat !== undefined && !(Number.isInteger(pressRepeat) && pressRepeat >= 1)) return '"pressRepeat" takes a whole number of presses, 1 or more.';
   if (pressAll !== undefined && typeof pressAll !== "boolean") return '"pressAll" takes true or false.';
