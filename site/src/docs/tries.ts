@@ -23,6 +23,6 @@ export const tries: Readonly<Record<string, string>> = {
   "color-scheme-toggle": "Pick Dark. The whole page goes dark, not just the demo.",
   timer: "Start Focus, then reload the page. It keeps counting from where it was.",
   celebrate: "Press Finish the task. Confetti bursts from the badge. With reduced motion on, the badge just fades in.",
-  combobox: "On a phone, tap Herb. It opens as a sheet with the search on top.",
+  combobox: "Type Rowan and press Enter straight away. Then press Enter again to start your message. On a phone, tap To to search in a sheet.",
   carousel: "Swipe it, scroll it sideways on a trackpad, or tab to it and press the arrow keys. It stops on a slide.",
 };

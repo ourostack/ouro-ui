@@ -168,22 +168,32 @@ const personItem = (person: (typeof people)[number]): ComboboxItem => ({
 
 /**
  * A people picker: each person with their picture, job title and a "1:1" mark, and their picture
- * on the chip. `autoHighlight` lets Enter pick the top match; the app keeps the text
- * (`inputValue`) and clears it after each pick; the second field is read-only.
+ * on the chip. Type and press Enter before the search answers: `resultsFor` keeps the
+ * pick with that query. The second field is read-only.
  */
 export const People: Story = {
   parameters: { screenshot: { name: "combobox-people", open: true } },
   render: function Render() {
     const [text, setText] = useState("");
     const [picked, setPicked] = useState<string[]>(["iris"]);
-    const shown = people.filter((person) => picked.includes(person.id) || person.name.toLowerCase().includes(text.toLowerCase()));
+    const [answer, setAnswer] = useState({ query: "", people });
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        setAnswer({ query: text, people: people.filter((person) => person.name.toLowerCase().includes(text.toLowerCase())) });
+      }, 450);
+      return () => clearTimeout(timer);
+    }, [text]);
     return (
       <Surface>
         <Combobox
           label="To"
           multiple
           autoHighlight
-          items={shown.map(personItem)}
+          items={answer.people.map(personItem)}
+          resultsFor={answer.query}
+          loading={answer.query !== text}
+          loadingLabel="Finding people…"
+          emptyLabel="No one by that name"
           inputValue={text}
           onInputChange={setText}
           value={picked}
