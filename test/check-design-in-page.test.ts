@@ -298,6 +298,19 @@ describe("findDesignIssues: nested-frame", () => {
     expect(of("nested-frame")).toEqual([]);
   });
 
+  it("passes a framed editor but still finds a framed card that contains a field", () => {
+    render(`
+      <div style="width:360px;padding:20px;border:1px solid #888;background:#ddd">
+        <div id="editor" style="width:300px;height:110px;border:1px solid #888;background:#fff">
+          <textarea aria-label="Message" style="width:90%;height:65px"></textarea><button>Send</button>
+        </div>
+        <div id="card" style="width:300px;height:110px;margin-top:20px;border:1px solid #888;background:#fff">
+          <h2>Preferences</h2><input aria-label="Name">
+        </div>
+      </div>`);
+    expect(of("nested-frame").map((issue) => issue.element)).toEqual(["div#card in div"]);
+  });
+
   it("finds a filled box in a rounded corner whose radius isn't the corner's less the inset", () => {
     render(`
       <div id="card" style="background:#eef;border-radius:24px;padding:4px"><div id="flat" style="background:#3a7;height:60px;border-radius:4px"></div></div>
@@ -446,7 +459,7 @@ describe("findDesignIssues: cut-off-edge", () => {
         </div>
       </div>
       <div style="width:340px;height:120px;background:#eee">
-        <div style="width:320px;height:80px;border:1px solid #888">
+        <div style="box-sizing:content-box;width:320px;height:80px;border:1px solid #888">
           <div style="width:320px;height:80px;overflow:auto;background:#eee">
             <div style="height:60px">First</div><div style="height:60px">Second</div>
           </div>
