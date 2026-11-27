@@ -176,8 +176,8 @@ describe("Alert", () => {
     const wrapped = narrow.alert.querySelector("[data-ouro-alert-action] button")!.getBoundingClientRect();
     expect(wrapped.top - narrowTitle.getBoundingClientRect().bottom).toBeCloseTo(12, 0);
     const last = [...narrow.alert.querySelectorAll("[data-ouro-alert-action] button")].at(-1)!.getBoundingClientRect();
-    // 16px of padding and the 1px border under the last button, as without the overhang.
-    expect(narrow.alert.getBoundingClientRect().bottom - last.bottom).toBeCloseTo(17, 0);
+    // The padding under the last button is the same as without the overhang.
+    expect(narrow.alert.getBoundingClientRect().bottom - last.bottom).toBeCloseTo(16, 0);
   });
 
   it("lets an action beside its title shrink, so a row of buttons in it scrolls inside the alert", async () => {
