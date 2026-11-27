@@ -14,6 +14,7 @@ const subscribeWake = (listener: () => void) => {
   return vi.fn();
 };
 const policy = { enabled: true, onHeld, subscribeWake };
+const resting = (box: HTMLTextAreaElement) => box.readOnly || box.style.getPropertyValue("caret-animation") === "manual";
 
 async function render(node: ReactNode) {
   host ??= document.createElement("div");
@@ -47,18 +48,21 @@ describe("TextArea resting caret", () => {
     box.focus();
     box.setSelectionRange(2, 2);
     await idle(box);
-    expect(box.readOnly).toBe(true);
+    expect(resting(box)).toBe(true);
     expect(document.activeElement).toBe(box);
     expect([box.selectionStart, box.selectionEnd]).toEqual([2, 2]);
     expect(box.dataset.caretRest).toBe("idle");
-    const caret = host.querySelector<HTMLElement>("[data-ouro-steady-caret]")!;
-    expect(caret.getAttribute("aria-hidden")).toBe("true");
-    expect(caret.getBoundingClientRect().height).toBeGreaterThan(0);
+    const caret = host.querySelector<HTMLElement>("[data-ouro-steady-caret]");
+    if (CSS.supports("caret-animation", "manual")) expect(caret).toBeNull();
+    else {
+      expect(caret!.getAttribute("aria-hidden")).toBe("true");
+      expect(caret!.getBoundingClientRect().height).toBeGreaterThan(0);
+    }
     expect(vi.getTimerCount()).toBe(0);
     vi.useRealTimers();
     await userEvent.keyboard("x");
     expect(box.value).toBe("hexllo");
-    expect(box.readOnly).toBe(false);
+    expect(resting(box)).toBe(false);
     expect(onHeld.mock.calls.map(([held]) => held)).toEqual([true, false]);
   });
 
@@ -66,7 +70,7 @@ describe("TextArea resting caret", () => {
     const box = await render(<TextArea label="Draft" defaultValue="hello" restingCaret={policy} />);
     await idle(box);
     await render(<TextArea label="Draft" defaultValue="hello" restingCaret={{ ...policy, enabled: false }} />);
-    expect(box.readOnly).toBe(false);
+    expect(resting(box)).toBe(false);
     expect(host.querySelector("[data-ouro-steady-caret]")).toBeNull();
     await render(<TextArea label="Draft" defaultValue="hello" readOnly restingCaret={policy} />);
     wake();
@@ -90,16 +94,16 @@ describe("TextArea resting caret", () => {
     await idle(box);
     box.dispatchEvent(new Event("pointermove", { bubbles: true }));
     box.dispatchEvent(new Event("wheel", { bubbles: true }));
-    expect(box.readOnly).toBe(true);
+    expect(resting(box)).toBe(true);
     wake();
-    expect(box.readOnly).toBe(false);
+    expect(resting(box)).toBe(false);
     box.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
     await act(() => vi.advanceTimersByTime(60_000));
-    expect(box.readOnly).toBe(false);
+    expect(resting(box)).toBe(false);
     box.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true }));
     await act(() => vi.advanceTimersByTime(30_000));
-    expect(box.readOnly).toBe(true);
+    expect(resting(box)).toBe(true);
     box.dispatchEvent(new Event("paste", { bubbles: true }));
-    expect(box.readOnly).toBe(false);
+    expect(resting(box)).toBe(false);
   });
 });

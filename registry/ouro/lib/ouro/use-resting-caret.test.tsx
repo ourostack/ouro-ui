@@ -41,6 +41,7 @@ beforeEach(() => {
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
+  vi.spyOn(CSS, "supports").mockReturnValue(false);
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
 });
 afterEach(async () => {
@@ -54,6 +55,29 @@ afterEach(async () => {
 });
 
 describe("resting caret host contract", () => {
+  it("uses the engine's steady caret when supported and restores the caller's animation", async () => {
+    vi.mocked(CSS.supports).mockRestore();
+    const native = CSS.supports("caret-animation", "manual");
+    const box = await render() as HTMLTextAreaElement;
+    for (const original of ["", "auto"]) {
+      box.style.setProperty("caret-animation", original, "important");
+      const before = box.style.getPropertyValue("caret-animation");
+      await rest(box);
+      expect(box.readOnly).toBe(!native);
+      expect(box.style.getPropertyValue("caret-animation")).toBe(native ? "manual" : before);
+      expect(caret() === null).toBe(native);
+      expect(vi.getTimerCount()).toBe(0);
+      wake();
+      expect(box.style.getPropertyValue("caret-animation")).toBe(before);
+      expect(box.style.getPropertyPriority("caret-animation")).toBe(before ? "important" : "");
+    }
+    await rest(box);
+    box.style.setProperty("caret-animation", "auto");
+    const changed = box.style.getPropertyValue("caret-animation");
+    wake();
+    expect(box.style.getPropertyValue("caret-animation")).toBe(changed);
+  });
+
   it("stays inert without host permission", async () => {
     let box = await render({ policy: undefined });
     await rest(box);

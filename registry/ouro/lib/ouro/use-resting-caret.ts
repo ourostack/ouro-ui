@@ -19,7 +19,7 @@ export interface RestingCaretOptions {
   occluded?: boolean | undefined;
   /** Subscribe to native wake requests. Wake synchronously before forwarding native input or opening an editing menu. Return the unsubscribe function. Keep this callback stable. */
   subscribeWake: (wake: () => void) => () => void;
-  /** Called synchronously after editability changes. While true, the host must hold native input-method keys, request a wake and forward them only after false. Keep this callback stable. */
+  /** Called synchronously on rest and wake. While true, the host must hold native input-method keys, request a wake and forward them only after false. Keep this callback stable. */
   onHeld: (held: boolean) => void;
 }
 
@@ -129,6 +129,9 @@ export function useRestingCaret(ref: RefObject<Box | null>, policy: RestingCaret
     if (textBox(box) && box.selectionStart === null) return;
     const doc = box.ownerDocument;
     const win = doc.defaultView!;
+    const nativeCaret = win.CSS.supports("caret-animation", "manual");
+    let animation = "";
+    let animationPriority = "";
     const macWebKit = win.navigator.platform.startsWith("Mac") && win.navigator.vendor === "Apple Computer, Inc.";
     let active = true;
     let held = false;
@@ -171,14 +174,21 @@ export function useRestingCaret(ref: RefObject<Box | null>, policy: RestingCaret
     const lift = () => {
       if (!held) return;
       held = false;
-      if (textBox(box)) box.readOnly = caller.current.readOnly;
-      else {
-        box.contentEditable = String(!caller.current.readOnly && !caller.current.disabled);
-        if (tabIndex === null) {
-          if (!caller.current.readOnly || caller.current.disabled) box.removeAttribute("tabindex");
-        } else box.setAttribute("tabindex", tabIndex);
+      if (nativeCaret) {
+        if (box.style.getPropertyValue("caret-animation") === "manual") {
+          if (animation) box.style.setProperty("caret-animation", animation, animationPriority);
+          else box.style.removeProperty("caret-animation");
+        }
+      } else {
+        if (textBox(box)) box.readOnly = caller.current.readOnly;
+        else {
+          box.contentEditable = String(!caller.current.readOnly && !caller.current.disabled);
+          if (tabIndex === null) {
+            if (!caller.current.readOnly || caller.current.disabled) box.removeAttribute("tabindex");
+          } else box.setAttribute("tabindex", tabIndex);
+        }
+        reconsider(box);
       }
-      reconsider(box);
       caret?.remove();
       caret = undefined;
       onHeld(false);
@@ -202,15 +212,23 @@ export function useRestingCaret(ref: RefObject<Box | null>, policy: RestingCaret
       if (!held) {
         if (textBox(box) ? box.readOnly : !box.isContentEditable) return;
         held = true;
-        if (textBox(box)) box.readOnly = true;
-        else {
-          box.tabIndex = 0;
-          box.contentEditable = "false";
+        if (nativeCaret) {
+          animation = box.style.getPropertyValue("caret-animation");
+          animationPriority = box.style.getPropertyPriority("caret-animation");
+          box.style.setProperty("caret-animation", "manual");
         }
-        reconsider(box);
+        else {
+          if (textBox(box)) box.readOnly = true;
+          else {
+            box.tabIndex = 0;
+            box.contentEditable = "false";
+          }
+          reconsider(box);
+        }
         onHeld(true);
         if (!held) return;
       }
+      if (nativeCaret) return;
       if (visible && foreground) {
         if (!caret) {
           caret = doc.createElement("span");
@@ -257,7 +275,7 @@ export function useRestingCaret(ref: RefObject<Box | null>, policy: RestingCaret
     win.addEventListener("scroll", draw, true);
     current.current = { cover: (value) => { covered = value; arrive(); }, refresh: draw };
     const unsubscribe = subscribeWake(wake);
-    if (doc.activeElement === box) reconsider(box);
+    if (!nativeCaret && doc.activeElement === box) reconsider(box);
     update();
     return () => {
       active = false;

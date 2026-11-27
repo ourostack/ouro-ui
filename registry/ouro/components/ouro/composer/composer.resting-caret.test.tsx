@@ -23,10 +23,12 @@ afterEach(async () => {
   vi.useRealTimers();
   await act(() => root.unmount());
   host.remove();
+  vi.restoreAllMocks();
 });
 
 describe("Composer resting caret", () => {
   it("places the steady caret on a new empty rich paragraph", async () => {
+    vi.spyOn(CSS, "supports").mockReturnValue(false);
     const box = await render("rich");
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
     box.focus();
@@ -62,6 +64,9 @@ describe("Composer resting caret", () => {
       await act(() => vi.advanceTimersByTime(30_000));
       expect(box.dataset.caretRest).toBe("idle");
       expect(document.activeElement).toBe(box);
+      const native = CSS.supports("caret-animation", "manual");
+      expect(box instanceof HTMLTextAreaElement ? box.readOnly : !box.isContentEditable).toBe(!native);
+      expect(box.style.getPropertyValue("caret-animation")).toBe(native ? "manual" : "");
       vi.useRealTimers();
       await userEvent.keyboard("x");
       expect(box instanceof HTMLTextAreaElement ? box.value : box.textContent).toBe("hellox");

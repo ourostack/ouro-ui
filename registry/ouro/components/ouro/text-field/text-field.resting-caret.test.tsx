@@ -32,9 +32,12 @@ describe("TextField resting caret", () => {
     box.setSelectionRange(1, 4, "backward");
     wake();
     await act(() => vi.advanceTimersByTime(30_000));
-    expect(box.readOnly).toBe(true);
+    const native = CSS.supports("caret-animation", "manual");
+    expect(box.readOnly).toBe(!native);
     expect([box.selectionStart, box.selectionEnd, box.selectionDirection]).toEqual([1, 4, "backward"]);
-    expect(host.querySelector<HTMLElement>("[data-ouro-steady-caret]")!.hidden).toBe(true);
+    const caret = host.querySelector<HTMLElement>("[data-ouro-steady-caret]");
+    if (native) expect(caret).toBeNull();
+    else expect(caret!.hidden).toBe(true);
     wake();
     vi.useRealTimers();
     await userEvent.keyboard("x");
