@@ -1800,10 +1800,8 @@ describe("TimeGrid", () => {
       try {
         const { grid } = await open({ className: "h-[calc(100vh-1rem)]" });
         const cursor = grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!;
-        await userEvent.keyboard("{Home}");
-        await expect.poll(() => viewport().scrollTop).toBe(0);
-        const { top, height } = cursor.getBoundingClientRect();
-        for (let step = 0; step < Math.ceil((innerHeight - 80 - top) / height); step++) await userEvent.keyboard("{ArrowDown}");
+        await userEvent.keyboard("{End}");
+        await expect.poll(() => viewport().scrollTop).toBeGreaterThan(0);
         expect(cursor.style.scrollMarginBottom).toBe("");
         toast.style.display = "block";
         await expect.poll(() => cursor.style.scrollMarginBottom).not.toBe("");
