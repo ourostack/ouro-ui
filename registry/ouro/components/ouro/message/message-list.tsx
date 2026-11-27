@@ -1608,17 +1608,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     setShowJump(false);
   };
 
-  // Open at the newest message (or at `initialAnchor`), then follow growth (new messages, streaming text, images
-  // loading, the keyboard resizing the list) only while pinned. Layout effect and resize
-  // observer callbacks run before paint, so the view never flashes off the bottom.
-  // While unpinned, the first message whose top is in view stays where it is, so older history
-  // loading above it never moves the reader, even in the frame they scroll. This replaces the
-  // browser's scroll anchoring, which is off: Chrome's adjustment read as the reader scrolling
-  // up, and Safari has none. Where an app turns the browser's anchoring back on
-  // (`overflow-anchor: auto` on the scroller) and the browser has it, the browser corrects alone.
+  const inputAt = useRef(Number.NEGATIVE_INFINITY);
   useLayoutEffect(() => {
     const scroller = scrollerRef.current!;
-    const content = contentRef.current!;
     // Code choosing a new place ends a hold, even when it chooses a nearby pixel. Native scroll feedback does not
     // pass through the setter, so it is told apart by ownership, never by how many pixels it moved.
     const previousTop = Object.getOwnPropertyDescriptor(scroller, "scrollTop");
@@ -1632,11 +1624,27 @@ export function MessageList(props: MessageListProps): JSX.Element {
       get: () => topProperty.get!.call(scroller),
       set: setTop,
     });
-    const forgetTop = () => {
+    const onFocus = () => void (inputAt.current = performance.now());
+    scroller.addEventListener("focusin", onFocus, true);
+    return () => {
+      scroller.removeEventListener("focusin", onFocus, true);
       if (Object.getOwnPropertyDescriptor(scroller, "scrollTop")?.set !== setTop) return;
       if (previousTop) Object.defineProperty(scroller, "scrollTop", previousTop);
       else Reflect.deleteProperty(scroller, "scrollTop");
     };
+  }, []);
+
+  // Open at the newest message (or at `initialAnchor`), then follow growth (new messages, streaming text, images
+  // loading, the keyboard resizing the list) only while pinned. Layout effect and resize
+  // observer callbacks run before paint, so the view never flashes off the bottom.
+  // While unpinned, the first message whose top is in view stays where it is, so older history
+  // loading above it never moves the reader, even in the frame they scroll. This replaces the
+  // browser's scroll anchoring, which is off: Chrome's adjustment read as the reader scrolling
+  // up, and Safari has none. Where an app turns the browser's anchoring back on
+  // (`overflow-anchor: auto` on the scroller) and the browser has it, the browser corrects alone.
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current!;
+    const content = contentRef.current!;
     // The messages whose top is in view (else the one filling it), each with where it sits in the
     // content. Those still in the page are held in place, by the ones that moved together: one may
     // itself have been replaced (a key change), or moved away on its own (a post that a reply moved
@@ -1985,10 +1993,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     scroller.addEventListener("wheel", onWheel, { passive: true });
     // When the reader last did something that may scroll the list, besides the wheel (turning), or code asked the list to scroll
     // (scrollTo, scrollBy: a find's smooth scroll to its match, an app's own), which may take frames to get there.
-    let inputAt = Number.NEGATIVE_INFINITY;
-    const onInput = () => void (inputAt = performance.now());
+    const onInput = () => void (inputAt.current = performance.now());
     // Stryker disable next-line BooleanLiteral: passive only tells the browser these listeners never cancel the event; onInput never calls preventDefault, so no test can observe it.
-    for (const type of ["pointerdown", "keydown", "touchstart", "focusin"]) scroller.addEventListener(type, onInput, { capture: true, passive: true });
+    for (const type of ["pointerdown", "keydown", "touchstart"]) scroller.addEventListener(type, onInput, { capture: true, passive: true });
     const asked = (name: "scrollTo" | "scrollBy") => {
       const scroll = Element.prototype[name];
       // Stryker disable next-line ObjectLiteral,BooleanLiteral: a non-configurable, writable property still lets defineProperty redefine its value (only configurable:true→false and a plain `scroller.scrollTo = …` assignment would differ), and nothing here ever does either; the cleanup below's delete is the only reader of configurable, and it runs once, at unmount, on a node about to be discarded either way.
@@ -2123,7 +2130,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // chosen by the reader or code. Chromium can coalesce several pixels of it into one event. The hold lasts through
       // its own scroll event, until the frame after next; input, focus and explicit writes always end it first.
       const stray = scroller.scrollTop - heldTop.current;
-      if (stray !== 0 && held.current && !turning() && performance.now() - inputAt > INPUT_MS) {
+      if (stray !== 0 && held.current && !turning() && performance.now() - inputAt.current > INPUT_MS) {
         scrollOwn(-stray);
         return;
       }
@@ -2192,7 +2199,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     const onScrollEnd = endSoon;
     scroller.addEventListener("scrollend", onScrollEnd);
-    return () => (forgetTop(), ["pointerdown", "keydown", "touchstart", "focusin"].forEach((type) => scroller.removeEventListener(type, onInput, { capture: true })), Reflect.deleteProperty(scroller, "scrollTo"), Reflect.deleteProperty(scroller, "scrollBy"), cancelAnimationFrame(disarm), (held.current = false), scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(ended), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), content.style.removeProperty("margin-block-start"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
+    return () => (["pointerdown", "keydown", "touchstart"].forEach((type) => scroller.removeEventListener(type, onInput, { capture: true })), Reflect.deleteProperty(scroller, "scrollTo"), Reflect.deleteProperty(scroller, "scrollBy"), cancelAnimationFrame(disarm), (held.current = false), scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(ended), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), content.style.removeProperty("margin-block-start"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
   }, [toBottom]);
 
   // The window, after every render that changed what it draws, every scroll and every resize: measures the slots drawn,

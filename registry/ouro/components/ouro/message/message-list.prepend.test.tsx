@@ -296,7 +296,11 @@ describe("MessageList prepending older history", () => {
       message.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     }],
     ["a key", (scroller) => scroller.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }))],
-    ["focus moving", (scroller) => scroller.dispatchEvent(new FocusEvent("focusin", { bubbles: true }))],
+    ["focus moving", (scroller) => {
+      const message = firstVisible(scroller).message as HTMLElement;
+      message.addEventListener("focusin", (event) => event.stopPropagation(), { once: true });
+      message.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    }],
     // The touch event the list reads, in any browser (WebKit on a desktop makes no TouchEvent).
     ["a touch", (scroller) => scroller.dispatchEvent(Object.assign(new Event("touchstart", { bubbles: true }), { touches: [{ clientY: 100 }] }))],
   ];

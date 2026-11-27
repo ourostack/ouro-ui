@@ -851,6 +851,13 @@ describe("MessageList", () => {
     expect(Object.hasOwn(scroller, "scrollTop")).toBe(true);
     await rerender(<div />);
     expect(Object.hasOwn(scroller, "scrollTop")).toBe(false);
+    const now = vi.spyOn(performance, "now");
+    try {
+      scroller.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+      expect(now).not.toHaveBeenCalled();
+    } finally {
+      now.mockRestore();
+    }
   });
 
   it("lets a stray near the place a message moving to the end held be, once Jump to latest has taken the reader past it", async () => {
