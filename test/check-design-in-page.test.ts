@@ -393,6 +393,34 @@ describe("findDesignIssues: cut-off-edge", () => {
     expect(of("cut-off-edge")).toEqual([]);
   });
 
+  it("passes a scrolling strip whose content paints a different surface at the edge", () => {
+    render(`
+      <div style="width:340px;height:120px;background:#fff">
+        <div style="width:260px;overflow-x:auto">
+          <div style="width:600px;height:80px;background:#ddd">A wide strip</div>
+        </div>
+      </div>`);
+    expect(of("cut-off-edge")).toEqual([]);
+  });
+
+  it("recognizes a visible pseudo-element fade but not one hidden at the current scroll position", () => {
+    render(`
+      <style>
+        .shade::after { content:""; position:absolute; inset-block:0; right:0; width:16px;
+          background:linear-gradient(to left, rgba(0,0,0,.2), transparent); pointer-events:none }
+        #hidden-shade::after { opacity:0 }
+      </style>
+      <div style="width:340px;background:#eee">
+        <div class="shade" style="position:relative;width:260px;height:80px">
+          <div style="width:100%;height:100%;overflow:auto"><div style="width:600px;height:80px">Visible shade</div></div>
+        </div>
+        <div id="hidden-shade" class="shade" style="position:relative;width:260px;height:80px">
+          <div id="unshaded" style="width:100%;height:100%;overflow:auto"><div style="width:600px;height:80px">Hidden shade</div></div>
+        </div>
+      </div>`);
+    expect(of("cut-off-edge").map((issue) => issue.element)).toEqual(["div#unshaded"]);
+  });
+
   it("finds a cut-off edge under an opaque gradient or an opaque mask", () => {
     render(`
       <div style="position:relative;width:340px;height:120px;background:#eee">
@@ -494,6 +522,60 @@ describe("findDesignIssues: pane-edge", () => {
       "div#upper and div#lower",
       "div#lined and div#next",
     ]);
+  });
+
+  it("passes a page introduction and a grouped navigation bar above its main content", () => {
+    render(`
+      <div style="width:340px">
+        <section id="intro" style="height:100px"><header>Collection</header><p>Browse the guide</p></section>
+        <main id="article" style="height:120px">The page</main>
+      </div>
+      <div style="display:flex;flex-direction:column;width:340px;margin-top:16px">
+        <div id="bars">
+          <header style="height:50px;background:#fff">Navigation</header>
+          <div role="toolbar" style="box-sizing:border-box;height:50px;border-bottom:1px solid #888;background:#fff">Tools</div>
+        </div>
+        <main id="content" style="height:120px">The page</main>
+      </div>
+      <div style="display:flex;flex-direction:column;width:340px;margin-top:16px">
+        <div id="pane-top" style="height:110px"><section style="box-sizing:border-box;height:100%;border-bottom:1px solid #888;background:#ddd">Overview</section></div>
+        <div id="pane-bottom" style="height:110px"><section style="height:100%;background:#fff">Details</section></div>
+      </div>`);
+    expect(of("pane-edge")).toEqual([
+      expect.objectContaining({ element: "div#pane-top and div#pane-bottom", detail: expect.stringMatching(/line|border/i) }),
+    ]);
+  });
+
+  it("finds stacked complementary and main panes with the same inherited surface", () => {
+    render(`
+      <div style="display:flex;flex-direction:column;width:340px">
+        <aside id="summary" style="height:120px">Summary</aside>
+        <main id="detail" style="height:120px">Detail</main>
+      </div>`);
+    expect(of("pane-edge")).toEqual([
+      expect.objectContaining({ element: "aside#summary and main#detail", detail: expect.stringMatching(/surface/i) }),
+    ]);
+  });
+
+  it("passes divided list rows and repeated columns with a row-header gutter, but finds three large panes", () => {
+    render(`
+      <ul style="width:340px;padding:0;list-style:none">
+        <li style="height:90px;border-bottom:1px solid #888">First</li>
+        <li style="height:90px;border-bottom:1px solid #888">Second</li>
+      </ul>
+      <div style="display:grid;grid-template-columns:30px repeat(3, 100px);height:160px">
+        <div>Time</div><div style="border-left:1px solid #888">One</div>
+        <div style="border-left:1px solid #888">Two</div><div style="border-left:1px solid #888">Three</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3, 100px);height:160px;margin-top:16px">
+        <section id="pane-one">Folders</section><section id="pane-two" style="border-left:1px solid #888">Notes</section>
+        <section id="pane-three" style="border-left:1px solid #888">Details</section>
+      </div>`);
+    expect(of("pane-edge")).toEqual(expect.arrayContaining([
+      expect.objectContaining({ element: "section#pane-one and section#pane-two" }),
+      expect.objectContaining({ element: "section#pane-two and section#pane-three" }),
+    ]));
+    expect(of("pane-edge")).toHaveLength(2);
   });
 
   it("finds a narrow notch in a pane boundary without mistaking a full-width row for one", () => {
