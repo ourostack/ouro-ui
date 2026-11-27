@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Fixed: [a `Button` whose whole label is one text element, such as an `aria-live` span, keeps the label's padding under `aria-label`](registry/ouro/components/ouro/button/button.test.tsx "verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::icon-only size > keeps a text label's padding when the whole label is one element, such as an aria-live span, under an aria-label)"), instead of reading as icon-only and dropping it to 0px.
+- Fixed: a windowed MessageList opening with an `initialAnchor` set no longer leaves that row several rows above where it opened; the list re-centres on it once real row heights replace the opening estimate.
