@@ -1,0 +1,1 @@
+- Fixed: [ThreadRail leaves Escape inside a rich-text editor's descendants to the editor](registry/ouro/components/ouro/thread-rail/thread-rail.test.tsx "verify:testExists(registry/ouro/components/ouro/thread-rail/thread-rail.test.tsx::ThreadRail Escape > leaves Escape in a descendant of a %s editor to the editor)").
