@@ -138,7 +138,6 @@ describe("Alert", () => {
     expect(Math.abs(middle(icon) - middle(title()))).toBeLessThanOrEqual(1);
     const narrow = await render(band("260px"));
     const narrowTitle = narrow.alert.querySelector("[data-ouro-alert-title]")!;
-    const narrowAction = narrow.alert.querySelector("[data-ouro-alert-action]")!;
     // The title keeps its whole line, unbroken, and the action goes under it.
     expect(narrowTitle.getBoundingClientRect().height).toBeLessThan(30);
     const wrapped = narrow.alert.querySelector("[data-ouro-alert-action] button")!.getBoundingClientRect();
