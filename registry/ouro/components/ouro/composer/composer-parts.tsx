@@ -260,8 +260,9 @@ type SerializedMentionNode = Spread<{ name: string; id: string }, SerializedLexi
 class MentionNode extends DecoratorNode<null> {
   __name: string;
   __id: string;
-  // Stryker disable next-line BlockStatement,StringLiteral: Lexical registers the class by its type, and no test reads the name it registers under
+  // Stryker disable next-line BlockStatement: Lexical registers the class by its type, and no test reads the name it registers under
   static override getType(): string {
+    // Stryker disable next-line StringLiteral: the same
     return "ouro-mention";
   }
   // Stryker disable next-line BlockStatement: Lexical clones a node it writes to, and a mention is only ever replaced whole
@@ -277,8 +278,9 @@ class MentionNode extends DecoratorNode<null> {
     this.__name = name;
     this.__id = id;
   }
-  // Stryker disable next-line BlockStatement,ObjectLiteral: the same: nothing saves the editor's state as JSON
+  // Stryker disable next-line BlockStatement: nothing saves the editor's state as JSON
   override exportJSON(): SerializedMentionNode {
+    // Stryker disable next-line ObjectLiteral: the same
     return { ...super.exportJSON(), name: this.__name, id: this.__id };
   }
   override createDOM(): HTMLElement {
@@ -294,7 +296,9 @@ class MentionNode extends DecoratorNode<null> {
     // Stryker disable next-line BooleanLiteral: the same
     return false;
   }
+  // Stryker disable next-line BlockStatement: a mention is only ever made in a paragraph's text, where Lexical keeps a decorator in its line either way
   override isInline(): true {
+    // Stryker disable next-line BooleanLiteral: the same
     return true;
   }
   override getTextContent(): string {
