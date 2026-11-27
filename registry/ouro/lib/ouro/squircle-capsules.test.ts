@@ -200,13 +200,43 @@ describe("capsule measure", () => {
     await expect.poll(() => inner.style.getPropertyValue("--sq-half")).toBe("10px");
     expect(wrap.style.getPropertyValue("--sq-half")).toBe("");
     expect(bar.style.getPropertyValue("--sq-half")).toBe("");
+    // A class change that makes an element no capsule, in the same task, leaves it unread.
+    host.classList.add("shown");
     bar.classList.add("on");
     await expect.poll(() => bar.style.getPropertyValue("--sq-half")).toBe("15px");
     expect(bar.style.getPropertyValue("--ouro-sq-r")).toBe("15px");
+    expect(host.style.getPropertyValue("--sq-half")).toBe("");
     stop();
     style.remove();
     host.remove();
     wrap.remove();
+  });
+
+  it("reads a nested rule under a list of parents, a list inside :is() and any corner that waits on --sq-half as the selectors they make", async () => {
+    vi.spyOn(CSS, "supports").mockImplementation((prop: string) => prop === "clip-path");
+    const style = document.createElement("style");
+    style.textContent = ".w1, .w2 { &:is(.ca, .cb) { --sq-br: var(--sq-half); width: 60px; height: 20px; display: block } }";
+    style.textContent += ".cc { --sq-bl: var(--sq-half); width: 40px; height: 16px; display: block }";
+    style.textContent += ".w1, .ca { width: 80px; height: 30px; display: block }";
+    document.head.append(style);
+    const make = (className: string) => {
+      const el = document.createElement("div");
+      el.className = className;
+      return el;
+    };
+    const a = make("w1 ca");
+    const b = make("w2 cb");
+    const cc = make("cc");
+    const parent = make("w1");
+    const lone = make("ca");
+    document.body.append(a, b, cc, parent, lone);
+    const stop = installSquircleCapsules(document);
+    await expect.poll(() => [a, b, cc].map((el) => el.style.getPropertyValue("--sq-half"))).toEqual(["10px", "10px", "8px"]);
+    // Neither a parent alone nor a .ca without one.
+    expect([parent, lone].map((el) => el.style.getPropertyValue("--sq-half"))).toEqual(["", ""]);
+    stop();
+    style.remove();
+    for (const el of [a, b, cc, parent, lone]) el.remove();
   });
 
   describe("cost", () => {

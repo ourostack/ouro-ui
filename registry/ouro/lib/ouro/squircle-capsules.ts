@@ -14,17 +14,24 @@ function capsuleHalf(inline: number, block: number): number {
 
 /** A rule's full selectors: a nested rule's are its parents' with its own, `&` standing for the parent. */
 function fullSelectors(rule: CSSStyleRule): string[] {
-  const own = rule.selectorText.split(/,(?![^(]*\))/).map((s) => s.trim());
+  const own = rule.selectorText.split(/,(?![^(]*\))/);
   let up: CSSRule | null = rule.parentRule;
   while (up && !(up instanceof CSSStyleRule)) up = up.parentRule;
   if (!up) return own;
-  return fullSelectors(up).flatMap((outer) => own.map((s) => (s.includes("&") ? s.replaceAll("&", outer) : `${outer} ${s}`)));
+  return fullSelectors(up).flatMap((outer) =>
+    own.map((s) => {
+      /* istanbul ignore if @preserve -- Chromium and WebKit serialize every nested selector with its &; see below. */
+      // Stryker disable next-line StringLiteral,ConditionalExpression: Chromium and WebKit, where the tests run, serialize every nested selector with its & (CSS Nesting's absolutized form); one left relative, without it, is another engine's.
+      if (!s.includes("&")) return `${outer} ${s}`;
+      return s.replaceAll("&", outer);
+    }),
+  );
 }
 
 function selectorsOf(rules: CSSRuleList, out: string[]): void {
   for (const rule of Array.from(rules)) {
-    if (rule instanceof CSSStyleRule && ["tl", "tr", "br", "bl"].some((c) => rule.style.getPropertyValue(`--sq-${c}`).includes("--sq-half"))) out.push(...fullSelectors(rule).filter((s) => !s.includes("::")));
-    if ("cssRules" in rule && (rule as CSSGroupingRule).cssRules) selectorsOf((rule as CSSGroupingRule).cssRules, out);
+    if (rule instanceof CSSStyleRule && ["tl", "tr", "br", "bl"].some((c) => rule.style.getPropertyValue(`--sq-${c}`).includes("--sq-half"))) out.push(...fullSelectors(rule));
+    if ("cssRules" in rule) selectorsOf((rule as CSSGroupingRule).cssRules, out);
   }
 }
 
