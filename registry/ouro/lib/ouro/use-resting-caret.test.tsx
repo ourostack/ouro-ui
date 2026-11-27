@@ -115,6 +115,24 @@ describe("resting caret host contract", () => {
     expect(box.style.getPropertyValue("caret-animation")).toBe(changed);
   });
 
+  it("positions decoration against the actual containing block without changing the field's layout", async () => {
+    const box = await render() as HTMLTextAreaElement;
+    box.parentElement!.style.position = "static";
+    host.style.marginInlineStart = "32px";
+    box.style.height = "120px";
+    box.value = "Readable text";
+    box.setSelectionRange(2, 2);
+    const before = box.getBoundingClientRect();
+    await rest(box);
+    const decoration = caret()!.getBoundingClientRect();
+    expect(decoration.left).toBeGreaterThan(before.left);
+    expect(decoration.right).toBeLessThan(before.right);
+    expect(decoration.top).toBeGreaterThan(before.top);
+    expect(decoration.bottom).toBeLessThan(before.bottom);
+    expect(box.getBoundingClientRect().toJSON()).toEqual(before.toJSON());
+    expect(box.parentElement!.style.position).toBe("static");
+  });
+
   it("stays inert without host permission", async () => {
     let box = await render({ policy: undefined });
     await rest(box);
