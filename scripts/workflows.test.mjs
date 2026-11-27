@@ -10,7 +10,7 @@ import { runInNewContext } from "node:vm";
 import { assemble, releasedAt } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
 import { KITS } from "./kit-pin.mjs";
-import { entryProblems, expiredWarning, failedTests, hungTests, isExpired, judgeOwnRun, names, quarantineFile, record, retryPlan, staleWarning, stepBlock } from "./quarantine.mjs";
+import { entryProblems, expiredWarning, failedPull, failedTests, hungTests, isExpired, judgeOwnRun, names, quarantineFile, record, retryPlan, staleWarning, stepBlock } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { GH_REFUSED, sandboxEnv } from "./sandbox.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
@@ -3232,6 +3232,27 @@ test("isExpired reads a quarantine entry's expiry against now; expiredWarning na
   assert.match(expiredWarning(calendarEntry), new RegExp(`has passed for ${calendarEntry.project} ${calendarEntry.file} > ${calendarEntry.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\. Remove the entry or renew its expiry\\.$`));
 });
 
+test("a job whose container image could not be pulled is retried once, and never forgiven by the run's own judge", () => {
+  const ciYml = workflow("ci.yml");
+  const pull = logLines("design (20/24)", ["##[error]Docker pull failed with exit code 1"]);
+  const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: [], ...extra });
+  const pulled = job(2, "install (shadcn, nova)", "failure", { failedSteps: ["Initialize containers"], log: pull });
+  const runs = (jobs, attempt = 1) => [{ id: "5", attempt, workflow: ciYml, jobs }];
+  const contexts = ["install (shadcn, nova)"];
+  assert.equal(failedPull(pulled), true);
+  assert.equal(failedPull({ ...pulled, failedSteps: ["Initialize containers", "Run tests"] }), false);
+  assert.equal(failedPull({ ...pulled, log: logLines("j", ["1 failed"]) }), false);
+  const plan = retryPlan({ runs: runs([pulled]), contexts, entries: [] });
+  assert.equal(plan.retry, true, plan.problems.join("; "));
+  assert.deepEqual(plan.pulls.map((entry) => entry.job), ["install (shadcn, nova)"]);
+  // Once only: a second attempt that fails the same way is not retried again.
+  assert.equal(retryPlan({ runs: runs([pulled], 2), contexts, entries: [] }).retry, false);
+  // Another failed step of the job is no pull failure.
+  assert.equal(retryPlan({ runs: runs([{ ...pulled, failedSteps: ["Run tests"] }]), contexts, entries: [] }).retry, false);
+  // The run's own judge forgives no failed pull: the shard did not run, so the check stays red.
+  assert.equal(judgeOwnRun({ run: runs([pulled])[0], ids: ["install"], entries: [] }).explained, false);
+});
+
 test("Release and its rehearsal retry once only a failure of quarantined tests with open issues, and any other failure stops them", () => {
   const ciYml = workflow("ci.yml");
   // The name GitHub gave install-latest's unnamed test step in run 41270773113.
@@ -4149,4 +4170,13 @@ test("each judge step fetches every script quarantine.mjs imports, directly or t
   const lists = [...workflow("ci.yml").matchAll(/- id: fetch-quarantine\n[\s\S]*?for path in ([^;]+); do/g)].map(([, paths]) => paths.split(" "));
   assert.equal(lists.length, 2);
   for (const list of lists) assert.deepEqual(needed.filter((file) => !list.includes(file)), []);
+});
+
+test("the ci check's judge is asked only about the parts that failed, since judgeOwnRun counts a listed part with nothing to explain as a problem", () => {
+  const jobs = ciJobs();
+  const parts = stepScript(jobs.ci, "Every part passed");
+  const passed = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SUBSETS: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", CHECK_NODE: "success", CHECK_NODE_MERGE: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "false" };
+  assert.deepEqual(runStep(parts, { ...passed, SUBSETS: "failure" }).output, { ids: "subsets" });
+  assert.deepEqual(runStep(parts, { ...passed, SUBSETS: "failure", COVERAGE: "failure", FALLBACK: "true", BROWSER_FALLBACK: "failure" }).output, { ids: "subsets coverage browser-fallback" });
+  assert.match(jobs.ci, /^ {8}run: node scripts\/quarantine\.mjs judge "\$GITHUB_RUN_ID" \$\{\{ steps\.parts\.outputs\.ids \}\}$/m);
 });

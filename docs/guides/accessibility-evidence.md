@@ -77,14 +77,14 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [item](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/item) | 9 | 0 | [item.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/item.sr.spec.ts): 1 test on `lists-item--in-context` |
 | [kbd](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/kbd) | 2 | 0 | none yet |
 | [level-meter](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/level-meter) | 3 | 0 | none yet |
-| [lightbox](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/lightbox) | 8 | 1 | none yet |
+| [lightbox](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/lightbox) | 9 | 1 | none yet |
 | [link](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/link) | 6 | 0 | none yet |
 | [live-captions](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/live-captions) | 9 | 0 | none yet |
 | [local-date](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/local-date) | 4 | 0 | none yet |
 | [mcp-app](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/mcp-app) | 2 | 0 | none yet |
 | [media-tile](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/media-tile) | 9 | 0 | none yet |
 | [menu](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/menu) | 6 | 0 | [menu.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/menu.sr.spec.ts): 2 tests on `menus-menu--playground` |
-| [message](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/message) | 42 | 0 | none yet |
+| [message](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/message) | 43 | 0 | none yet |
 | [moment](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/moment) | 8 | 0 | none yet |
 | [navbar](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/navbar) | 3 | 0 | none yet |
 | [navigation-menu](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/navigation-menu) | 3 | 0 | none yet |

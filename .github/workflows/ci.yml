@@ -1655,7 +1655,7 @@ jobs:
           BROWSER_FALLBACK: ${{ needs.browser-fallback.result }}
           SCREEN_READER: ${{ needs.screen-reader.result }}
         run: |
-          failed=0
+          failed=0 ids=
           # Skipped by the plan, the browser shards count as passed; skipped for any other reason, they do not.
           if [ "$BROWSER_RUN" = false ] && [ "$BROWSER" = skipped ]; then BROWSER=success; fi
           if [ "$BROWSER_RUN" = false ] && [ "$SUBSETS" = skipped ]; then SUBSETS=success; fi
@@ -1666,14 +1666,16 @@ jobs:
           for part in "checks=$CHECKS" "attribution=$ATTRIBUTION" "design=$DESIGN" "browser=$BROWSER" "subsets=$SUBSETS" "scripts=$SCRIPTS" "scripts-browser=$SCRIPTS_BROWSER" "check-node=$CHECK_NODE" "check-node-merge=$CHECK_NODE_MERGE" "coverage=$COVERAGE" "screen-reader=$SCREEN_READER"; do
             if [ "${part#*=}" != success ]; then
               echo "::error::The ${part%%=*} jobs did not pass (${part#*=}): see them above this run's ci check."
-              failed=1
+              failed=1 ids="$ids ${part%%=*}"
             fi
           done
           # The full suite runs only when the reduced run's coverage fell short; then every shard of it must pass.
           if [ "$FALLBACK" = true ] && [ "$BROWSER_FALLBACK" != success ]; then
             echo "::error::The browser-fallback jobs did not pass ($BROWSER_FALLBACK): see them above this run's ci check."
-            failed=1
+            failed=1 ids="$ids browser-fallback"
           fi
+          # The judge below is asked only about these: a part it is asked about with no failure to explain is a problem to it.
+          echo "ids=${ids# }" >> "$GITHUB_OUTPUT"
           exit "$failed"
       # A merge queue entry is dropped the instant this check reports failure, too late for
       # quarantine-retry.yml's later retry (after this run completes) to put it back. So when the
@@ -1709,7 +1711,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: node scripts/quarantine.mjs judge "$GITHUB_RUN_ID" checks attribution design browser subsets scripts scripts-browser check-node check-node-merge coverage browser-fallback
+        run: node scripts/quarantine.mjs judge "$GITHUB_RUN_ID" ${{ steps.parts.outputs.ids }}
       - name: Every part passed, or was forgiven as quarantined
         if: always()
         run: |

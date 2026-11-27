@@ -286,7 +286,8 @@ export interface ComposerOwnProps {
    * web and mail links, line breaks, and lists and quotes as lines with their Markdown marks; scripts,
    * styles, attributes and other links are dropped and their text kept. ⌘⇧V pastes the text only, a web
    * address pasted over selected text links it, and ⌘K links the selection or takes its link off: over
-   * words that aren't an address it asks for one in its own popover, never the browser's prompt.
+   * words that aren't an address it asks for one in its own popover, never the browser's prompt, and
+   * with just the caret it still asks, the typed address becoming the new link's own text.
    * A `value` or `defaultValue` spelling italic with a star (`*italic*`) or bold with underscores
    * (`__bold__`) reads the same way and writes back out with that same mark, rather than switching
    * to the keys' own underscore or star; plain text keeps a star, an underscore or a tilde bare
@@ -299,6 +300,7 @@ export interface ComposerOwnProps {
    *
    * @claim "`value`, `defaultValue` and `onSend` stay Markdown text" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > shows Markdown marks as formatting, and writes formatting back out as the same Markdown)
    * @claim "over words that aren't an address it asks for one in its own popover, never the browser's prompt" registry/ouro/components/ouro/composer/composer.rich-paste.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich-paste.test.tsx::Composer rich paste > asks for an address in its own popover, never the browser's prompt, and links the words it was asked over)
+   * @claim "with just the caret it still asks, the typed address becoming the new link's own text" registry/ouro/components/ouro/composer/composer.rich-paste.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich-paste.test.tsx::Composer rich paste > asks for a link with just the caret too, the typed address becoming the new link's own text)
    * @claim "as the keys ⌘B, ⌘I, ⌘U, ⌘⇧X and ⌘⇧E" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > formats with the keys: mod+B, mod+I, mod+U, mod+Shift+X for strikethrough and mod+Shift+E for code)
    * @claim "so a page with only plain composers pays nothing for it" scripts/composer-weight.test.mjs verify:testExists(scripts/composer-weight.test.mjs::a page with a plain Composer loads no Lexical with it: the rich editor is a chunk fetched on first use)
    * @claim "until it arrives, and on the server, a plain textarea shows" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > renders the plain textarea on the server and until the editor has loaded, so the first render never touches the editor)
@@ -383,7 +385,7 @@ const toolbarClass =
   "group-data-[ouro-moving=shrink]/frame:motion-safe:animate-[ouro-composer-toolbar-out_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both]";
 
 // The quote: a box on the muted surface with a hairline, which fades in when it appears after the
-// composer is on screen (not with reduced motion); a quote there at mount is drawn at once. Message's quote looks the same (message.tsx).
+// composer is on screen (not with reduced motion); a quote there at mount is drawn at once.
 const quoteBoxClass =
   "flex min-w-0 items-center gap-2 rounded-ouro-inner [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] bg-muted pe-1 ring-1 ring-border/60 forced-colors:border forced-colors:border-solid " +
   "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none";
@@ -660,6 +662,8 @@ export function Composer(props: ComposerProps): JSX.Element {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const setRef = useMergedRef(ref, textareaRef);
   const richRef = useRef<RichEditorHandle | null>(null);
+  // Some sequences commit an input method's word as a plain insertText with no compositionend (ourostack/ouro-ui#3843): the rich editor sets this once it sees that happen, so a later Enter whose isComposing still reads true (the browser's own composition session never closed) is trusted as composing only until then.
+  const richComposed = useRef(false);
   const [rich, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>();
   useLayoutEffect(
     () => {
@@ -859,7 +863,9 @@ export function Composer(props: ComposerProps): JSX.Element {
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement | HTMLDivElement>) => {
     onKeyDown?.(event as KeyboardEvent<HTMLTextAreaElement>);
     // A word an input method is still composing ends with Enter, and Escape cancels it; those keys are the input method's.
-    if (event.defaultPrevented || event.nativeEvent.isComposing || event.keyCode === 229) return;
+    if (event.defaultPrevented || event.keyCode === 229) return;
+    // A stale isComposing (ourostack/ouro-ui#3843) is trusted only until the editor itself has reported the word committed.
+    if (event.nativeEvent.isComposing && !(richOn && richComposed.current)) return;
     const apple = isApple();
     const keys = richOn ? richShortcuts : composerShortcuts;
     const key = formatting || richOn ? markFormats.find((kind) => pressed(event, keys[kind], apple)) : undefined;
@@ -975,6 +981,7 @@ export function Composer(props: ComposerProps): JSX.Element {
               rows={rows}
               maxRows={maxRows}
               onKeyDown={keyDown}
+              composedRef={richComposed}
               autoFocus={rich!.focus}
               name={name}
               controlRef={ref as Ref<HTMLDivElement> | undefined}
