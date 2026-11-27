@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: ThemePicker's popover trigger centres its small wordmark on its cap height, so the name no longer sits high in the button on a wide screen.
