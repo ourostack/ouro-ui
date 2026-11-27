@@ -681,6 +681,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-use-platform`,
 `lib-use-prefetch-intent`,
 `lib-use-reduced-motion`,
+`lib-use-resting-caret`,
 `lib-use-sheet-presentation`,
 `lib-use-timer`,
 `lib-use-until-found`,
