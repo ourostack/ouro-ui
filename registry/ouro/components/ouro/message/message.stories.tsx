@@ -654,7 +654,7 @@ export const WithLinkedQuote: Story = {
           at: "2026-11-27T09:30:00Z",
           atText: "Today",
           href: "#lantern-note",
-          onActivate: () => {
+          onOpen: () => {
             const target = document.getElementById("lantern-note");
             target?.scrollIntoView({ behavior: "instant", block: "nearest" });
             target?.focus({ preventScroll: true });

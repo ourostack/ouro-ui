@@ -140,6 +140,17 @@ describe("ThreadRail", () => {
 });
 
 describe("ThreadRail Escape", () => {
+  it("leaves Escape during composition to the input method, including on the close button", async () => {
+    const onClose = vi.fn();
+    const { rail, close } = await render(<ThreadRail label="Thread" onClose={onClose} />);
+    for (const target of [rail, close]) {
+      const event = new KeyboardEvent("keydown", { key: "Escape", isComposing: true, bubbles: true, cancelable: true });
+      await act(async () => target.dispatchEvent(event));
+      expect(event.defaultPrevented).toBe(false);
+    }
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("calls onClose on Escape with focus in the rail, and ignores other keys", async () => {
     const onClose = vi.fn();
     await render(

@@ -25,10 +25,27 @@ afterEach(async () => {
 });
 
 describe("Message quote link", () => {
+  it("uses onOpen for linked and button quotes, ahead of the legacy onActivate callback", async () => {
+    const onOpen = vi.fn();
+    const onActivate = vi.fn();
+    await render(
+      <>
+        <Message role="assistant" name="Robin Vale" quote={{ author: "Fern Moss", excerpt: "Linked note", href: "#original-note", onOpen, onActivate }} />
+        <Message role="assistant" name="Robin Vale" quote={{ author: "Fern Moss", excerpt: "Button note", onOpen }} />
+      </>,
+    );
+    await userEvent.click(page.getByRole("link", { name: "Reply to Fern Moss: Linked note" }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(location.hash).not.toBe("#original-note");
+    await userEvent.click(page.getByRole("button", { name: "Reply to Fern Moss: Button note" }));
+    expect(onOpen).toHaveBeenCalledTimes(2);
+    expect(onActivate).not.toHaveBeenCalled();
+  });
+
   it("opens the whole quote in place on click and Enter, with its author, custom day and control markers", async () => {
     const onActivate = vi.fn();
     const host = await render(
-      <Message role="user" name="Robin Vale" quote={{ author: "Fern Moss", excerpt: "The lanterns arrive at noon.", at: "2026-11-27T09:30:00Z", atText: "Today", href: "#quoted-lanterns", onActivate }}>
+      <Message role="user" name="Robin Vale" quote={{ author: "Fern Moss", excerpt: "The lanterns arrive at noon.", at: "2026-11-27T09:30:00Z", atText: "Today", href: "#quoted-lanterns", onOpen: onActivate }}>
         I will clear a shelf.
       </Message>,
     );
@@ -58,7 +75,7 @@ describe("Message quote link", () => {
 
   it("leaves modifier and middle clicks to the browser and intercepts only an ordinary click", async () => {
     const onActivate = vi.fn();
-    await render(<Message role="assistant" name="Robin Vale" quote={{ author: "Fern Moss", excerpt: "The lanterns arrive at noon.", href: "#quote-navigation", onActivate }} />);
+    await render(<Message role="assistant" name="Robin Vale" quote={{ author: "Fern Moss", excerpt: "The lanterns arrive at noon.", href: "#quote-navigation", onOpen: onActivate }} />);
     const link = page.getByRole("link").element();
     const prevented: boolean[] = [];
     const watch = (event: Event) => {

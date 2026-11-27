@@ -48,6 +48,7 @@ expectTypeOf<{ author: "Fern Moss"; excerpt: "The lanterns arrive at noon."; hre
 expectTypeOf<{ author: "Fern Moss"; excerpt: "The lanterns arrive at noon."; href: "/messages/lanterns"; onActivate: () => void }>().toExtend<MessageQuote>();
 expectTypeOf<MessageQuote["href"]>().toEqualTypeOf<string | undefined>();
 expectTypeOf<MessageQuote["onActivate"]>().toEqualTypeOf<(() => void) | undefined>();
+expectTypeOf<MessageQuote["onOpen"]>().toEqualTypeOf<(() => void) | undefined>();
 expectTypeOf<{ author: "Fern Moss"; href: "/messages/lanterns" }>().not.toExtend<MessageQuote>();
 expectTypeOf<{ author: "Grace" }>().not.toExtend<MessageQuote>();
 expectTypeOf<{ excerpt: "Lunch?" }>().not.toExtend<MessageQuote>();

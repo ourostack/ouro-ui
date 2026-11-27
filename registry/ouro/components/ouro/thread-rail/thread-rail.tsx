@@ -147,7 +147,7 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
   // Escape closes the rail unless it is pressed in a text field or a popup inside the rail, or
   // something already handled it.
   function onKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (event.key !== "Escape" || event.nativeEvent.defaultPrevented) return;
+    if (event.key !== "Escape" || event.nativeEvent.isComposing || event.nativeEvent.defaultPrevented) return;
     const target = event.target as Element;
     if (target.closest(TEXT_ENTRY) || (target instanceof HTMLElement && target.isContentEditable) || inPopup(target, event.currentTarget)) return;
     event.preventDefault();
@@ -157,7 +157,7 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
   // The close button's tooltip names Escape as its shortcut, so it must not take the key: closing
   // here, before the tooltip sees it, makes the first press close the rail.
   function onKeyDownCapture(event: KeyboardEvent<HTMLElement>) {
-    if (event.key !== "Escape" || event.nativeEvent.defaultPrevented || event.target !== closeRef.current) return;
+    if (event.key !== "Escape" || event.nativeEvent.isComposing || event.nativeEvent.defaultPrevented || event.target !== closeRef.current) return;
     event.preventDefault();
     event.stopPropagation();
     onClose();

@@ -85,17 +85,21 @@ export interface MessageQuote {
   /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ana" src={url} alt="" size="xs" />`. */
   avatar?: ReactElement | undefined;
   /**
-   * Where the whole quote goes. With `onActivate`, an ordinary click or Enter opens it in place;
-   * modifier and middle clicks keep the browser's link navigation. Without `onActivate`, it navigates normally.
-   * @claim "With `onActivate`, an ordinary click or Enter" registry/ouro/components/ouro/message/message.quote-link.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.quote-link.test.tsx::Message quote link > opens the whole quote in place on click and Enter, with its author, custom day and control markers)
+   * Where the whole quote goes. With `onOpen`, an ordinary click or Enter opens it in place;
+   * modifier and middle clicks keep the browser's link navigation. Without a callback, it navigates normally.
+   * @claim "With `onOpen`, an ordinary click or Enter" registry/ouro/components/ouro/message/message.quote-link.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.quote-link.test.tsx::Message quote link > opens the whole quote in place on click and Enter, with its author, custom day and control markers)
    * @claim "modifier and middle clicks keep" registry/ouro/components/ouro/message/message.quote-link.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.quote-link.test.tsx::Message quote link > leaves modifier and middle clicks to the browser and intercepts only an ordinary click)
-   * @claim "Without `onActivate`, it navigates normally." registry/ouro/components/ouro/message/message.quote-link.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.quote-link.test.tsx::Message quote link > leaves navigation unprevented when href has no callback)
+   * @claim "Without a callback, it navigates normally." registry/ouro/components/ouro/message/message.quote-link.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.quote-link.test.tsx::Message quote link > leaves navigation unprevented when href has no callback)
    */
   href?: string | undefined;
   /**
-   * Shows the quoted message, as by scrolling to it. Without `href`, makes the quote a button. In a `MessageList`, which may not
+   * Shows the quoted message, as by scrolling to it. Without `href`, makes the quote a button. Takes precedence over `onActivate`.
+   * In a `MessageList`, which may not
    * have drawn a message far up a long conversation, call its `actionsRef.current.reveal(id, { focus: true })`.
+   * @claim "Takes precedence over `onActivate`." registry/ouro/components/ouro/message/message.quote-link.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.quote-link.test.tsx::Message quote link > uses onOpen for linked and button quotes, ahead of the legacy onActivate callback)
    */
+  onOpen?: (() => void) | undefined;
+  /** Compatibility name for `onOpen`; use `onOpen` in new code. */
   onActivate?: (() => void) | undefined;
   /**
    * When the quoted message was sent, a `Date`, an ISO string or milliseconds. Drawn after the author as
@@ -106,7 +110,7 @@ export interface MessageQuote {
   atText?: string | undefined;
   /**
    * A line above the quote, such as "Replied in thread: " and a `Link` or `Button` with the thread's title. It
-   * is outside the quote, so the link is its own control even when the quote has `href` or `onActivate`.
+   * is outside the quote, so the link is its own control even when the quote has `href` or `onOpen`.
    * @claim "is outside the quote, so the link" registry/ouro/components/ouro/message/message.quote-link.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.quote-link.test.tsx::Message quote link > keeps a linked thread context outside the linked quote and preserves a custom accessible label)
    */
   context?: ReactNode | undefined;
@@ -1254,6 +1258,7 @@ const onPrimary = {
  * the `context` line. Screen readers hear "Reply to Ana, <day>" in place of the author's name, then the excerpt.
  */
 function quoteBox(quote: MessageQuote, primaryBubble: boolean): JSX.Element {
+  const onOpen = quote.onOpen ?? quote.onActivate;
   const day = quoteDay(quote);
   const body = (
     <>
@@ -1288,18 +1293,18 @@ function quoteBox(quote: MessageQuote, primaryBubble: boolean): JSX.Element {
       data-ouro-message-quote=""
       data-ouro-allow="nested-frame"
       data-ouro-allow-why={why}
-      onClick={quote.onActivate && ((event) => {
+      onClick={onOpen && ((event) => {
         if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         event.preventDefault();
-        quote.onActivate!();
+        onOpen();
       })}
       className={cn(quoteClass, quoteButtonClass, "no-underline pointer-coarse:min-h-ouro-11", own.className)}
       style={own.style}
     >
       {body}
     </RouterLink>
-  ) : quote.onActivate ? (
-    <button type="button" data-ouro-control="message" data-ouro-part="quote" data-ouro-message-quote="" data-ouro-allow="nested-frame" data-ouro-allow-why={why} onClick={quote.onActivate} className={cn(quoteClass, quoteButtonClass, own.className)} style={own.style}>
+  ) : onOpen ? (
+    <button type="button" data-ouro-control="message" data-ouro-part="quote" data-ouro-message-quote="" data-ouro-allow="nested-frame" data-ouro-allow-why={why} onClick={onOpen} className={cn(quoteClass, quoteButtonClass, own.className)} style={own.style}>
       {body}
     </button>
   ) : (

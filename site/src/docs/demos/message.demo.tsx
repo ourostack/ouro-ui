@@ -34,7 +34,7 @@ export default function MessageDemo(): JSX.Element {
           at: "2026-11-27T09:41:00Z",
           atText: "Today",
           href: "#cord-request",
-          onActivate: () => {
+          onOpen: () => {
             const target = document.getElementById("cord-request");
             target?.scrollIntoView({ behavior: "instant", block: "nearest" });
             target?.focus({ preventScroll: true });
