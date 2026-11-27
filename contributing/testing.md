@@ -36,7 +36,8 @@ The test suites and lanes beyond a component's own tests: the conformance matrix
 
 ## Vitest projects
 
-- On a machine several agents share, run local tests one file at a time through `bash scripts/local-test-gate.sh <command>`, which waits for a free test slot and for `memory_pressure` to report enough free memory; leave whole suites and mutation testing to CI.
+- On a machine several agents share, run local tests one file at a time through `bash scripts/local-test-gate.sh <command>`, which waits for a free test slot, takes the machine-wide browser lock (`bash scripts/lane.sh browser <command>`, one suite at a time across lanes) and waits for `memory_pressure` to report enough free memory; leave whole suites and mutation testing to CI.
+- Make each lane's checkout with `bash scripts/lane.sh new <name>`: its `node_modules` is cloned from the one shared pnpm store (same disk, `package-import-method=clone`, set for that install only, never in the global `~/.npmrc`). Measure with `df`, not `du`, which counts clones in full. `lane.sh reimport` redoes existing lanes, and `lane.sh rm <name>` removes a lane's worktree in the step its pull request merges or closes.
 - Test with Vitest browser mode. Projects: `ouro-chromium`, `ouro-webkit`, `ouro-touch` (files named `*.touch.test.ts(x)`, Chromium as a 390x844 touch phone), from `ouroTestProjects`, `visual` (files named `*.visual.test.ts(x)`, only when `CI_VISUAL=1`) and `themes` (`test/themes/`, Chromium, only when `OURO_THEMES=1`; it writes no motion evidence). nova, shadcn's default preset, is also checked with Ouro check's rules over every story at 1280 and 2560 px, past the root type step (`test/themes/nova-check.test.tsx`).[^a-projects][^a-nova-check]
 
 ## End-to-end specs

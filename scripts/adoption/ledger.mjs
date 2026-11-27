@@ -194,15 +194,16 @@ function releaseAfterSnapshot(ctx, repo, tag, releases) {
   }
 }
 
-function measurePin(ctx, surface, pin, latest) {
+function measurePin(ctx, surface, pin, latest, published = null) {
   const target = latest[pin.latest];
   const base = { label: pin.label, latestOf: target.repo, latestTag: target.tag };
   if (pin.from === "self") return { ...base, tag: target.tag, behind: 0, late: 0, note: "This repository is the release." };
   if (pin.from === "none") return { ...base, tag: null, behind: null, late: null, note: pin.reason };
-  const file = pin.file;
-  const source = blob(surface.repo, file);
+  const file = pin.from === "published" ? published?.path : pin.file;
+  const source = pin.from === "published" ? published?.source : blob(surface.repo, file);
   try {
-    const raw = ctx.text(`repos/${surface.repo}/contents/${file}`);
+    if (pin.from === "published" && !published) throw new Error("no published evidence");
+    const raw = pin.from === "published" ? null : ctx.text(`repos/${surface.repo}/contents/${file}`);
     if (pin.from === "lock") {
       const entry = JSON.parse(raw).sources.find((item) => item.id === pin.source);
       if (!entry) throw new Error(`${file} has no source ${pin.source}`);
@@ -210,7 +211,7 @@ function measurePin(ctx, surface, pin, latest) {
       const releases = ctx.releases(target.repo);
       return { ...base, source, tag: `commit ${short(entry.commit)}`, behind: releasesAfter(releases, date), late: lateAfter(ctx, releases, date), note: `Vendored copy of ${entry.repository} at ${short(entry.commit)}, committed ${date.slice(0, 10)}.` };
     }
-    const tag = pin.from === "json" ? JSON.parse(raw)[pin.key] : (new RegExp(pin.regex).exec(raw) ?? [])[1];
+    const tag = pin.from === "published" ? published.pins?.[pin.label] : pin.from === "json" ? JSON.parse(raw)[pin.key] : (new RegExp(pin.regex).exec(raw) ?? [])[1];
     if (!tag) throw new Error(`no version found in ${file}`);
     // A library's floor (SwiftPM's `from:`) with no resolved file committed builds against the newest release of its major,
     // so it lacks none while that release is in its range; it keeps the floor low on purpose, for apps on older minors.
@@ -232,11 +233,12 @@ function measurePin(ctx, surface, pin, latest) {
   }
 }
 
-export function measurePins(ctx, surface, latest) {
-  const pins = surface.pins.map((pin) => measurePin(ctx, surface, pin, latest));
-  if (pins.length === 0) return cell(ctx, [], { note: "No dependency on Ouro UI found in its files.", source: `https://github.com/${surface.repo}` });
+export function measurePins(ctx, surface, latest, published = null) {
+  const home = published?.source ?? `https://github.com/${surface.repo}`;
+  const pins = surface.pins.map((pin) => measurePin(ctx, surface, pin, latest, published));
+  if (pins.length === 0) return cell(ctx, [], { note: "No dependency on Ouro UI found in its files.", source: home });
   const known = pins.every((pin) => pin.behind !== null);
-  return cell(ctx, pins, { note: known ? null : "At least one pin could not be read.", source: pins.find((pin) => pin.source)?.source ?? `https://github.com/${surface.repo}` });
+  return cell(ctx, pins, { note: known ? null : "At least one pin could not be read.", source: pins.find((pin) => pin.source)?.source ?? home });
 }
 
 /**
@@ -481,6 +483,11 @@ export function measureXray(ctx, surface, latest = null) {
     rmSync(tmp, { recursive: true, force: true });
   }
   if (found.length === 0) return unmeasured(ctx, errors[0] ?? `no report from a push to main in ${surface.xray.map((entry) => entry.repo).join(" or ")} among the latest successful runs`, source);
+  return xrayCell(ctx, surface, latest, found);
+}
+
+/** The X-ray cell from the reports found, each `{ report, run }`: the newest of each checker and surface, their claims added up. */
+function xrayCell(ctx, surface, latest, found) {
   found.sort((a, b) => b.report.at.localeCompare(a.report.at));
   // One report per checker and surface: the CLI X-ray, the MCP X-ray, the in-turn tools X-ray and ouro-actions' action
   // claims each count once, newest first, and their claims add up.
@@ -536,6 +543,58 @@ export function measureXray(ctx, surface, latest = null) {
  * claim set with none is vacuous.
  */
 export const mustPasses = (xrayCell) => Boolean(xrayCell.value) && xrayCell.value.must > 0 && xrayCell.value.mustHolding === xrayCell.value.must && (xrayCell.value.missingSurfaces ?? []).length === 0 && (xrayCell.value.claimSetProblems ?? []).length === 0;
+
+// ---- A private product's published evidence ------------------------------------------------------------------
+
+/** Published evidence older than this no longer says how the product stands. */
+export const PUBLISHED_MAX_AGE_DAYS = 7;
+
+/**
+ * A private product's evidence, as its own CI publishes it to a public repository (the config's `published`), since a public
+ * run can read neither its repository nor its runs. It is the product's word, so it counts only when it is schema 1, for this
+ * product, dated in the past, at most a week old, and its counts are whole numbers.
+ */
+export function readPublished(ctx, surface) {
+  const { repo, path } = surface.published;
+  const data = JSON.parse(ctx.text(`repos/${repo}/contents/${path}`));
+  if (data?.schema !== 1 || data.product !== surface.id) throw new Error(`${repo}/${path} isn't schema 1 evidence for ${surface.id}`);
+  const at = Date.parse(data.publishedAt);
+  const now = ctx.now().getTime();
+  if (!Number.isFinite(at) || at > now + 5 * 60_000) throw new Error(`${repo}/${path} has no publishedAt in the past`);
+  if (now - at > PUBLISHED_MAX_AGE_DAYS * 86_400_000) throw new Error(`${repo}/${path} was published ${data.publishedAt.slice(0, 10)}, more than ${PUBLISHED_MAX_AGE_DAYS} days ago`);
+  const reports = data.xray?.reports ?? [];
+  if (!Array.isArray(reports) || !reports.every((report) => typeof report?.tool === "string" && typeof report.at === "string" && report.summary && typeof report.summary === "object")) throw new Error(`${repo}/${path} has an X-ray report with no tool, date or summary`);
+  const counts = [...(data.hx ? ["installed", "used", "otherControls", "statesRead"].map((key) => data.hx[key]) : []), ...reports.flatMap((report) => ["claims", "holding", "must", "mustHolding"].map((key) => report.summary[key]))];
+  if (!counts.every(isCount)) throw new Error(`${repo}/${path} has a count that isn't a whole number`);
+  return { ...data, path, source: blob(repo, path) };
+}
+
+/**
+ * The pins, HX and X-ray cells from a private product's published evidence. HX is full when 20 or more Ouro components are
+ * in use across the screens its X-ray read and no other control is on them. Each note says the product published it.
+ */
+export function measurePublished(ctx, surface, latest) {
+  let published;
+  try {
+    published = readPublished(ctx, surface);
+  } catch (error) {
+    const why = `the repository is private, and its published evidence can't be read: ${error.message}`;
+    return { pins: unmeasured(ctx, why), hx: unmeasured(ctx, why), xray: unmeasured(ctx, why) };
+  }
+  const { source, hx: seen, xray: checked } = published;
+  const by = `Published by its own CI at ${published.publishedAt}; its repository is private.`;
+  const pins = measurePins(ctx, surface, latest, published);
+  const hx = !seen
+    ? unmeasured(ctx, "its published evidence has no X-ray reading of its screens", source)
+    : cell(ctx, seen.used >= 20 && seen.otherControls === 0 ? "full" : seen.used > 0 ? "partial" : "none", { note: `${seen.used} Ouro components in use across the ${seen.statesRead} screens its X-ray read, of ${seen.installed} installed; ${seen.otherControls} other controls. ${by}`, source });
+  const reports = (checked?.reports ?? []).map((given) => {
+    const report = { tool: given.tool, at: given.at, summary: given.summary, claimSet: given.claimSet, checker: { version: given.checker }, claims: (given.surfaces ?? []).map((name) => ({ surface: name })), target: { app: { name: null }, commit: published.commit ?? null } };
+    return { report, run: { html_url: source }, key: `${report.tool} ${surfacesOf(report).join(",")}` };
+  });
+  const xray = reports.length ? xrayCell(ctx, surface, latest, reports) : unmeasured(ctx, "its published evidence has no X-ray report", source);
+  if (xray.value) xray.note = [xray.note, by].filter(Boolean).join(" ");
+  return { pins, hx, xray };
+}
 
 // ---- Ouro AX census --------------------------------------------------------------------------------------
 
@@ -842,10 +901,8 @@ export function build(ctx, config, { only = null } = {}) {
     let census;
     if (surface.privateRepo) {
       const why = "the repository is private, so a public run cannot read it";
-      pins = unmeasured(ctx, why);
-      hx = unmeasured(ctx, why);
+      ({ pins, hx, xray } = surface.published ? measurePublished(ctx, surface, latest) : { pins: unmeasured(ctx, why), hx: unmeasured(ctx, why), xray: unmeasured(ctx, why) });
       ax = unmeasured(ctx, why);
-      xray = unmeasured(ctx, why);
       actions = unmeasured(ctx, why);
       census = unmeasured(ctx, why);
     } else {

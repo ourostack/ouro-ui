@@ -618,18 +618,32 @@ describe("Command results that stream in", () => {
     await expect.poll(highlighted).toBe("Launch planning");
   });
 
-  it("goes to the first command when the highlighted one leaves the results", async () => {
+  it("keeps the highlight in its place when the highlighted command leaves the results, not on the first command (#3838)", async () => {
     await render(palette(["Launch planning", "Weekly sync", "Design reviews"]));
     await settled();
     await ready();
     await expect.poll(highlighted).toBe("Launch planning");
     await userEvent.keyboard("{ArrowDown}");
     await expect.poll(highlighted).toBe("Weekly sync");
-    await arrive(palette(["Design reviews", "Launch planning"]));
+    // "Weekly sync" is gone; the command now at its position ("New chat") is highlighted, not the first one.
+    await arrive(palette(["Design reviews", "New chat", "Launch planning"]));
+    await expect.poll(highlighted).toBe("New chat");
+    // Fewer commands remain than the held position: the last one is highlighted.
+    await arrive(palette(["Design reviews"]));
     await expect.poll(highlighted).toBe("Design reviews");
     await arrive(palette([]));
     await expect.poll(() => document.querySelector("[data-ouro-command-empty]")).not.toBeNull();
     await arrive(palette(["Weekly sync", "Design reviews"]));
+    await expect.poll(highlighted).toBe("Weekly sync");
+  });
+
+  it("puts the highlight on the last command when the highlighted one leaves and fewer commands remain than its position (#3838)", async () => {
+    await render(palette(["Launch planning", "Weekly sync", "Design reviews", "New chat"]));
+    await settled();
+    await ready();
+    await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
+    await expect.poll(highlighted).toBe("New chat");
+    await arrive(palette(["Launch planning", "Weekly sync"]));
     await expect.poll(highlighted).toBe("Weekly sync");
   });
 

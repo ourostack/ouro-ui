@@ -42,7 +42,8 @@ function installSquircleCapsules(doc: Document): () => void {
     }
   });
   const watched = new Set<Element>();
-  const watch = (root: ParentNode) => {
+  // Reads every rule of every sheet: run it only when a sheet is added or loads, never on an ordinary DOM change.
+  const readSheets = (): string => {
     // Stryker disable next-line ArrayDeclaration: a stray starting entry is a syntactically valid, unmatched compound selector in the join, so it changes which elements match nothing.
     const selectors: string[] = [];
     for (const sheet of Array.from(doc.styleSheets)) {
@@ -52,19 +53,56 @@ function installSquircleCapsules(doc: Document): () => void {
         // A cross-origin sheet is not ours.
       }
     }
-    if (!selectors.length) return;
-    for (const el of Array.from(root.querySelectorAll(selectors.join(",")))) {
-      if (watched.has(el) || el.matches(ROUND)) continue;
-      watched.add(el);
-      observer.observe(el, { box: "border-box" });
-    }
+    return selectors.join(",");
   };
-  watch(doc);
-  const mutations = new MutationObserver(() => watch(doc));
+  let selector = readSheets();
+  const observe = (el: Element) => {
+    if (watched.has(el) || el.matches(ROUND)) return;
+    watched.add(el);
+    observer.observe(el, { box: "border-box" });
+  };
+  const watchAll = () => {
+    if (!selector) return;
+    for (const el of Array.from(doc.querySelectorAll(selector))) observe(el);
+  };
+  const watchAdded = (node: Element) => {
+    if (!selector) return;
+    if (node.matches(selector)) observe(node);
+    for (const el of Array.from(node.querySelectorAll(selector))) observe(el);
+  };
+  // A linked sheet is read when it loads (onLoad below): before then its rules are not readable.
+  const isSheet = (el: Element) => el.localName === "style";
+  const holdsSheet = (el: Element) => isSheet(el) || el.querySelector("style") !== null;
+  watchAll();
+  const mutations = new MutationObserver((records) => {
+    const added: Element[] = [];
+    let sheetsChanged = false;
+    for (const record of records) {
+      // A style element whose text was replaced reports the change on itself.
+      if (isSheet(record.target as Element)) sheetsChanged = true;
+      for (const node of Array.from(record.addedNodes)) {
+        if (node.nodeType !== 1) continue;
+        if (holdsSheet(node as Element)) sheetsChanged = true;
+        added.push(node as Element);
+      }
+    }
+    if (sheetsChanged) {
+      selector = readSheets();
+      watchAll();
+    } else for (const node of added) watchAdded(node);
+  });
   mutations.observe(doc.documentElement, { childList: true, subtree: true });
+  // A linked sheet's rules are readable only once it has loaded.
+  const onLoad = (event: Event) => {
+    if ((event.target as Element).localName !== "link") return;
+    selector = readSheets();
+    watchAll();
+  };
+  doc.addEventListener("load", onLoad, true);
   return () => {
     observer.disconnect();
     mutations.disconnect();
+    doc.removeEventListener("load", onLoad, true);
     // Stryker disable next-line CallExpression: both observers are already disconnected, so nothing reads watched again; clearing it only frees the elements it held onto.
     watched.clear();
   };
