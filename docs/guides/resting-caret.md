@@ -39,7 +39,7 @@ Page visibility and the host's cover signal also control the hold. A hidden page
 
 The steady caret is decoration, hidden from assistive technology. Text selection, including its direction, stays in the original control.[^selection] Waking starts a new native typing run; do not promise a single undo group across a rest.
 
-Try **Rest caret** in the [TextArea demo](https://ui.ouroboros.bot/docs/text-area/), then type without clicking the field again. Do not use this simulated host as an accessibility detector.
+Try **Try quiet reading** in the [TextArea demo](https://ui.ouroboros.bot/docs/text-area/), then type without clicking the field again. Do not use this simulated host as an accessibility detector.
 
 ## Prior art
 

@@ -27,7 +27,7 @@ export default function TextAreaDemo(): JSX.Element {
         rows={2}
         maxRows={6}
         defaultValue="Leave a little room for a good idea."
-        description="Rest the caret. Start typing whenever you're ready."
+        description={held ? "Quiet while you read. Just start typing to continue." : "Try a quiet caret. Keep writing whenever you're ready."}
         restingCaret={{ enabled: covered, occluded: covered, subscribeWake, onHeld }}
       />
       <div>
@@ -35,6 +35,7 @@ export default function TextAreaDemo(): JSX.Element {
           variant="outline"
           tone="secondary"
           size="sm"
+          style={{ visibility: held ? "hidden" : "visible" }}
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => {
             box.current!.focus({ preventScroll: true });
@@ -42,7 +43,7 @@ export default function TextAreaDemo(): JSX.Element {
             setCovered(!held);
           }}
         >
-          {held ? "Wake caret" : "Rest caret"}
+          Try quiet reading
         </Button>
       </div>
     </div>
