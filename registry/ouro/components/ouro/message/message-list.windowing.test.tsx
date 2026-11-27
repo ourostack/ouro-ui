@@ -1507,6 +1507,25 @@ describe("MessageList windowing", () => {
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
 
+  it("draws the content on a layer of its own only while the wheel carries it, so a carry repaints nothing, and gives the layer back once it is paid (#3785)", async () => {
+    const { scroller, rerender } = await render(<Chat items={conversation(500)} />);
+    await scrollTo(scroller, 3000);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const above = Number(firstVisible(scroller).message.id.slice(1)) - 1;
+    expect(getComputedStyle(content).willChange).toBe("auto");
+    const clock = { now: 1_000_000 };
+    vi.spyOn(performance, "now").mockImplementation(() => clock.now);
+    // The wheel turns as the message above the reader grows: the list holds their place by drawing the content up, not by a scroll.
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+    await rerender(<Chat items={conversation(500).map((item) => (item.id === above ? { ...item, text: item.text + " more words".repeat(120) } : item))} />);
+    expect(content.style.translate).not.toBe("");
+    expect(getComputedStyle(content).willChange).toBe("translate");
+    // The wheel rests, and the scroll position takes what was carried: the content is drawn where it is, on the scroller's layer.
+    clock.now += 10_000;
+    await expect.poll(() => content.style.translate).toBe("");
+    expect(getComputedStyle(content).willChange).toBe("auto");
+  });
+
   it("resets following the end, the room for older history and a carried translate when another conversation opens, as a fresh list would", async () => {
     const { scroller, rerender } = await render(<Chat conversation="a" items={conversation(500)} hasOlder />);
     await scrollTo(scroller, 3000);

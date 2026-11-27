@@ -401,6 +401,23 @@ function slotKeyOf(item: Element): string {
   return item.closest(`[${SLOT}]`)!.getAttribute(SLOT)!;
 }
 
+/**
+ * Draws the content `px` up by what the wheel carries, on a layer of its own. On the scroller's own layer, moving it repaints the
+ * whole conversation in every frame the wheel turns, and Chromium, rastering a new set of tiles for each of those back-to-back
+ * commits, can leave a raster task a commit waits on never run: that commit never activates, and the page draws no frame again
+ * (ourostack/ouro-ui#3785).
+ */
+function drawCarried(content: HTMLElement, px: number): void {
+  content.style.translate = `0 ${-px}px`;
+  content.style.willChange = "translate";
+}
+
+/** Draws the content where it is again, and gives back the layer `drawCarried` gave it, so at rest its text is drawn crisp. */
+function dropCarried(content: HTMLElement): void {
+  content.style.removeProperty("translate");
+  content.style.removeProperty("will-change");
+}
+
 /** The messages in `content`, leaving out any message inside another one. */
 function topItems(content: Element): HTMLElement[] {
   return [...content.querySelectorAll<HTMLElement>(items)].filter((item) => !content.contains(item.parentElement!.closest(items)));
@@ -1601,7 +1618,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Stryker disable next-line ConditionalExpression: with nothing carried, removing no translate and setting the carry to 0 again change nothing.
     if (carriedRef.current !== 0) {
       carriedRef.current = 0;
-      contentRef.current!.style.removeProperty("translate");
+      dropCarried(contentRef.current!);
     }
     const before = scroller.scrollTop;
     scroller.scrollTop = scroller.scrollHeight;
@@ -1982,7 +1999,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line ConditionalExpression,BlockStatement: paying nothing removes no translate and scrolls by 0, which moves nothing, and lets go as the rest of a pay does.
       if (by === 0) {
         // Stryker disable next-line CallExpression,StringLiteral: with nothing carried there is a translate only where a carry and a change cancelled to the pixel, which draws the content where it is.
-        content.style.removeProperty("translate");
+        dropCarried(content);
         return letGo();
       }
       const wheeling = turning();
@@ -1992,7 +2009,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // in shorter) is not pulled up by the browser first (ourostack/ouro-ui#3892). Where the browser anchors, hold() leaves the correction
       // to it and carries nothing, so this never runs there.
       holdEnd(Math.max(endHeld, before + scroller.clientHeight));
-      content.style.removeProperty("translate");
+      dropCarried(content);
       // In whole pixels: WebKit drops the fraction of a scroll position written to it, so a carry of 3,499.99 px moved the
       // reader's place a whole pixel there (ourostack/ouro-ui#2648).
       const applied = scrollOwn(Math.round(by));
@@ -2006,7 +2023,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line EqualityOperator: a part of exactly one pixel kept carried or paid with the next write moves nothing on screen that WebKit shows, which keeps whole pixels.
       if (Math.abs(unlanded) >= 1) {
         carriedRef.current = unlanded;
-        content.style.translate = `0 ${-unlanded}px`;
+        drawCarried(content, unlanded);
         // Stryker disable next-line AssignmentOperator: the scroll event the write brings takes the anchors again, so `taken` is read stale only in the task of the write, as everywhere else it is paid.
         taken += applied;
         return rest();
@@ -2028,7 +2045,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     const carry = (by: number) => {
       carriedRef.current += by;
-      content.style.translate = `0 ${-carriedRef.current}px`;
+      drawCarried(content, carriedRef.current);
       if (nearEnd()) pay();
       else rest();
     };
@@ -2274,7 +2291,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     const onScrollEnd = endSoon;
     scroller.addEventListener("scrollend", onScrollEnd);
-    return () => (["pointerdown", "keydown", "touchstart"].forEach((type) => scroller.removeEventListener(type, onInput, { capture: true })), Reflect.deleteProperty(scroller, "scrollTo"), Reflect.deleteProperty(scroller, "scrollBy"), cancelAnimationFrame(disarm), (held.current = false), scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(ended), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), content.style.removeProperty("margin-block-start"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
+    return () => (["pointerdown", "keydown", "touchstart"].forEach((type) => scroller.removeEventListener(type, onInput, { capture: true })), Reflect.deleteProperty(scroller, "scrollTo"), Reflect.deleteProperty(scroller, "scrollBy"), cancelAnimationFrame(disarm), (held.current = false), scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(ended), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), dropCarried(content), content.style.removeProperty("margin-block-start"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
   }, [toBottom]);
 
   // The window, after every render that changed what it draws, every scroll and every resize: measures the slots drawn,
