@@ -967,7 +967,8 @@ interface Spoken {
  * hands `announce` back a function that adds them.
  */
 function LiveRegion({ announce }: { announce: { current: ((texts: string[]) => void) | null } }): JSX.Element {
-  const announce = useRef<((texts: string[]) => void) | null>(null);
+  const [spoken, setSpoken] = useState<Spoken[]>([]);
+  const nextId = useRef(0);
   useEffect(() => {
     announce.current = (texts) => setSpoken((previous) => [...previous, ...texts.map((text) => ({ id: nextId.current++, text }))].slice(-KEEP_SPOKEN));
     return () => {
