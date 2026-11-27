@@ -1456,6 +1456,10 @@ describe("MessageList windowing", () => {
     await expect.poll(() => content.offsetTop).toBe(0);
     await expect.poll(() => floor.style.display).toBe("");
     expect(scroller.scrollTop).toBe(0);
+    // At rest, the list asks for no more frames: a rest armed again once the wheel has rested would pay nothing, frame after frame.
+    const asked = vi.spyOn(window, "requestAnimationFrame");
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(asked).not.toHaveBeenCalled();
   });
 
   /**
