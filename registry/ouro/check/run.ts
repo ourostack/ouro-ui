@@ -345,7 +345,7 @@ const HINTS: Record<string, string> = {
   "image-fade": "end the picture on a hard edge, or put it on a solid band",
   "giant-picture": "show the work itself (the component, a screenshot) or a small picture beside the words, not a banner",
   "cramped-heading": "give the heading room: more space above it than between it and what follows",
-  "nested-frame": "draw one frame: drop the inner border, or make the inner radius the outer one less the inset",
+  "nested-frame": "draw one frame: drop the inner border and use a step between theme surface tokens, or make the inner radius the outer one less the inset",
   "doubled-line": "keep one line: drop the inner divider where a frame or another divider already separates, or give the two room apart",
   "cut-off-edge": "separate the scroll surface from what surrounds it with a step between theme surface tokens",
   "pane-edge": "remove the dividing line and give the panes different theme surface tokens",
