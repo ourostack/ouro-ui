@@ -256,10 +256,11 @@ const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGI
 // docs 57,155, badge 33,138 and the docs shell 27,693 bytes, each about 1,150 more than its base, and the Composed UI
 // docs page 37,939 measured by catalog.spec.ts) for the Compass nav
 // (#3534): the panels, the platform marks and the phone menu's switch in every page's header, beside the slim family strip.
+// Raised voyage a KiB (home and nautilus 56,327 bytes measured by scripts/size-budget.mjs in CI run 46064401007, merged with
+// main at da2dcac50, 7 over, 26 more than their base) for off-centre-ink's fixes: a Badge's lone icon kept in its middle
+// beside a label only screen readers hear, and a glass SegmentedControl's hidden label taken out of the row (#3776).
 // Raised docs a KiB (57,461 bytes measured in CI run 46055014798, merged with main at 82e7ea664, 372 more than its base's
 // 57,089 and 117 over) for CodeBlock in a chat bubble (#3593): the in-bubble fill, floating copy button and padding classes.
-// Raised voyage a KiB (home 56,385 bytes measured by scripts/size-budget.mjs on a build rebased on main at 82e7ea664, 65 over)
-// for the message arrival (#3228): the bubble's grow-in and fade classes, which the home page's chat bubbles carry.
 const CSS_CEILINGS = { voyage: 56 * 1024, docs: 57 * 1024, docsShell: 28 * 1024, docsPage: 38 * 1024 } as const;
 /**
  * How much one pull request may add to a page's CSS before its ceiling is raised: judged the same way as a page's

@@ -6,7 +6,7 @@ import { CodeBlock } from "../components/code";
 import { TapLockDuel } from "./feel-duel";
 import { GatefoldFlip } from "./feel-gatefold";
 import kit from "./kit.json";
-import genres from "./feel-genres.json";
+import catalog from "./feel-checks.json";
 import { LayersBand } from "./layers";
 import { StoryOpener } from "../components/story-world";
 import { AppleBand, AppleMenu, NextPage } from "./shell";
@@ -33,7 +33,10 @@ const RAPID_CODE = `let rapidBaseline = feel.osBaseline(rapid: true)  // UIKit, 
 feel.expect(feel.tapLanding(on: app.switches["appearance.pageNumbers"],
                             trials: 5, rapid: 5, rapidBaseline: rapidBaseline))`;
 
-/** /apple/feel/: Ouro Feel, how an app feels, measured by genre of jank. */
+/** "the way back" as a heading writes it. */
+const named = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** /apple/feel/: Ouro Feel, how an app feels, held to a few promises, each with an open set of checks. */
 export default function AppleFeel(): JSX.Element {
   return (
     <div id="apple-feel" className="apple">
@@ -42,9 +45,9 @@ export default function AppleFeel(): JSX.Element {
       <Hero
         layout="split"
         eyebrow="Ouro Feel"
-        title={claim("Jank has genres. Feel has a check for each.", {
-          source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L44-L60" },
-          verify: [{ count: "site/src/apple/feel-genres.json#genres", is: 10 }, { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L44-L60" }],
+        title={claim("Good feel keeps its promises. Feel checks.", {
+          source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/ouro-feel/README.md#the-principles" },
+          verify: [{ fileLine: "site/src/apple/feel-checks.json", pattern: "\"principles\" :" }, { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/ouro-feel/README.md" }],
         })}
         description={
           <div className="grid gap-3">
@@ -61,44 +64,78 @@ export default function AppleFeel(): JSX.Element {
         actions={
           <>
             <Button href="#first-catch">See its first catch</Button>
-            <Button href="#genres" variant="outline" tone="secondary">
-              Meet the genres
+            <Button href="#principles" variant="outline" tone="secondary">
+              Meet the promises
             </Button>
           </>
         }
       />
 
       <AppleBand
-        id="genres"
-        eyebrow="The genres"
-        title={claim("Ten genres, named and checked.", {
-          source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L48-L59" },
-          verify: [{ count: "site/src/apple/feel-genres.json#genres", is: 10 }, { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L48-L59" }],
+        id="principles"
+        eyebrow="The promises"
+        title={claim("The promises good feel keeps, and checks for the ways we've seen them broken.", {
+          source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/decisions/2026-11-27-ouro-feel-principles.md" },
+          verify: [{ fileLine: "site/src/apple/feel-checks.json", pattern: "\"principles\" :" }, { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/decisions/2026-11-27-ouro-feel-principles.md" }],
         })}
         lede={
           <p>
-            {claim("Each genre is one check, run from your UI tests on a simulator, with its own report.", {
-              source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L44-L60" },
-              verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L44-L60" },
+            {claim("Each check guards a single promise, runs from your UI tests on a simulator, and writes its own report.", {
+              source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/ouro-feel/README.md#the-principles" },
+              verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/ouro-feel/README.md" },
+            })}{" "}
+            {claim("The list isn't finished, and isn't meant to be: jank no check caught gets a check of its own, named for what it keeps, not for the bug.", {
+              source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/decisions/2026-11-27-ouro-feel-principles.md" },
+              verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/decisions/2026-11-27-ouro-feel-principles.md" },
+            })}{" "}
+            {claim("Some came straight from Gatefold's reader: a page that dragged sideways, a glass pill that hid the last lines, and a book that wanted a second tap once it had downloaded.", {
+              source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/decisions/2026-11-27-ouro-feel-principles.md#context" },
+              verify: [
+                { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/decisions/2026-11-27-ouro-feel-principles.md" },
+                { fileLine: "site/src/apple/feel-checks.json", pattern: "\"name\" : \"viewport holds still\"" },
+                { fileLine: "site/src/apple/feel-checks.json", pattern: "\"name\" : \"chrome floats over content\"" },
+                { fileLine: "site/src/apple/feel-checks.json", pattern: "\"name\" : \"one action finishes the intent\"" },
+              ],
             })}{" "}
             {claim("A check that couldn't see enough says \"could not check\", and never passes on a hunch.", {
-              source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L246-L250" },
-              verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L246-L250" },
+              source: { spec: "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/ouro-feel/README.md#reading-a-report" },
+              verify: { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/ouro-feel/README.md" },
             })}
           </p>
         }
       >
-        <ol className="apple-lanes-list feel-genres">
-          {genres.genres.map((genre, index) => (
-            <li key={genre.name} className="apple-lane-row">
-              <span className="apple-lane-step site-mono" aria-hidden="true">
-                {index + 1}
-              </span>
-              <span className="apple-lane-name">{genre.name}</span>
-              <span className="apple-lane-body">{genre.good}</span>
-            </li>
+        <div className="feel-principles">
+          {catalog.principles.map((principle) => (
+            <section key={principle.id} className="feel-principle" aria-labelledby={`feel-principle-${principle.id}`}>
+              <h3 id={`feel-principle-${principle.id}`} className="feel-principle-name">
+                {named(principle.name)}
+              </h3>
+              <p className="feel-principle-promise">{principle.promise}</p>
+              <ul className="apple-lanes-list feel-checks">
+                {principle.checks.map((check) => (
+                  <li key={check.name} className="feel-check">
+                    <span className="apple-lane-name">{named(check.name)}</span>
+                    <span className="apple-lane-body">{check.good}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ol>
+        </div>
+        <p className="apple-fine">
+          {claim("The list is a copy of Feel's own catalog, refreshed when Feel adds a check.", {
+            source: { file: "site/src/apple/feel-checks.json" },
+            verify: [
+              { fileLine: "site/src/apple/feel-checks.json", pattern: "\"principles\" :" },
+              { urlOk: "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/ouro-feel/checks.json" },
+              { fileLine: "scripts/kit-pin.mjs", pattern: "export const FEEL_CATALOG = \"site/src/apple/feel-checks.json\"" },
+            ],
+          })}{" "}
+          <a className="apple-inline-link" href="https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/ouro-feel/checks.json">
+            Read the catalog
+          </a>
+          .
+        </p>
       </AppleBand>
 
       <AppleBand

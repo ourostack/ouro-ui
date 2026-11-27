@@ -108,6 +108,10 @@
     "summary": "One line of words in a control (a button, a field's value or placeholder, an editor, or a bare text area inside its frame) whose cap height sits off the control's middle, as a composer's placeholder pushed low by a bottom-aligned row does."
   },
   {
+    "rule": "off-centre-ink",
+    "summary": "A control holding an icon, a picture or a typed glyph such as \"…\" whose ink sits more than 1px off the control's middle, across or down, as a typed \"…\" on its text baseline does."
+  },
+  {
     "rule": "empty-panel",
     "summary": "An open panel that isn't modal (a menu, a popover, or a data-ouro-panel) 120px or taller where under 60% of its inside has text, a control or a picture within 24px, as a wide panel with its links in one narrow column is."
   },

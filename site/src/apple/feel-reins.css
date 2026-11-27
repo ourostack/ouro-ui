@@ -5,6 +5,35 @@
  * bars step instead of gliding, and nothing else here moves.
  */
 @layer components {
+  /* Feel: the promises, each over its checks, drawn from Feel's catalog. Open like the X-ray's lanes: hairlines, no frames. */
+  .feel-principles {
+    display: grid;
+    gap: calc(var(--spacing) * 8) calc(var(--spacing) * 10);
+    margin-bottom: calc(var(--spacing) * 6);
+  }
+  .feel-principle {
+    display: grid;
+    gap: calc(var(--spacing) * 2);
+    align-content: start;
+    min-width: 0;
+  }
+  .feel-principle-name {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  .feel-principle-promise {
+    margin: 0;
+    font-style: italic;
+  }
+  .feel-check {
+    display: grid;
+    gap: calc(var(--spacing) * 1);
+    padding-block: calc(var(--spacing) * 3);
+    border-top: 1px solid var(--apple-hairline);
+  }
+
   /* Feel: the duel in the hero. */
   /* The hero's glow sits behind the live demos, so their quiet text takes a step toward the foreground to stay readable on it. */
   .feel-duel,
@@ -505,6 +534,9 @@
     }
     .apple-pair.feel-reins-wide {
       grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    }
+    .feel-principles {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .feel-duel-pair {
       grid-template-columns: minmax(0, 1fr);
