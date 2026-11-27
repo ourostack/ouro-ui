@@ -350,7 +350,7 @@ const HINTS: Record<string, string> = {
   "image-fade": "end the picture on a hard edge, or put it on a solid band",
   "giant-picture": "show the work itself (the component, a screenshot) or a small picture beside the words, not a banner",
   "cramped-heading": "give the heading room: more space above it than between it and what follows",
-  "nested-frame": "draw one frame: drop the inner border, or make the inner radius the outer one less the inset",
+  "nested-frame": "draw one frame: drop the inner border",
   "corners-nest": "make each inner corner a squircle with the outer radius less its inset",
   "squircle-paint": "clip every painted layer to the squircle's corner curve",
   "doubled-line": "keep one line: drop the inner divider where a frame or another divider already separates, or give the two room apart",
@@ -1123,8 +1123,8 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       if (!ready) issues.push({ ref: "", rule: "not-ready", element: "the page", detail: `no ready signal in ${readyTimeout / 1000} s (ouro:ready, data-app-ready or a drawn h1)` });
       elements = await page.evaluate(`document.querySelectorAll("*").length`);
       // The rules that run at every page, size and theme below: overlap, size, image-fades, design, text, layout,
-      // theme, interaction, decision, wrap, panel, first-run, dead-zones, dark-art and corners (15), plus the ones
-      // that run only sometimes.
+      // theme, interaction, decision, wrap, panel, first-run, dead-zones, dark-art, image corners, nested corners and
+      // squircle paint (17), plus the ones that run only sometimes.
       rulesRun = 17 + (measured ? 1 : 0) + (axe && axeAt.has(`${width}x${height}`) ? 1 : 0) + (inpAt === `${width}x${height} ${theme}` ? 2 : 0);
       // The loading measures first, before any rule scrolls: a script's scroll doesn't end largest-contentful-paint as a
       // person's does, so a picture far down that a later rule scrolls to would otherwise read as the first content.
