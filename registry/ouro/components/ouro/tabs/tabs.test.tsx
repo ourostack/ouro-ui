@@ -617,9 +617,10 @@ describe("Tabs show the chosen panel", () => {
     expect(box.scrollTop).toBe(0);
   });
 
-  it("keeps a sticky row at the top of the box, brings back a start scrolled under it, and leaves one just under it", async () => {
-    const { host } = await render(inBox(240, { sticky: true }));
+  it("keeps a sticky row at the top of the box, filled with its surface, brings back a start scrolled under it, and leaves one just under it", async () => {
+    const { host } = await render(<div style={{ ["--ouro-scroller-surface" as string]: "rgb(10, 20, 30)" }}>{inBox(240, { sticky: true })}</div>);
     const { box, at, list, panel } = parts(host);
+    expect(getComputedStyle(list).backgroundColor).toBe("rgb(10, 20, 30)");
     const start = panel();
     box.scrollTop = start - list.offsetHeight + 10;
     expect([at('[role="tablist"]'), getComputedStyle(list).position]).toEqual([0, "sticky"]);
