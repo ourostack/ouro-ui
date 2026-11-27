@@ -21,7 +21,7 @@ import type { JSX } from "react";
  * @claim "With a fine pointer it is" registry/ouro/lib/ouro/touch-target.tsx verify:fileLine(registry/ouro/lib/ouro/touch-target.tsx, /hidden\ssize-\[max\(100%,44px\)\]\s-translate-1\/2\spointer-coarse:block/)
  * @claim "`fine` is for a control" registry/ouro/components/ouro/conversation-list/conversation-list.hover.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.hover.test.tsx::ConversationList hover > gives the more button and the section grip a hit area of at least 24px to a mouse, the size they draw unchanged)
  */
-export function TouchTarget({ fine = false }: { fine?: boolean } = {}): JSX.Element {
+export function TouchTarget({ fine = false }: { fine?: boolean }): JSX.Element {
   return (
     <span
       aria-hidden="true"
