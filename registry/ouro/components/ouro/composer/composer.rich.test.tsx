@@ -1051,6 +1051,32 @@ describe("Composer rich mode with a catalogue", () => {
   });
 });
 
+describe("Composer rich mode mentions", () => {
+  const id = "8:orgid:00000000-0000-4000-8000-0000000000a1";
+  const value = (editor: HTMLElement) => (editor as unknown as { value: string }).value;
+
+  it("draws a mention written as @[Name](id) as the person's name, never a link, and writes it back as it came", async () => {
+    const written = `@[Avery Kim](${id}), the plan for **Thursday** is ready`;
+    const onValueChange = vi.fn();
+    const { editor } = await render(rich({ defaultValue: written, offsets: "markdown", onValueChange }));
+    const person = editor.querySelector<HTMLElement>("[data-ouro-mention]");
+    expect(person?.textContent).toBe("Avery Kim");
+    expect(person?.isContentEditable).toBe(false);
+    expect(editor.querySelector("a")).toBeNull();
+    expect(value(editor)).toBe(written);
+    editor.focus();
+    await userEvent.keyboard("{Control>}{End}{/Control}!");
+    await expect.poll(() => onValueChange.mock.lastCall?.[0]).toBe(`${written}!`);
+  });
+
+  it("keeps an @ before a link to a web address an @ and a link", async () => {
+    const { editor } = await render(rich({ defaultValue: "@[the docs](https://example.com/docs)", offsets: "markdown" }));
+    expect(editor.querySelector("[data-ouro-mention]")).toBeNull();
+    expect(editor.querySelector("a")?.getAttribute("href")).toBe("https://example.com/docs");
+    expect(value(editor)).toBe("@[the docs](https://example.com/docs)");
+  });
+});
+
 describe("Composer rich mode highlights", () => {
   const layer = (host: HTMLElement) => host.querySelector("[data-ouro-composer-marks]");
   const boxes = (host: HTMLElement) => [...(layer(host)?.children ?? [])] as HTMLElement[];
