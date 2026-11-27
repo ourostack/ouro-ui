@@ -118,13 +118,24 @@ function drawn(scope: Element): string {
 
 /**
  * Writes each drawn letter in `element` as text instead, in the same element with the same classes
- * but without the `::before` that draws it: the avatar as it was when its initials were text.
+ * but without the `::before` that draws it: the avatar as it was when its initials were text. Letters
+ * whose `::before` is a box of its own, trimmed to the capitals (an avatar's surface, a group's slice),
+ * are written in a span with the classes that box had, as the initials' own element once was.
  */
 function write(element: Element): void {
   for (const letters of element.querySelectorAll<HTMLElement>("[data-ouro-avatar-initials], [data-ouro-avatar-count]")) {
     const text = letters.dataset["ouroAvatarInitials"] ?? letters.dataset["ouroAvatarCount"]!;
+    const trimmed = letters.classList.contains("before:[text-box:trim-both_cap_alphabetic]");
     for (const name of [...letters.classList]) if (name.startsWith("before:")) letters.classList.remove(name);
-    letters.textContent = text;
+    if (!trimmed) {
+      letters.textContent = text;
+      continue;
+    }
+    const box = document.createElement("span");
+    box.className = "block whitespace-nowrap [text-box:trim-both_cap_alphabetic]";
+    box.dataset["written"] = "";
+    box.textContent = text;
+    letters.append(box);
   }
 }
 
@@ -565,6 +576,41 @@ describe("Avatar colors", () => {
     }
   });
 
+  it("takes each hue's mix from ouro-base in light and dark, and a .dark element's own mix for what is in it", async () => {
+    const { host } = await render(
+      <>
+        {names.map((name) => (
+          <Avatar key={name} name={name} />
+        ))}
+        <Avatar name="Ana Lind" color="brand" />
+      </>,
+    );
+    const avatars = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
+    const drawn = () => new Set(avatars.map((avatar) => `${getComputedStyle(surface(avatar)).backgroundColor} on ${getComputedStyle(avatar).color}`));
+    // The mix each avatar would compute for itself, for the eight hues and the brand, in the scheme of `where`.
+    const mixes = (tint: number, ink: number, where: HTMLElement = document.body) =>
+      new Set(
+        [1, 2, 3, 4, 5, 6, 7, 8, "brand"].map((hue) => {
+          const color = hue === "brand" ? "var(--primary)" : `var(--avatar-${hue})`;
+          const probe = document.createElement("i");
+          probe.style.backgroundColor = `color-mix(in oklab, ${color} ${tint}%, var(--background))`;
+          probe.style.color = `color-mix(in oklab, ${color} ${ink}%, var(--foreground))`;
+          where.append(probe);
+          const want = `${getComputedStyle(probe).backgroundColor} on ${getComputedStyle(probe).color}`;
+          probe.remove();
+          return want;
+        }),
+      );
+    expect(drawn()).toEqual(mixes(18, 70));
+    document.documentElement.classList.add("dark");
+    expect(drawn()).toEqual(mixes(46, 18));
+    // A page in light with one dark region: the avatars in it mix the dark scheme's colours, as the probes beside them do.
+    document.documentElement.classList.remove("dark");
+    host.classList.add("dark");
+    expect(drawn()).toEqual(mixes(46, 18, host));
+    expect(drawn()).not.toEqual(mixes(46, 18));
+  });
+
   it("spreads ids that differ only in their last character across the hues", async () => {
     const sequential = Array.from({ length: 16 }, (_, index) => `user-${String(index).padStart(4, "0")}`);
     const hex = Array.from({ length: 16 }, (_, index) => `8f14e45f-ceea-467f-a0e6-00000000000${index.toString(16)}`);
@@ -865,8 +911,12 @@ describe("Avatar presence", () => {
     const fontSize = parseFloat(getComputedStyle(avatars[0]!).fontSize);
     for (const avatar of avatars) {
       const box = avatar.getBoundingClientRect();
-      const letters = avatar.querySelector<HTMLElement>("[data-ouro-avatar-initials]")!.getBoundingClientRect();
-      const where = `${size} ${drawn(avatar)}${avatar.dataset["presence"] ? " with a dot" : ""}: letters ${JSON.stringify(letters)} avatar ${JSON.stringify(box)}`;
+      const where0 = `${size} ${drawn(avatar)}${avatar.dataset["presence"] ? " with a dot" : ""}`;
+      // The letters are a ::before, which has no box a script can read: written as text (the drawn letters
+      // look exactly as written text does, below), they take the box the ::before has.
+      write(avatar);
+      const letters = avatar.querySelector<HTMLElement>("[data-written]")!.getBoundingClientRect();
+      const where = `${where0}: letters ${JSON.stringify(letters)} avatar ${JSON.stringify(box)}`;
       // The initials' box runs from the top of the capitals to the baseline (a cap height, under
       // 0.8em in any font, where the line would be at least 1em), so its middle is the letters' own.
       expect(letters.height / fontSize, where).toBeGreaterThan(0.6);

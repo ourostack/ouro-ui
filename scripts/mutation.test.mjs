@@ -8,7 +8,7 @@ import { changedLines, dryRunMinutes, inScope, mutationRunners, HEAVY_TEST_SECON
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { ignoreReason, inOtherShard, isClassList, testPhases } from "./mutation/plugins.mjs";
-import { dependencyFiles, dependencyHash, harnessFiles, mergeReports, parseTestSeconds, planShards, pruneChangedFiles, recordSources, recordTests, scopeReport, shardCost, shardCount, strykerTimeout, hangRates, testSeconds, timeoutRate, unmeasuredSeconds } from "./mutation/cache.mjs";
+import { dependencyFiles, dependencyHash, harnessFiles, mergeReports, parseTestSeconds, planShards, pruneChangedFiles, recordSources, recordTests, scopeReport, shardCost, shardCount, strykerTimeout, hangRates, testSeconds, testsOf, timeoutRate, unmeasuredSeconds } from "./mutation/cache.mjs";
 
 test("runtimeSource takes component and lib code, and leaves tests, stories, types and the test kit", () => {
   for (const path of ["registry/ouro/components/ouro/button/button.tsx", "registry/ouro/components/ouro/dialog/dialog-styles.ts", "registry/ouro/lib/ouro/cn.ts"]) assert.ok(runtimeSource(path), path);
@@ -474,6 +474,18 @@ test("pruneChangedFiles drops a mutated file's kept results when one of its test
   assert.deepEqual(kept({ [otherTests]: "it('other', () => {})" }), [dialog], "a changed test file of another component drops only its results");
   assert.deepEqual(kept({}, (path) => (path === dialog ? [dialogTests, dialogMore] : [otherTests])), [other], "a test file added drops the dialog's results");
   assert.deepEqual(kept({}, (path) => (path === dialog ? [] : [otherTests])), [other], "a test file removed drops the dialog's results");
+});
+
+test("results found while a whole test file was quarantined are found again once its quarantine ends, and kept while it lasts", () => {
+  const list = "registry/ouro/components/ouro/message/message-list.tsx";
+  const windowing = "registry/ouro/components/ouro/message/message-list.windowing.test.tsx";
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  assert.ok(testsOf(list, []).includes(windowing), "the list's tests include the windowing file");
+  assert.ok(!testsOf(list, [windowing]).includes(windowing), "a quarantined file is not one of the tests its mutants ran against");
+  const files = { [list]: { source: readFileSync(join(root, list), "utf8"), mutants: [{ id: "0", status: "Survived" }] } };
+  const found = recordTests({ files }, [list], (path) => testsOf(path, [windowing]));
+  assert.deepEqual(Object.keys(pruneChangedFiles(found, { testsFor: (path) => testsOf(path, [windowing]) }).files), [list], "still quarantined: kept");
+  assert.deepEqual(Object.keys(pruneChangedFiles(found, { testsFor: (path) => testsOf(path, []) }).files), [], "quarantine over: dropped, so the windowing tests judge its mutants");
 });
 
 test("pruneChangedFiles keeps the results of a report with no test digests, as before, and drops a mutated file it records no test digests for", () => {

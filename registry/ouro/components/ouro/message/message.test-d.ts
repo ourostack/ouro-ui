@@ -41,6 +41,8 @@ expectTypeOf<{ role: "assistant"; name: "Ana"; presence: AvatarPresence | undefi
 expectTypeOf<{ key: "reply"; label: "Reply"; icon: "↩"; onClick: (event: MouseEvent<HTMLElement>) => void; disabled: true }>().toExtend<MessageAction>();
 // A quote says who wrote it and what; it may be a button, an avatar and a label of its own.
 expectTypeOf<{ role: "user"; name: "Ana"; quote: { author: "Grace"; excerpt: "Lunch?"; onActivate: () => void; label: "Quoting Grace" } }>().toExtend<MessageProps>();
+// A quote may say when it was sent, in the app's own words, and where it sits.
+expectTypeOf<{ role: "user"; name: "Ana"; quote: { author: "Grace"; excerpt: "Lunch?"; at: number; atText: "Yesterday"; context: "Replied in thread" } }>().toExtend<MessageProps>();
 expectTypeOf<{ author: "Grace"; excerpt: "Lunch?"; avatar: ReactElement }>().toExtend<MessageQuote>();
 expectTypeOf<{ author: "Grace" }>().not.toExtend<MessageQuote>();
 expectTypeOf<{ excerpt: "Lunch?" }>().not.toExtend<MessageQuote>();

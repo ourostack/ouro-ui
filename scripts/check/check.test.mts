@@ -57,6 +57,10 @@ describe("Ouro check", () => {
     assert.equal(result.shots.length, 142 * 2);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
     assert.equal(report.pages.length, 142);
+    // report.json says what it scanned, so a run that reached nothing reads differently from one with no findings
+    // (#3864): every page, size and theme the sweep swept, with the elements and rules each visit read.
+    assert.deepEqual(report.scanned, { pages: 142, sizes: 2, themes: 1, visits: 142 * 2, ready: 142 * 2, elements: report.shots.reduce((sum, s) => sum + s.elements, 0), rules: report.shots.reduce((sum, s) => sum + s.rules, 0) });
+    assert.ok(report.scanned!.elements > 0 && report.scanned!.rules > 0);
     assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 142 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
     for (const ref of report.pages) assert.ok(existsSync(join(out, "sheets", `${ref.name}.png`)), ref.name);
     for (const f of result.findings.filter((f) => f.closeUp)) {
@@ -152,6 +156,10 @@ describe("Ouro check", () => {
     assert.deepEqual(spots(steady(merged.findings)), spots(steady(whole.findings)));
     assert.equal(merged.shots.length, whole.shots.length);
     assert.equal(merged.pages.length, 71);
+    // A merge sums the shards' own coverage rather than reading one shard's, so scanned.visits is every shard's
+    // shots added together, the same total a single whole run reads from its own.
+    assert.deepEqual(merged.scanned, whole.scanned);
+    assert.ok(merged.scanned!.visits > 0 && merged.scanned!.ready > 0 && merged.scanned!.elements > 0 && merged.scanned!.rules > 0);
     assert.equal(steady(merged.findings).filter((f) => f.closeUp).length, steady(whole.findings).filter((f) => f.closeUp).length);
     assert.equal(merged.gated.length, merged.findings.length);
     const waived = await merge({ dirs: shards, out: dir("merged"), config: { waive: { "axe-*": { "*": "an axe fixture" }, "/overlap-fail.html": { overlap: "an overlap fixture" } } }, chromium, executablePath: browser });

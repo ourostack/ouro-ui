@@ -217,6 +217,14 @@ export interface TimeGridOwnProps {
    * @claim "start: 8, end: 17" registry/ouro/components/ouro/time-grid/time-grid.tsx verify:fileLine(registry/ouro/components/ouro/time-grid/time-grid.tsx, /const defaultWorkingHours = \{ start: 8, end: 17 \}/)
    */
   workingHours?: { start: number; end: number } | undefined;
+  /**
+   * The shortest an hour is drawn, in rem: `3`, or `3.5` on a touch screen, unless you give one. A taller hour gives a
+   * short event lines for a longer title, as a week of narrow days needs (Teams' Week draws `5`). The hours still grow
+   * to fill a grid taller than a day, and an event's lines follow the hour drawn.
+   * @claim "A taller hour gives a" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > draws the hour hourHeight asks for, and gives a short event the lines it holds)
+   * @claim "an event's lines follow the hour drawn" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid > draws the hour hourHeight asks for, and gives a short event the lines it holds)
+   */
+  hourHeight?: number | undefined;
   /** The selected event's id: it gets a deeper fill of its own colour and `aria-current`. */
   selectedId?: string | null | undefined;
   /**
@@ -464,6 +472,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     locale = "en-US",
     now: nowProp,
     workingHours: workingHoursProp,
+    hourHeight,
     selectedId,
     onEventSelect,
     backgroundEvents = noEvents,
@@ -692,6 +701,8 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   // The width of one day and of a rem, which decide how many overlapping events a day can show: the
   // server HTML and the first render draw them all, in steps, until a measure.
   const [dayWidth, setDayWidth] = useState(0);
+  // The hour as drawn, in px at a 16px rem, as the events' lines and padding are: the lines an event holds follow it.
+  const [hourPx, setHourPx] = useState(48);
   const [dayRem, setDayRem] = useState(16);
   const [chipRem, setChipRem] = useState(2);
   const { shown, folds, reserved, stackOf } = useMemo(() => {
@@ -763,20 +774,30 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const root = rootRef.current!;
     const viewport = root.querySelector<HTMLElement>("[data-scroll-viewport]")!;
     const head = root.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
+    const body = root.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;
     const fill = () => {
       const headHeight = head.offsetHeight;
       // The app's day summaries make the header as tall as they are, which only a measure knows; events scrolled into view stop below it.
       if (summaries) root.style.setProperty("--ouro-time-grid-head", `${headHeight}px`);
       root.style.setProperty("--ouro-time-grid-fill", `${(viewport.clientHeight - headHeight) / 24}px`);
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      setHourPx(((body.offsetHeight / (dayLength / 60)) * 16) / rem);
     };
+    // Measured now, before the first paint, when there are events to give lines to, as the fold below is: a hour taller
+    // than the shortest would otherwise draw them a frame on the shortest hour's lines. A grid with no events forces no
+    // layout while it mounts.
+    if (timed.some((placements) => placements.length > 0)) fill();
     const observer = new ResizeObserver(fill);
     // Stryker disable next-line CallExpression: a change that resizes the room in a test resizes the header's sticky box with it, which measures again.
     observer.observe(viewport);
     observer.observe(head);
+    // The hour drawn changes with the fill, a touch screen's pointer and hourHeight.
+    observer.observe(body);
     // Stryker disable next-line ArrowFunction: once the grid is gone, nothing reads what the observer would set.
     return () => observer.disconnect();
-  },
-  [summaries]);
+    // The events only decide whether the first measure runs before the first paint; the observer keeps it after.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [summaries]);
 
   // The day's background lane, measured for its stacks (above). Every day's lane is as wide.
   const hasLane = labelBackground && hasBackground;
@@ -970,7 +991,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     const { event, status, background } = piece;
     const bar = background && !labelBackground;
     const tone = oneOf(tones, event.tone, "primary");
-    const lines = placed ? lineCount(placed.bottom - placed.top) : 1;
+    const lines = placed ? lineCount(placed.bottom - placed.top, hourPx) : 1;
     const start = placed ? toInstant(event.start)! : null;
     const end = placed ? toInstant(event.end!)! : null;
     // The time as the event shows it, for its name: one line shows only the start, so the end follows it there.
@@ -990,9 +1011,10 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         </span>
       ) : (
         // A space between the lines, which a column doesn't draw, keeps them separate words in the
-        // event's visible text, as its name says them (WCAG 2.5.3, Label in Name).
+        // event's visible text, as its name says them (WCAG 2.5.3, Label in Name). The title is balanced, so one over two
+        // or three lines never ends on a word alone (Ouro check's lone-word).
         <>
-          <span className="line-clamp-(--ouro-lines) font-medium [unicode-bidi:isolate] @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": Math.max(1, lines - (lines >= 3 && event.description ? 2 : 1)) } as CSSProperties}>
+          <span className="line-clamp-(--ouro-lines) font-medium text-balance [unicode-bidi:isolate] @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": lines } as CSSProperties}>
             {event.title}
           </span>{" "}
           <span dir="ltr" data-slot="time-grid-event-time" className={`${mutedLineClass} [unicode-bidi:isolate] rtl:text-end`}>
@@ -1037,7 +1059,11 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         {bar ? (
           <span aria-hidden="true" data-ouro-time-grid-bar="" className={cn(backgroundBarFillClass, status === "away" ? awaySwatchClass : toneSwatchClass[tone], barStatusClass[status])} />
         ) : (
-          <span className="@container/text flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden @max-[2rem]/text:*:invisible">{content}</span>
+          // The title takes the lines it needs first; the time and the description wrap out of the event where no line is
+          // left for them, never cut, and its name still says them. lineCount counts the event's padding but not the pixel
+          // it is drawn short or a free or unanswered event's border, so the lines reach 3px into its foot: a line the
+          // count promised still shows, at most its foot's leading clipped, rather than stepping out.
+          <span className="@container/text -mb-[3px] flex min-h-0 min-w-0 flex-1 flex-col flex-wrap content-start overflow-hidden *:w-full *:shrink-0 @max-[2rem]/text:*:invisible">{content}</span>
         )}
       </>
     );
@@ -1224,6 +1250,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         {
           ...(renderDaySummary ? {} : { "--ouro-time-grid-head": `${4.25 + lanes * 1.5}rem` }),
           "--ouro-time-grid-lane": labelBackground ? "max(7rem, 40%)" : "0.75rem",
+          ...(hourHeight !== undefined && hourHeight > 0 ? { "--ouro-time-grid-hour": `max(${hourHeight}rem, var(--ouro-time-grid-fill, 0px))` } : {}),
           ...style,
         } as CSSProperties
       }

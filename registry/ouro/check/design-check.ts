@@ -286,7 +286,9 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
 
   // cramped-heading: a heading (with the icon on its row) too close to a picture or a filled or framed box beside it,
   // each measured by the part of it that is drawn.
-  // A fixed layer that covers the window (a sheet's scrim, a backdrop) is drawn behind its overlay, not laid out above it.
+  // A fixed layer that covers the window (a sheet's scrim, a backdrop) is drawn behind its overlay, not laid out above it,
+  // and neither is a popover, a menu or a tooltip floating over a heading that isn't in it.
+  const floatingLayer = (el: Element) => el.closest("[popover], [data-ouro=popover]");
   const windowLayer = (el: Element) => {
     if (getComputedStyle(el).position !== "fixed") return false;
     const r = el.getBoundingClientRect();
@@ -328,7 +330,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const r = onRow ? drawnContent(parent) : drawnRect(heading)!;
     let worst: { block: Element; gap: number; need: number } | null = null;
     for (const block of blocks) {
-      if (block.contains(row) || row.contains(block)) continue;
+      if (block.contains(row) || row.contains(block) || floatingLayer(block)?.contains(row) === false) continue;
       const b = drawnRect(block)!;
       const across = Math.min(r.right, b.right) - Math.max(r.left, b.left);
       if (across < Math.min(r.width, b.width) * 0.3 || b.bottom > r.top + 2) continue;

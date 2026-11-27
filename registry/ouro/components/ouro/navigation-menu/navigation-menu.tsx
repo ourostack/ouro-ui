@@ -333,6 +333,12 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
   };
 
   const portal = usePortalContainer("NavigationMenu");
+  // The 8px gap is measured from the bar's bottom edge, not the trigger's: a trigger is shorter than the bar around it, so
+  // measured from the trigger the panel would sit across the bar's hairline.
+  const gapBelowBar = () => {
+    const n = nav.current!, b = (e: Element) => e.getBoundingClientRect().bottom;
+    return Math.max(8, b(n.closest("header") ?? n) - b(n.querySelector("[data-popup-open]")!) + 8);
+  };
   const directed = (
     <BaseNavigationMenu.Root
       ref={mergedNav}
@@ -422,7 +428,7 @@ export function NavigationMenuView(props: NavigationMenuViewProps): JSX.Element 
           into its panel stepped through a guard far up the page, and the browser scrolled the page back to it. */}
       <BaseNavigationMenu.Portal {...portal} data-ouro="navigation-menu-portal" className={cn(floatingPortalClass, "fixed inset-x-0 top-0")}>
         <PortalScope>
-          <BaseNavigationMenu.Positioner positionMethod={floatingPositionMethod} sideOffset={8} collisionPadding={16} className={positioner}>
+          <BaseNavigationMenu.Positioner positionMethod={floatingPositionMethod} sideOffset={gapBelowBar} collisionPadding={16} className={positioner}>
             <BaseNavigationMenu.Popup data-ouro="navigation-menu-popup" data-ouro-instant={instant ? "" : undefined} className={popup}>
               <BaseNavigationMenu.Viewport className="relative h-full w-full overflow-hidden rounded-[inherit]" />
             </BaseNavigationMenu.Popup>
