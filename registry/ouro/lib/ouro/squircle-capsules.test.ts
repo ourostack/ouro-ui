@@ -105,7 +105,7 @@ describe("capsule measure", () => {
     const mutationObserve = vi.spyOn(MutationObserver.prototype, "observe");
     const mutationDisconnect = vi.spyOn(MutationObserver.prototype, "disconnect");
     const stop = installSquircleCapsules(document);
-    expect(mutationObserve).toHaveBeenCalledExactlyOnceWith(document.documentElement, { childList: true, subtree: true });
+    expect(mutationObserve).toHaveBeenCalledExactlyOnceWith(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
     const observe = vi.spyOn(ResizeObserver.prototype, "observe");
     const style = document.createElement("style");
     style.textContent = ".after-stop { --sq-half: 0; width: 40px; height: 20px; display: block }";

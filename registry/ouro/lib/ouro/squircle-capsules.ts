@@ -89,6 +89,12 @@ function installSquircleCapsules(doc: Document): () => void {
     const added: Element[] = [];
     let sheetsChanged = false;
     for (const record of records) {
+      // A class change can make an element match a capsule rule (a bar shown on hover does): only that element is read.
+      // Only `class` is watched, and this writes `style`, so it does not see its own writes.
+      if (record.type === "attributes") {
+        if (selector && (record.target as Element).matches(selector)) observe(record.target as Element);
+        continue;
+      }
       // A style element whose text was replaced reports the change on itself.
       if (isSheet(record.target as Element)) sheetsChanged = true;
       for (const node of Array.from(record.addedNodes)) {
@@ -102,14 +108,7 @@ function installSquircleCapsules(doc: Document): () => void {
       watchAll();
     } else for (const node of added) watchAdded(node);
   });
-  mutations.observe(doc.documentElement, { childList: true, subtree: true });
-  // A class change can make an element match a capsule rule (a bar shown on hover does). Only the changed element is read,
-  // and only `class` is watched: this writes `style`, so it never sees its own writes.
-  const classes = new MutationObserver((records) => {
-    if (!selector) return;
-    for (const record of records) if (record.target.nodeType === 1 && (record.target as Element).matches(selector)) observe(record.target as Element);
-  });
-  classes.observe(doc.documentElement, { attributes: true, attributeFilter: ["class"], subtree: true });
+  mutations.observe(doc.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
   // A linked sheet's rules are readable only once it has loaded.
   const onLoad = (event: Event) => {
     if ((event.target as Element).localName !== "link") return;
@@ -120,7 +119,6 @@ function installSquircleCapsules(doc: Document): () => void {
   return () => {
     observer.disconnect();
     mutations.disconnect();
-    classes.disconnect();
     doc.removeEventListener("load", onLoad, true);
     // Stryker disable next-line CallExpression: both observers are already disconnected, so nothing reads watched again; clearing it only frees the elements it held onto.
     watched.clear();
