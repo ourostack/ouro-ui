@@ -1,0 +1,1 @@
+- Fixed: ThemePicker centres its compact wordmark by its cap height without shifting the name.

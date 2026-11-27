@@ -520,6 +520,16 @@ describe("ThemePicker", () => {
 });
 
 describe("ThemePicker popover", () => {
+  it("centres the compact name in its trigger across heading faces", async () => {
+    const el = await render(<ThemePicker presets={three} presentation="popover" value="pearl" />);
+    for (const preset of three) {
+      await act(async () => root!.render(<ThemePicker presets={three} presentation="popover" value={preset.name} />));
+      const trigger = el.querySelector<HTMLElement>('[data-ouro-part="trigger"]')!.getBoundingClientRect();
+      const name = el.querySelector<HTMLElement>(`[data-shows="${preset.name}"] [data-slot="theme-picker-name"]`)!.getBoundingClientRect();
+      expect(Math.abs(name.top + name.height / 2 - trigger.top - trigger.height / 2), preset.name).toBeLessThan(1);
+    }
+  });
+
   it("shows the chosen wordmark, opens the looks, and closes on Escape with focus back on the button", async () => {
     const el = await render(
       <ThemePicker presets={three} presentation="popover" defaultPreset="dusk">
