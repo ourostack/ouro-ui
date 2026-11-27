@@ -1660,7 +1660,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Where the content ends, in the scroller's own coordinates: below the space kept above the first message, if any.
     const contentEnd = () => content.offsetTop + content.offsetHeight;
     // Stryker disable next-line ArrowFunction,ConditionalExpression,StringLiteral: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
-    const native = () => getComputedStyle(scroller).overflowAnchor === "auto";
+    const browserAnchors = () => getComputedStyle(scroller).overflowAnchor === "auto";
     const keepAnchor = () => {
       // Hidden by an app around it (a pane put away behind an open thread), the scroller reads all zeros: reading it now
       // would make the list think it sits at the top, and a message that arrives meanwhile would be lost once it shows
@@ -1668,7 +1668,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (!laidOut(scroller)) return;
       // Where an app turned the browser's own anchoring on, the mark is not moved, which would stop WebKit's: it goes only once
       // the content has come up past it, where letting it go is a change the browser's own clamp would make anyway.
-      const anchoring = native();
+      const anchoring = browserAnchors();
       // Stryker disable next-line ConditionalExpression: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
       if (!anchoring) holdEnd(contentEnd());
       // Stryker disable next-line ConditionalExpression,EqualityOperator: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
@@ -1903,7 +1903,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       placeFloor();
       // The mark held the content's end where the space put it: it follows the end.
       // Stryker disable next-line ConditionalExpression,LogicalOperator,BooleanLiteral,CallExpression: the keepAnchor that follows every change of the space moves the mark to the content's end as well; and Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
-      if (moved && !native()) holdEnd(contentEnd());
+      if (moved && !browserAnchors()) holdEnd(contentEnd());
     };
     // Scrolls the list by `by` itself, which the springs leave alone, and returns how far it went.
     const scrollOwn = (by: number) => {
@@ -1946,7 +1946,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // The translate holds the scroll range where it draws the content past the content's end: the mark holds it down to the view's
       // bottom instead while the translate goes and the scroll position takes it, so a carry the content came up by (rows above coming
       // in shorter) is not pulled up by the browser first (ourostack/ouro-ui#3892).
-      const anchoring = native();
+      const anchoring = browserAnchors();
       // Stryker disable next-line ConditionalExpression: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
       if (!anchoring) holdEnd(Math.max(endHeld, before + scroller.clientHeight));
       content.style.removeProperty("translate");
@@ -2052,12 +2052,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const near = Math.abs(scroller.scrollTop - taken) < scroller.clientHeight;
       // Where an app turned the browser's own anchoring back on, the browser corrects.
       // Stryker disable next-line ConditionalExpression,StringLiteral: Chrome gives up its own anchoring once the list scrolls in that frame, so whether a second correction lands depends on timing a test cannot hold.
-      const anchoring = native();
+      const native = getComputedStyle(scroller).overflowAnchor === "auto";
       if (pinned.current) {
         owed = 0;
         followEnd();
       } else if (!turning()) setFloor(0);
-      if (!pinned.current && near && !anchoring) {
+      if (!pinned.current && near && !native) {
         // Each message held that is still in the page, with where it sat in the content and how far it moved since. With each, how many
         // of the others it passed or fell behind: a message that moved on its own (a post that a reply moved to the end) passed them.
         const origin = content.getBoundingClientRect().top;
@@ -2225,7 +2225,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     const onScrollEnd = endSoon;
     scroller.addEventListener("scrollend", onScrollEnd);
-    return () => (["pointerdown", "keydown", "touchstart"].forEach((type) => scroller.removeEventListener(type, onInput, { capture: true })), Reflect.deleteProperty(scroller, "scrollTo"), Reflect.deleteProperty(scroller, "scrollBy"), cancelAnimationFrame(disarm), (held.current = false), scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(ended), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), content.style.removeProperty("margin-block-start"), holdEnd(0), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
+    return () => (["pointerdown", "keydown", "touchstart"].forEach((type) => scroller.removeEventListener(type, onInput, { capture: true })), Reflect.deleteProperty(scroller, "scrollTo"), Reflect.deleteProperty(scroller, "scrollBy"), cancelAnimationFrame(disarm), (held.current = false), scroller.removeEventListener("scrollend", onScrollEnd), clearTimeout(ended), clearTimeout(resting), cancelAnimationFrame(restFrame), (carriedRef.current = 0), content.style.removeProperty("translate"), content.style.removeProperty("margin-block-start"), follow.disconnect(), moves.disconnect(), scroller.removeEventListener("scroll", onScroll), scroller.removeEventListener("wheel", onWheel));
   }, [toBottom]);
 
   // The window, after every render that changed what it draws, every scroll and every resize: measures the slots drawn,
