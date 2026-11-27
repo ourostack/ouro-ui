@@ -11,6 +11,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, normalize } from "node:path";
 import { vendored } from "../vendored.mjs";
+import { quarantinedFilesNow } from "../quarantined-files.mjs";
 import { fileURLToPath } from "node:url";
 import { treeFiles } from "../tree.mjs";
 
@@ -306,10 +307,15 @@ export function recordTests(report, paths, testsFor = testsOf, read = (path) => 
   return { ...report, ouroTests: Object.fromEntries(paths.map((path) => [path, digestsOf(testsFor(path), read)])) };
 }
 
-/** The test files a runtime file's mutants run against: its own, then the wider ones (`testFilesFor`). */
-export function testsOf(path) {
+/**
+ * The test files a runtime file's mutants run against: its own, then the wider ones (`testFilesFor`),
+ * less a file a live whole-file quarantine keeps out of the run (`quarantined`). Results found
+ * while a file was out then count it as added once its entry expires, so its tests judge them again.
+ */
+export function testsOf(path, quarantined = quarantinedFilesNow()) {
   const { own, wider } = testFilesFor([path]);
-  return [...own, ...wider];
+  const out = new Set(quarantined);
+  return [...own, ...wider].filter((file) => !out.has(file));
 }
 
 /**

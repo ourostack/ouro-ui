@@ -72,11 +72,12 @@ const listClass =
   "rtl:data-[orientation=vertical]:shadow-[inset_1px_0_0_0_var(--border)]";
 
 /**
- * A sticky row, on the page's background so the panel scrolls under it, above the panel's own layers.
+ * A sticky row, filled with the surface it sits on (the page's background, a card's, a sheet's) so the panel scrolls under
+ * it, above the panel's own layers.
  *
  * @internal
  */
-const stickyListClass = "sticky top-0 z-20 bg-background";
+const stickyListClass = "sticky top-0 z-20 bg-(--ouro-scroller-surface)";
 
 /**
  * A tab: 44px tall with 16px text on a coarse pointer, stepping down to 36px and 14px from

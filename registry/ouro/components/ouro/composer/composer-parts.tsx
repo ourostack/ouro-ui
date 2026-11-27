@@ -697,6 +697,26 @@ function domPoint(editor: LexicalEditor, clean: number): [Node, number] {
     return type === "text" ? [domTextNode(dom), offset] : [dom, offset];
   });
 }
+// The lines of text, and the emoji pictures, a range holds. Its own client rects also hold the box of each element it
+// wholly holds, as wide as the editor: a blank line's paragraph, a list and its items, which would mark the empty space
+// beside and between the words.
+function textRects(range: Range): DOMRect[] {
+  const root = range.commonAncestorContainer;
+  if (root.nodeType === Node.TEXT_NODE) return [...range.getClientRects()];
+  const rects: DOMRect[] = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
+    acceptNode: (node) => (node.nodeType === Node.TEXT_NODE || node.nodeName === "IMG" ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP),
+  });
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (!range.intersectsNode(node)) continue;
+    const part = document.createRange();
+    part.selectNode(node);
+    if (node === range.startContainer) part.setStart(node, range.startOffset);
+    if (node === range.endContainer) part.setEnd(node, range.endOffset);
+    rects.push(...part.getClientRects());
+  }
+  return rects;
+}
 // The boxes that cover the marked runs, placed from the top left of `frame`.
 function measureMarks(editor: LexicalEditor, scratch: LexicalEditor, frame: HTMLElement, marks: readonly TextAreaHighlight[]): MarkBox[] {
   const origin = frame.getBoundingClientRect();
@@ -706,7 +726,7 @@ function measureMarks(editor: LexicalEditor, scratch: LexicalEditor, frame: HTML
     range.setStart(...domPoint(editor, textOffsetOf(editor, scratch, mark.start)));
     range.setEnd(...domPoint(editor, textOffsetOf(editor, scratch, mark.end)));
     const seen = new Set<string>();
-    for (const rect of range.getClientRects()) {
+    for (const rect of textRects(range)) {
       const at = `${rect.left},${rect.top},${rect.width},${rect.height}`;
       if (rect.width === 0 || seen.has(at)) continue;
       seen.add(at);
