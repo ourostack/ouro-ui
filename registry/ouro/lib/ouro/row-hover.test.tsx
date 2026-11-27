@@ -1173,6 +1173,51 @@ describe("useRowHover", () => {
     expect(probe.hover.via).toBe("pointer");
   });
 
+  it("shows nothing on a row drawn under a pointer that has not moved since, until it moves: the page moved, not the person", async () => {
+    const layer = createRowLayer<string>();
+    // A row the pointer went to, then another drawn in its place under the pointer, which stays still (a thread opened by a
+    // press, drawn where the pointer pressed), then the layer's code arriving.
+    function Swapped({ id, ready }: { id: string; ready: boolean }) {
+      const ref = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => {
+        const el = ref.current!;
+        layer.set(el, id);
+        return () => layer.delete(el);
+      }, [id]);
+      return (
+        <div>
+          <div ref={ref} key={id} id={id} style={{ height: 40 }}>
+            Row {id}
+          </div>
+          {ready ? <Layer id={id} /> : null}
+        </div>
+      );
+    }
+    function Layer({ id }: { id: string }) {
+      const ref = useRef<HTMLElement | null>(null);
+      useLayoutEffect(() => {
+        ref.current = document.getElementById(id)!.parentElement;
+      });
+      const hover = useRowHover(ref, layer);
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      return null;
+    }
+    const swapped = await render(<Swapped id="r0" ready={false} />);
+    await userEvent.hover(row("r0"));
+    await swapped.rerender(<Swapped id="r1" ready={false} />);
+    // The browser hit-tests the still pointer again: the new row is under it, and :hover says so.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await swapped.rerender(<Swapped id="r1" ready />);
+    expect(probe.hover.row).toBeNull();
+    // Its first move, still on the row, shows it there.
+    const box = row("r1").getBoundingClientRect();
+    await userEvent.hover(row("r1"), { position: { x: Math.round(box.width / 2) + 3, y: Math.round(box.height / 2) } });
+    expect(probe.hover.row).toBe(row("r1"));
+    expect(probe.hover.via).toBe("pointer");
+  });
+
   it("forgets where the pointer was once it leaves the page, and only then: a layer arriving later shows on no row under that spot", async () => {
     const layer = createRowLayer<string>();
     function Left({ ready }: { ready: boolean }) {
