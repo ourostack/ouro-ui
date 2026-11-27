@@ -401,18 +401,16 @@ function slotKeyOf(item: Element): string {
   return item.closest(`[${SLOT}]`)!.getAttribute(SLOT)!;
 }
 
-/**
- * Draws the content `px` up by what the wheel carries, on a layer of its own. On the scroller's own layer, moving it repaints the
- * whole conversation in every frame the wheel turns, and Chromium, rastering a new set of tiles for each of those back-to-back
- * commits, can leave a raster task a commit waits on never run: that commit never activates, and the page draws no frame again
- * (ourostack/ouro-ui#3785).
- */
+/** Draws the content `px` up by what the wheel carries, on a layer of its own. */
 function drawCarried(content: HTMLElement, px: number): void {
   content.style.translate = `0 ${-px}px`;
+  // On the scroller's own layer, moving the content repaints the conversation in each frame the wheel turns, and Chromium, rastering
+  // new tiles for those back-to-back commits, was seen to leave a raster task a commit waited on unrun: the commit never activated,
+  // and the page drew no frame again (ourostack/ouro-ui#3785).
   content.style.willChange = "translate";
 }
 
-/** Draws the content where it is again, and gives back the layer `drawCarried` gave it, so at rest its text is drawn crisp. */
+/** Draws the content where it is again, and gives back the layer `drawCarried` gave it. */
 function dropCarried(content: HTMLElement): void {
   content.style.removeProperty("translate");
   content.style.removeProperty("will-change");
