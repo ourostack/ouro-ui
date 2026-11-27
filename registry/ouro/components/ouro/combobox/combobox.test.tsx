@@ -842,11 +842,11 @@ describe("Combobox chips clear the field's corner", () => {
         // Past the corner's curve, where the top and bottom edges are flat, and clear of them.
         // Layout rounds to 1/64px.
         expect(chip.left - box.left).toBeGreaterThanOrEqual(radius - 0.05);
-        expect(chip.top - box.top).toBeGreaterThanOrEqual(6);
-        expect(box.bottom - chip.bottom).toBeGreaterThanOrEqual(6);
+        expect(chip.top - box.top).toBeGreaterThanOrEqual(8);
+        expect(box.bottom - chip.bottom).toBeGreaterThanOrEqual(8);
       }
       const rows = [...new Set(chips.map((chip) => Math.round(chip.top)))].sort((a, b) => a - b);
-      for (let row = 1; row < rows.length; row += 1) expect(rows[row]! - rows[row - 1]! - chips[0]!.height).toBeGreaterThanOrEqual(4);
+      for (let row = 1; row < rows.length; row += 1) expect(rows[row]! - rows[row - 1]! - chips[0]!.height).toBeGreaterThanOrEqual(8);
     }
   });
 });
@@ -948,6 +948,7 @@ describe("Combobox motion", () => {
     await render(<Combobox label="Herbs" multiple items={herbs} defaultValue={["Basil"]} />);
     const selector = "[data-ouro-combobox-chip-remove]";
     const remove = document.querySelector<HTMLElement>(selector)!;
+    await settledBox(remove);
     await commands.pointerPress({ selector, action: "down" });
     try {
       await expect.poll(() => getComputedStyle(remove).scale).toBe("0.97");
@@ -1254,6 +1255,23 @@ const people: ComboboxItem[] = [
 ];
 
 describe("Combobox rich items", () => {
+  it("keeps the input and its clear button on one row as people chips wrap", async () => {
+    const { input, host } = await render(<Combobox label="To" multiple
+      items={[{ value: "iris", label: "Iris Okafor", media: <Avatar name="Iris Okafor" alt="" size="xs" /> }, { value: "rowan", label: "Rowan Vale", media: <Avatar name="Rowan Vale" alt="" size="xs" /> }]}
+      defaultValue={["iris", "rowan"]} placeholder="Add someone" />);
+    const clear = host.querySelector<HTMLElement>("[data-ouro-combobox-clear]")!;
+    const middle = (element: HTMLElement) => { const rect = element.getBoundingClientRect(); return rect.y + rect.height / 2; };
+    const before = { width: innerWidth, height: innerHeight };
+    try {
+      for (const width of [320, 390, 1280]) {
+        await page.viewport(width, 844);
+        expect(Math.abs(middle(input) - middle(clear))).toBeLessThan(1);
+      }
+    } finally {
+      await page.viewport(before.width, before.height);
+    }
+  });
+
   it("shows media, a description and a mark on a row, and media on its chip", async () => {
     const { input, host } = await render(<Combobox label="To" multiple items={people} defaultValue={["iris"]} />);
     await userEvent.click(input);
@@ -1371,7 +1389,41 @@ describe("Combobox keys", () => {
     expect(host.querySelectorAll("[data-ouro-combobox-chip]")).toHaveLength(2);
   });
 
-  it("ignores composing and modified Enter, and gives arrow navigation precedence over a waiting pick", async () => {
+  it("finishes a waiting single pick with its label and closes the list", async () => {
+    const changed = vi.fn();
+    const props = { label: "Herb", autoHighlight: true, onValueChange: changed };
+    const { input, rerender } = await render(<Combobox {...props} items={[]} resultsFor={null} />);
+    await userEvent.click(input);
+    await userEvent.type(input, "thy");
+    await userEvent.keyboard("{Enter}");
+    await rerender(<Combobox {...props} items={[{ value: "thyme", label: "Thyme" }]} resultsFor="thy" />);
+    await expect.poll(() => changed.mock.calls).toEqual([["thyme"]]);
+    expect(input.value).toBe("Thyme");
+    expect(document.activeElement).toBe(input);
+    await expect.poll(popup).toBeNull();
+  });
+
+  it("keeps a query-aware single field's initial selected label", async () => {
+    const { input } = await render(
+      <Combobox label="Herb" autoHighlight items={[{ value: "thyme", label: "Thyme" }]} defaultValue="thyme" resultsFor="" />,
+    );
+    expect(input.value).toBe("Thyme");
+  });
+
+  it("cancels a waiting pick when controlled search text changes outside the input", async () => {
+    const changed = vi.fn();
+    const props = { label: "Herb", autoHighlight: true, onValueChange: changed, onInputChange: vi.fn() };
+    const { input, rerender } = await render(<Combobox {...props} inputValue="thy" items={[]} resultsFor={null} />);
+    await userEvent.click(input);
+    await userEvent.keyboard("{Enter}");
+    expect(input.getAttribute("aria-busy")).toBe("true");
+    await rerender(<Combobox {...props} inputValue="mint" items={["Mint"]} resultsFor="mint" />);
+    await expect.poll(() => input.getAttribute("aria-busy")).toBeNull();
+    expect(changed).not.toHaveBeenCalled();
+    expect(input.value).toBe("mint");
+  });
+
+  it("does not queue composing or modified Enter", async () => {
     const changed = vi.fn();
     const props = { label: "To", autoHighlight: true, onInputChange: vi.fn(), onValueChange: changed };
     const { input, rerender } = await render(<Combobox {...props} items={[]} resultsFor={null} />);
@@ -1381,10 +1433,25 @@ describe("Combobox keys", () => {
       await act(async () => { input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, ...extra })); });
       expect(input.getAttribute("aria-busy")).toBeNull();
     }
-    await userEvent.keyboard("{Enter}{ArrowDown}");
+    await rerender(<Combobox {...props} items={["Thyme"]} resultsFor="thy" />);
+    expect(changed).not.toHaveBeenCalled();
+  });
+
+  it("gives arrow navigation precedence over a waiting pick", async () => {
+    const changed = vi.fn();
+    const props = { label: "To", autoHighlight: true, onInputChange: vi.fn(), onValueChange: changed };
+    const { input, rerender } = await render(<Combobox {...props} items={[]} resultsFor={null} />);
+    await userEvent.click(input);
+    await userEvent.type(input, "thy");
+    await userEvent.keyboard("{Enter}");
+    expect(input.getAttribute("aria-busy")).toBe("true");
+    await userEvent.keyboard("{ArrowDown}");
     await rerender(<Combobox {...props} items={["Thyme", "Mint"]} resultsFor="thy" />);
     expect(changed).not.toHaveBeenCalled();
-    await userEvent.keyboard("{ArrowDown}{Enter}");
+    await expect.poll(options).toEqual(["Thyme", "Mint"]);
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(() => document.querySelector('[role="option"][data-highlighted]')).not.toBeNull();
+    await userEvent.keyboard("{Enter}");
     expect(changed).toHaveBeenCalledOnce();
   });
 

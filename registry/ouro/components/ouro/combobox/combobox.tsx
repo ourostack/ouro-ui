@@ -455,8 +455,12 @@ const ChevronIcon = () => (
 /**
  * A text input that filters a list of items as people type, on the Field contract: pass
  * `label`, `items`, and `error` from your server action or client check. It picks one item,
- * several as chips with `multiple`, or accepts any text with `allowCustomValue`. Pass
- * `onInputChange` and `loading` to search on your server. With `multiple` and `allowCustomValue`
+ * several as chips with `multiple`, or accepts any text with `allowCustomValue`.
+ *
+ * Pass `onInputChange` and `loading` to search on your server. Add `autoHighlight` and
+ * `resultsFor` to wait for the typed query's answer when Enter arrives before the results.
+ *
+ * With `multiple` and `allowCustomValue`
  * together it is a token input, for tags: typed text becomes a chip on Enter or at a comma, and
  * text that matches an item ignoring case picks that item. A clear button shows while there
  * is a value. On a phone (below 640px with touch) the field is a button that opens a
@@ -477,6 +481,7 @@ const ChevronIcon = () => (
  * <Combobox label="Herb" name="herb" items={["Basil", "Dill", "Thyme"]} />
  * <Combobox label="Tags" name="tags" multiple items={tags} defaultValue={["Quick"]} />
  * <Combobox label="Recipe" items={results} loading={searching} onInputChange={search} />
+ * <Combobox label="To" multiple autoHighlight items={people} resultsFor={answeredQuery} loading={searching} onInputChange={search} />
  * <Combobox label="Cuisine" name="cuisine" allowCustomValue items={["Italian", "Thai"]} />
  * <Combobox label="Tags" name="tags" multiple allowCustomValue items={["Weeknight", "Vegan"]} />
  * @claim "With `multiple` and `allowCustomValue`" registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox multiple allowCustomValue > makes a chip at each comma, and a pasted list becomes a chip per entry)
@@ -1092,7 +1097,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
         if (details.reason === "pointer") setPending(null);
       }}
       // Stryker disable next-line ConditionalExpression: the other modes' uncontrolled input shows the same text that onInputValueChange keeps in step.
-      inputValue={tokens || queryAware ? currentText : inputValue}
+      inputValue={tokens || (queryAware && multiple) ? currentText : inputValue}
       autoHighlight={autoHighlight}
       readOnly={readOnly}
       required={required}
@@ -1200,7 +1205,10 @@ function ComboboxControl(props: ControlProps): JSX.Element {
                   {(picked: Option[]) => (
                     <>
                       {picked.map(renderChip)}
-                      {input(chipsInputClass)}
+                      <div className="flex min-w-32 flex-1 items-center">
+                        {input(chipsInputClass)}
+                        <EndButtons clearLabel={clearLabel} readOnly={readOnly} />
+                      </div>
                     </>
                   )}
                 </BaseCombobox.Value>
@@ -1208,7 +1216,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
             ) : (
               input(inputClass)
             )}
-            <EndButtons clearLabel={clearLabel} readOnly={readOnly} />
+            {!multiple && <EndButtons clearLabel={clearLabel} readOnly={readOnly} />}
           </BaseCombobox.InputGroup>
           <Popup input={resetInputRef} loading={busy}>{body(listClass)}</Popup>
         </>
