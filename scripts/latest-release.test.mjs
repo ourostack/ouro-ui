@@ -116,7 +116,7 @@ test("the release commit names only its own tag: release.yml's release-branch co
   // The generated files main does not commit are staged for the tag, written for this release.
   // (The generators also ask git which of them it tracks: the stand-in answers none, as main does.)
   const adds = readFileSync(join(bin, "calls.log"), "utf8").split("\n").filter((call) => call.startsWith("add "));
-  assert.deepEqual(adds, [`add --force -- ${uncommitted.join(" ")}`, "add CHANGES.md"]);
+  assert.deepEqual(adds, [`add --force -- ${uncommitted.join(" ")}`, "add --force -- docs/*.md", "add CHANGES.md"]);
   for (const path of uncommitted) assert.ok(existsSync(join(copy, path)), `the release commit has no ${path}`);
   assert.equal(latestRelease(copy), "v9.9.9");
   const docs = ["README.md", "site/public/llms.txt", "package.json", "UPGRADING.md", "registry/ouro/lib/ouro/dev.ts", "registry/ouro/lib/ouro/dev.test.ts", ...tracked("docs/*.md", "site/src/*.ts", "site/src/*.tsx")];
