@@ -1082,7 +1082,7 @@ describe("Composer rich mode mentions", () => {
     await act(async () => lexical.setEditorState(lexical.parseEditorState(JSON.stringify(lexical.getEditorState().toJSON()))));
     expect(editor.querySelector("[data-ouro-mention]")?.textContent).toBe("Avery Kim");
     expect(value(editor)).toBe(written);
-    await act(async () => lexical.update(() => { for (const node of $getRoot().getFirstChildOrThrow<ElementNode>().getChildren()) if (node.getType() === "ouro-mention") node.markDirty(); }, { discrete: true }));
+    await act(async () => lexical.update(() => { for (const node of ($getRoot().getFirstChildOrThrow() as ElementNode).getChildren()) if (node.getType() === "ouro-mention") node.markDirty(); }, { discrete: true }));
     expect(editor.querySelector("[data-ouro-mention]")?.textContent).toBe("Avery Kim");
     expect(value(editor)).toBe(written);
   });
