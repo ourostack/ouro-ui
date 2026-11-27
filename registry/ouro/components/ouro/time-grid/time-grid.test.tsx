@@ -15,6 +15,7 @@ import {
   minuteClock,
   stepTo,
   toInstant,
+  toastClearance,
   viewDays,
   weekendDays,
   zonedClock,
@@ -99,6 +100,23 @@ const everyDay: TimeGridEvent[] = [
 const demo: TimeGridEvent = { id: "demo", title: "Demo day", start: at(13, "13:00"), end: at(13, "15:00"), tone: "success" };
 
 describe("TimeGrid date and layout math", () => {
+  it("clears a slot of a toast only when the toast is in the lower half and overlaps it, to the exact pixel", () => {
+    const slot = { top: 600, bottom: 640, left: 10, right: 110 };
+    const toast = { top: 640, bottom: 760, left: 0, right: 400 };
+    expect(toastClearance(slot, toast, 800)).toBe(168);
+    expect(toastClearance(slot, { ...toast, top: 647 }, 800)).toBe(161);
+    expect(toastClearance(slot, { ...toast, top: 648 }, 800)).toBe(0);
+    const high = { top: 380, bottom: 420, left: 10, right: 110 };
+    expect(toastClearance(high, { ...toast, top: 400, bottom: 520 }, 800)).toBe(0);
+    expect(toastClearance(high, { ...toast, top: 401, bottom: 520 }, 800)).toBe(407);
+    expect(toastClearance({ ...slot, top: 760, bottom: 800 }, { ...toast, top: 740 }, 800)).toBe(0);
+    expect(toastClearance({ ...slot, top: 759, bottom: 800 }, { ...toast, top: 740 }, 800)).toBe(68);
+    expect(toastClearance(slot, { ...toast, left: 110 }, 800)).toBe(0);
+    expect(toastClearance(slot, { ...toast, left: 109 }, 800)).toBe(168);
+    expect(toastClearance(slot, { ...toast, left: 0, right: 10 }, 800)).toBe(0);
+    expect(toastClearance(slot, { ...toast, left: 0, right: 11 }, 800)).toBe(168);
+  });
+
   it("folds the events a day has no room for, at the exact widths where each fold starts", () => {
     const three = layoutDay([
       { key: "a", start: 600, end: 660 },
@@ -1651,6 +1669,61 @@ describe("TimeGrid", () => {
       await userEvent.keyboard("{Home}");
       await expect.poll(() => clear()[0]).toBe(true);
       await expect.poll(() => clear()[1]).toBe(true);
+    });
+
+    it("scrolls the slot clear of a toast over the bottom of the page", async () => {
+      const toast = document.createElement("div");
+      toast.setAttribute("data-ouro-toast-id", "t");
+      toast.style.cssText = "position:fixed;inset-inline:0;bottom:0;height:5rem;background:#ccc";
+      document.body.append(toast);
+      try {
+        const { grid } = await open({ className: "h-[calc(100vh-1rem)]" });
+        const cursor = grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!;
+        await userEvent.keyboard("{Home}");
+        await expect.poll(() => viewport().scrollTop).toBe(0);
+        const { top, height } = cursor.getBoundingClientRect();
+        const steps = Math.ceil((toast.getBoundingClientRect().top - top) / height);
+        for (let step = 0; step < steps; step++) await userEvent.keyboard("{ArrowDown}");
+        const gap = () => toast.getBoundingClientRect().top - cursor.getBoundingClientRect().bottom;
+        await expect.poll(() => gap() >= 8 && gap() < 60).toBe(true);
+        expect(cursor.style.scrollMarginBottom).toBe(`${innerHeight - toast.getBoundingClientRect().top + 8}px`);
+        toast.remove();
+        await userEvent.keyboard("{ArrowUp}");
+        await expect.poll(() => cursor.style.scrollMarginBottom).toBe("");
+      } finally {
+        toast.remove();
+      }
+    });
+
+    it("keeps clearing the slot while a toast slides in late, then stops once the grid is gone", async () => {
+      const frames = vi.spyOn(window, "requestAnimationFrame");
+      const toast = document.createElement("div");
+      toast.setAttribute("data-ouro-toast-id", "t");
+      toast.style.cssText = "position:fixed;inset-inline:0;bottom:0;height:5rem;background:#ccc;display:none";
+      document.body.append(toast);
+      try {
+        const { grid } = await open({ className: "h-[calc(100vh-1rem)]" });
+        const cursor = grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!;
+        await userEvent.keyboard("{Home}");
+        await expect.poll(() => viewport().scrollTop).toBe(0);
+        const { top, height } = cursor.getBoundingClientRect();
+        for (let step = 0; step < Math.ceil((innerHeight - 80 - top) / height); step++) await userEvent.keyboard("{ArrowDown}");
+        expect(cursor.style.scrollMarginBottom).toBe("");
+        toast.style.display = "block";
+        await expect.poll(() => cursor.style.scrollMarginBottom).not.toBe("");
+        await userEvent.keyboard("{ArrowUp}");
+        const started = frames.mock.calls.length;
+        // real clock: the loop is a bounded run of animation frames, so the count is read once they have all run
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        expect(frames.mock.calls.length - started).toBeLessThanOrEqual(40);
+        await act(async () => roots.splice(0).forEach((root) => root.unmount()));
+        const after = frames.mock.calls.length;
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        expect(frames.mock.calls.length - after).toBe(2);
+      } finally {
+        toast.remove();
+        frames.mockRestore();
+      }
     });
 
     it("draws the slot with an outline-weight border that forced colours keep, and adds nothing without onSlotSelect", async () => {

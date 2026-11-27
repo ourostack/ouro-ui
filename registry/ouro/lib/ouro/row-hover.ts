@@ -259,7 +259,13 @@ function listenOn<T>(root: HTMLElement, layer: RowLayer<T>, { live, menuRef, api
   // Focus already in a row, from the keyboard, as the layer arrives; else the pointer already resting on one (the
   // layer's code came after the pointer did, and a pointer that stays still sends nothing more).
   const focused = rowOf(doc.activeElement);
-  const under = pointerAt === null ? null : rowOf(doc.elementFromPoint(pointerAt.x, pointerAt.y));
+  // pointerAt is only ever set by a real event, but nothing clears it when the pointer leaves with
+  // no event the page can see (parked off the viewport between tests; a real tab or window switch).
+  // :hover is live and physical, never stale, so it alone says whether the pointer is still there:
+  // a row that moved under a pointer that stayed still keeps matching it, and a pointerAt the
+  // pointer already left never does.
+  const hit = pointerAt === null ? null : doc.elementFromPoint(pointerAt.x, pointerAt.y);
+  const under = hit !== null && hit.matches(":hover") ? rowOf(hit) : null;
   // Stryker disable next-line ConditionalExpression: row and via are freshly null at the top of this effect, so forcing this guard true when focused is actually null calls show(null, "focus", false), which show's own (next === row && to === via) guard already turns into a no-op.
   if (focused !== null && lastInput() === "keyboard") show(focused, "focus", false);
   else {
