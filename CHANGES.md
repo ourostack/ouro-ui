@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: a MessageList opened at an `initialAnchor` whose centring leaves it at its end now opens following new messages, with Jump to latest hidden.
