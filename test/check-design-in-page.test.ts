@@ -480,6 +480,22 @@ describe("findDesignIssues: pane-edge", () => {
     ]);
   });
 
+  it("finds painted panes in ordinary block layout, with and without a dividing line", () => {
+    render(`
+      <div style="width:340px">
+        <div id="upper" style="height:120px;background:#eee">Overview</div>
+        <div id="lower" style="height:120px;background:#eee">Details</div>
+      </div>
+      <div style="width:340px;margin-top:20px">
+        <div id="lined" style="box-sizing:border-box;height:120px;border-bottom:1px solid #888;background:#eee">History</div>
+        <div id="next" style="height:120px;background:#fff">Activity</div>
+      </div>`);
+    expect(of("pane-edge").map((issue) => issue.element)).toEqual([
+      "div#upper and div#lower",
+      "div#lined and div#next",
+    ]);
+  });
+
   it("compares the surfaces actually painted through translucent panes", () => {
     render(`
       <div style="display:flex;width:360px;height:200px;background:#fff">
