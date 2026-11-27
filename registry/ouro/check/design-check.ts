@@ -671,7 +671,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
   // and emoji, whose ink the canvas can't read, are left alone. A count or a dot laid over the control is its own thing.
   for (const el of visible.filter((el) => el.matches("button, [role=button], [role=tab]") && !optedOut(el, "off-centre-ink"))) {
     const b = el.getBoundingClientRect();
-    const scale = b.height / ((el as HTMLElement).offsetHeight || b.height || 1);
+    const scale = b.height / (el as HTMLElement).offsetHeight;
     if (b.width <= 1 || b.height <= 1 || b.height > 72 * scale) continue;
     const inFlow = (n: Element) => {
       for (let a: Element | null = n; a && a !== el; a = a.parentElement) if (/^(absolute|fixed)$/.test(getComputedStyle(a).position)) return false;
