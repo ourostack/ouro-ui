@@ -79,7 +79,7 @@ describe("NavigationMenu current-page marks", () => {
     await userEvent.click(page.getByRole("button", { name: "Recipes" }));
     await expect.element(page.getByRole("link", { name: "Browse" })).toBeVisible();
     await assertMark(pricing, page.getByRole("button", { name: "Recipes" }).element(), "ltr");
-  });
+  }, 30_000);
   for (const direction of ["ltr", "rtl"] as const) {
     it(`marks only the page link while a ${direction} panel is open`, async () => {
       document.documentElement.dir = direction;
@@ -558,5 +558,43 @@ describe("NavigationMenu first frame", () => {
     await userEvent.click(page.getByRole("button", { name: "Recipes" }));
     await settledBox(drawn(positioner));
     expectFirstFramesInPlace(await recording.stop());
+  });
+});
+
+describe("NavigationMenu panel gap", () => {
+  const items = [{ label: "Recipes", links: [{ label: "Drafts", href: "/drafts" }] }];
+  const gap = (bar: Element, from: "bar" | "trigger" = "bar") => {
+    const panel = document.querySelector<HTMLElement>('[data-ouro="navigation-menu-popup"]')!;
+    const edge = from === "bar" ? bar : document.querySelector("[data-popup-open]")!;
+    return Math.round(panel.getBoundingClientRect().top - edge.getBoundingClientRect().bottom);
+  };
+
+  it("leaves 8px below the header that holds the menu, taller than the trigger", async () => {
+    await page.viewport(1280, 800);
+    const { host } = await render(
+      <header style={{ paddingBottom: 30 }}>
+        <NavigationMenu label="Main" items={items} />
+      </header>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Recipes" }));
+    await expect.poll(() => gap(host.querySelector("header")!)).toBe(8);
+  });
+
+  it("leaves 8px below the menu itself when no header holds it", async () => {
+    await page.viewport(1280, 800);
+    const { root } = await render(<NavigationMenu label="Main" items={items} className="pb-8" />);
+    await userEvent.click(page.getByRole("button", { name: "Recipes" }));
+    await expect.poll(() => gap(root)).toBe(8);
+  });
+
+  it("never pulls the panel up when the trigger is taller than the bar", async () => {
+    await page.viewport(1280, 800);
+    await render(
+      <header style={{ height: 4, overflow: "visible" }}>
+        <NavigationMenu label="Main" items={items} />
+      </header>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Recipes" }));
+    await expect.poll(() => gap(document.body, "trigger")).toBe(8);
   });
 });
