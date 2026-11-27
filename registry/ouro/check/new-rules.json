@@ -52,6 +52,14 @@
     "summary": "Two dividing lines side by side where one would separate, such as a list's last row's border against its card's; each finding names both elements."
   },
   {
+    "rule": "cut-off-edge",
+    "summary": "Scrollable content clipped before the window edge into the same surface, with no visible edge or fade; use a step between theme surface tokens."
+  },
+  {
+    "rule": "pane-edge",
+    "summary": "Large adjoining panes separated by a line or by no surface-colour step; remove the line and use different theme surface tokens."
+  },
+  {
     "rule": "count-badge",
     "summary": "A count badge on an icon that is clipped by a box around it, whose numerals sit off its middle, or that sits at another offset from its icon than the page's other badges."
   },
