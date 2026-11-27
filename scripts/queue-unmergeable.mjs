@@ -65,7 +65,18 @@ function readQueue(repo) {
   return data.data.repository.mergeQueue?.entries.nodes ?? [];
 }
 
-const comment = (repo, number, body) => gh(["api", "-X", "POST", `repos/${repo}/issues/${number}/comments`, "-f", `body=${body}`]);
+// Comments go out on COMMENT_TOKEN when it is set: the app token that pushes has no issues permission (403, run 45873164491).
+const comment = (repo, number, body) =>
+  execFileSync("gh", ["api", "-X", "POST", `repos/${repo}/issues/${number}/comments`, "-f", `body=${body}`], {
+    encoding: "utf8",
+    stdio: ["pipe", "pipe", "pipe"],
+    env: commentEnv(process.env),
+  });
+
+/** The environment a comment is posted with: GH_TOKEN is COMMENT_TOKEN when that is set, else unchanged. */
+export function commentEnv(env) {
+  return env.COMMENT_TOKEN ? { ...env, GH_TOKEN: env.COMMENT_TOKEN } : env;
+}
 
 export function run(repo) {
   const entry = pickUnmergeable(readQueue(repo));
