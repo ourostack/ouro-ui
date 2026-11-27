@@ -1687,6 +1687,12 @@ export const touchStep: BrowserCommand<[TouchStepOptions]> = async (ctx, step) =
   }
 };
 
+/** Slows the page's CPU by a factor, and a factor of one puts it back (Chromium only; another browser ignores it). */
+export const throttleCpu: BrowserCommand<[number]> = async (ctx, rate) => {
+  const session = await chromiumSession(ctx);
+  await session?.send("Emulation.setCPUThrottlingRate", { rate });
+};
+
 export const commands = {
   compositedLayers,
   emulateMedia,
@@ -1710,6 +1716,7 @@ export const commands = {
   restoreTouch,
   setPageZoom,
   tap,
+  throttleCpu,
   touchDrag,
   touchStep,
 };
@@ -1739,6 +1746,7 @@ declare module "vitest/browser" {
     resetPageZoom: () => Promise<void>;
     restoreTouch: () => Promise<void>;
     setPageZoom: (scale: number) => Promise<void>;
+    throttleCpu: (rate: number) => Promise<void>;
     compositedLayers: () => Promise<CompositedLayer[]>;
   }
 }
