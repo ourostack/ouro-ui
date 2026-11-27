@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import postcss from "postcss";
+import { chromium, webkit } from "playwright";
 import { squircleCorners, squircleCornersDedupe } from "../registry/ouro/lib/ouro/squircle-corners.ts";
 
 const run = async (css) => (await postcss([squircleCorners()]).process(css, { from: undefined })).css;
@@ -48,6 +49,42 @@ test("squircle corners: the same radii in different places (a media query, a dif
   assert.match(out, /@media \(width>=40rem\)\{\.b\{border-radius:8px\}@supports[^{]*\{\.b\{--sq-tl:8px/);
   assert.match(out, /@supports[^{]*\{\.a\{--sq-tl:8px/);
   assert.equal((out.match(/--sq-tl:8px/g) ?? []).length, 2);
+});
+
+test("squircle corners: an unsupported selector cannot discard another surface's native or fallback shape", async () => {
+  const generated = await run(`
+    .surface { position: relative; width: 120px; height: 80px; border-radius: 20px; background: #dce5ef; }
+    .surface::before { content: ""; position: absolute; inset: 0; border-radius: 20px; background: #557799; }
+    .picker::-moz-color-swatch { border-radius: 20px; }
+    .other:ouro-unavailable { border-radius: 20px; }
+  `);
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage();
+    try {
+      for (const fallback of [false, true]) {
+        const css = fallback ? generated.replaceAll("(corner-shape: squircle)", "(ouro-native-corner-shape: squircle)") : generated;
+        await tab.setContent(`<style>${css}</style><div class="surface"></div>`);
+        const styles = await tab.locator(".surface").evaluate((element) => {
+          const read = (pseudo) => {
+            const style = getComputedStyle(element, pseudo);
+            return { radius: style.getPropertyValue("--sq-tl").trim(), clip: style.clipPath, shape: style.getPropertyValue("corner-top-left-shape") };
+          };
+          return [read(null), read("::before")];
+        });
+        for (const style of styles) {
+          if (fallback) {
+            assert.equal(style.radius, "20px", `${engine.name()}: fallback radius`);
+            assert.notEqual(style.clip, "none", `${engine.name()}: fallback clip`);
+          } else {
+            assert.equal(style.shape, "superellipse(2)", `${engine.name()}: native shape`);
+          }
+        }
+      }
+    } finally {
+      await browser.close();
+    }
+  }
 });
 
 test("squircleCornersDedupe: merges two source files' complete squircle-corners layers, bundled into one chunk, into one", async () => {
