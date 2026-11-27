@@ -30,6 +30,7 @@ const reasoningClass =
  * @claim "The finished title" registry/ouro/components/ouro/thinking-block/thinking-block.test.tsx verify:testExists(registry/ouro/components/ouro/thinking-block/thinking-block.test.tsx::ThinkingBlock > titles a finished block with its summary, its duration, or Thought)
  */
 function thoughtFor(seconds: number | undefined): string {
+  // Stryker disable next-line ConditionalExpression: Number.isFinite also turns undefined away, so the first test only narrows the type.
   if (seconds === undefined || !Number.isFinite(seconds) || seconds < 0) return "Thought";
   if (seconds < 59.5) {
     const whole = Math.max(1, Math.round(seconds));

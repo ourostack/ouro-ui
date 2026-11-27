@@ -95,6 +95,9 @@ describe("ThinkingBlock", () => {
       </ThinkingBlock>,
     );
     expect(first.trigger.getAttribute("aria-expanded")).toBe("true");
+    // With no onOpenChange, the block keeps its own state.
+    await userEvent.click(first.trigger);
+    expect(first.trigger.getAttribute("aria-expanded")).toBe("false");
     const onOpenChange = vi.fn();
     const second = await render(
       <ThinkingBlock streaming open={false} onOpenChange={onOpenChange}>
@@ -110,13 +113,15 @@ describe("ThinkingBlock", () => {
   it("titles a finished block with its summary, its duration, or Thought", async () => {
     const view = await render(<ThinkingBlock summary="Planned the oven around the roast">{REASONING}</ThinkingBlock>);
     expect(view.trigger.textContent).toBe("Planned the oven around the roast");
-    expect([thoughtFor(undefined), thoughtFor(-1), thoughtFor(Number.NaN), thoughtFor(0.2), thoughtFor(1), thoughtFor(59.4), thoughtFor(59.6), thoughtFor(150)]).toEqual([
+    expect([thoughtFor(undefined), thoughtFor(-1), thoughtFor(Number.NaN), thoughtFor(0), thoughtFor(0.2), thoughtFor(1), thoughtFor(59.4), thoughtFor(59.5), thoughtFor(59.6), thoughtFor(150)]).toEqual([
       "Thought",
       "Thought",
       "Thought",
+      "Thought for 1 second",
       "Thought for 1 second",
       "Thought for 1 second",
       "Thought for 59 seconds",
+      "Thought for 1 minute",
       "Thought for 1 minute",
       "Thought for 3 minutes",
     ]);
@@ -172,6 +177,8 @@ describe("ThinkingBlock", () => {
     await render(<ThinkingBlock isStreaming>{REASONING}</ThinkingBlock>);
     // @ts-expect-error title is not a prop.
     await render(<ThinkingBlock title="Checked">{REASONING}</ThinkingBlock>);
+    // @ts-expect-error title is not a prop, and a title that is not a string gets a sample summary.
+    await render(<ThinkingBlock title={<b>Checked</b>}>{REASONING}</ThinkingBlock>);
     // @ts-expect-error content is not a prop.
     await render(<ThinkingBlock content={REASONING}>{REASONING}</ThinkingBlock>);
     // @ts-expect-error loading is not a prop.
@@ -184,6 +191,16 @@ describe("ThinkingBlock", () => {
     expect(said).toContain("[ouro-ui] ThinkingBlock: content is not a prop; the reasoning is the children. Fix: <ThinkingBlock>{reasoning}</ThinkingBlock>.");
     expect(said).toContain("[ouro-ui] ThinkingBlock: loading is not a prop; the reasoning is streaming. Fix: <ThinkingBlock streaming>.");
     expect(said).toContain("[ouro-ui] ThinkingBlock: isOpen is not a prop. Fix: <ThinkingBlock open>.");
+    expect(said).toContain('[ouro-ui] ThinkingBlock: title is not a prop; the finished title is summary. Fix: <ThinkingBlock summary="Checked the ratios">.');
+  });
+
+  it("says nothing in development for a block with only its own props", async () => {
+    await render(
+      <ThinkingBlock streaming duration={3} summary="Planned the oven" defaultOpen onOpenChange={() => {}} className="mt-2">
+        {REASONING}
+      </ThinkingBlock>,
+    );
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("names the fix for an appearance class, and leaves a layout class alone", async () => {
@@ -193,7 +210,7 @@ describe("ThinkingBlock", () => {
       </ThinkingBlock>,
     );
     const said = warn.mock.calls.map((call: unknown[]) => String(call[0]));
-    expect(said.some((line: string) => line.includes('remove "bg-muted"; ThinkingBlock sets its own look from the theme'))).toBe(true);
+    expect(said.some((line: string) => line.startsWith("[ouro-ui] ThinkingBlock: ") && line.includes('remove "bg-muted"; ThinkingBlock sets its own look from the theme'))).toBe(true);
     expect(said.some((line: string) => line.includes("mt-2"))).toBe(false);
   });
 });
