@@ -613,16 +613,21 @@ describe("docs", () => {
     const go = surpriseNav.go;
     surpriseNav.go = (url) => void went.push(new URL(url).pathname);
     try {
+      // The roll's timers are the page's own; hold them and step them, so the half second it takes is not waited out.
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
       await userEvent.click(link);
       const roll = page.getByText(/^ → /);
       await expect.element(roll).toBeInTheDocument();
-      await expect.poll(() => went.length).toBe(1);
+      await act(() => vi.advanceTimersByTime(1000));
+      expect(went).toHaveLength(1);
       expect(pages).toContain(went[0]);
       // It stops on the one it opens.
       expect(roll.element().textContent).toBe(` → ${SURPRISES[pages.indexOf(went[0]!)]!.title}`);
       // A load that never happens (stopped, or this test) leaves the link working.
       await userEvent.click(link);
-      await expect.poll(() => went.length).toBe(2);
+      await act(() => vi.advanceTimersByTime(1000));
+      expect(went).toHaveLength(2);
+      vi.useRealTimers();
       // With reduced motion nothing rolls: the link goes straight there.
       await commands.emulateMedia({ reducedMotion: "reduce" });
       await renderPage("/docs/");
@@ -637,6 +642,7 @@ describe("docs", () => {
       expect(document.querySelector("[data-site-surprise]")).toBeNull();
       expect(went).toHaveLength(2);
     } finally {
+      vi.useRealTimers();
       surpriseNav.go = go;
       await commands.emulateMedia({ reducedMotion: "no-preference" });
     }
