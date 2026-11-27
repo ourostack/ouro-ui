@@ -7,6 +7,7 @@ import { page, userEvent } from "vitest/browser";
 import { Composer, type ComposerEditor } from "@/registry/ouro/components/ouro/composer/composer";
 import type { EmojiCatalogue, EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { $getRoot, type ElementNode } from "lexical";
 
 const roots: Root[] = [];
 let mounted: HTMLElement[] = [];
@@ -1071,6 +1072,19 @@ describe("Composer rich mode mentions", () => {
     editor.focus();
     await userEvent.keyboard("{Control>}{End}{/Control}!");
     await expect.poll(() => onValueChange.mock.lastCall?.[0]).toBe(`${written}!`);
+  });
+
+  it("stays the same person through the editor's own copies: its state saved and read back, and the node written to and redrawn", async () => {
+    const written = `@[Avery Kim](${id}) hi`;
+    const { editor } = await render(rich({ defaultValue: written, offsets: "markdown" }));
+    type State = { toJSON(): unknown };
+    const lexical = (editor as unknown as { __lexicalEditor: { getEditorState(): State; parseEditorState(json: unknown): State; setEditorState(state: State): void; update(fn: () => void, options: { discrete: boolean }): void } }).__lexicalEditor;
+    await act(async () => lexical.setEditorState(lexical.parseEditorState(JSON.stringify(lexical.getEditorState().toJSON()))));
+    expect(editor.querySelector("[data-ouro-mention]")?.textContent).toBe("Avery Kim");
+    expect(value(editor)).toBe(written);
+    await act(async () => lexical.update(() => { for (const node of $getRoot().getFirstChildOrThrow<ElementNode>().getChildren()) if (node.getType() === "ouro-mention") node.markDirty(); }, { discrete: true }));
+    expect(editor.querySelector("[data-ouro-mention]")?.textContent).toBe("Avery Kim");
+    expect(value(editor)).toBe(written);
   });
 
   it("reads as @Name in the box's words where offsets are the words'", async () => {
