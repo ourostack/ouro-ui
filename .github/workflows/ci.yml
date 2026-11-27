@@ -3413,17 +3413,18 @@ jobs:
         variant: [shadcn, ouro]
         # Another shadcn preset than the README's, so its preset wording is verified.
         preset: [nova, vega]
-        # Three shards, not six, for a run that is not a pull request's (the install gate reads the same count).
-        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6]' || '[1,2,3]') }}
+        # Six shards for a pull request's run and a merge group's, three for a push to main (the install gate reads the same count).
+        # A merge group's three shards ran 16 minutes each and ended its run, the longest job after install prep.
+        shard: ${{ fromJSON((github.event_name == 'pull_request' || github.event_name == 'merge_group') && '[1,2,3,4,5,6]' || '[1,2,3]') }}
         exclude:
           - variant: ouro
             preset: vega
-    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 6 || 3 }})
+    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 6 || 3 }})
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
       OURO_PRESET: ${{ matrix.preset }}
-      OURO_SHARD: ${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 6 || 3 }}
+      OURO_SHARD: ${{ matrix.shard }}/${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 6 || 3 }}
       OURO_APP: /tmp/ouro-app
       PASSED: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-${{ matrix.shard }}
     steps:
@@ -3641,7 +3642,7 @@ jobs:
           SHARDS: ${{ needs.install-shard.result }}
           CHECKS: ${{ needs.install-checks.result }}
           INSTALLS: ${{ needs.plan.outputs.installs }}
-          SHARD_COUNT: ${{ github.event_name == 'pull_request' && 6 || 3 }}
+          SHARD_COUNT: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 6 || 3 }}
         run: |
           if [ "$INSTALLS" = skip ]; then
             echo "::notice::Not affected: this pull request changes only files the install test never reads (the plan's installs=skip)."
