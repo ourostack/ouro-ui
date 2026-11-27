@@ -682,7 +682,6 @@ export function Composer(props: ComposerProps): JSX.Element {
     if (rich !== undefined) return;
     // An app that turns rich on with the editor already loaded gets it at once, focus and all (its own change, not the load's).
     if (richModule) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- a format change explicitly hands the focused box to the editor
       setRich({ Editor: richModule.RichEditor, focus: textareaRef.current === document.activeElement });
       return () => setRich(undefined);
     }
