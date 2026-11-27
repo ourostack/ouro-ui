@@ -1039,8 +1039,25 @@ describe("TimeGrid", () => {
     expect(plain(titled("Architecture retrospective").getAttribute("aria-label"))).toBe("Architecture retrospective, 1:00 – 2:00 PM, Thursday");
   });
 
+  it("balances a title over two lines, so its last line never holds one word alone", async () => {
+    // Days about 150px wide, where the title wraps with its last word alone unless it is balanced.
+    await render({ view: "week", events: [{ id: "interview", title: "Interview: front-end engineer", start: at(12, "13:00"), end: at(12, "14:00") }] }, (grid) => <div style={{ width: "1110px" }}>{grid}</div>);
+    const text = titled("Interview: front-end engineer").querySelector<HTMLElement>(":scope > span:not([data-ouro-touch-target])")!.firstElementChild!.firstChild as Text;
+    const rows = new Map<number, string>();
+    for (let index = 0; index < text.data.length; index++) {
+      const range = document.createRange();
+      range.setStart(text, index);
+      range.setEnd(text, index + 1);
+      const top = Math.round(range.getBoundingClientRect().top);
+      rows.set(top, (rows.get(top) ?? "") + text.data[index]);
+    }
+    const lines = [...rows.values()].map((line) => line.trim()).filter(Boolean);
+    expect(lines).toHaveLength(2);
+    expect(lines.at(-1)!.split(/\s+/).length).toBeGreaterThan(1);
+  });
+
   it("draws the hour hourHeight asks for, and gives a short event the lines it holds", async () => {
-    // From the first frame: the lines are measured before it paints.
+    // From the first frame: the lines are measured before it paints, when any day of the week has an event.
     const host = document.createElement("div");
     host.style.width = "1000px";
     document.body.append(host);
@@ -1049,7 +1066,7 @@ describe("TimeGrid", () => {
       first.unmount();
       host.remove();
     });
-    flushSync(() => first.render(<TimeGrid {...base} view="day" hourHeight={5} events={[{ id: "early", title: "Early sync", start: at(12, "08:30"), end: at(12, "09:00") }]} />));
+    flushSync(() => first.render(<TimeGrid {...base} view="week" hourHeight={5} events={[{ id: "early", title: "Early sync", start: at(12, "08:30"), end: at(12, "09:00") }]} />));
     expect(host.querySelector<HTMLElement>("[data-ouro-event-key] > span > span[style]")?.style.getPropertyValue("--ouro-lines")).toBe("2");
     const { grid, rerender } = await render({ view: "day", events: [{ id: "half", title: "Standup", start: at(12, "09:30"), end: at(12, "10:00") }] });
     const body = grid.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;

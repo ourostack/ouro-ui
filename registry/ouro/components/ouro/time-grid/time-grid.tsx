@@ -1011,9 +1011,10 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
         </span>
       ) : (
         // A space between the lines, which a column doesn't draw, keeps them separate words in the
-        // event's visible text, as its name says them (WCAG 2.5.3, Label in Name).
+        // event's visible text, as its name says them (WCAG 2.5.3, Label in Name). The title is balanced, so one over two
+        // or three lines never ends on a word alone (Ouro check's lone-word).
         <>
-          <span className="line-clamp-(--ouro-lines) font-medium [unicode-bidi:isolate] @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": lines } as CSSProperties}>
+          <span className="line-clamp-(--ouro-lines) font-medium text-balance [unicode-bidi:isolate] @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": lines } as CSSProperties}>
             {event.title}
           </span>{" "}
           <span dir="ltr" data-slot="time-grid-event-time" className={`${mutedLineClass} [unicode-bidi:isolate] rtl:text-end`}>
