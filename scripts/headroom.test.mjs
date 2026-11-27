@@ -139,14 +139,22 @@ test("an exemption with an unsuffixed project name fails the run on main too", (
   assert.equal(judge({ tests: [], exemptions, event: "push", changed: null }).failures.length, 1);
 });
 
-test("an exemption whose expiry has passed fails the run everywhere, even report-only", () => {
+test("an expired exemption warns everywhere and fails only a run where its test still breaches", () => {
   const now = new Date("2026-06-01T00:00:00Z");
-  const tests = [{ name: "site (chromium) a.test.tsx > slow", file: "a.test.tsx", durationMs: 17_000, timeoutMs: 30_000 }];
+  const slow = [{ name: "site (chromium) a.test.tsx > slow", file: "a.test.tsx", durationMs: 17_000, timeoutMs: 30_000 }];
+  const quick = [{ ...slow[0], durationMs: 1_000 }];
   const expired = [{ ...named("site (chromium) a.test.tsx > slow"), expiry: "2026-05-01T00:00:00Z" }];
-  const push = judge({ tests, exemptions: expired, event: "push", changed: null, now });
-  assert.equal(push.failures.some((failure) => /has an expiry \(2026-05-01T00:00:00Z\) that has passed/.test(failure)), true);
-  const pull = judge({ tests, exemptions: expired, event: "pull_request", changed: new Set(["a.test.tsx"]), now });
-  assert.equal(pull.failures.some((failure) => /has an expiry \(2026-05-01T00:00:00Z\) that has passed/.test(failure)), true);
+  const expiredLine = /has an expiry \(2026-05-01T00:00:00Z\) that has passed/;
+  for (const event of ["push", "merge_group", "pull_request"]) {
+    const run = judge({ tests: quick, exemptions: expired, event, changed: event === "pull_request" ? new Set(["a.test.tsx"]) : null, now });
+    assert.equal(run.failures.some((failure) => expiredLine.test(failure) || / took /.test(failure)), false, event);
+    assert.equal(run.warnings.some((warning) => warning.startsWith("::warning title=Headroom::") && expiredLine.test(warning)), true, event);
+  }
+  const otherFile = judge({ tests: slow, exemptions: expired, event: "pull_request", changed: new Set(["b.test.tsx"]), now });
+  assert.equal(otherFile.failures.some((failure) => / took /.test(failure)), false);
+  const pull = judge({ tests: slow, exemptions: expired, event: "pull_request", changed: new Set(["a.test.tsx"]), now });
+  assert.equal(pull.failures.some((failure) => /a\.test\.tsx > slow took 17\.0 s/.test(failure)), true);
+  assert.equal(pull.failures.some((failure) => expiredLine.test(failure)), false);
 });
 
 test("changedFiles reads a pull request's files, and judges every test where it gets none", () => {

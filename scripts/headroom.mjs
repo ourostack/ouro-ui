@@ -110,12 +110,15 @@ export const reportOnly = (event) => event !== undefined && event !== "" && even
 /**
  * Judges one run. `tests` are `{ name, file, durationMs, timeoutMs }`; on a pull request (`changed` set) only tests in
  * its changed files count. `failures` fail the run; on a report-only `event` a breach is a `warnings` annotation
- * (and one `breaches` line) instead, while a malformed, stale, unsuffixed or expired exemption fails everywhere.
+ * (and one `breaches` line) instead, while a malformed, stale or unsuffixed exemption fails everywhere. An expired
+ * exemption only warns, everywhere: it stops exempting its test, so the run fails only where that test still breaches,
+ * and never fails every pull request and merge group at once when the clock passes its expiry.
  */
 export function judge({ tests, exemptions, event, changed, now = new Date() }) {
   const judged = changed ? tests.filter(({ file }) => changed.has(file)) : tests;
   const breaches = headroomProblems(judged, exemptions, now).filter((problem) => !exemptionProblems(exemptions).includes(problem));
-  const failures = [...exemptionProblems(exemptions), ...staleExemptions(exemptions), ...unsuffixedProjectExemptions(exemptions), ...expiredExemptions(exemptions, now)];
-  if (!reportOnly(event)) return { failures: [...failures, ...breaches], warnings: [], breaches: [] };
-  return { failures, warnings: breaches.map((breach) => `::warning title=Headroom::${breach}`), breaches };
+  const failures = [...exemptionProblems(exemptions), ...staleExemptions(exemptions), ...unsuffixedProjectExemptions(exemptions)];
+  const expired = expiredExemptions(exemptions, now).map((warning) => `::warning title=Headroom::${warning}`);
+  if (!reportOnly(event)) return { failures: [...failures, ...breaches], warnings: expired, breaches: [] };
+  return { failures, warnings: [...expired, ...breaches.map((breach) => `::warning title=Headroom::${breach}`)], breaches };
 }
