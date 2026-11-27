@@ -54,7 +54,9 @@
 @source not "../../../registry/ouro/components/ouro/live-captions";
 @source not "../../../registry/ouro/components/ouro/local-date";
 @source not "../../../registry/ouro/components/ouro/mcp-app";
+@source not "../../../registry/ouro/components/ouro/media-tile";
 @source not "../../../registry/ouro/components/ouro/message";
+@source not "../../../registry/ouro/components/ouro/moment";
 @source not "../../../registry/ouro/components/ouro/navigation-rail";
 @source not "../../../registry/ouro/components/ouro/number-field";
 @source not "../../../registry/ouro/components/ouro/otp-field";
@@ -80,6 +82,8 @@
 @source not "../../../registry/ouro/components/ouro/sidebar/sidebar-layout.tsx";
 @source not "../../../registry/ouro/components/ouro/sidebar/stacked-layout.tsx";
 @source not "../../../registry/ouro/components/ouro/slider";
+@source not "../../../registry/ouro/components/ouro/snap-pip";
+@source not "../../../registry/ouro/components/ouro/spinner";
 @source not "../../../registry/ouro/components/ouro/stack";
 @source not "../../../registry/ouro/components/ouro/swipe-actions";
 @source not "../../../registry/ouro/components/ouro/sync-status";
@@ -93,8 +97,10 @@
 @source not "../../../registry/ouro/components/ouro/time-grid";
 @source not "../../../registry/ouro/components/ouro/timer";
 @source not "../../../registry/ouro/components/ouro/toast";
-@source not "../../../registry/ouro/components/ouro/toggle/toggle-group.tsx";
+@source not "../../../registry/ouro/components/ouro/toggle";
+@source not "../../../registry/ouro/components/ouro/toolbar";
 @source not "../../../registry/ouro/components/ouro/typing-indicator";
+@source not "../../../registry/ouro/ax";
 @source not "../../../registry/ouro/census";
 @source not "../../../registry/ouro/check";
 @source not "../../../registry/ouro/e2e";
@@ -111,6 +117,7 @@
 @source not "../current";
 @source not "calendar-demo.tsx";
 @source not "call-demo.tsx";
+@source not "call-surface.tsx";
 @source not "chat-demo.tsx";
 @source not "demos";
 @source not "spot-art.tsx";

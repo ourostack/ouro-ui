@@ -10,6 +10,9 @@ export const demos: Record<string, LazyExoticComponent<() => JSX.Element>> = Obj
   Object.entries(modules).map(([path, load]) => [path.replace(/^\.\/demos\/(.+)\.demo\.tsx$/, "$1"), lazy(load)]),
 );
 
-// Keep the index's tiny component pictures independent of the full call's JavaScript and layout.
-const callDemo = lazy(() => import("./call-surface").then(({ CallSurface }) => ({ default: CallSurface })));
-export const pageDemos: typeof demos = { ...demos, toolbar: callDemo, "media-tile": callDemo, "snap-pip": callDemo };
+// Page-only compositions stay outside the shell's import closure and the index's tiny previews.
+const pageModules = import.meta.glob<{ default: () => JSX.Element }>("./demos/*.page-demo.tsx");
+export const pageDemos: typeof demos = {
+  ...demos,
+  ...Object.fromEntries(Object.entries(pageModules).map(([path, load]) => [path.replace(/^\.\/demos\/(.+)\.page-demo\.tsx$/, "$1"), lazy(load)])),
+};
