@@ -1,0 +1,1 @@
+- New: `useFoldPosture` reads `window.visualViewport.segments`, where the Viewport Segments API reports a fold, ahead of a native host's report over the `FOLD_INPUT_EVENT` bridge.

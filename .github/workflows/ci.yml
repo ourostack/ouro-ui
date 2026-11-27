@@ -735,6 +735,17 @@ jobs:
           path: .vitest/attachments/
           if-no-files-found: ignore
           retention-days: 14
+      # The whole files .github/quarantine.json quarantines (title `*`), which every blocking run leaves out
+      # (scripts/quarantined-files.mjs): a hang in one starves the tests beside it, and no test name fails for the
+      # judge to forgive. They run here, last, in one shard, in a step that never fails the job, so their results
+      # keep reporting (#3785) and nothing waits on them. With no live entry it runs nothing.
+      - if: ${{ !cancelled() && matrix.shard == 1 }}
+        name: Quarantined whole-file tests (reported, not required)
+        timeout-minutes: 5
+        continue-on-error: true
+        env:
+          OURO_QUARANTINED_ONLY: "1"
+        run: pnpm exec vitest run
   subsets:
     # An app that installs some components with their tests reaches 100% of what it installed (the
     # button, the dialog, the sheet and the forms set, each alone and together; on a reduced pull
