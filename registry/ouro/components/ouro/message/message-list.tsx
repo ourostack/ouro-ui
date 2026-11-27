@@ -2280,7 +2280,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   // The window, after every render that changed what it draws, every scroll and every resize: measures the slots drawn,
   // keeps the reader's place as their heights replace the estimates, brings a message asked for into view, and draws the
   // children the view and OVERSCAN reach.
-  const windowSync = useRef<(scrolled: boolean) => void>(undefined);
+  const windowSync = useRef<(scrolled: boolean, viewOnly?: boolean) => void>(undefined);
   // The keyboard's marks of the messages, run before the window reads the layout (see that effect).
   const keyboardMark = useRef<(() => void) | undefined>(undefined);
   // Whether the rows past the view's edges draw: from the frame after the list opens, or another conversation opens in it.
@@ -2390,11 +2390,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
       scroller.scrollTop += block === "center" ? centred : block === "start" || above ? box.top - top - EDGE : below ? box.bottom - top - room + EDGE : 0;
       springsRef.current?.moved(scroller.scrollTop - before);
     };
-    windowSync.current = (scrolled) => {
+    windowSync.current = (scrolled, viewOnly = false) => {
       const { windowed, keys, indexes, measured, band, reach, sizeOf } = viewRef.current;
       // A list inside a hidden panel draws nothing to measure or place; it does once it shows, and resizes.
       if (windowed && content.getClientRects().length === 0) return;
-      if (windowed && !scrolled) {
+      // Only the scroller's height changed (a box beside the list grew): no slot's width changed, so none is read again, and the
+      // reader's place is held from that one change.
+      if (windowed && !scrolled && viewOnly) holdRef.current!();
+      else if (windowed && !scrolled) {
         const contentTop = content.getBoundingClientRect().top;
         const rounded = Math.round(scroller.clientWidth / BUCKET);
         // Stryker disable next-line ArithmeticOperator: the bucket only keys the cache, and any one number for each rounded width keys it alike.
@@ -2685,7 +2688,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
     doc.addEventListener("pointerup", release, true);
     // Stryker disable next-line BooleanLiteral: captured, so a release an app stops on its way still lets go; bubbling, it lets go alike where none does.
     doc.addEventListener("pointercancel", release, true);
-    const resized = new ResizeObserver(() => windowSync.current!(false));
+    let seen: { width: number; content: number } | null = null;
+    const resized = new ResizeObserver(() => {
+      const width = scroller.clientWidth;
+      const size = content.offsetHeight;
+      const viewOnly = seen !== null && seen.width === width && seen.content === size;
+      seen = { width, content: size };
+      windowSync.current!(false, viewOnly);
+    });
     resized.observe(scroller);
     resized.observe(content);
     const slots = new ResizeObserver((entries) => {

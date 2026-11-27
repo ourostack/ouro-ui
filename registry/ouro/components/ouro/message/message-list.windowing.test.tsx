@@ -1363,6 +1363,24 @@ describe("MessageList windowing", () => {
     expect(children.some((child) => unobserved.includes(child))).toBe(true);
   });
 
+  it("measures none of its rows again when only its own height changes, as a box beside it grows", async () => {
+    const items = conversation(40);
+    const { scroller } = await render(<Chat items={items} />);
+    await settle(scroller);
+    const real = ResizeObserver.prototype.observe;
+    let watched = 0;
+    const spy = vi.spyOn(ResizeObserver.prototype, "observe").mockImplementation(function (this: ResizeObserver, target: Element, options?: ResizeObserverOptions) {
+      watched++;
+      return real.call(this, target, options);
+    });
+    onTestFinished(() => spy.mockRestore());
+    const before = scroller.clientHeight;
+    scroller.style.height = "300px";
+    await expect.poll(() => scroller.clientHeight).toBeLessThan(before);
+    await settle(scroller);
+    expect(watched).toBe(0);
+  });
+
   /** Lets the wheel rest at the top, and waits until the list has taken it: the mark that held the scroll range while it turned goes. */
   async function restWheel(scroller: HTMLElement, clock: { now: number }) {
     const floor = scroller.querySelector<HTMLElement>("[data-ouro-message-list-floor]")!;

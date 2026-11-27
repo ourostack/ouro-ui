@@ -1,0 +1,1 @@
+- Fixed: MessageList keeps the reader's place from one height change, without measuring its rows again, when only its own height changes (a box beside it grew).
