@@ -1688,7 +1688,7 @@ function checkNames(block, id) {
   for (const key of keys) combinations = combinations.flatMap((combination) => (matrixValues(block, key) ?? []).map((value) => ({ ...combination, [key]: value })));
   const excluded = [...(block.split(/^ {8}exclude:\n/m)[1] ?? "").matchAll(/^ {10}- (\w+): (\S+)\n {12}(\w+): (\S+)$/gm)].map(([, k1, v1, k2, v2]) => ({ [k1]: v1, [k2]: v2 }));
   combinations = combinations.filter((combination) => !excluded.some((exclusion) => Object.entries(exclusion).every(([key, value]) => combination[key] === value)));
-  return combinations.map((combination) => keys.reduce((text, key) => text.replace(`\${{ matrix.${key} }}`, combination[key]), name).replace("${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 6 || 3 }}", "6").replace("${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 24 || 6 }}", "24").replace("${{ strategy.job-total }}", String(Math.max(...keys.map((key) => matrixValues(block, key).length))))); // a pull request's count: the names the ruleset requires
+  return combinations.map((combination) => keys.reduce((text, key) => text.replace(`\${{ matrix.${key} }}`, combination[key]), name).replace("${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 12 || 3 }}", "12").replace("${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 24 || 6 }}", "24").replace("${{ strategy.job-total }}", String(Math.max(...keys.map((key) => matrixValues(block, key).length))))); // a pull request's count: the names the ruleset requires
 }
 
 /** The condition of every job a push whose tree already passed skips (the plan's `tested`, scripts/ci-proof.mjs). */
@@ -2211,8 +2211,8 @@ test("an install shard runs its share of the shipped tests by measured time, or 
   const jobs = ciJobs();
   const block = jobs["install-shard"];
   const count = shardCount(block);
-  assert.match(block, /^ {6}OURO_SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ \(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group'\) && 6 \|\| 3 \}\}$/m);
-  assert.equal(count, 6);
+  assert.match(block, /^ {6}OURO_SHARD: \$\{\{ matrix\.shard \}\}\/\$\{\{ \(github\.event_name == 'pull_request' \|\| github\.event_name == 'merge_group'\) && 12 \|\| 3 \}\}$/m);
+  assert.equal(count, 12);
   const script = stepScript(block, "Install test");
   // `show` stands for install-test.sh: it prints whether OURO_COMPONENTS is set, and to what.
   const scriptWithShow = (env) => {
