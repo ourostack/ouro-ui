@@ -496,6 +496,29 @@ describe("findDesignIssues: pane-edge", () => {
     ]);
   });
 
+  it("finds a narrow notch in a pane boundary without mistaking a full-width row for one", () => {
+    render(`
+      <div style="display:flex;width:360px;height:180px">
+        <div id="light-side" style="position:relative;width:170px;background:#ddd">
+          <div style="position:absolute;right:0;top:60px;width:12px;height:24px;background:#fff"></div>
+        </div><div id="light-main" style="width:190px;background:#fff"></div>
+      </div>
+      <div style="display:flex;width:360px;height:180px;margin-top:12px">
+        <div id="dark-side" style="position:relative;width:170px;background:#333">
+          <div style="position:absolute;right:0;top:60px;width:12px;height:24px;background:#111"></div>
+        </div><div id="dark-main" style="width:190px;background:#111"></div>
+      </div>
+      <div style="display:flex;width:360px;height:180px;margin-top:12px">
+        <div style="position:relative;width:170px;background:#ddd">
+          <div style="position:absolute;left:0;right:0;top:60px;height:24px;background:#fff"></div>
+        </div><div style="width:190px;background:#fff"></div>
+      </div>`);
+    expect(of("pane-edge")).toEqual([
+      expect.objectContaining({ element: "div#light-side and div#light-main", detail: expect.stringMatching(/surface.*(step|token)/i) }),
+      expect.objectContaining({ element: "div#dark-side and div#dark-main", detail: expect.stringMatching(/surface.*(step|token)/i) }),
+    ]);
+  });
+
   it("compares the surfaces actually painted through translucent panes", () => {
     render(`
       <div style="display:flex;width:360px;height:200px;background:#fff">
