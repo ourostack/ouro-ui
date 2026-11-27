@@ -27,8 +27,9 @@ function Chat({ ids }: { ids: string[] }) {
   );
 }
 
-async function start(ids: string[]) {
+async function start(ids: string[], { hidden = false } = {}) {
   const host = document.createElement("div");
+  host.hidden = hidden;
   document.body.append(host);
   hosts.push(host);
   const root = createRoot(host);
@@ -94,6 +95,13 @@ describe("MessageList arrival", () => {
     expect(document.querySelector("[data-starting-style]")).toBeNull();
     await render([]);
     await render(["a9"]);
+    expect(document.querySelector("[data-starting-style]")).toBeNull();
+  });
+
+  it("marks no arrival for a message that comes in while the list is hidden, so it does not grow in when shown", async () => {
+    const render = await start(["u1", "a1"], { hidden: true });
+    await render(["u1", "a1", "u2"]);
+    expect(document.getElementById("u2")).not.toBeNull();
     expect(document.querySelector("[data-starting-style]")).toBeNull();
   });
 });
