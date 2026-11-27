@@ -15,6 +15,9 @@ it("Composer keeps a plain box focused after its rich load settles but before th
     expect(box).not.toBeNull();
     // Let the load schedule its replacement while the plain box has no focus, then reach it before React commits.
     await import("@/registry/ouro/components/ouro/composer/composer-parts");
+    // Drain the chained import and cache callbacks without yielding to React's scheduled commit.
+    await Promise.resolve();
+    await Promise.resolve();
     await Promise.resolve();
     box.focus();
     box.setSelectionRange(3, 3);

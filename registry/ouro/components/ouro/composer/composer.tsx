@@ -700,20 +700,13 @@ export function Composer(props: ComposerProps): JSX.Element {
       // A box the person is in stays theirs until they leave it: the editor replacing it under them would move their
       // focus (a screen reader says the box's name again) and their caret, and drop the keys they type next. The plain box
       // takes their typing meanwhile. Reaching in after the swap is asked for and before it is drawn counts too: the swap
-      // waits again. After the swap the plain box is gone, and after cleanup `live` is false, so no listener needs removing.
-      const box = textareaRef.current;
-      const swap = () => {
-        if (!live) return;
-        setRich({ Editor, focus: false });
-        box?.addEventListener("focus", stay, { once: true });
-      };
-      const stay = () => {
-        if (!live) return;
-        setRich(undefined);
-        box!.addEventListener("blur", swap, { once: true });
-      };
-      if (box && box === document.activeElement) box.addEventListener("blur", swap, { once: true });
-      else swap();
+      // waits again. Once replaced or unmounted, the detached plain box receives no focus or blur.
+      const box = textareaRef.current!;
+      const swap = () => setRich({ Editor, focus: false });
+      const stay = () => setRich(undefined);
+      box.addEventListener("focus", stay);
+      box.addEventListener("blur", swap);
+      if (box !== document.activeElement) swap();
     });
     return () => {
       // Stryker disable next-line BooleanLiteral: a load that settles after the cleanup is ignored only by this flag, and no test can unmount in between.
