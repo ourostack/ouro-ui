@@ -1,10 +1,11 @@
-import { useRef, useState, type JSX, type ReactNode, type SVGProps } from "react";
+import { useRef, useState, type CSSProperties, type JSX, type ReactNode, type SVGProps } from "react";
 import { flushSync } from "react-dom";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { MediaTile } from "@/registry/ouro/components/ouro/media-tile/media-tile";
 import { Moment } from "@/registry/ouro/components/ouro/moment/moment";
 import { SnapPiP } from "@/registry/ouro/components/ouro/snap-pip/snap-pip";
 import { Toolbar } from "@/registry/ouro/components/ouro/toolbar/toolbar";
+import { Text } from "@/registry/ouro/components/ouro/text/text";
 
 function icon(path: ReactNode) {
   return function Icon(props: SVGProps<SVGSVGElement>) {
@@ -31,6 +32,7 @@ export function CallSurface(): JSX.Element {
   const root = useRef<HTMLDivElement>(null);
   const grid = useRef<HTMLDivElement>(null);
   const controls = useRef<HTMLDivElement>(null);
+  const slide = useRef<HTMLDivElement>(null);
   const [muted, setMuted] = useState(true);
   const [camera, setCamera] = useState(true);
   const [hand, setHand] = useState(false);
@@ -53,19 +55,27 @@ export function CallSurface(): JSX.Element {
           <Moment kind="success" title="You left the call" description="The conversation is still here when you're ready." action={<Button onClick={() => changeCall(false)}>Rejoin</Button>} />
         </div>
       ) : (
-        <div className="relative overflow-hidden rounded-ouro-xl bg-muted p-3 pb-52">
+        <div className="relative overflow-hidden rounded-ouro-xl bg-background p-3">
           <div ref={grid} className="grid grid-cols-2 gap-2">
             <MediaTile name="Mara Lind" speaking hysteresis={{ on: 0 }}><Camera hue={200} /></MediaTile>
             <MediaTile name="Jonas Ek" muted><Camera hue={30} /></MediaTile>
             <MediaTile name="Priya Raman" cameraOn={false} handRaised />
             <MediaTile name="Theo Okafor"><Camera hue={275} /></MediaTile>
           </div>
-          <SnapPiP label="Your camera" inset={12} keepOut={[grid, controls]}>
+          <MediaTile name="Mara Lind" source="screen" presenting ring={false} className="mt-2 h-80 aspect-auto">
+            <div className="h-full px-6 py-6" style={{ background: "var(--primary)", "--foreground": "var(--primary-foreground)" } as CSSProperties}>
+              <div ref={slide} className="w-fit max-w-full">
+                <Text size="sm">Friday workshop</Text>
+                <Text size="lg" className="mt-2">Room for good ideas.</Text>
+              </div>
+            </div>
+          </MediaTile>
+          <SnapPiP label="Your camera" inset={12} keepOut={[grid, slide, controls]}>
             <MediaTile name="You" cameraOn={camera} muted={muted} handRaised={hand} className="h-full aspect-auto">
               <Camera hue={150} />
             </MediaTile>
           </SnapPiP>
-          <div ref={controls} className="absolute inset-x-3 bottom-3 flex min-w-0 justify-center">
+          <div ref={controls} className="absolute inset-x-3 bottom-14 flex min-w-0 justify-center">
             <Toolbar label="Call controls" floating className="max-w-full" items={[
               { label: muted ? "Unmute microphone" : "Mute microphone", icon: muted ? MicOff : Mic, hideLabel: true, tone: muted ? "inverse" : "secondary", onClick: () => { setMuted(!muted); setStatus(muted ? "Your microphone is on" : "You are muted"); } },
               { label: camera ? "Turn camera off" : "Turn camera on", icon: camera ? CameraIcon : CameraOff, hideLabel: true, tone: camera ? "secondary" : "inverse", onClick: () => { setCamera(!camera); setStatus(camera ? "Your camera is off" : "Your camera is on"); } },
