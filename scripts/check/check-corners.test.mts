@@ -198,6 +198,24 @@ test("squircle-paint finds a two-level difference in a square fill", async () =>
   }
 });
 
+test("squircle-paint detects black paint against a transparent background", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+  await tab.exposeBinding("__ouroPaintCapture", async ({ page: current }, clip: PaintClip) =>
+    (await current.screenshot({ clip, scale: "device", animations: "disabled", omitBackground: true })).toString("base64"),
+  );
+  try {
+    await tab.setContent(`<style>
+      html, body { margin: 0; background: transparent; }
+      .surface { position: absolute; left: 60px; top: 60px; width: 200px; height: 140px; border-radius: 32px; corner-shape: squircle; }
+      .fill { position: absolute; inset: 0; background: black; }
+    </style><div class="surface"><div class="fill"></div></div>`);
+    assert.equal((await tab.evaluate(findSquirclePaint)).length, 1);
+  } finally {
+    await browser.close();
+  }
+});
+
 test("squircle-paint ignores a surface fully hidden by an opaque sibling", async () => {
   const browser = await chromium.launch({ headless: true });
   const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });

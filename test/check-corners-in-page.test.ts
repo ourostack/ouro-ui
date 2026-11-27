@@ -195,6 +195,23 @@ it("detects a low-contrast square and a descendant outline beyond the surface", 
   expect(await findSquirclePaint()).toHaveLength(1);
 }, paintTimeout);
 
+it("detects alpha-only paint against a transparent background", async () => {
+  render('<div style="width:160px;height:120px;border-radius:28px;corner-shape:squircle"></div>');
+  const image = (painted: boolean) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 32;
+    if (painted) canvas.getContext("2d")!.fillRect(0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/png");
+  };
+  const captures = [image(true), image(false), image(false)];
+  state.__ouroPaintCapture = async () => captures.shift()!;
+  try {
+    expect(await findSquirclePaint()).toHaveLength(1);
+  } finally {
+    state.__ouroPaintCapture = (clip) => commands.squircleCapture(clip);
+  }
+});
+
 it("samples a leaking layer at each of the four corners", async () => {
   const root = render('<div class="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"><div class="layer" style="position:absolute;width:16px;height:16px;background:#f40"></div></div>');
   const layer = root.querySelector<HTMLElement>(".layer")!;

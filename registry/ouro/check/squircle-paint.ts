@@ -115,6 +115,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       Math.abs(first[index]! - second[index]!),
       Math.abs(first[index + 1]! - second[index + 1]!),
       Math.abs(first[index + 2]! - second[index + 2]!),
+      Math.abs(first[index + 3]! - second[index + 3]!),
     );
     for (const [cornerIndex, corner] of corners.entries()) {
       if (!corner.squircle) continue;
