@@ -92,7 +92,7 @@ test("the release commit names only its own tag: release.yml's release-branch co
   const step = release.slice(release.indexOf("name: Push the release branch"));
   const body = step.slice(step.indexOf('git switch -c "$BRANCH"\n') + 'git switch -c "$BRANCH"\n'.length, step.indexOf('git commit -am "Release $TAG"'));
   assert.match(body, /^\s*scripts\/release-commit\.sh "\$VERSION"$/m);
-  assert.match(readFileSync(join(root, "scripts/release-commit.sh"), "utf8"), /\nnode scripts\/latest-release\.mjs set "v\$version"\nnode scripts\/model-reviews\/page\.mjs docs\/guides\/model-reviews\.md\nnode scripts\/model-reviews\/interviews-page\.mjs docs\/guides\/model-interviews\.md\npnpm run docs\nnode scripts\/registry\.mts --release "\$version"\n/);
+  assert.match(readFileSync(join(root, "scripts/release-commit.sh"), "utf8"), /\nnode scripts\/latest-release\.mjs set "v\$version"\nnode scripts\/model-reviews\/page\.mjs docs\/guides\/model-reviews\.md\nnode scripts\/model-reviews\/interviews-page\.mjs docs\/guides\/model-interviews\.md\nnode scripts\/a11y-evidence\/page\.mjs docs\/guides\/accessibility-evidence\.md\npnpm run docs\nnode scripts\/registry\.mts --release "\$version"\n/);
   const copy = scratchDir("ouro-release-");
   for (const path of tracked("*")) {
     mkdirSync(dirname(join(copy, path)), { recursive: true });

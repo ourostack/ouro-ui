@@ -17,6 +17,7 @@ version=${1:?usage: scripts/release-commit.sh <x.y.z>}
 node scripts/latest-release.mjs set "v$version"
 node scripts/model-reviews/page.mjs docs/guides/model-reviews.md
 node scripts/model-reviews/interviews-page.mjs docs/guides/model-interviews.md
+node scripts/a11y-evidence/page.mjs docs/guides/accessibility-evidence.md
 pnpm run docs
 node scripts/registry.mts --release "$version"
 node scripts/control-matrix.mts
