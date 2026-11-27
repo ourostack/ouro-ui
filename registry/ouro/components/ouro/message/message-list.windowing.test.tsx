@@ -2890,7 +2890,7 @@ describe("MessageList windowing", () => {
     const actions = createRef<MessageListActions>();
     const items = [...conversation(800, 0, true), { id: 800, text: "Yes, that one.", quote: 42 }];
     const { scroller } = await render(<Chat items={items} actionsRef={actions} onQuote={(id) => actions.current!.reveal(`m${id}`, { focus: true })} />);
-    await userEvent.click(page.getByRole("button", { name: /Quoting Ana/ }));
+    await userEvent.click(page.getByRole("button", { name: /Reply to Ana/ }));
     await settle(scroller);
     expect(document.activeElement).toBe(document.getElementById("m42"));
     expect(Math.abs(offCentre(scroller, "m42"))).toBeLessThanOrEqual(ROUNDING);

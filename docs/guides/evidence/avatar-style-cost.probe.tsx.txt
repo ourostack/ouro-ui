@@ -1,0 +1,101 @@
+// The style-cost probe behind avatar-style-cost.txt. Copy it to test/style-cost.probe.test.tsx and run it in ouro-chromium or
+// ouro-webkit; VITE_LABEL names the results file in .tmp/, and VITE_NOFALLBACK=1 drops Tailwind's @property fallback, as Safari does.
+import { createRoot } from "react-dom/client";
+import { describe, expect, it } from "vitest";
+import { commands, page, server } from "vitest/browser";
+import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { Command } from "@/registry/ouro/components/ouro/command/command";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
+
+// A probe, not a gate: the style recalculation a Command of 300 people's rows costs, avatars and icons.
+
+const people = ["Ana Lind", "Ben Ito", "Cy Voss", "Dee Park", "Eli Moss", "Fay Wu", "Gus Hale", "Hal Rees", "Ida Kim", "Jo Banks", "Kai Roe", "Lu Chen"];
+const COUNT = 600;
+const RUNS = 31;
+let fallback = "";
+let dropped = 0;
+
+const icon = (
+  <svg viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8" />
+  </svg>
+);
+
+function itemsFor(kind: "avatar" | "icon") {
+  return Array.from({ length: COUNT }, (_, index) => {
+    const name = `${people[index % people.length]} ${index}`;
+    return kind === "avatar"
+      ? { label: name, onSelect: () => {}, avatar: <Avatar name={name} alt="" size="xs" idForColor={`id-${index}`} /> }
+      : { label: name, onSelect: () => {}, icon };
+  });
+}
+
+const median = (values: number[]) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)]!;
+
+async function measure(kind: "avatar" | "icon", dark: boolean) {
+  document.documentElement.classList.toggle("dark", dark);
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  await act(async () => root.render(<Command title="People" open onOpenChange={() => {}} items={itemsFor(kind)} />));
+  const listbox = () => document.querySelector<HTMLElement>('[role="listbox"]')!;
+  await expect.poll(() => listbox()?.querySelectorAll("[data-ouro-command-value]").length).toBe(COUNT);
+  const list = listbox();
+  const rows = [...list.querySelectorAll<HTMLElement>("[data-ouro-command-value]")];
+  const last = rows.at(-1)!;
+  const times: number[] = [];
+  for (let run = 0; run < RUNS + 3; run++) {
+    list.style.display = "none";
+    void getComputedStyle(last).color;
+    void list.offsetHeight;
+    list.style.display = "";
+    const start = performance.now();
+    void getComputedStyle(last).color;
+    const took = performance.now() - start;
+    void list.offsetHeight;
+    if (run >= 3) times.push(took);
+    await new Promise((settle) => requestAnimationFrame(() => settle(null)));
+  }
+  const row = rows[1]!;
+  const elements = row.querySelectorAll("*").length + 1;
+  const classes = [row, ...row.querySelectorAll("*")].reduce((sum, element) => sum + element.classList.length, 0);
+  const avatar = row.querySelector<HTMLElement>('[data-ouro="avatar"]');
+  const avatarElements = avatar ? avatar.querySelectorAll("*").length + 1 : 0;
+  const avatarClasses = avatar ? [avatar, ...avatar.querySelectorAll("*")].reduce((sum, element) => sum + element.classList.length, 0) : 0;
+  const colors = avatar
+    ? [avatar, ...avatar.querySelectorAll("*")].map((element) => {
+        const style = getComputedStyle(element);
+        const before = getComputedStyle(element, "::before");
+        return [style.color, style.backgroundColor, before.content, before.color, "tw-shadow=" + before.getPropertyValue("--tw-shadow"), "len=" + before.length, "mt=" + CSS.supports("margin-trim:inline")].join(" ");
+      })
+    : [];
+  await act(async () => root.unmount());
+  host.remove();
+  document.documentElement.classList.remove("dark");
+  return { fallback, kind, dark, medianMs: +median(times).toFixed(2), minMs: +Math.min(...times).toFixed(2), elements, classes, avatarElements, avatarClasses, colors };
+}
+
+describe("style cost probe", () => {
+  it("measures Command rows with avatars and with icons", async () => {
+    await page.viewport(1280, 900);
+    // Safari 16.4 and later support margin-trim, so Tailwind's fallback for engines without @property never applies
+    // there; Playwright's WebKit lacks margin-trim, so the probe can drop that fallback to read what Safari pays.
+    if (import.meta.env["VITE_NOFALLBACK"]) {
+      for (const sheet of [...document.styleSheets]) {
+        const drop = (list: CSSRuleList, owner: CSSStyleSheet | CSSGroupingRule) => {
+          for (let index = list.length - 1; index >= 0; index--) {
+            const rule = list[index]!;
+            if (rule instanceof CSSSupportsRule && rule.conditionText.includes("margin-trim")) { owner.deleteRule(index); dropped++; }
+            else if (rule instanceof CSSGroupingRule) drop(rule.cssRules, rule);
+          }
+        };
+        drop(sheet.cssRules, sheet);
+      }
+    }
+    fallback = `${dropped} dropped, body declares ${getComputedStyle(document.body).length}`;
+    const results = [];
+    for (const dark of [false, true]) for (const kind of ["avatar", "icon"] as const) results.push(await measure(kind, dark));
+    await commands.writeFile(`.tmp/style-cost-${server.browser}-${import.meta.env["VITE_LABEL"] ?? "run"}.json`, JSON.stringify(results, null, 2));
+    expect(results.length).toBe(4);
+  }, 120_000);
+});

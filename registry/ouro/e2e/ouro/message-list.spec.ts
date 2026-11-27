@@ -317,7 +317,7 @@ test("a long conversation draws only what is near the view, and a quote or a sea
   expect(await page.getByRole("article").count()).toBeLessThan(60);
 
   // The quote on the newest message goes to the first question, drawing it first.
-  await page.getByRole("button", { name: /Quoting Ana Lind/ }).click();
+  await page.getByRole("button", { name: /Reply to Ana Lind/ }).click();
   await expect(page.locator("#long-0")).toBeFocused();
   await expect(page.locator("#long-0")).toBeInViewport();
   await expect(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();

@@ -10,7 +10,7 @@ import { runInNewContext } from "node:vm";
 import { assemble, releasedAt } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
 import { KITS } from "./kit-pin.mjs";
-import { entryProblems, expiredWarning, failedTests, hungTests, isExpired, judgeOwnRun, names, quarantineFile, record, retryPlan, staleWarning, stepBlock } from "./quarantine.mjs";
+import { entryProblems, expiredWarning, failedPull, failedTests, hungTests, isExpired, judgeOwnRun, names, quarantineFile, record, retryPlan, staleWarning, stepBlock } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { GH_REFUSED, sandboxEnv } from "./sandbox.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
@@ -464,7 +464,7 @@ test("CI's browser jobs run in Playwright's image at the version package.json pi
   const tag = `v${devDependencies.playwright}-noble`;
   const jobs = ciJobs();
   const inImage = Object.entries(jobs).filter(([, job]) => /^ {4}container:/m.test(job)).map(([id]) => id);
-  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "check-node", "check-node-merge", "conformance-shard", "design", "e2e-shard", "install-checks", "install-latest", "install-prep", "install-shard", "latency-shard", "mutation-shard", "scripts-browser", "subsets", "sweep-shard", "theme-install", "themes-shard"]);
+  assert.deepEqual(inImage.sort(), ["browser", "browser-fallback", "check-node", "check-node-merge", "conformance-shard", "design", "e2e-shard", "install-checks", "install-latest", "install-prep", "install-shard", "latency-shard", "mutation-shard", "quarantined-files", "scripts-browser", "subsets", "sweep-shard", "theme-install", "themes-shard"]);
   for (const id of inImage) {
     // The browsers and their system packages are in the image: nothing is installed from Ubuntu's mirror.
     // Its digest's tag names the version package.json pins; the runner's zstd lets actions/cache there
@@ -1734,7 +1734,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs beside ci once the coverage job and the shards it reads passed or were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.coverage.result == 'success' && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser.result) && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser-fallback.result) }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "yield", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-prep" ? preppedInstalls : id === "install-shard" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" || id === "subsets" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "yield", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-prep" ? preppedInstalls : id === "install-shard" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" || id === "subsets" || id === "quarantined-files" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
@@ -1944,11 +1944,11 @@ test("the ci check passes only when its parts passed and the browser shards' mer
   const reduced = runStep(coverage, { FULL: "false", COMPONENTS: "checkbox", RUNNER_TEMP: "/r", BROWSER_SHARDS: "6" });
   assert.match(reduced.calls, /^CALL node scripts\/test-impact\.mjs coverage \/r\/coverage checkbox --shards 6$/m);
   assert.match(coverageJob, /^ {6}reduced: \$\{\{ steps\.tests\.outputs\.reduced \}\}\n {6}stems: \$\{\{ steps\.tests\.outputs\.stems \}\}\n {6}fallback: \$\{\{ steps\.tests\.outputs\.fallback \}\}$/m);
-  assert.match(coverageJob, /^ {10}pattern: coverage-browser-\*\n {10}path: \$\{\{ runner\.temp \}\}\/coverage\n/m);
+  assert.match(coverageJob, /run: node scripts\/download-newest-artifacts\.mjs coverage-browser- "\$RUNNER_TEMP\/coverage"\n/);
   // After a fallback, the ci check merges the fallback shards' coverage, the full suite's, and holds it to 100%.
   assert.match(block, /^ {6}reduced: \$\{\{ needs\.coverage\.outputs\.reduced \}\}\n {6}stems: \$\{\{ needs\.coverage\.outputs\.stems \}\}\n {6}fallback: \$\{\{ needs\.coverage\.outputs\.fallback \}\}$/m);
   assert.equal(block.match(/^ {6}FALLBACK_SHARDS: (\d+)$/m)?.[1], String(shardCount(jobs["browser-fallback"])));
-  assert.match(block, /^ {6}- if: env\.FALLBACK == 'true'\n {8}uses: actions\/download-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}pattern: coverage-fallback-\*\n {10}path: \$\{\{ runner\.temp \}\}\/coverage\n/m);
+  assert.match(block, /^ {6}- if: env\.FALLBACK == 'true'\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/download-newest-artifacts\.mjs coverage-fallback- "\$RUNNER_TEMP\/coverage"\n/m);
   assert.match(block, /^ {6}- if: env\.FALLBACK == 'true'\n {8}name: Full suite coverage\n/m);
   const merge = stepScript(block, "Full suite coverage");
   assert.match(runStep(merge, { RUNNER_TEMP: "/r", FALLBACK_SHARDS: "16" }).calls, /^CALL node scripts\/coverage-merge\.mjs \/r\/coverage --shards 16$/m);
@@ -2459,7 +2459,7 @@ test("motion coverage runs beside the ci check, over the partitions the browser 
   const coverage = jobs["motion-coverage"];
   assert.ok(coverage, "ci.yml has a motion-coverage job");
   assert.match(coverage, /^ {4}needs: \[plan, browser, coverage, browser-fallback\]$/m, "motion-coverage waits on the shards and the coverage job, not on the ci check");
-  assert.match(coverage, /- if: env\.BROWSER_RUN == 'true'\n {8}uses: actions\/download-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}pattern: \$\{\{ needs\.coverage\.outputs\.fallback == 'true' && 'motion-fallback-\*' \|\| 'motion-browser-\*' \}\}\n {10}path: \$\{\{ runner\.temp \}\}\/motion\n/);
+  assert.match(coverage, /- if: env\.BROWSER_RUN == 'true'\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {10}PREFIX: \$\{\{ needs\.coverage\.outputs\.fallback == 'true' && 'motion-fallback-' \|\| 'motion-browser-' \}\}\n {8}run: node scripts\/download-newest-artifacts\.mjs "\$PREFIX" "\$RUNNER_TEMP\/motion"\n/);
   // When the plan skipped the browser shards, no motion was recorded: every step but a notice is skipped.
   assert.match(coverage, /^ {6}BROWSER_RUN: \$\{\{ needs\.plan\.outputs\.browser != 'false' && needs\.coverage\.outputs\.fallback == 'true' \}\}$/m);
   const steps = coverage.slice(coverage.indexOf("    steps:")).split(/\n {6}- /).slice(1);
@@ -3232,6 +3232,27 @@ test("isExpired reads a quarantine entry's expiry against now; expiredWarning na
   assert.match(expiredWarning(calendarEntry), new RegExp(`has passed for ${calendarEntry.project} ${calendarEntry.file} > ${calendarEntry.title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\. Remove the entry or renew its expiry\\.$`));
 });
 
+test("a job whose container image could not be pulled is retried once, and never forgiven by the run's own judge", () => {
+  const ciYml = workflow("ci.yml");
+  const pull = logLines("design (20/24)", ["##[error]Docker pull failed with exit code 1"]);
+  const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: [], ...extra });
+  const pulled = job(2, "install (shadcn, nova)", "failure", { failedSteps: ["Initialize containers"], log: pull });
+  const runs = (jobs, attempt = 1) => [{ id: "5", attempt, workflow: ciYml, jobs }];
+  const contexts = ["install (shadcn, nova)"];
+  assert.equal(failedPull(pulled), true);
+  assert.equal(failedPull({ ...pulled, failedSteps: ["Initialize containers", "Run tests"] }), false);
+  assert.equal(failedPull({ ...pulled, log: logLines("j", ["1 failed"]) }), false);
+  const plan = retryPlan({ runs: runs([pulled]), contexts, entries: [] });
+  assert.equal(plan.retry, true, plan.problems.join("; "));
+  assert.deepEqual(plan.pulls.map((entry) => entry.job), ["install (shadcn, nova)"]);
+  // Once only: a second attempt that fails the same way is not retried again.
+  assert.equal(retryPlan({ runs: runs([pulled], 2), contexts, entries: [] }).retry, false);
+  // Another failed step of the job is no pull failure.
+  assert.equal(retryPlan({ runs: runs([{ ...pulled, failedSteps: ["Run tests"] }]), contexts, entries: [] }).retry, false);
+  // The run's own judge forgives no failed pull: the shard did not run, so the check stays red.
+  assert.equal(judgeOwnRun({ run: runs([pulled])[0], ids: ["install"], entries: [] }).explained, false);
+});
+
 test("Release and its rehearsal retry once only a failure of quarantined tests with open issues, and any other failure stops them", () => {
   const ciYml = workflow("ci.yml");
   // The name GitHub gave install-latest's unnamed test step in run 41270773113.
@@ -3812,6 +3833,22 @@ test("Docs pin leaves the pull request alone, rather than fail, when it is in th
   assert.match(pin, /isInMergeQueue/, "asks GitHub whether the pull request is in its merge queue, not GitHub's generic mergeable state");
 });
 
+test("Core pin leaves the pull request alone, rather than fail, when it is in the merge queue (#2344)", () => {
+  const pin = workflow("core-pin.yml").split("\n  pin:\n")[1];
+  const script = stepScript(pin, "Leave the pull request alone while it is in the merge queue");
+  const env = { BRANCH: "docs/point-at-core", GITHUB_REPOSITORY: "ourostack/ouro-ui" };
+  const fns = (o) => `gh() { case "$*" in "pr list"*) echo ${o.number ?? ""} ;; "api graphql"*) echo ${o.queued ?? "false"} ;; esac; }\n`;
+  const dir = scratchDir("ouro-core-pin-");
+  const summary = join(dir, "summary.md");
+  const queued = runStep(fns({ number: 7, queued: "true" }) + script, { ...env, GITHUB_STEP_SUMMARY: summary });
+  assert.equal(queued.output.queued, "true", queued.calls);
+  assert.match(readFileSync(summary, "utf8"), /#7 is in the merge queue/);
+  for (const o of [{}, { number: 7, queued: "false" }]) {
+    assert.notEqual(runStep(fns(o) + script, { ...env, GITHUB_STEP_SUMMARY: join(dir, "other.md") }).output.queued, "true", JSON.stringify(o));
+  }
+  assert.equal(pin.split("steps.queued.outputs.queued != 'true'").length - 1, 3, "the push, the pull request and its CI start all wait on the queue check");
+});
+
 test("Docs pin reuses its open pull request and turns auto-merge on for it", () => {
   const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
   const script = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
@@ -4133,4 +4170,13 @@ test("each judge step fetches every script quarantine.mjs imports, directly or t
   const lists = [...workflow("ci.yml").matchAll(/- id: fetch-quarantine\n[\s\S]*?for path in ([^;]+); do/g)].map(([, paths]) => paths.split(" "));
   assert.equal(lists.length, 2);
   for (const list of lists) assert.deepEqual(needed.filter((file) => !list.includes(file)), []);
+});
+
+test("the ci check's judge is asked only about the parts that failed, since judgeOwnRun counts a listed part with nothing to explain as a problem", () => {
+  const jobs = ciJobs();
+  const parts = stepScript(jobs.ci, "Every part passed");
+  const passed = { CHECKS: "success", ATTRIBUTION: "success", DESIGN: "success", BROWSER: "success", SUBSETS: "success", SCRIPTS: "success", SCRIPTS_BROWSER: "success", CHECK_NODE: "success", CHECK_NODE_MERGE: "success", COVERAGE: "success", BROWSER_FALLBACK: "skipped", SCREEN_READER: "skipped", SCREEN_READER_RUN: "false", FALLBACK: "false" };
+  assert.deepEqual(runStep(parts, { ...passed, SUBSETS: "failure" }).output, { ids: "subsets" });
+  assert.deepEqual(runStep(parts, { ...passed, SUBSETS: "failure", COVERAGE: "failure", FALLBACK: "true", BROWSER_FALLBACK: "failure" }).output, { ids: "subsets coverage browser-fallback" });
+  assert.match(jobs.ci, /^ {8}run: node scripts\/quarantine\.mjs judge "\$GITHUB_RUN_ID" \$\{\{ steps\.parts\.outputs\.ids \}\}$/m);
 });

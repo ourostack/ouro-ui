@@ -296,12 +296,13 @@ function allDayLanes<Key>(items: ReadonlyArray<{ key: Key; first: number; last: 
 }
 
 /**
- * How many 16px lines of text fit in an event drawn `minutes` tall, at the grid's shortest hour (48px), less its padding.
+ * How many 16px lines of text fit in an event drawn `minutes` tall, at an hour drawn `hour` px tall (the grid's shortest,
+ * 48px, unless given), less its padding.
  *
  * @claim "How many 16px lines" registry/ouro/components/ouro/time-grid/time-grid.test.tsx verify:testExists(registry/ouro/components/ouro/time-grid/time-grid.test.tsx::TimeGrid date and layout math > counts the lines an event's height holds)
  */
-function lineCount(minutes: number): number {
-  return Math.max(1, Math.floor(((minutes / 60) * 48 - 4) / 16));
+function lineCount(minutes: number, hour = 48): number {
+  return Math.max(1, Math.floor(((minutes / 60) * hour - 4) / 16));
 }
 
 /**

@@ -46,17 +46,17 @@ describe("fitFrom", () => {
     const { scale, x, y } = fitFrom(thumbnail, popup, { width: 200, height: 100 });
     expect(scale).toBe(0.125);
     expect(x).toBe(-390);
-    expect(y).toBe(-212.25);
+    expect(y).toBe(-210);
   });
 
   it("fits height-bound: the room's own height, times the shape, draws the picture instead", () => {
     const thumbnail = thumbnailAt({ left: 50, top: 100, width: 120, height: 80 });
     const popup = popupAt(1000, 700, { left: 0, top: 0, width: 1000, height: 700 });
     const { scale, x, y } = fitFrom(thumbnail, popup, { width: 100, height: 100 });
-    // room = {width: 960, height: 624}; drawn = min(960, 624) = 624; scale = 120/624.
-    expect(scale).toBe(120 / 624);
+    // room = {width: 960, height: 660}; drawn = min(960, 660) = 660; scale = 120/660.
+    expect(scale).toBe(120 / 660);
     expect(x).toBe(-390);
-    expect(y).toBeCloseTo(-213.46153846153845, 10);
+    expect(y).toBe(-210);
   });
 
   it("clamps the scale at 1, never growing the viewer past the picture's own size", () => {
@@ -79,9 +79,9 @@ describe("fitFrom", () => {
     const popup = popupAt(1000, 700, { left: 0, top: 0, width: 1000, height: 700 });
     const { scale: shaped } = fitFrom(thumbnail, popup, { width: 100, height: 100 });
     const { scale: byPicture } = fitFrom(thumbnail, popup, undefined);
-    // The shape (100x100, height-bound, scale 120/624) and the picture (800x200, width-bound,
+    // The shape (100x100, height-bound, scale 120/660) and the picture (800x200, width-bound,
     // scale 120/960) draw a different size; the shape must win when both are given.
-    expect(shaped).toBe(120 / 624);
+    expect(shaped).toBe(120 / 660);
     expect(byPicture).toBe(0.125);
     expect(shaped).not.toBe(byPicture);
   });
@@ -92,14 +92,14 @@ describe("fitFrom", () => {
     const popup = popupAt(1000, 700, { left: 0, top: 0, width: 1000, height: 700 });
     const { scale } = fitFrom(thumbnail, popup, { width: 500, height: undefined });
     // A shape missing its height must not be used; the picture's 100x100 (height-bound) wins instead.
-    expect(scale).toBe(120 / 624);
+    expect(scale).toBe(120 / 660);
   });
 
   it("falls to the thumbnail's own size with no shape and no picture, throwing nothing", () => {
     const thumbnail = thumbnailAt({ left: 0, top: 0, width: 120, height: 80 });
     const popup = popupAt(1000, 700, { left: 0, top: 0, width: 1000, height: 700 });
-    // rect is 120x80 (w/h = 1.5); room = {960, 624}; drawn = min(960, 624*1.5=936) = 936.
+    // rect is 120x80 (w/h = 1.5); room = {960, 660}; drawn = min(960, 660*1.5=990) = 960.
     const { scale } = fitFrom(thumbnail, popup, undefined);
-    expect(scale).toBe(120 / 936);
+    expect(scale).toBe(120 / 960);
   });
 });

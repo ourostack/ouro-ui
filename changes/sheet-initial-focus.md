@@ -1,0 +1,1 @@
+- New: Sheet takes `initialFocus`: `false` leaves focus where it is as a non-modal sheet opens beside what the person is doing, and a ref puts it on that element inside the sheet.

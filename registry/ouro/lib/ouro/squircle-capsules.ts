@@ -12,10 +12,26 @@ function capsuleHalf(inline: number, block: number): number {
   return Math.round(Math.min(inline, block) * 4) / 8;
 }
 
+/** A rule's full selectors: a nested rule's are its parents' with its own, `&` standing for the parent. */
+function fullSelectors(rule: CSSStyleRule): string[] {
+  const own = rule.selectorText.split(/,(?![^(]*\))/);
+  let up: CSSRule | null = rule.parentRule;
+  while (up && !(up instanceof CSSStyleRule)) up = up.parentRule;
+  if (!up) return own;
+  return fullSelectors(up).flatMap((outer) =>
+    own.map((s) => {
+      /* istanbul ignore if @preserve -- Chromium and WebKit serialize every nested selector with its &; see below. */
+      // Stryker disable next-line StringLiteral,ConditionalExpression: Chromium and WebKit, where the tests run, serialize every nested selector with its & (CSS Nesting's absolutized form); one left relative, without it, is another engine's.
+      if (!s.includes("&")) return `${outer} ${s}`;
+      return s.replaceAll("&", outer);
+    }),
+  );
+}
+
 function selectorsOf(rules: CSSRuleList, out: string[]): void {
   for (const rule of Array.from(rules)) {
-    if (rule instanceof CSSStyleRule && rule.cssText.includes("--sq-half")) out.push(rule.selectorText);
-    else if ("cssRules" in rule) selectorsOf((rule as CSSGroupingRule).cssRules, out);
+    if (rule instanceof CSSStyleRule && ["tl", "tr", "br", "bl"].some((c) => rule.style.getPropertyValue(`--sq-${c}`).includes("--sq-half"))) out.push(...fullSelectors(rule));
+    if ("cssRules" in rule) selectorsOf((rule as CSSGroupingRule).cssRules, out);
   }
 }
 
@@ -39,6 +55,8 @@ function installSquircleCapsules(doc: Document): () => void {
       const style = (entry.target as HTMLElement).style;
       style.setProperty("--sq-half", `${half}px`);
       style.setProperty("--sq-capsule-radius", `${half * ENCLOSING_CIRCLE}px`);
+      // An Ouro control paints its own squircle in its surface slot, at --ouro-sq-r: a capsule's is its half too.
+      if (entry.target.hasAttribute("data-ouro-squircle")) style.setProperty("--ouro-sq-r", `${half}px`);
     }
   });
   const watched = new Set<Element>();
@@ -78,6 +96,12 @@ function installSquircleCapsules(doc: Document): () => void {
     const added: Element[] = [];
     let sheetsChanged = false;
     for (const record of records) {
+      // A class change can make an element match a capsule rule (a bar shown on hover does): only that element is read.
+      // Only `class` is watched, and this writes `style`, so it does not see its own writes.
+      if (record.type === "attributes") {
+        if (selector && (record.target as Element).matches(selector)) observe(record.target as Element);
+        continue;
+      }
       // A style element whose text was replaced reports the change on itself.
       if (isSheet(record.target as Element)) sheetsChanged = true;
       for (const node of Array.from(record.addedNodes)) {
@@ -91,7 +115,7 @@ function installSquircleCapsules(doc: Document): () => void {
       watchAll();
     } else for (const node of added) watchAdded(node);
   });
-  mutations.observe(doc.documentElement, { childList: true, subtree: true });
+  mutations.observe(doc.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
   // A linked sheet's rules are readable only once it has loaded.
   const onLoad = (event: Event) => {
     if ((event.target as Element).localName !== "link") return;

@@ -708,7 +708,9 @@ describe("Message quote", () => {
       const author = quote.querySelector<HTMLElement>("[data-ouro-message-quote-author]")!;
       const excerpt = quote.querySelector<HTMLElement>("[data-ouro-message-quote-excerpt]")!;
       expect(bar.getAttribute("aria-hidden"), variant).toBe("true");
-      expect(bar.getBoundingClientRect().width, variant).toBe(4);
+      expect(bar.getBoundingClientRect().width, variant).toBe(2);
+      expect(getComputedStyle(quote).backgroundColor, variant).toBe("rgba(0, 0, 0, 0)");
+      expect(getComputedStyle(quote).boxShadow, variant).toBe("none");
       expect(getComputedStyle(author).fontWeight, variant).toBe("600");
       expect(author.textContent, variant).toBe("Ana Lind");
       expect(getComputedStyle(excerpt).textOverflow, variant).toBe("ellipsis");
@@ -726,8 +728,8 @@ describe("Message quote", () => {
     );
     const quote = message.querySelector<HTMLElement>("[data-ouro-message-quote]")!;
     expect(quote.querySelector("[data-ouro-message-quote-author]")!.getAttribute("aria-hidden")).toBe("true");
-    expect(quote.querySelector(".sr-only")!.textContent).toBe("Quoting Ana Lind: ");
-    expect(bubbleOf(message).textContent).toBe("Quoting Ana Lind: Ana LindLunch on Friday?Count me in.");
+    expect(quote.querySelector(".sr-only")!.textContent).toBe("Reply to Ana Lind: ");
+    expect(bubbleOf(message).textContent).toBe("Reply to Ana Lind: Ana LindLunch on Friday?Count me in.");
   });
 
   it("reads label for other languages, and shows the author's avatar before the name", async () => {
@@ -750,7 +752,7 @@ describe("Message quote", () => {
         Count me in.
       </Message>,
     );
-    const button = page.getByRole("button", { name: "Quoting Ana Lind: Lunch on Friday?" });
+    const button = page.getByRole("button", { name: "Reply to Ana Lind: Lunch on Friday?" });
     await userEvent.click(button);
     expect(onActivate).toHaveBeenCalledTimes(1);
     const element = button.element() as HTMLButtonElement;
@@ -764,6 +766,115 @@ describe("Message quote", () => {
     await userEvent.keyboard("{Enter}");
     expect(onActivate).toHaveBeenCalledTimes(2);
     expect(element.getBoundingClientRect().width).toBeCloseTo(bubbleOf(message).getBoundingClientRect().width - 2 * parseFloat(getComputedStyle(bubbleOf(message)).paddingInlineStart), 0);
+  });
+
+  it("reads the day with the author, as a date in the reader's language and time zone or as the app's own words, in a time element", async () => {
+    const at = Date.UTC(2026, 2, 3, 12);
+    const { message } = await render(
+      <>
+        <Message variant="chat" role="assistant" name="Mara Quill" quote={{ author: "Ana Lind", excerpt: "Lunch?", at }}>
+          One
+        </Message>
+        <Message variant="chat" role="assistant" name="Mara Quill" quote={{ author: "Ana Lind", excerpt: "Lunch?", at, atText: "Yesterday" }}>
+          Two
+        </Message>
+      </>,
+    );
+    const quotes = [...message.parentElement!.querySelectorAll<HTMLElement>("[data-ouro-message-quote]")];
+    const times = quotes.map((quote) => quote.querySelector<HTMLElement>("[data-ouro-message-quote-day] time")!);
+    expect(times[0]!.getAttribute("datetime")).toBe(new Date(at).toISOString());
+    expect(times[1]!.textContent).toBe("Yesterday");
+    expect(times[1]!.parentElement!.textContent).toBe(" \u00b7 Yesterday");
+    expect(times[1]!.getAttribute("datetime")).toBe(new Date(at).toISOString());
+    expect(quotes[1]!.querySelector(".sr-only")!.textContent).toBe("Reply to Ana Lind, Yesterday: ");
+    expect(times[0]!.textContent).toBe(new Date(at).toLocaleDateString(undefined, { dateStyle: "medium" }));
+    expect(quotes[0]!.querySelector(".sr-only")!.textContent).toBe(`Reply to Ana Lind, ${times[0]!.textContent}: `);
+  });
+
+  it("on a default message's primary bubble, draws the quote in the bubble's text color, with a gap above the text", async () => {
+    const { message } = await render(
+      <Message role="user" name="Priya Okafor" quote={{ author: "Ana Lind", excerpt: "Lunch on Friday?" }}>
+        Count me in.
+      </Message>,
+    );
+    const bubble = bubbleOf(message);
+    const quote = message.querySelector<HTMLElement>("[data-ouro-message-quote]")!;
+    // As drawn: the excerpt's color is a color-mix, which reads back in oklab.
+    const rgb = (color: string) => {
+      const context = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+      context.fillStyle = color;
+      context.fillRect(0, 0, 1, 1);
+      return [...context.getImageData(0, 0, 1, 1).data].join();
+    };
+    const ink = rgb(getComputedStyle(bubble).color);
+    expect(rgb(getComputedStyle(quote.querySelector("[data-ouro-message-quote-author]")!).color)).toBe(ink);
+    expect(rgb(getComputedStyle(quote.querySelector("[data-ouro-message-quote-excerpt]")!).color)).toBe(ink);
+    expect(getComputedStyle(quote).marginBlockEnd).toBe("8px");
+    expect(quote.getAttribute("data-ouro-allow-why")).toBe("the quote rule is a 2px stroke, which cannot hold a concentric corner");
+  });
+
+  it("writes the quote's day in en-US in UTC on the server, hydrates without a mismatch, then writes the reader's", async () => {
+    const at = Date.UTC(2026, 2, 3, 23, 30);
+    const node = (
+      <Message variant="chat" role="assistant" name="Mara Quill" quote={{ author: "Ana Lind", excerpt: "Lunch?", at }}>
+        One
+      </Message>
+    );
+    const written = vi.spyOn(Date.prototype, "toLocaleDateString");
+    const html = renderToString(node);
+    expect(written.mock.calls).toContainEqual(["en-US", { dateStyle: "medium", timeZone: "UTC" }]);
+    expect(html).toContain(`>${new Date(at).toLocaleDateString("en-US", { dateStyle: "medium", timeZone: "UTC" })}</time>`);
+    written.mockClear();
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    mounted.push(host);
+    const recoverable = vi.fn();
+    let root!: Root;
+    await act(async () => {
+      root = hydrateRoot(host, node, { onRecoverableError: recoverable });
+    });
+    roots.push(root);
+    expect(written.mock.calls).toContainEqual([undefined, { dateStyle: "medium", timeZone: undefined }]);
+    written.mockRestore();
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(host.querySelector("[data-ouro-message-quote-day] time")!.textContent).toBe(new Date(at).toLocaleDateString(undefined, { dateStyle: "medium" }));
+  });
+
+  it("draws no day for an at that is not a date", async () => {
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" quote={{ author: "Ana Lind", excerpt: "Lunch?", at: "never", atText: "Yesterday" }}>
+        Hi
+      </Message>,
+    );
+    expect(message.querySelector("[data-ouro-message-quote-day]")).toBeNull();
+    expect(message.querySelector(".sr-only")!.textContent).toBe("Reply to Ana Lind: ");
+  });
+
+  it("puts a quote's context above it, outside the button, so its link is its own control", async () => {
+    const onActivate = vi.fn();
+    const onOpen = vi.fn();
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" quote={{ author: "Ana Lind", excerpt: "Lunch?", onActivate, context: <>Replied in thread: <Button size="inline" variant="plain" onClick={onOpen}>Friday plans</Button></> }}>
+        Hi
+      </Message>,
+    );
+    const context = message.querySelector<HTMLElement>("[data-ouro-message-quote-context]")!;
+    const quote = message.querySelector<HTMLElement>("[data-ouro-message-quote]")!;
+    expect(quote.contains(context)).toBe(false);
+    expect(context.compareDocumentPosition(quote) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await userEvent.click(page.getByRole("button", { name: "Friday plans" }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onActivate).not.toHaveBeenCalled();
+  });
+
+  it("reads a quote's context on the primary bubble's own colours", async () => {
+    const { message } = await render(
+      <Message role="user" name="Mara Quill" quote={{ author: "Ana Lind", excerpt: "Lunch?", context: "Replied in thread" }}>
+        Hi
+      </Message>,
+    );
+    expect(message.querySelector<HTMLElement>("[data-ouro-message-quote-group]")!.style.cssText).not.toBe("");
   });
 
   it("shows no quote without one", async () => {
@@ -801,7 +912,7 @@ describe("Message context", () => {
         Count me in.
       </Message>,
     );
-    expect(bubbleOf(message).textContent).toBe("Replied in threadQuoting Ana Lind: Ana LindLunch on Friday?Count me in.");
+    expect(bubbleOf(message).textContent).toBe("Replied in threadReply to Ana Lind: Ana LindLunch on Friday?Count me in.");
   });
 
   it.each([undefined, null, false, ""])("renders no context for %j", async (context) => {
