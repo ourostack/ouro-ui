@@ -187,7 +187,8 @@ export interface MessageListOwnProps {
    * what the reader looks at by under a pixel in every frame; and a list opens at its end with no frame moving the row at the
    * view's top by more than a pixel. A wheel that takes the reader to the top faster than the rows above them came in moves
    * nothing either: where those rows came in shorter than the space kept for them and the top stops the scroll position, the
-   * difference stays as space above the first message, until the reader has scrolled past it and the wheel rests.
+   * difference stays as space above the first message while the wheel turns, and goes at once once it rests at the very top;
+   * only a rest short of the top, still in the space, keeps it, since letting it go there would move a message they can see.
    * A page of older messages that lands in a window already drawn commits once in the task it lands in, holding the reader's
    * row; its rows near the view but out of it draw in the frames after, 20 at most a frame, nearest the view first, and those
    * the view shows draw at once.
@@ -195,7 +196,7 @@ export interface MessageListOwnProps {
    * @claim "and those the view shows draw at once" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > draws, in the task a page of older messages lands in, the rows of it the view shows, so no space kept for a row shows)
    * @claim "A page of older messages that lands in a window" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > commits once in the task a page of older messages lands in, holding the reader's row, and draws the page's rows the overscan reaches in later frames, a chunk at most a frame) verify:fileLine(registry/ouro/components/ouro/message/message-list-styles.ts, /const OLDER_CHUNK = 20;/)
    * @claim "A wheel that takes the reader to the top" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > holds the reader's row to the pixel as a wheel takes them past the top before the shorter rows above were paid, keeping the rest as space above the first message)
-   * @claim "A wheel that takes the reader to the top" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the space above the first message while the wheel turns, and lets it go without moving anything once the reader is past it and the wheel rests) verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the space above the first message while the reader is in it once the wheel rests, and lets it go without moving anything as they scroll past it)
+   * @claim "A wheel that takes the reader to the top" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the space above the first message while the wheel turns, and lets it go without moving anything once the reader is past it and the wheel rests) verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > lets the space above the first message go once the wheel rests at the top, with no need to scroll past it, so the first message sits right under the list's padding (#3733))
    * @claim "renders no more than 20 of the" test/message-list-windowing.bench.test.tsx verify:testExists(test/message-list-windowing.bench.test.tsx::MessageList older page > renders about a fifth of the rows, not the list again, when a short list the reader scrolled up in takes 200 older rows and 360 newer in one commit)
    * @claim "moves what the reader looks at by under a pixel" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > moves no row the reader looks at by a pixel in any frame, scrolling up through 100 rows never drawn whose heights differ from the estimate by up to 40px)
    * @claim "opens at its end with no frame moving the row" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > opens a conversation of 300 rows of varied heights at its end, moving the row at the view's top by no more than a pixel in any frame)
@@ -399,6 +400,21 @@ function childNamed(all: readonly ReactNode[], keys: readonly string[], target: 
 /** The key of the child a message is in, from its slot. */
 function slotKeyOf(item: Element): string {
   return item.closest(`[${SLOT}]`)!.getAttribute(SLOT)!;
+}
+
+/** Draws the content `px` up by what the wheel carries, on a layer of its own. */
+function drawCarried(content: HTMLElement, px: number): void {
+  content.style.translate = `0 ${-px}px`;
+  // On the scroller's own layer, moving the content repaints the conversation in each frame the wheel turns, and Chromium, rastering
+  // new tiles for those back-to-back commits, was seen to leave a raster task a commit waited on unrun: the commit never activated,
+  // and the page drew no frame again (ourostack/ouro-ui#3785).
+  content.style.willChange = "translate";
+}
+
+/** Draws the content where it is again, and gives back the layer `drawCarried` gave it. */
+function dropCarried(content: HTMLElement): void {
+  content.style.removeProperty("translate");
+  content.style.removeProperty("will-change");
 }
 
 /** The messages in `content`, leaving out any message inside another one. */
@@ -1601,7 +1617,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Stryker disable next-line ConditionalExpression: with nothing carried, removing no translate and setting the carry to 0 again change nothing.
     if (carriedRef.current !== 0) {
       carriedRef.current = 0;
-      contentRef.current!.style.removeProperty("translate");
+      dropCarried(contentRef.current!);
     }
     const before = scroller.scrollTop;
     scroller.scrollTop = scroller.scrollHeight;
@@ -1955,11 +1971,13 @@ export function MessageList(props: MessageListProps): JSX.Element {
       springsRef.current?.moved(applied);
       return applied;
     };
-    // Lets the space go once the reader has scrolled past it and the wheel rests: the content moves up by it as the scroll
-    // position does, so nothing on screen moves.
+    // Lets the space go once the wheel rests: at the very top, where nothing on screen needs holding (the step that reached
+    // it already replaced the view), at once; past it, the content moves up by it as the scroll position does, so nothing on
+    // screen moves. Short of it (the reader scrolled back up, into the space, but not to its very top) the space stays, since
+    // letting it go there would move a message they can see.
     const release = () => {
       // Stryker disable next-line EqualityOperator: a reader exactly the space's height down lets it go now or at their next scroll, and nothing on screen moves either way.
-      if (slack === 0 || turning() || scroller.scrollTop < slack) return;
+      if (slack === 0 || turning() || (scroller.scrollTop > 0 && scroller.scrollTop < slack)) return;
       // Scrolled while the space still holds the scroll range, then the space goes.
       const range = farthest();
       const gone = slack;
@@ -1982,7 +2000,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line ConditionalExpression,BlockStatement: paying nothing removes no translate and scrolls by 0, which moves nothing, and lets go as the rest of a pay does.
       if (by === 0) {
         // Stryker disable next-line CallExpression,StringLiteral: with nothing carried there is a translate only where a carry and a change cancelled to the pixel, which draws the content where it is.
-        content.style.removeProperty("translate");
+        dropCarried(content);
         return letGo();
       }
       const wheeling = turning();
@@ -1992,7 +2010,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // in shorter) is not pulled up by the browser first (ourostack/ouro-ui#3892). Where the browser anchors, hold() leaves the correction
       // to it and carries nothing, so this never runs there.
       holdEnd(Math.max(endHeld, before + scroller.clientHeight));
-      content.style.removeProperty("translate");
+      dropCarried(content);
       // In whole pixels: WebKit drops the fraction of a scroll position written to it, so a carry of 3,499.99 px moved the
       // reader's place a whole pixel there (ourostack/ouro-ui#2648).
       const applied = scrollOwn(Math.round(by));
@@ -2006,7 +2024,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line EqualityOperator: a part of exactly one pixel kept carried or paid with the next write moves nothing on screen that WebKit shows, which keeps whole pixels.
       if (Math.abs(unlanded) >= 1) {
         carriedRef.current = unlanded;
-        content.style.translate = `0 ${-unlanded}px`;
+        drawCarried(content, unlanded);
         // Stryker disable next-line AssignmentOperator: the scroll event the write brings takes the anchors again, so `taken` is read stale only in the task of the write, as everywhere else it is paid.
         taken += applied;
         return rest();
@@ -2028,7 +2046,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     const carry = (by: number) => {
       carriedRef.current += by;
-      content.style.translate = `0 ${-carriedRef.current}px`;
+      drawCarried(content, carriedRef.current);
       if (nearEnd()) pay();
       else rest();
     };

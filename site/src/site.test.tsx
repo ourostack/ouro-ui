@@ -965,6 +965,9 @@ describe("docs", () => {
     expect(guessedAddresses).toContainEqual({ from: "/docs/A2UISurface/", to: "/docs/a2ui-surface/" });
     expect(guessedAddresses).toContainEqual({ from: "/docs/ouro-ax/", to: "/docs/ax/" });
     expect(guessedAddresses).toContainEqual({ from: "/docs/composed/", to: "/docs/composed-ui/" });
+    // Every guide answers at its file's path in the repository too.
+    for (const page of docsPages.filter((page) => page.file.startsWith("docs/guides/"))) expect(guessedAddresses).toContainEqual({ from: `/docs/guides/${page.name}/`, to: `/docs/${page.name}/` });
+    expect(guessedAddresses).toContainEqual({ from: "/docs/guides/ax-standalone/", to: "/docs/ax-standalone/" });
     // Another kit's name for one component, with a line that says so for an agent that reads the page.
     expect(guessedAddresses).toContainEqual({ from: "/docs/modal/", to: "/docs/dialog/", note: "A modal is called Dialog in Ouro HX." });
     expect(guessedAddresses).toContainEqual({ from: "/docs/input-otp/", to: "/docs/otp-field/", note: "shadcn's InputOTP is called OtpField in Ouro HX." });
