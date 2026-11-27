@@ -88,6 +88,23 @@ describe("ThinkingBlock", () => {
     expect(view.trigger.getAttribute("aria-expanded")).toBe("true");
   });
 
+  it("stays open once focus is inside the reasoning, so a link in it keeps its focus", async () => {
+    const view = await render(
+      <ThinkingBlock streaming>
+        <a href="#notes">The roast notes</a>
+      </ThinkingBlock>,
+    );
+    const link = view.reasoning.querySelector("a")!;
+    await act(async () => link.focus());
+    await view.rerender(
+      <ThinkingBlock>
+        <a href="#notes">The roast notes</a>
+      </ThinkingBlock>,
+    );
+    expect(view.trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(document.activeElement).toBe(link);
+  });
+
   it("starts open with defaultOpen, and follows open when the app controls it", async () => {
     const first = await render(
       <ThinkingBlock defaultOpen duration={3}>

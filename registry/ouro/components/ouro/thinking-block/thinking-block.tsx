@@ -130,7 +130,13 @@ export function ThinkingBlock(props: ThinkingBlockProps): JSX.Element {
           </span>
         }
       >
-        <div data-slot="thinking-block-reasoning" aria-busy={streaming} className={cn(reasoningClass, typeof children === "string" && "whitespace-pre-wrap")}>
+        {/* Focus inside the reasoning (a link in it) keeps the block open, so it never closes under the person. */}
+        <div
+          data-slot="thinking-block-reasoning"
+          aria-busy={streaming}
+          onFocus={() => setChosen((current) => current ?? true)}
+          className={cn(reasoningClass, typeof children === "string" && "whitespace-pre-wrap")}
+        >
           {children}
         </div>
       </Collapsible>
