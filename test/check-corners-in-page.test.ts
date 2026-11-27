@@ -247,6 +247,14 @@ it("finds paint on a forced fallback and skips invisible or offscreen surfaces",
   expect(await findSquirclePaint()).toEqual([]);
 }, paintTimeout);
 
+it("keeps a clipped fallback outline but finds a protruding sibling beside it", async () => {
+  const clip = `path(evenodd, "M -1000 -1000 H 1000 V 1000 H -1000 Z M 0 0 H 160 V 120 H 0 Z M 0 28 A 28 28 0 0 1 28 0 H 132 A 28 28 0 0 1 160 28 V 92 A 28 28 0 0 1 132 120 H 28 A 28 28 0 0 1 0 92 Z")`;
+  const root = render(`<div style="position:relative;width:160px;height:120px"><div class="surface" style='position:absolute;inset:0;border-radius:15px;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px;background:#fff;outline:6px solid #c65;clip-path:${clip}'></div><div class="control" style="display:none;position:absolute;left:-8px;top:-8px;width:16px;height:16px;background:#0a5"></div></div>`);
+  expect(await findSquirclePaint()).toEqual([]);
+  root.querySelector<HTMLElement>(".control")!.style.display = "block";
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+}, paintTimeout);
+
 it("checks a single squircle corner, accepts raw PNG data, and restores existing effects", async () => {
   const root = render('<div class="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px 0 0 0;corner-shape:squircle;opacity:.9;outline:2px solid red;box-shadow:0 2px 3px #000;transition:opacity 1s;clip-path:inset(0)"><div style="position:absolute;inset:0;background:#f40"></div></div>');
   const surface = root.querySelector<HTMLElement>(".surface")!;
