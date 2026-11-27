@@ -1,0 +1,1 @@
+- Fix: [Keep a cold Composer's plain box through focus arriving before the rich swap commits](../registry/ouro/components/ouro/composer/composer.rich-late-focus.test.tsx "verify:testExists(registry/ouro/components/ouro/composer/composer.rich-late-focus.test.tsx::Composer keeps a plain box focused after its rich load settles but before the swap commits)").

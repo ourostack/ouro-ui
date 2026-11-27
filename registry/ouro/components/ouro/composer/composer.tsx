@@ -664,6 +664,8 @@ export function Composer(props: ComposerProps): JSX.Element {
   const richRef = useRef<RichEditorHandle | null>(null);
   // Some sequences commit an input method's word as a plain insertText with no compositionend (ourostack/ouro-ui#3843): the rich editor sets this once it sees that happen, so a later Enter whose isComposing still reads true (the browser's own composition session never closed) is trusted as composing only until then.
   const richComposed = useRef(false);
+  // Focus must join the render's choice, including focus that arrives after the load scheduled it.
+  const [plainFocused, setPlainFocused] = useState(false);
   const [rich, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>();
   useLayoutEffect(
     () => {
@@ -689,7 +691,8 @@ export function Composer(props: ComposerProps): JSX.Element {
     if (rich !== undefined) return;
     // An app that turns rich on with the editor already loaded gets it at once, focus and all (its own change, not the load's).
     if (richModule) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- the format the app just chose, drawn in this same pass
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- a format change explicitly hands the focused box to the editor
+      setPlainFocused(false);
       setRich({ Editor: richModule.RichEditor, focus: textareaRef.current === document.activeElement });
       return () => setRich(undefined);
     }
@@ -697,13 +700,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     void loadRich().then(({ RichEditor: Editor }) => {
       // Stryker disable next-line ConditionalExpression: only a load that outlives an unmount skips this, and the dynamic import settles before a test can unmount in between.
       if (!live) return;
-      const swap = () => void (live && setRich({ Editor, focus: false }));
-      // A box the person is in stays theirs until they leave it: the editor replacing it under them would move their
-      // focus (a screen reader says the box's name again) and their caret. The plain box takes their typing meanwhile.
-      // After the swap the plain box is gone, and after cleanup `live` is false, so the listener needs no removing.
-      const box = textareaRef.current;
-      if (box && box === document.activeElement) box.addEventListener("blur", swap);
-      else swap();
+      setRich({ Editor, focus: false });
     });
     return () => {
       // Stryker disable next-line BooleanLiteral: a load that settles after the cleanup is ignored only by this flag, and no test can unmount in between.
@@ -713,7 +710,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     // `rich` is read only to skip a redundant load the layout effect above already did for this same mount, never to decide whether to re-run.
   }, [formatMode]); // eslint-disable-line react-hooks/exhaustive-deps
   // Stryker disable next-line LogicalOperator,ConditionalExpression: the effect clears the loaded editor when the format changes, so only one render between them could tell.
-  const richOn = formatMode === "rich" && rich !== undefined;
+  const richOn = formatMode === "rich" && rich !== undefined && !plainFocused;
   // Stryker disable next-line LogicalOperator: richOn is true only when rich is loaded, so either side alone reads the same.
   const ActiveEditor = richOn && rich ? rich.Editor : undefined;
   const focusText = () => (richOn ? richRef.current!.focus() : textareaRef.current!.focus({ preventScroll: true }));
@@ -1005,6 +1002,14 @@ export function Composer(props: ComposerProps): JSX.Element {
           ) : (
           <TextArea
             {...rest}
+            onFocus={(event) => {
+              setPlainFocused(true);
+              rest.onFocus?.(event);
+            }}
+            onBlur={(event) => {
+              setPlainFocused(false);
+              rest.onBlur?.(event);
+            }}
             ref={setRef}
             label={label}
             hideLabel
