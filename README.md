@@ -912,7 +912,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **Attachment** — A file attached to a chat message, or waiting to be sent with one: an icon for its kind, its name and size, or with `preview` the picture itself. [Docs](docs/Attachment.md)
 - **AttentionCard** — Something that waits on the person: a mention, a question asked of them or a request still unanswered. [Docs](docs/AttentionCard.md)
 - **ChatHeader** — The bar above an open chat: who it is with, and what you can do there. [Docs](docs/ChatHeader.md)
-- **Composer** — A chat message box: text that grows from one line as the person writes, a send button, and room for the rest of a composer, in one frame with one focus outline. [Docs](docs/Composer.md)
+- **Composer** — A message box for a quick reply or a longer note. [Docs](docs/Composer.md)
 - **ConversationFind** — The find bar for a conversation: a box with previous and next buttons, the match's place ("2 of 5") and a close button. [Docs](docs/ConversationFind.md)
 - **ConversationList** — A list of conversations to choose from: each row shows the avatar, the title, when the latest message arrived and a line of it, and marks unread conversations with a bold title and a dot. [Docs](docs/ConversationList.md)
 - **createPeopleCache** — A cache of people's names, photos or profiles for an app's avatars and message names, read from your service in batches. [Docs](docs/createPeopleCache.md)

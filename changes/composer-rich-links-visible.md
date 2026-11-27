@@ -1,0 +1,1 @@
+- Composer's rich-text links are [underlined in the editor](registry/ouro/components/ouro/composer/composer.rich-tokens.test.tsx "verify:testExists(registry/ouro/components/ouro/composer/composer.rich-tokens.test.tsx::Composer rich mentions and emoji > imports a link followed by a colon as a link rather than part of an emoji token)").

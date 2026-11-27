@@ -85,6 +85,7 @@ describe("Composer rich mentions and emoji", () => {
     const link = editor.querySelector("a");
     expect(link?.textContent).toBe("the guide");
     expect(link?.getAttribute("href")).toBe("https://example.test/guide");
+    expect(getComputedStyle(link!).textDecorationLine).toContain("underline");
     expect(editor.textContent).toBe("Read the guide: then reply.");
     editor.focus();
     await userEvent.keyboard("{Enter}");
