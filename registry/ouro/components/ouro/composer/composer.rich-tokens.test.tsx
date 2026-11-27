@@ -180,6 +180,24 @@ describe("Composer rich mentions after a pick", () => {
 });
 
 describe("Composer rich element reads", () => {
+  it("reads its words and caret once for each state, however often an app asks between keys", async () => {
+    const { editor } = await render(<Composer label="Message" format="rich" defaultValue="hello" onSend={() => {}} />);
+    const control = editor as Control;
+    editor.focus();
+    const lexical = (editor as unknown as { __lexicalEditor: { read(fn: () => unknown): unknown } }).__lexicalEditor;
+    const reads = vi.spyOn(lexical, "read");
+    const ask = () => [control.value, control.selectionStart, control.selectionEnd];
+    const first = ask();
+    const cost = reads.mock.calls.length;
+    expect(cost).toBeGreaterThan(0);
+    expect(ask()).toEqual(first);
+    expect(ask()).toEqual(first);
+    expect(reads.mock.calls.length).toBe(cost);
+    await userEvent.keyboard("!");
+    expect(control.value).toContain("!");
+    expect(reads.mock.calls.length).toBeGreaterThan(cost);
+  });
+
   it("defines its textarea reads so a remount can redefine them", async () => {
     const { editor } = await render(<Composer label="Message" format="rich" onSend={() => {}} />);
     for (const name of ["value", "selectionStart", "selectionEnd"]) expect(Object.getOwnPropertyDescriptor(editor, name)?.configurable).toBe(true);

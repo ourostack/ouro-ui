@@ -3812,6 +3812,22 @@ test("Docs pin leaves the pull request alone, rather than fail, when it is in th
   assert.match(pin, /isInMergeQueue/, "asks GitHub whether the pull request is in its merge queue, not GitHub's generic mergeable state");
 });
 
+test("Core pin leaves the pull request alone, rather than fail, when it is in the merge queue (#2344)", () => {
+  const pin = workflow("core-pin.yml").split("\n  pin:\n")[1];
+  const script = stepScript(pin, "Leave the pull request alone while it is in the merge queue");
+  const env = { BRANCH: "docs/point-at-core", GITHUB_REPOSITORY: "ourostack/ouro-ui" };
+  const fns = (o) => `gh() { case "$*" in "pr list"*) echo ${o.number ?? ""} ;; "api graphql"*) echo ${o.queued ?? "false"} ;; esac; }\n`;
+  const dir = scratchDir("ouro-core-pin-");
+  const summary = join(dir, "summary.md");
+  const queued = runStep(fns({ number: 7, queued: "true" }) + script, { ...env, GITHUB_STEP_SUMMARY: summary });
+  assert.equal(queued.output.queued, "true", queued.calls);
+  assert.match(readFileSync(summary, "utf8"), /#7 is in the merge queue/);
+  for (const o of [{}, { number: 7, queued: "false" }]) {
+    assert.notEqual(runStep(fns(o) + script, { ...env, GITHUB_STEP_SUMMARY: join(dir, "other.md") }).output.queued, "true", JSON.stringify(o));
+  }
+  assert.equal(pin.split("steps.queued.outputs.queued != 'true'").length - 1, 3, "the push, the pull request and its CI start all wait on the queue check");
+});
+
 test("Docs pin reuses its open pull request and turns auto-merge on for it", () => {
   const pin = workflow("docs-pin.yml").split("\n  pin:\n")[1];
   const script = stepScript(pin, "Open or update the pull request, and turn auto-merge on");

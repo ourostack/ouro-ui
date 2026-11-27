@@ -1,0 +1,1 @@
+- Fixed: with a modal dialog open, Tab past the dialog's last control now goes to the toasts' buttons (Undo included), and Tab past the last toast button returns to the dialog; Shift+Tab goes the other way.
