@@ -111,6 +111,34 @@ describe("Alert", () => {
     expect(action.getBoundingClientRect().top).toBeGreaterThanOrEqual(description.getBoundingClientRect().bottom);
   });
 
+  it("puts an action beside a title with no description where they fit, and under it where they don't", async () => {
+    const band = (width: string) => (
+      <div style={{ width }}>
+        <Alert
+          tone="warning"
+          title="2 need your answer"
+          action={
+            <>
+              <Button size="sm">Design review</Button>
+              <Button size="sm">Planning</Button>
+            </>
+          }
+        />
+      </div>
+    );
+    const wide = await render(band("900px"));
+    const title = () => wide.alert.querySelector("[data-ouro-alert-title]")!.getBoundingClientRect();
+    const action = () => wide.alert.querySelector("[data-ouro-alert-action]")!.getBoundingClientRect();
+    expect(action().left).toBeGreaterThanOrEqual(title().right);
+    expect(action().top).toBeLessThan(title().bottom);
+    const narrow = await render(band("260px"));
+    const narrowTitle = narrow.alert.querySelector("[data-ouro-alert-title]")!;
+    const narrowAction = narrow.alert.querySelector("[data-ouro-alert-action]")!;
+    // The title keeps its whole line, unbroken, and the action goes under it.
+    expect(narrowTitle.getBoundingClientRect().height).toBeLessThan(30);
+    expect(narrowAction.getBoundingClientRect().top).toBeGreaterThanOrEqual(narrowTitle.getBoundingClientRect().bottom);
+  });
+
   it("shows a dismiss button with onDismiss, named by dismissLabel", async () => {
     const onDismiss = vi.fn();
     await render(<Alert title="Saved" onDismiss={onDismiss} />);

@@ -36,7 +36,7 @@ Type: `AlertProps`.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `action` | `ReactNode` |  | A control under the description, usually a small Button: `action={<Button size="sm">Retry</Button>}`. |
+| `action` | `ReactNode` |  | A control under the description, usually a small Button: `action={<Button size="sm">Retry</Button>}`. With no description it sits beside the title where they fit on one line, and under it where they don't. |
 | `className` | `string` |  | Layout only: margins, width, grid placement (`mt-4`). Appearance classes warn in development; use `tone`. |
 | `description` | `ReactNode` |  | More detail, or what to do next, under the title. |
 | `dismissLabel` | `string` | `"Dismiss"` | The close button's accessible name, for other languages. |

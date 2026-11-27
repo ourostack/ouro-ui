@@ -38,7 +38,11 @@ export interface AlertOwnProps {
     | "warning"
     | (string & { 'danger and error are "destructive"; info is "primary"; neutral is "secondary"': never })
     | undefined;
-  /** A control under the description, usually a small Button: `action={<Button size="sm">Retry</Button>}`. */
+  /**
+   * A control under the description, usually a small Button: `action={<Button size="sm">Retry</Button>}`. With no
+   * description it sits beside the title where they fit on one line, and under it where they don't.
+   * @claim "With no description it sits beside the title" registry/ouro/components/ouro/alert/alert.test.tsx verify:testExists(registry/ouro/components/ouro/alert/alert.test.tsx::Alert > puts an action beside a title with no description where they fit, and under it where they don't)
+   */
   action?: ReactNode;
   /**
    * Shows a close button that calls this. Remove the alert from your state in it. When
@@ -264,8 +268,10 @@ export function Alert(props: AlertProps): JSX.Element {
     >
       {Icon && <Icon aria-hidden="true" data-slot="alert-icon" data-ouro-alert-icon="" className={cn("mt-0.5 size-ouro-5 shrink-0", accent)} />}
       {/* A long word (an address in an error) wraps anywhere, so it stays inside the alert, however narrow. */}
-      <div data-slot="alert-body" className="flex min-w-0 flex-1 flex-col gap-1 [overflow-wrap:anywhere]">
-        <div data-slot="alert-title" data-ouro-alert-title="" data-ouro-text="" className={cn("text-base/6 font-medium sm:pointer-fine:text-sm/5", accent)}>
+      {/* With no description, the title and the action share a line where they fit: the title keeps its whole line
+          before the action wraps under it. */}
+      <div data-slot="alert-body" className={cn("flex min-w-0 flex-1 [overflow-wrap:anywhere]", description === undefined && action !== undefined ? "flex-row flex-wrap items-center gap-3" : "flex-col gap-1")}>
+        <div data-slot="alert-title" data-ouro-alert-title="" data-ouro-text="" className={cn("max-w-full shrink-0 text-base/6 font-medium sm:pointer-fine:text-sm/5", accent)}>
           {title}
         </div>
         {description !== undefined && (
@@ -274,7 +280,7 @@ export function Alert(props: AlertProps): JSX.Element {
           </div>
         )}
         {action !== undefined && (
-          <div data-slot="alert-action" data-ouro-alert-action="" className="mt-2 flex flex-wrap gap-2">
+          <div data-slot="alert-action" data-ouro-alert-action="" className={cn("flex flex-wrap gap-2", description === undefined ? "" : "mt-2")}>
             {action}
           </div>
         )}
