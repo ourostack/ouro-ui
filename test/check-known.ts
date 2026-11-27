@@ -149,6 +149,13 @@ export const knownFindings: KnownFinding[] = [
       "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
   },
   {
+    story: "Combobox/Highlighted",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
     story: "Combobox/PhoneTags",
     rule: "near-miss",
     issue: 3286,
@@ -171,13 +178,6 @@ export const knownFindings: KnownFinding[] = [
   },
   {
     story: "Composer/Expanded",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
-    story: "ConversationFind/WithMessageList",
     rule: "near-miss",
     issue: 3286,
     reason:
@@ -350,6 +350,14 @@ export const knownFindings: KnownFinding[] = [
       "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
   },
   {
+    story: "ConversationFind/WithMessageList",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Under nova's 9px minimum gap, a surface in the story sits 8px inside the one around it (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
     story: "NavigationRail/IconsOnly",
     rule: "near-miss",
     issue: 3286,
@@ -494,13 +502,5 @@ export const knownFindings: KnownFinding[] = [
     theme: "nova",
     reason:
       "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
-    story: "ThemePicker/InPopover",
-    rule: "off-centre-text",
-    issue: 3257,
-    theme: "nova",
-    reason:
-      "The trigger button shows the chosen look's wordmark, whose own font-size-adjust and leading-none tuning sit a couple of pixels off the Button's usual middle once ouro-base's 2560px root step (125%) scales every length; the trigger should centre the wordmark on its own cap height instead of the Button's default centring.",
   },
 ];
