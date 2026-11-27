@@ -8,6 +8,7 @@ import { renderedLines, splitWords } from "../../../test/lines";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 import { EYEBROW, RELEASE_HREF } from "../hero";
 import { HANDOFF } from "../../copy";
 import { latestRelease } from "../../latest-release";
@@ -267,6 +268,28 @@ describe("the stage's controls", () => {
     await userEvent.click(page.getByRole("switch", { name: STAGE_COPY.lights }));
     await expect.poll(() => scene().hasAttribute("data-lights")).toBe(true);
     expect(stepping()).toBe(false);
+  });
+
+  it("keeps fading in for a quick second press even when the picture is slow to show it (ourostack/ouro-ui#3267)", async () => {
+    await renderPage("/");
+    const depth = page.getByRole("slider", { name: "Depth" });
+    const stepping = () => scene().hasAttribute("data-stepping");
+    (depth.element() as HTMLElement).focus();
+    // holdFrames lets the stage's own clock (performance.now, read where the depth changes) stay close
+    // to real time while the picture's commit (useAfterPaint's frame and task) is held up well past the
+    // fade window, so a press that was quick reads as quick even though the picture was slow to show it.
+    const frames = holdFrames();
+    await userEvent.keyboard("{ArrowRight}");
+    frames.step();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await expect.poll(() => scene().style.getPropertyValue("--d")).toBe("0.017");
+    expect(stepping()).toBe(false);
+    await userEvent.keyboard("{ArrowRight}");
+    frames.step(800);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await expect.poll(() => scene().style.getPropertyValue("--d")).toBe("0.033");
+    expect(stepping()).toBe(false);
+    frames.release();
   });
 
   it("hands the picture a state of primitive values only, which is how a small step is told from another change", async () => {

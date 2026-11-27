@@ -36,8 +36,11 @@ Type: `ConversationListProps`.
 | `membersLabel` | `((names: readonly string[]) => string)` | `"group chat with"` the first two names, then the rest's count ("and 2 others") | What screen readers hear after a group chat's title, from its `members`' names, for other languages. |
 | `moreLabel` | `string` | `"More options for"` | What screen readers hear before a row's name on its more button, for other languages. |
 | `onSectionOpenChange` | `((id: string, open: boolean) => void)` |  | Called with a section's `id` and whether it is now open, when its header is pressed. |
+| `onSectionsReorder` | `((ids: string[], move: ConversationListSectionMove) => void)` |  | Called when a `reorderable` section lands in a new place, with the ids of the reorderable sections in their new order and the move. The list shows the new order at once, and keeps it until `sections` arrives in another order; the app saves it. A keyboard move calls it once, on drop; a drag, on release. |
 | `onSelect` (required) | `(id: string, event: MouseEvent<HTMLButtonElement>) => void` |  | Called with a row's `id` when it is chosen by a click, a tap, Enter or Space. A handler that takes a second parameter also gets the click, so the app can check `event.isTrusted` or `event.metaKey`; a one-parameter handler or a server action gets the `id` alone. |
 | `ref` | `Ref<HTMLDivElement>` |  | Reaches the rendered element. |
+| `reorderLabel` | `string` | `"Move section"` | What screen readers hear before a section's title on its grip button, for other languages. |
+| `reorderMessages` | `ConversationListReorderMessages` |  | What screen readers hear as a section is picked up, moved, dropped and put back, for other languages. |
 | `sections` | `readonly ConversationListSection[]` |  | The headers the rows group under, in order. A row names its header in `section`, and a section without rows is left out. |
 | `selectedId` | `string \| null` |  | The `id` of the open conversation. Its row is highlighted and marked `aria-current`. |
 | `unreadLabel` | `string` | `"Unread"` | What screen readers hear for an unread row's dot, and a closed section's, for other languages. |
@@ -184,6 +187,25 @@ interface ConversationListItemFields {
 }
 ```
 
+### `ConversationListReorderMessages`
+
+What screen readers hear as a section is moved, for other languages: `{label}` is the section's title, `{n}` its place and `{total}` how many sections show and can move.
+
+```ts
+interface ConversationListReorderMessages {
+  /** @default "{label} picked up. Position {n} of {total}." */
+  pickedUp?: string | undefined;
+  /** @default "{label} moved. Position {n} of {total}." */
+  moved?: string | undefined;
+  /** @default "{label} dropped. Position {n} of {total}." */
+  dropped?: string | undefined;
+  /** @default "{label} put back. Position {n} of {total}." */
+  putBack?: string | undefined;
+  /** What the grip button's description says. @default "Press Space to pick up, then use the arrow keys to move, Space to drop, and Escape to cancel." */
+  instructions?: string | undefined;
+}
+```
+
 ### `ConversationListSection`
 
 A group of rows in a `ConversationList`, under a header that opens and closes it.
@@ -207,6 +229,27 @@ interface ConversationListSection {
    * { id: "team", title: "My team", menu: [{ label: "Rename" }, { label: "Delete", tone: "destructive" }] }
    */
   menu?: readonly MenuEntry[] | undefined;
+  /**
+   * Whether the person can move this section among the other reorderable sections: by dragging its header with a
+   * pointer, by its grip button (Space picks it up, the arrow keys move it, Space drops it, Escape puts it back), or
+   * with Alt+Up and Alt+Down on the header. Mark only the sections that are the person's own; the rest stay where
+   * `sections` puts them. Pressing the header still opens and closes the section. See `onSectionsReorder`.
+   * @example
+   * { id: "favorites", title: "Favorites", reorderable: true }
+   */
+  reorderable?: boolean | undefined;
+}
+```
+
+### `ConversationListSectionMove`
+
+A section that landed in a new place: its `id`, and where it was and is among the reorderable sections only, in `sections` order.
+
+```ts
+interface ConversationListSectionMove {
+  id: string;
+  from: number;
+  to: number;
 }
 ```
 

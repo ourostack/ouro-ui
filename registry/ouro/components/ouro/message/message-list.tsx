@@ -2107,7 +2107,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (jumpOwed() !== (jumpRef.current !== null)) setShowJump(jumpOwed());
     };
     const follow = new ResizeObserver(hold);
-    follow.observe(content);
+    follow.observe(content, { box: "border-box" });
     follow.observe(scroller);
     // Messages that move without the list changing size (a post moved to the end by a reply) resize nothing: while
     // the reader is scrolled up, the anchor is held as they move, before the browser draws. A move that also resizes

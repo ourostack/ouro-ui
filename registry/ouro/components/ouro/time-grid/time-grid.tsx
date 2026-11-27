@@ -72,6 +72,7 @@ import {
   type TimeGridStatus,
   type TimeGridTone,
   type TimeGridView,
+  toastClearance,
 } from "@/registry/ouro/components/ouro/time-grid/time-grid-styles";
 
 export type { TimeGridStatus, TimeGridTone, TimeGridView };
@@ -858,7 +859,25 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     if (!slot) return;
     // The sticky day header covers the top of the scrolling area, so a slot scrolled "into view" would sit behind it.
     slot.style.scrollMarginTop = `${rootRef.current!.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!.offsetHeight}px`;
+    slot.style.scrollMarginBottom = "";
     slot.scrollIntoView({ block: "nearest", inline: "nearest" });
+    // A toast hangs over the bottom of the page, so a slot scrolled "into view" can sit under it. Scroll it clear, frame by frame, because the toast slides in.
+    let frame = 0;
+    let left = 40;
+    const clear = () => {
+      const at = slot.getBoundingClientRect();
+      for (const toast of document.querySelectorAll("[data-ouro-toast-id]")) {
+        const margin = toastClearance(at, toast.getBoundingClientRect(), innerHeight);
+        if (margin) {
+          slot.style.scrollMarginBottom = `${margin}px`;
+          slot.scrollIntoView({ block: "nearest", inline: "nearest" });
+        }
+      }
+      // Stryker disable next-line EqualityOperator: one more frame of a bounded loop that only re-measures a toast is not observable
+      if ((left -= 1) > 0) frame = requestAnimationFrame(clear);
+    };
+    clear();
+    return () => cancelAnimationFrame(frame);
   }, [heldCursor]);
   const cursorStart = () => {
     const wanted = nowAt && todayIndex >= 0 ? nowAt.minutes : workingHours.start * 60;

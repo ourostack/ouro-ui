@@ -1,6 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands } from "vitest/browser";
 import { NavigationRail } from "@/registry/ouro/components/ouro/navigation-rail/navigation-rail";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
@@ -35,7 +35,8 @@ it("gives every item at least 44px for a finger, labels or not, and opens no too
       expect(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)?.closest("button")).toBe(button);
     }
   }
-  await userEvent.click(page.getByRole("button", { name: "Chat" }));
+  host.querySelectorAll("[data-ouro-control]")[1]!.setAttribute("data-tapped", "");
+  await commands.tap("[data-tapped]");
   await act(async () => {});
   expect(document.querySelector('[data-ouro="tooltip"]')).toBeNull();
 });
