@@ -537,3 +537,11 @@ const statusClass: Record<TimeGridStatus, string> = {
   unanswered: "border border-s-3 border-dashed",
   cancelled: "border-0 border-s-3 [border-inline-start-style:dotted] forced-colors:[border-inline-start-style:dotted] text-[color-mix(in_oklab,var(--muted-foreground)_55%,var(--foreground))] line-through",
 };
+
+type Edges = Pick<DOMRect, "top" | "bottom" | "left" | "right">;
+
+/** @internal The bottom margin that scrolls a slot clear of a toast hanging over the lower half of the page; 0 when the toast is not over it. */
+export function toastClearance(slot: Edges, toast: Edges, viewport: number): number {
+  const over = toast.top > viewport / 2 && slot.bottom + 8 > toast.top && slot.top < toast.bottom && toast.left < slot.right && toast.right > slot.left;
+  return over ? viewport - toast.top + 8 : 0;
+}

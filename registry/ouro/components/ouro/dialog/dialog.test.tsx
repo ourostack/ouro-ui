@@ -177,6 +177,13 @@ describe("automatic presentation", () => {
     expect(Math.round(element.getBoundingClientRect().bottom)).toBe(innerHeight);
   });
 
+  it("gives the sheet's first field focus as it opens at 390px, not the sheet itself", async () => {
+    await page.viewport(390, 844);
+    const element = await openUncontrolled();
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Name");
+    expect(document.activeElement).not.toBe(element);
+  });
+
   it("follows presentation over the viewport", async () => {
     expect((await openUncontrolled({ presentation: "sheet" })).getAttribute("data-ouro-presentation")).toBe("sheet");
     await act(async () => roots.splice(0).forEach((root) => root.unmount()));
@@ -1844,6 +1851,15 @@ describe("first focus after the last press, with and without a trigger", () => {
   });
 
   it("focuses the body's first control after a mouse click opens a dialog with a trigger", async () => {
+    await openWithTrigger("mouse");
+    await expect.poll(() => document.activeElement).toBe(name());
+  });
+
+  it("focuses a phone sheet itself after a tap, so the keyboard stays down, and its first field after a mouse click", async () => {
+    await page.viewport(390, 844);
+    const element = await openWithTrigger("touch");
+    await expect.poll(() => document.activeElement).toBe(element);
+    await act(async () => roots.splice(0).forEach((root) => root.unmount()));
     await openWithTrigger("mouse");
     await expect.poll(() => document.activeElement).toBe(name());
   });
