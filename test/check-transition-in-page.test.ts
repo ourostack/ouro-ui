@@ -73,8 +73,10 @@ describe("transition rules", () => {
     expect(lag.faults.map((f) => f.rule)).toEqual(["off-curve"]);
     const fade = () => {
       const box = document.getElementById("t-box")!;
-      box.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, easing: "linear", fill: "both" });
-      box.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 100, easing: "linear", fill: "both" });
+      // Held paused: stepTrace drops an animation already finished when it looks, and a loaded runner that stalls past
+      // 100 ms before its two frames would drop the short fade and leave only the gradual one.
+      box.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, easing: "linear", fill: "both" }).pause();
+      box.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 100, easing: "linear", fill: "both" }).pause();
     };
     expect((await trace(slide(), fade)).faults.map((f) => f.rule)).toEqual(["opacity-step"]);
     const clip = (width: string[]) => () => void document.getElementById("t-label")!.animate([{ width: width[0]! }, { width: width[1]! }], { duration: 300, fill: "forwards" });
