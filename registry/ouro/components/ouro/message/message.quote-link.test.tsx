@@ -130,6 +130,26 @@ describe("Message quote link", () => {
     expect(prevented).toBe(false);
   });
 
+  it("keeps the thread context link's underline inside its clipped line", async () => {
+    const host = await render(
+      <Message variant="chat" role="user" name="Robin Vale" quote={{
+        author: "Fern Moss",
+        excerpt: "The lanterns arrive at noon.",
+        href: "#quote-underline",
+        context: <>Replied in thread: <Link href="#delivery" inline>Lantern delivery</Link></>,
+      }} />,
+    );
+    const context = host.querySelector<HTMLElement>("[data-ouro-message-quote-context]")!;
+    const link = context.querySelector("a")!;
+    const css = getComputedStyle(link);
+    const canvas = document.createElement("canvas").getContext("2d")!;
+    canvas.font = css.font;
+    const descent = canvas.measureText(link.textContent!).fontBoundingBoxDescent;
+    const underlineBottom = link.getBoundingClientRect().bottom - descent + parseFloat(css.textUnderlineOffset) + parseFloat(css.textDecorationThickness);
+    expect(css.textDecorationLine).toBe("underline");
+    expect(underlineBottom).toBeLessThanOrEqual(context.getBoundingClientRect().bottom);
+  });
+
   it("uses the provider's router for an internal quote destination without restyling the quote", async () => {
     const Router: OuroLinkComponent = (props) => <a data-quote-router="" {...props} />;
     await render(

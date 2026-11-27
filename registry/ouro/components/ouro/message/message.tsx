@@ -1310,7 +1310,7 @@ function quoteBox(quote: MessageQuote, primaryBubble: boolean): JSX.Element {
   if (alone) return box;
   return (
     <div data-slot="message-quote-group" data-ouro-message-quote-group="" className="mb-2 flex min-w-0 flex-col gap-1" style={primaryBubble ? onPrimary : undefined}>
-      <div data-slot="message-quote-context" data-ouro-message-quote-context="" className="min-w-0 truncate text-xs text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
+      <div data-slot="message-quote-context" data-ouro-message-quote-context="" className="min-w-0 truncate text-xs leading-5 text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
         {quote.context}
       </div>
       {box}
