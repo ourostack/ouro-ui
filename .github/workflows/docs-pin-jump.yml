@@ -1,0 +1,51 @@
+name: Docs pin jump
+# Puts the docs pin pull request at the front of the merge queue once its own checks have passed, when main's docs
+# are more than 5 releases or more than 3 hours behind the newest release (ourostack/ouro-ui#3968). A pin changes
+# only version literals, so the queue's order protects nothing here, but a busy queue can hold it for hours, and a
+# release that force-pushes the pin restarts its checks each time (#3828). scripts/docs-pin-jump.mjs decides: it
+# jumps only a pull request whose diff is exactly the pin's version-literal files, never when a red-main-fix pull
+# request is in the queue, at most once an hour across the repository, and it logs each jump on #2469 with the lag.
+# The pin-jumped label then freezes the branch: Docs pin pushes nothing to it while it is queued.
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  workflow_dispatch: {}
+permissions: {}
+concurrency:
+  group: docs-pin-jump
+  cancel-in-progress: false
+jobs:
+  jump:
+    name: Jump the docs pin
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.head_branch == 'docs/point-at-release' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - id: app
+        name: Sign in as the Ouro Current app, if it is installed here
+        continue-on-error: true
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          app-id: ${{ vars.OURO_CURRENT_APP_ID }}
+          private-key: ${{ secrets.OURO_CURRENT_PRIVATE_KEY }}
+          permission-contents: read
+          permission-pull-requests: write
+          permission-issues: write
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: ""
+      - name: Decide, and jump the docs pin when it is due
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token || secrets.DOCS_PIN_TOKEN || github.token }}
+        run: node scripts/docs-pin-jump.mjs
