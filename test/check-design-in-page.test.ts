@@ -290,6 +290,14 @@ describe("findDesignIssues: nested-frame", () => {
     expect(of("nested-frame")).toEqual([]);
   });
 
+  it("passes a lighter surface whose border is the same colour as that surface", () => {
+    render(`
+      <div style="width:300px;height:180px;padding:20px;border:1px solid #888;background:#ddd">
+        <div style="width:180px;height:80px;border:1px solid #fff;background:#fff">A collection</div>
+      </div>`);
+    expect(of("nested-frame")).toEqual([]);
+  });
+
   it("finds a filled box in a rounded corner whose radius isn't the corner's less the inset", () => {
     render(`
       <div id="card" style="background:#eef;border-radius:24px;padding:4px"><div id="flat" style="background:#3a7;height:60px;border-radius:4px"></div></div>
@@ -430,6 +438,23 @@ describe("findDesignIssues: cut-off-edge", () => {
     expect(of("cut-off-edge")).toEqual([]);
   });
 
+  it("passes an outline or an enclosing border at the clipped edge", () => {
+    render(`
+      <div style="width:340px;height:120px;background:#eee">
+        <div style="width:320px;height:80px;overflow:auto;outline:1px solid #888;background:#eee">
+          <div style="height:60px">First</div><div style="height:60px">Second</div>
+        </div>
+      </div>
+      <div style="width:340px;height:120px;background:#eee">
+        <div style="width:320px;height:80px;border:1px solid #888">
+          <div style="width:320px;height:80px;overflow:auto;background:#eee">
+            <div style="height:60px">First</div><div style="height:60px">Second</div>
+          </div>
+        </div>
+      </div>`);
+    expect(of("cut-off-edge")).toEqual([]);
+  });
+
   it("passes a surface step, a visible edge, a fade, content that fits, a viewport edge and an opted-out scroller", () => {
     const rows = `<div style="height:80px">One</div><div style="height:80px">Two</div><div style="height:80px">Three</div>`;
     render(`
@@ -507,6 +532,22 @@ describe("findDesignIssues: pane-edge", () => {
       </div>`);
     expect(of("pane-edge")).toEqual([
       expect.objectContaining({ element: expect.stringMatching(/left-wrap.*right-wrap/), detail: expect.stringMatching(/line|border/i) }),
+    ]);
+  });
+
+  it("finds an outline or ring drawn between otherwise distinct panes", () => {
+    render(`
+      <div style="display:flex;width:360px;height:180px">
+        <aside id="outline" style="width:170px;background:#eee;outline:1px solid #888">Folders</aside>
+        <main style="width:190px;background:#fff">Notes</main>
+      </div>
+      <div style="display:flex;width:360px;height:180px;margin-top:20px">
+        <aside id="ring" style="width:170px;background:#eee;box-shadow:0 0 0 1px #888">Folders</aside>
+        <main style="width:190px;background:#fff">Notes</main>
+      </div>`);
+    expect(of("pane-edge").map((issue) => issue.element)).toEqual([
+      "aside#outline and main",
+      "aside#ring and main",
     ]);
   });
 
