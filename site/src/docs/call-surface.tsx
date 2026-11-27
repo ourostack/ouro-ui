@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties, type JSX, type ReactNode, type SVGProps } from "react";
+import { useRef, useState, type JSX, type ReactNode, type SVGProps } from "react";
 import { flushSync } from "react-dom";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { MediaTile } from "@/registry/ouro/components/ouro/media-tile/media-tile";
@@ -20,10 +20,9 @@ const Hand = icon(<path d="M8 12V5a1.5 1.5 0 0 1 3 0v6M11 11V3.5a1.5 1.5 0 0 1 3
 
 // Synthetic camera pictures, not live streams. The components receive the same content an app's video would supply.
 function Camera({ hue }: { hue: number }): JSX.Element {
-  return <div className="size-full" style={{ background:
-    `radial-gradient(circle at 50% 40%, hsl(${hue} 28% 80%) 0 12%, transparent 12.5%), ` +
-    `radial-gradient(ellipse 32% 38% at 50% 100%, hsl(${hue} 25% 68%) 0 99%, transparent 100%), ` +
-    `linear-gradient(145deg, hsl(${hue} 32% 35%), hsl(${hue + 30} 30% 16%))`,
+  const picture = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90"><circle cx="80" cy="36" r="12" fill="hsl(${hue} 28% 80%)"/><ellipse cx="80" cy="90" rx="51" ry="34" fill="hsl(${hue} 25% 68%)"/></svg>`;
+  return <div className="size-full" style={{
+    background: `url("data:image/svg+xml,${encodeURIComponent(picture)}") center / cover, linear-gradient(145deg, hsl(${hue} 32% 35%), hsl(${hue + 30} 30% 16%))`,
   }} />;
 }
 
@@ -42,7 +41,6 @@ export function CallSurface(): JSX.Element {
     flushSync(() => {
       setLeft(leave);
       setMuted(true);
-      setCamera(true);
       setHand(false);
       setStatus(leave ? "You left the call" : "You joined the call");
     });
@@ -63,7 +61,7 @@ export function CallSurface(): JSX.Element {
             <MediaTile name="Theo Okafor"><Camera hue={275} /></MediaTile>
           </div>
           <MediaTile name="Mara Lind" source="screen" presenting ring={false} className="mt-2 h-80 aspect-auto">
-            <div className="h-full px-6 py-6" style={{ background: "var(--primary)", "--foreground": "var(--primary-foreground)" } as CSSProperties}>
+            <div className="h-full bg-muted px-6 py-6">
               <div ref={slide} className="w-fit max-w-full">
                 <Text size="sm">Friday workshop</Text>
                 <Text size="lg" className="mt-2">Room for good ideas.</Text>

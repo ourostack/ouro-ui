@@ -22,6 +22,8 @@ describe.each([["Toolbar", pageDemos.toolbar!], ["MediaTile", pageDemos["media-t
     await expect.element(page.getByRole("button", { name: "Rejoin", exact: true })).toHaveFocus();
     await page.getByRole("button", { name: "Rejoin", exact: true }).click();
     await expect.element(page.getByRole("button", { name: "Unmute microphone", exact: true })).toHaveFocus();
+    await expect.element(page.getByRole("button", { name: "Turn camera on", exact: true })).toBeVisible();
+    expect(host.querySelector('[data-ouro="snap-pip"] [data-ouro="media-tile"]')?.getAttribute("aria-label")).toContain("camera off");
   });
 
   describe("call surface layout", () => {
