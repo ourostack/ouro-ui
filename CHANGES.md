@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Message `quote` is [drawn with no box now](registry/ouro/components/ouro/message/message.test.tsx "verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message quote > shows the quote at the top of the message: a bar, the author in semibold and the excerpt on one line, cut with an ellipsis)"): a thin rule, the author and one line of the excerpt; it takes `at`, `atText` and a `context` line above it, and screen readers hear it as "Reply to <author>, <day>" in place of "Quoting <author>".
