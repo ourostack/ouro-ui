@@ -1,0 +1,1 @@
+- Fixed: [an Alert's action beside its title shrinks to the row](registry/ouro/components/ouro/alert/alert.test.tsx "verify:testExists(registry/ouro/components/ouro/alert/alert.test.tsx::Alert > lets an action beside its title shrink, so a row of buttons in it scrolls inside the alert)"), so a row of buttons in it wraps or scrolls inside the alert rather than overflowing it.
