@@ -1,11 +1,12 @@
 import { useRef, useState, type JSX, type ReactNode, type SVGProps } from "react";
 import { Composer, type ComposerEditor } from "@/registry/ouro/components/ouro/composer/composer";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
+import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { Toolbar } from "@/registry/ouro/components/ouro/toolbar/toolbar";
 
 // The live demo at the top of docs/composer/: the component as an app would use it, with its props, nothing else.
 
-const draft = "A little Friday gathering\n\n@[Noor](noor), here's [the plan](https://example.com/friday):\n\n- Bring something to share\n- Leave room for dessert\n\n1. Meet in the garden\n2. Stay for the sunset";
+const draft = "@[Noor](noor), garden party?\n\n- Bring cake\n\n1. Meet at six\n2. Stay for [sunset](https://example.com/friday)";
 
 function icon(path: ReactNode) {
   return function Icon(props: SVGProps<SVGSVGElement>) {
@@ -29,7 +30,7 @@ export default function ComposerDemo(): JSX.Element {
     <div className="grid w-full max-w-lg gap-4">
       {sent.map((message, index) => (
         <Message key={index} variant="chat" role="user" name="You">
-          {message}
+          <Text className="whitespace-pre-wrap">{message}</Text>
         </Message>
       ))}
       <Composer

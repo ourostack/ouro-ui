@@ -816,7 +816,11 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       namespace: "ouro-composer",
       nodes: NODES,
       // Lexical writes underline and strikethrough as classes only; bold, italic and code are elements.
-      theme: { text: { underline: "underline", strikethrough: "line-through", underlineStrikethrough: "underline line-through" }, list: { ul: "list-disc ps-5", ol: "list-decimal ps-5" } },
+      theme: {
+        text: { underline: "underline", strikethrough: "line-through", underlineStrikethrough: "underline line-through" },
+        link: "text-primary underline underline-offset-2",
+        list: { ul: "list-disc ps-5", ol: "list-decimal ps-5" },
+      },
       // Stryker disable next-line BlockStatement: Lexical reports an error only for a state it cannot reach from the commands under test.
       onError: /* istanbul ignore next @preserve -- Lexical reports an error only for a state the commands under test cannot reach. */ (error) => {
         throw error;

@@ -485,7 +485,14 @@ function ownAttrsOf(rest: object): Record<string, unknown> {
 }
 
 /**
- * A chat message box: text that grows from one line as the person writes, a send button, and
+ * A message box for a quick reply or a longer note.
+ *
+ * Use `format="rich"` for formatting, links, lists and mention pills, with Markdown text in
+ * `value` and `onSend`. Add `defaultExpanded={false}` for a long-compose toggle: the same
+ * draft and caret, a `toolbar` while expanded, and a quiet line naming the platform's send key.
+ * Keep `format="plain"` (the default) for a text-only box.
+ *
+ * Text grows from one line as the person writes, with a send button and
  * room for the rest of a composer, in one frame with one focus outline. Enter sends and
  * Shift+Enter starts a new line, or `sendOn="mod-enter"` for Ctrl+Enter, and Enter never
  * sends mid-word in an input method. A press anywhere around the text, out to the frame's
@@ -494,11 +501,6 @@ function ownAttrsOf(rest: object): Record<string, unknown> {
  * the files waiting to go, and `quote` the message a reply quotes, which Escape in the empty
  * box removes. `sendDisabledReason` turns sending off and says why, while the
  * person can still write, and `highlights` marks words in the text, as TextArea's do.
- *
- * Use `format="rich"` for formatting, links, lists and mention pills, with Markdown text in
- * `value` and `onSend`. Add `defaultExpanded={false}` for a long-compose toggle: the same
- * draft and caret, a `toolbar` while expanded, and a quiet line naming the platform's send key.
- * Keep `format="plain"` (the default) for a text-only box.
  *
  * Emoji from an image catalogue go in as `:shortcode:` tokens: an
  * `Autocomplete` trigger with `catalogue` inserts them as the person types `:` and a few
