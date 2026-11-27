@@ -903,6 +903,18 @@ describe("Combobox looks", () => {
     expect(popup()!.closest('[data-ouro="combobox-portal"]')).not.toBeNull();
   });
 
+  it("leaves a clear gap between the field and the popup at the wide-screen type step", async () => {
+    const before = { width: innerWidth, height: innerHeight };
+    onTestFinished(() => page.viewport(before.width, before.height));
+    await page.viewport(2560, 1440);
+    const { input, group } = await render(<Combobox label="Herb" items={herbs} />);
+    await userEvent.click(input);
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(popup).not.toBeNull();
+    const minimum = parseFloat(getComputedStyle(document.documentElement).fontSize) / 2;
+    await expect.poll(() => popup()!.getBoundingClientRect().top - group.getBoundingClientRect().bottom).toBeGreaterThanOrEqual(minimum);
+  });
+
   it("closes with only a fade when reduced motion is on", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
     try {
