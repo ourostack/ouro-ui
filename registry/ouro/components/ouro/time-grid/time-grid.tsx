@@ -767,38 +767,6 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollKey, firstEvent]);
 
-  // In a grid taller than a day, the hours grow to share the room under the header, so the day
-  // ends at the grid's foot rather than above it. Neither height depends on the hours'.
-  const summaries = Boolean(renderDaySummary);
-  useLayoutEffect(() => {
-    const root = rootRef.current!;
-    const viewport = root.querySelector<HTMLElement>("[data-scroll-viewport]")!;
-    const head = root.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
-    const body = root.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;
-    const fill = () => {
-      const headHeight = head.offsetHeight;
-      // The app's day summaries make the header as tall as they are, which only a measure knows; events scrolled into view stop below it.
-      if (summaries) root.style.setProperty("--ouro-time-grid-head", `${headHeight}px`);
-      root.style.setProperty("--ouro-time-grid-fill", `${(viewport.clientHeight - headHeight) / 24}px`);
-      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-      setHourPx(((body.offsetHeight / (dayLength / 60)) * 16) / rem);
-    };
-    // Measured now, before the first paint, when there are events to give lines to, as the fold below is: a hour taller
-    // than the shortest would otherwise draw them a frame on the shortest hour's lines. A grid with no events forces no
-    // layout while it mounts.
-    if (timed.some((placements) => placements.length > 0)) fill();
-    const observer = new ResizeObserver(fill);
-    // Stryker disable next-line CallExpression: a change that resizes the room in a test resizes the header's sticky box with it, which measures again.
-    observer.observe(viewport);
-    observer.observe(head);
-    // The hour drawn changes with the fill, a touch screen's pointer and hourHeight.
-    observer.observe(body);
-    // Stryker disable next-line ArrowFunction: once the grid is gone, nothing reads what the observer would set.
-    return () => observer.disconnect();
-    // The events only decide whether the first measure runs before the first paint; the observer keeps it after.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [summaries]);
-
   // The day's background lane, measured for its stacks (above). Every day's lane is as wide.
   const hasLane = labelBackground && hasBackground;
   useLayoutEffect(() => {
@@ -835,6 +803,40 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     // events alone still measures, once the ResizeObserver's own notification lands.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayKey]);
+
+  // In a grid taller than a day, the hours grow to share the room under the header, so the day
+  // ends at the grid's foot rather than above it. Neither height depends on the hours'.
+  const summaries = Boolean(renderDaySummary);
+  useLayoutEffect(() => {
+    const root = rootRef.current!;
+    const viewport = root.querySelector<HTMLElement>("[data-scroll-viewport]")!;
+    const head = root.querySelector<HTMLElement>("[data-ouro-time-grid-head]")!;
+    const body = root.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;
+    const fill = () => {
+      const headHeight = head.offsetHeight;
+      const fillHeight = (viewport.clientHeight - headHeight) / 24;
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      const minimum = parseFloat(getComputedStyle(root).getPropertyValue("--ouro-time-grid-min-hour")) * rem;
+      const hour = Math.round(Math.max(minimum, fillHeight) * 24) / 24;
+      // The app's day summaries make the header as tall as they are, which only a measure knows; events scrolled into view stop below it.
+      if (summaries) root.style.setProperty("--ouro-time-grid-head", `${headHeight}px`);
+      root.style.setProperty("--ouro-time-grid-fill", `${fillHeight}px`);
+      setHourPx((hour * 16) / rem);
+    };
+    // Measure after the day's width and before the first paint, so all layout reads precede the sizing writes.
+    // A grid with no events forces no layout while it mounts.
+    if (timed.some((placements) => placements.length > 0)) fill();
+    const observer = new ResizeObserver(fill);
+    // Stryker disable next-line CallExpression: a change that resizes the room in a test resizes the header's sticky box with it, which measures again.
+    observer.observe(viewport);
+    observer.observe(head);
+    // The hour drawn changes with the fill, a touch screen's pointer and hourHeight.
+    observer.observe(body);
+    // Stryker disable next-line ArrowFunction: once the grid is gone, nothing reads what the observer would set.
+    return () => observer.disconnect();
+    // The events only decide whether the first measure runs before the first paint; the observer keeps it after.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [summaries]);
 
   const focusPiece = (key: string) => {
     setActive(key);
@@ -1243,14 +1245,14 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       data-view={view}
       className={cn(
         "relative box-border flex h-ouro-144 min-h-0 min-w-0 flex-col text-foreground",
-        "[--ouro-time-grid-gutter:4rem] [--ouro-time-grid-hour:max(3rem,var(--ouro-time-grid-fill,0px))] [--ouro-time-grid-tint:14%] [--ouro-time-grid-chip:2rem] pointer-coarse:[--ouro-time-grid-chip:2.75rem] pointer-coarse:[--ouro-time-grid-hour:max(3.5rem,var(--ouro-time-grid-fill,0px))] dark:[--ouro-time-grid-tint:24%]",
+        "[--ouro-time-grid-gutter:4rem] [--ouro-time-grid-min-hour:3rem] [--ouro-time-grid-hour:max(var(--ouro-time-grid-min-hour),var(--ouro-time-grid-fill,0px))] [--ouro-time-grid-tint:14%] [--ouro-time-grid-chip:2rem] pointer-coarse:[--ouro-time-grid-chip:2.75rem] pointer-coarse:[--ouro-time-grid-min-hour:3.5rem] dark:[--ouro-time-grid-tint:24%]",
         className,
       )}
       style={
         {
           ...(renderDaySummary ? {} : { "--ouro-time-grid-head": `${4.25 + lanes * 1.5}rem` }),
           "--ouro-time-grid-lane": labelBackground ? "max(7rem, 40%)" : "0.75rem",
-          ...(hourHeight !== undefined && hourHeight > 0 ? { "--ouro-time-grid-hour": `max(${hourHeight}rem, var(--ouro-time-grid-fill, 0px))` } : {}),
+          ...(hourHeight !== undefined && hourHeight > 0 ? { "--ouro-time-grid-min-hour": `${hourHeight}rem` } : {}),
           ...style,
         } as CSSProperties
       }
