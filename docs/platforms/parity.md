@@ -10,11 +10,11 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 |---|---|---|---|---|
 | Kit | this repository | [ourostack/ouro-ui-apple v1.10.1](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.10.1 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v1.10.1") | [ourostack/ouro-ui-android v0.12.1](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.12.1 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.12.1") | [ourostack/ouro-ui-windows v0.12.1](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.12.1 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.12.1") |
 
-Components: Web has 136 of 140, Apple has 21 of 140, Android has 27 of 140, Windows has 30 of 140.[^matrix]
+Components: Web has 137 of 141, Apple has 21 of 141, Android has 27 of 141, Windows has 30 of 141.[^matrix]
 
 Claims covered: Web 7 of 14, Apple 14 of 14, Android 7 of 14, Windows 7 of 14.[^matrix]
 
-Gap cells: 367.[^matrix]
+Gap cells: 370.[^matrix]
 
 ### Components
 
@@ -137,6 +137,7 @@ Gap cells: 367.[^matrix]
 | [family-footer](https://ui.ouroboros.bot/docs/family-footer/) | `family-footer` | Not yet | Not yet | Not yet |
 | [hero](https://ui.ouroboros.bot/docs/hero/) | `hero` | Not yet | Not yet | Not yet |
 | [porthole](https://ui.ouroboros.bot/docs/porthole/) | `porthole` | Not yet | Not yet | Not yet |
+| [ring-card](https://ui.ouroboros.bot/docs/ring-card/) | `ring-card` | Not yet | Not yet | Not yet |
 | [a2ui-surface](https://ui.ouroboros.bot/docs/a2ui-surface/) | `a2ui-surface` | Not yet | Not yet | Not yet |
 | [thread-rail](https://ui.ouroboros.bot/docs/thread-rail/) | `thread-rail` | Not yet | Not yet | Not yet |
 | [ouro-mcp-app](https://ui.ouroboros.bot/docs/ouro-mcp-app/) | `ouro-mcp-app` | Not yet | Not yet | Not yet |
