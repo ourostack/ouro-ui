@@ -111,6 +111,23 @@ describe("Alert", () => {
     expect(action.getBoundingClientRect().top).toBeGreaterThanOrEqual(description.getBoundingClientRect().bottom);
   });
 
+  it("keeps a title alone, or a title with a description and an action, in a column", async () => {
+    const alone = await render(<Alert title="Saved" />);
+    const body = alone.alert.querySelector("[data-slot='alert-body']")!.getBoundingClientRect();
+    // The body is the title's line and no more: no foot kept for an action that overhangs.
+    expect(body.height).toBeCloseTo(alone.alert.querySelector("[data-ouro-alert-title]")!.getBoundingClientRect().height, 0);
+    const full = await render(
+      <div style={{ width: "900px" }}>
+        <Alert title="Not saved" description="Check your connection." action={<Button size="sm">Try again</Button>} />
+      </div>,
+    );
+    const title = full.alert.querySelector("[data-ouro-alert-title]")!.getBoundingClientRect();
+    const description = full.alert.querySelector("[data-ouro-alert-description]")!.getBoundingClientRect();
+    const action = full.alert.querySelector("[data-ouro-alert-action]")!.getBoundingClientRect();
+    expect(description.top).toBeGreaterThanOrEqual(title.bottom);
+    expect(action.top).toBeGreaterThanOrEqual(description.bottom);
+  });
+
   it("puts an action beside a title with no description where they fit, and under it where they don't", async () => {
     const band = (width: string) => (
       <div style={{ width }}>
