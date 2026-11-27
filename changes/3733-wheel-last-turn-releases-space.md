@@ -1,0 +1,1 @@
+- Fixed: MessageList lets the space it kept above the first message, and the scroll range it held, go once a wheel rests at the very top when the turn that reached the top was the wheel's last, not only after a further turn of the wheel there.

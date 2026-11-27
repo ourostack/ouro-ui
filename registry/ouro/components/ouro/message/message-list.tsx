@@ -187,7 +187,8 @@ export interface MessageListOwnProps {
    * what the reader looks at by under a pixel in every frame; and a list opens at its end with no frame moving the row at the
    * view's top by more than a pixel. A wheel that takes the reader to the top faster than the rows above them came in moves
    * nothing either: where those rows came in shorter than the space kept for them and the top stops the scroll position, the
-   * difference stays as space above the first message while the wheel turns, and goes at once once it rests at the very top;
+   * difference stays as space above the first message while the wheel turns, and goes at once once it rests at the very top,
+   * when the turn that reached it was the wheel's last too;
    * only a rest short of the top, still in the space, keeps it, since letting it go there would move a message they can see.
    * A page of older messages that lands in a window already drawn commits once in the task it lands in, holding the reader's
    * row; its rows near the view but out of it draw in the frames after, 20 at most a frame, nearest the view first, and those
@@ -197,6 +198,7 @@ export interface MessageListOwnProps {
    * @claim "A page of older messages that lands in a window" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > commits once in the task a page of older messages lands in, holding the reader's row, and draws the page's rows the overscan reaches in later frames, a chunk at most a frame) verify:fileLine(registry/ouro/components/ouro/message/message-list-styles.ts, /const OLDER_CHUNK = 20;/)
    * @claim "A wheel that takes the reader to the top" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > holds the reader's row to the pixel as a wheel takes them past the top before the shorter rows above were paid, keeping the rest as space above the first message)
    * @claim "A wheel that takes the reader to the top" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > keeps the space above the first message while the wheel turns, and lets it go without moving anything once the reader is past it and the wheel rests) verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > lets the space above the first message go once the wheel rests at the top, with no need to scroll past it, so the first message sits right under the list's padding (#3733))
+   * @claim "when the turn that reached it was the wheel's last too" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > lets the space above the first message and the held scroll range go once a wheel that stopped at the top rests, with no further turn of the wheel)
    * @claim "renders no more than 20 of the" test/message-list-windowing.bench.test.tsx verify:testExists(test/message-list-windowing.bench.test.tsx::MessageList older page > renders about a fifth of the rows, not the list again, when a short list the reader scrolled up in takes 200 older rows and 360 newer in one commit)
    * @claim "moves what the reader looks at by under a pixel" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > moves no row the reader looks at by a pixel in any frame, scrolling up through 100 rows never drawn whose heights differ from the estimate by up to 40px)
    * @claim "opens at its end with no frame moving the row" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > opens a conversation of 300 rows of varied heights at its end, moving the row at the view's top by no more than a pixel in any frame)
@@ -1996,6 +1998,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const letGo = () => {
         if (!pinned.current && !turning()) moveFloor(0);
         release();
+        // Still turning, this pay cleared the rest that lets the space above the first message and the held range go: arm it
+        // again, as the turn that reached an end may be the wheel's last, and no other turn of the wheel will come to arm it.
+        if (turning()) rest();
       };
       // Stryker disable next-line ConditionalExpression,BlockStatement: paying nothing removes no translate and scrolls by 0, which moves nothing, and lets go as the rest of a pay does.
       if (by === 0) {

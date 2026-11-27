@@ -1444,6 +1444,20 @@ describe("MessageList windowing", () => {
     expect(content.offsetTop).toBe(0);
   });
 
+  it("lets the space above the first message and the held scroll range go once a wheel that stopped at the top rests, with no further turn of the wheel", async () => {
+    const { scroller, content, clock } = await wheelToTheTop();
+    await frame();
+    expect(content.offsetTop).toBeGreaterThan(1);
+    const floor = scroller.querySelector<HTMLElement>("[data-ouro-message-list-floor]")!;
+    expect(floor.style.display).toBe("block");
+    // The step that reached the top was the wheel's last: its scroll ends, as the browser says, and nothing more comes from the reader.
+    scroller.dispatchEvent(new Event("scrollend"));
+    clock.now += 10_000;
+    await expect.poll(() => content.offsetTop).toBe(0);
+    await expect.poll(() => floor.style.display).toBe("");
+    expect(scroller.scrollTop).toBe(0);
+  });
+
   /**
    * Twenty messages, drawn whole, the reader 60px down: the first, partly above the view, shrinks while the wheel turns, more than
    * the scroll position can take, so what the top stops is space above the first message. The wheel has not rested.
