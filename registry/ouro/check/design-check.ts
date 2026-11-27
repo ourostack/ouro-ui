@@ -14,14 +14,17 @@ import type { PageIssue } from "./size-check.ts";
 //                      size (a quarter, for its own item's picture, as a card's title under the card's picture): no room
 //                      to breathe between a title and the art before it. What follows a heading belongs to it, so the
 //                      space below isn't judged
-//   nested-frame       a frame drawn inside a frame: a framed box hugging another within a few pixels on every side (a
-//                      double border), or a rounded, filled or framed box whose child, with an edge of its own (a fill,
+//   nested-frame       a frame drawn inside a frame: a framed box hugging another within a few pixels on every side, or
+//                      a lighter framed surface inside it, or a rounded, filled or framed box whose child has an edge
+//                      of its own (a fill,
 //                      a frame, or a picture that runs to its corner, not an icon or a clear logo), sits in its corner
 //                      (under half the radius in) with a radius that isn't the outer radius less the inset, so the
 //                      corners don't nest
 //   doubled-line       two dividing lines side by side where one would separate: a divider (a border on some sides of
 //                      a box, an hr, a separator or a hairline fill) within a few pixels of another line, or of a
 //                      frame's edge, along most of its length, such as a list's last row's border over its card's
+//   cut-off-edge       scrollable content cut off before the window edge into the same surface, without a visible edge
+//   pane-edge          large adjoining panes split by a line, or with no step between their surface colours
 //   count-badge        a count on a small filled pill laid over an icon: clipped by a box around it, its numerals'
 //                      ink off the pill's middle by more than `badgeSlackPx`, or at another offset from its icon than
 //                      the page's other count badges on icons of that size
@@ -174,6 +177,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
   const px = (value: string) => parseFloat(value) || 0;
   const all = [...document.body.querySelectorAll("*")].filter((el) => !el.closest("svg, script, style, template, head") || el.tagName === "svg");
   const visible = all.filter(shown);
+  const visibleSet = new Set(visible);
   const hasText = (el: Element) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent!.trim());
 
   // Colours as the browser resolves them, through a canvas, so every syntax (color-mix, oklch, a keyword) reads alike.
@@ -208,6 +212,31 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       if (fill[3] >= 0.5) return fill;
     }
     return matchMedia("(prefers-color-scheme: dark)").matches && /dark/.test(getComputedStyle(document.documentElement).colorScheme) ? [18, 18, 18, 1] : [255, 255, 255, 1];
+  };
+  // The actual solid surface, with translucent fills composited over their ancestors. A picture, gradient, filter or
+  // faded ancestor cannot be represented by one colour, so an edge over it is not guessed.
+  const surfaceOf = (el: Element | null): [number, number, number] | null => {
+    const colour: [number, number, number] = [0, 0, 0];
+    let remaining = 1;
+    for (let n = el; n; n = n.parentElement) {
+      const s = getComputedStyle(n);
+      if (s.backgroundImage !== "none" || s.filter !== "none" || (s.backdropFilter && s.backdropFilter !== "none") || Number(s.opacity) < 0.999) return null;
+      const fill = rgba(s.backgroundColor);
+      const weight = remaining * fill[3];
+      for (let i = 0; i < 3; i++) colour[i]! += fill[i]! * weight;
+      remaining -= weight;
+      if (remaining < 0.001) return colour;
+    }
+    const canvas = matchMedia("(prefers-color-scheme: dark)").matches && /dark/.test(getComputedStyle(document.documentElement).colorScheme) ? 18 : 255;
+    return colour.map((channel) => channel + canvas * remaining) as [number, number, number];
+  };
+  const colourDistance = (a: number[], b: number[]) => Math.abs(a[0]! - b[0]!) + Math.abs(a[1]! - b[1]!) + Math.abs(a[2]! - b[2]!);
+  const visibleBorder = (el: Element, side: "top" | "right" | "bottom" | "left", surface: number[]) => {
+    const s = getComputedStyle(el);
+    if (/none|hidden/.test(s.getPropertyValue(`border-${side}-style`)) || px(s.getPropertyValue(`border-${side}-width`)) < 0.5) return false;
+    const ink = rgba(s.getPropertyValue(`border-${side}-color`));
+    const drawn = surface.map((channel, i) => ink[i]! * ink[3] + channel * (1 - ink[3]));
+    return colourDistance(drawn, surface) > 12;
   };
   const pictureLike = (el: Element) => el.matches("img, video, canvas, picture, svg, [role=img]") || (getComputedStyle(el).backgroundImage.includes("url(") && !el.textContent!.trim());
   // A page behind a gradient or a picture has no one colour to differ from, so no fill is judged against it.
@@ -352,8 +381,8 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     }
   }
 
-  // nested-frame: a frame hugging a frame, or corners that don't nest. An Ouro surface layer is its parent's own paint
-  // (where the engine has no corner-shape it draws the parent's fill and border), never a frame inside it.
+  // nested-frame: a frame hugging a frame, a lighter framed surface inside one, or corners that don't nest. An Ouro
+  // surface layer is its parent's own paint, never a frame inside it.
   const isLayer = (el: Element) => el.hasAttribute("data-ouro-surface") || el.hasAttribute("data-ouro-avatar-surface");
   const framed = visible.filter((el) => frameOf(el) !== null);
   const reported = new Set<Element>();
@@ -361,12 +390,22 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     if (optedOut(outer, "nested-frame")) continue;
     const o = outer.getBoundingClientRect();
     for (const inner of framed) {
-      if (inner === outer || !outer.contains(inner) || reported.has(inner) || isLayer(inner)) continue;
+      if (inner === outer || !outer.contains(inner) || reported.has(inner) || isLayer(inner) || optedOut(inner, "nested-frame")) continue;
       const i = inner.getBoundingClientRect();
+      const drawn = drawnRect(inner)!;
+      if (i.width < 48 || i.height < 32 || drawn.width < 2 || drawn.height < 2) continue;
       const insets = [i.top - o.top, o.right - i.right, o.bottom - i.bottom, i.left - o.left];
-      if (i.width >= 48 && i.height >= 32 && insets.every((d) => d >= -1 && d <= hugPx)) {
+      const hugs = insets.every((d) => d >= -1 && d <= hugPx);
+      const own = rgba(getComputedStyle(inner).backgroundColor);
+      const [surface, behind] = [surfaceOf(inner), surfaceOf(inner.parentElement)];
+      const lighter = own[3] > 0 && surface && behind && colourDistance(surface, behind) > 12 && hsl(surface).l > hsl(behind).l
+        && !inner.matches("button, input, select, textarea, [role=button]");
+      if (hugs || lighter) {
         reported.add(inner);
-        issues.push({ ref: ref(inner), rule: "nested-frame", element: `${describe(inner)} in ${describe(outer)}`, detail: `a frame drawn ${Math.round(Math.max(...insets))}px inside another: a double border` });
+        const detail = hugs
+          ? `a frame drawn ${Math.round(Math.max(...insets))}px inside another: a double border`
+          : "a lighter framed surface inside another frame: remove its border and use a step between theme surface tokens";
+        issues.push({ ref: ref(inner), rule: "nested-frame", element: `${describe(inner)} in ${describe(outer)}`, detail });
       }
     }
   }
@@ -514,6 +553,125 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
         const [first, second] = a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? [a.el, b.el] : [b.el, a.el];
         paired.add(a.el).add(b.el);
         issues.push({ ref: ref(second), rule: "doubled-line", element: `${describe(first)} and ${describe(second)}`, detail: `two ${across ? "horizontal" : "vertical"} lines ${Math.round(gap)}px apart where one separates: keep one, or space them apart` });
+      }
+    }
+  }
+
+  // cut-off-edge: a scrollable row that crosses the scrollport's edge into an indistinguishable surface. Read the
+  // current position without scrolling it, and judge only an edge the viewport and clipping ancestors actually show.
+  const sideNames = ["top", "right", "bottom", "left"] as const;
+  for (const el of visible) {
+    if (!(el instanceof HTMLElement) || optedOut(el, "cut-off-edge")) continue;
+    const s = getComputedStyle(el);
+    const scrollX = /auto|scroll/.test(s.overflowX) && el.scrollWidth > el.clientWidth + 1;
+    const scrollY = /auto|scroll/.test(s.overflowY) && el.scrollHeight > el.clientHeight + 1;
+    if ((!scrollX && !scrollY) || (s.maskImage && s.maskImage !== "none")) continue;
+    const surface = surfaceOf(el);
+    if (!surface) continue;
+    const box = el.getBoundingClientRect();
+    const drawn = drawnRect(el)!;
+    const scaleX = box.width / (el.offsetWidth || box.width);
+    const scaleY = box.height / (el.offsetHeight || box.height);
+    const left = box.left + el.clientLeft * scaleX;
+    const top = box.top + el.clientTop * scaleY;
+    const right = left + el.clientWidth * scaleX;
+    const bottom = top + el.clientHeight * scaleY;
+    const content = [...el.querySelectorAll("*")].filter((child) => {
+      if (!child.checkVisibility({ opacityProperty: true, visibilityProperty: true })) return false;
+      const cs = getComputedStyle(child);
+      return hasText(child) || child.matches("img, video, canvas, svg, input, textarea, button, [role=row], li") || rgba(cs.backgroundColor)[3] > 0 || frameOf(child) !== null;
+    });
+    const cut = sideNames.filter((side) => {
+      const horizontal = side === "top" || side === "bottom";
+      if (horizontal ? !scrollY : !scrollX) return false;
+      const edge = side === "top" ? top : side === "right" ? right : side === "bottom" ? bottom : left;
+      const limit = horizontal ? innerHeight : innerWidth;
+      if (edge <= 1 || edge >= limit - 1 || visibleBorder(el, side, surface)) return false;
+      if ((side === "top" && drawn.top > edge + 1) || (side === "bottom" && drawn.bottom < edge - 1)
+        || (side === "left" && drawn.left > edge + 1) || (side === "right" && drawn.right < edge - 1)) return false;
+      const crossing = content.some((child) => {
+        const r = child.getBoundingClientRect();
+        const d = drawnRect(child)!;
+        if (d.width < 1 || d.height < 1) return false;
+        return horizontal
+          ? r.top < edge - 0.5 && r.bottom > edge + 0.5 && d.top <= edge + 1 && d.bottom >= edge - 1 && r.right > left && r.left < right
+          : r.left < edge - 0.5 && r.right > edge + 0.5 && d.left <= edge + 1 && d.right >= edge - 1 && r.bottom > top && r.top < bottom;
+      });
+      if (!crossing) return false;
+      return [0.25, 0.5, 0.75].some((share) => {
+        const along = horizontal ? left + (right - left) * share : top + (bottom - top) * share;
+        const direction = side === "top" || side === "left" ? -1 : 1;
+        const [ix, iy] = horizontal ? [along, edge - direction * 2] : [edge - direction * 2, along];
+        const [ox, oy] = horizontal ? [along, edge + direction * 2] : [edge + direction * 2, along];
+        const inside = document.elementFromPoint(ix, iy);
+        const outside = document.elementFromPoint(ox, oy);
+        if (!inside || !el.contains(inside) || !outside || el.contains(outside)) return false;
+        const beyond = surfaceOf(outside);
+        return beyond !== null && colourDistance(surface, beyond) <= 12;
+      });
+    });
+    if (cut.length) {
+      issues.push({
+        ref: ref(el),
+        rule: "cut-off-edge",
+        element: describe(el),
+        detail: `content is clipped at the ${cut.join(" and ")} into the same surface: use a step between theme surface tokens`,
+      });
+    }
+  }
+
+  // pane-edge: sibling regions with a shared edge, not small controls or cards spaced apart. A separator can be a
+  // border on either pane or a hairline between them; a colour step without that line is the intended separation.
+  for (const parent of [document.body, ...visible]) {
+    const ps = getComputedStyle(parent);
+    const children = [...parent.children].filter((el) => visibleSet.has(el) && !isLayer(el));
+    if (!/flex|grid/.test(ps.display) && !children.some((el) => el.matches("aside, main, nav, [role=main], [role=complementary], [role=navigation]"))) continue;
+    const panes = children.filter((el) => {
+      const r = drawnRect(el)!;
+      return r.width >= 80 && r.height >= 80 && !el.matches("button, input, select, textarea, [role=button]");
+    });
+    for (const [index, a] of panes.entries()) {
+      for (const b of panes.slice(index + 1)) {
+        if (optedOut(a, "pane-edge") || optedOut(b, "pane-edge")) continue;
+        const [ar, br] = [drawnRect(a)!, drawnRect(b)!];
+        const directions = [
+          { first: a, second: b, f: ar, s: br, side: "right" as const, other: "left" as const, across: false },
+          { first: b, second: a, f: br, s: ar, side: "right" as const, other: "left" as const, across: false },
+          { first: a, second: b, f: ar, s: br, side: "bottom" as const, other: "top" as const, across: true },
+          { first: b, second: a, f: br, s: ar, side: "bottom" as const, other: "top" as const, across: true },
+        ];
+        const seam = directions.find(({ f, s, across }) => {
+          const gap = across ? s.top - f.bottom : s.left - f.right;
+          const overlap = across ? Math.min(f.right, s.right) - Math.max(f.left, s.left) : Math.min(f.bottom, s.bottom) - Math.max(f.top, s.top);
+          return gap >= -0.5 && gap <= 3 && overlap >= 160;
+        });
+        if (!seam) continue;
+        const { first, second, f, s, side, other, across } = seam;
+        const firstSurface = surfaceOf(first);
+        const secondSurface = surfaceOf(second);
+        const at = across ? f.bottom : f.right;
+        const from = across ? Math.max(f.left, s.left) : Math.max(f.top, s.top);
+        const to = across ? Math.min(f.right, s.right) : Math.min(f.bottom, s.bottom);
+        const gap = across ? s.top - f.bottom : s.left - f.right;
+        const separator = lines.some((line) => line.across === across && line.el.parentElement === parent
+          && line.el !== first && line.el !== second && line.near >= at - 1 && line.far <= at + gap + 1
+          && Math.min(line.to, to) - Math.max(line.from, from) >= 160);
+        const line = separator || (firstSurface !== null && visibleBorder(first, side, firstSurface))
+          || (secondSurface !== null && visibleBorder(second, other, secondSurface));
+        if ((!line && gap > 0.5) || (!line && (!firstSurface || !secondSurface || colourDistance(firstSurface, secondSurface) > 12))) continue;
+        const visibleSeam = [0.25, 0.5, 0.75].some((share) => {
+          const along = from + (to - from) * share;
+          const [fx, fy] = across ? [along, at - 2] : [at - 2, along];
+          const [sx, sy] = across ? [along, at + gap + 2] : [at + gap + 2, along];
+          const firstHit = document.elementFromPoint(fx, fy);
+          const secondHit = document.elementFromPoint(sx, sy);
+          return firstHit !== null && secondHit !== null && first.contains(firstHit) && second.contains(secondHit);
+        });
+        if (!visibleSeam) continue;
+        const detail = line
+          ? "large panes are split by a drawn line: remove the border and use a step between theme surface tokens"
+          : "large panes share the same surface: use a step between theme surface tokens, without a border";
+        issues.push({ ref: ref(second), rule: "pane-edge", element: `${describe(first)} and ${describe(second)}`, detail });
       }
     }
   }

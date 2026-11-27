@@ -192,6 +192,10 @@ describe("stories pass Ouro check's rules", () => {
     for (const { story: id, rule } of knownFindings) expect(ids, `${id} (${rule})`).toContain(id);
   });
 
+  it("keeps pane and cut-off edges out of the known findings", () => {
+    expect(knownFindings.filter(({ rule }) => rule === "pane-edge" || rule === "cut-off-edge")).toEqual([]);
+  });
+
   it.each(sliced(selectedStories, "stories: check"))("$id passes Ouro check's rules, except its known findings", async ({ id, Story }) => {
     await sweepStoryCheck({ id, Story, sizes: [[390, 844], [1280, 800]], schemes: ["light", "dark"], known: knownFor(knownFindings, id), restore: [390, 844] });
   }, storyScanTimeout);
