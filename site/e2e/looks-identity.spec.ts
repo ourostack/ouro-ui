@@ -10,6 +10,19 @@ const html = `<main>
   <button data-ouro-control="beta" data-ouro-part="trigger" style="padding: 12px 8px; font: 14px sans-serif">Beta</button>
 </main>`;
 
+test("toolbar item tones separate different looks and keep matching tones comparable", async ({ page }) => {
+  await page.goto("./docs/");
+  await page.evaluate(() => {
+    document.body.innerHTML = `<main>${["inverse", "inverse", "primary", "destructive", ""].map((tone) =>
+      `<button data-ouro="button" data-ouro-control="toolbar" data-ouro-part="button" data-tone="secondary" data-variant="plain"${tone ? ` data-ouro-toolbar-tone="${tone}"` : ""} style="width:40px;height:40px"></button>`
+    ).join("")}</main>`;
+  });
+  const { looks } = await page.evaluate(describe, { selector: LOOK_SELECTOR });
+  expect(looks).toHaveLength(5);
+  expect(looks[0]!.key).toBe(looks[1]!.key);
+  expect(new Set(looks.map((look) => look.key)).size).toBe(4);
+});
+
 test("a control that an island pushes down the document after the inventory keeps its look, hover and picture", async ({ page }) => {
   await page.goto("./docs/");
   await page.evaluate((markup) => { document.body.innerHTML = markup; }, html);
