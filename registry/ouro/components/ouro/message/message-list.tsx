@@ -312,6 +312,12 @@ export interface MessageListActions {
    * @claim "Goes to the newest message and follows" registry/ouro/components/ouro/message/message-list.windowing.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.windowing.test.tsx::MessageList windowing > jumps to the newest message from far up, and follows new messages again)
    */
   jumpToNewest(): void;
+  /**
+   * Holds the reader's place after the host changes the list's surroundings, before the next animation frame. At its
+   * end the list follows its end; while scrolled up it holds the message being read instead.
+   * @claim "Holds the reader's place after the host changes the list's surroundings" registry/ouro/components/ouro/message/message-list.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.test.tsx::MessageList > holds the reader's place synchronously when its host changes the room below)
+   */
+  holdPlace(): void;
 }
 
 /**
@@ -393,6 +399,21 @@ function childNamed(all: readonly ReactNode[], keys: readonly string[], target: 
 /** The key of the child a message is in, from its slot. */
 function slotKeyOf(item: Element): string {
   return item.closest(`[${SLOT}]`)!.getAttribute(SLOT)!;
+}
+
+/** Draws the content `px` up by what the wheel carries, on a layer of its own. */
+function drawCarried(content: HTMLElement, px: number): void {
+  content.style.translate = `0 ${-px}px`;
+  // On the scroller's own layer, moving the content repaints the conversation in each frame the wheel turns, and Chromium, rastering
+  // new tiles for those back-to-back commits, was seen to leave a raster task a commit waited on unrun: the commit never activated,
+  // and the page drew no frame again (ourostack/ouro-ui#3785).
+  content.style.willChange = "translate";
+}
+
+/** Draws the content where it is again, and gives back the layer `drawCarried` gave it. */
+function dropCarried(content: HTMLElement): void {
+  content.style.removeProperty("translate");
+  content.style.removeProperty("will-change");
 }
 
 /** The messages in `content`, leaving out any message inside another one. */
@@ -591,8 +612,6 @@ const STRETCH = 0.25;
 const ARMED = 250;
 /** How long, in ms, after a wheel turn the list leaves the reader's place unwritten, and past the frame it turned in: a scroll position set meanwhile stops the wheel's own scroll. */
 const WHEEL_REST = 80;
-/** At most how far, in px, a scroll at rest that neither the reader nor the list made is put back (onScroll's stray). */
-const STRAY_PX = 3;
 /** How long after the reader's last press, key or touch, or a scroll code asked for, a scroll at rest may still be theirs, in ms. */
 const INPUT_MS = 1000;
 /** A gap between a wheel's events shorter than this is the same turn of the wheel, its events waiting behind long frames; a longer one is a new turn. */
@@ -1214,6 +1233,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const endRef = useRef<HTMLSpanElement | null>(null);
   // The mark that holds the scroll height while the list follows its end (see the layout effect).
   const floorRef = useRef<HTMLSpanElement | null>(null);
+  // The mark that holds the scroll height down to the content's end between two holds of the reader's place (see keepAnchor).
+  const endMarkRef = useRef<HTMLSpanElement | null>(null);
   // Moves focus to a message, making it the Tab stop; set by the keyboard effect.
   const moveTo = useRef<(item: HTMLElement) => void>(undefined);
   const keyHandler = useRef<(event: KeyboardEvent<HTMLElement>) => void>(undefined);
@@ -1331,7 +1352,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // browser draws, so the view stays where it is, though code moved it before the browser reported the scroll.
       const from = indexes.get(String(edge.drawn))!;
       range = [from, Math.min(last, from + WINDOW_ABOVE)];
-    } else range = firstRange(keys.length, sizeOf, initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor), firstView);
+    } else {
+      const anchorIdx = initialAnchor === undefined ? -1 : childNamed(all, keys, initialAnchor);
+      range = firstRange(keys.length, sizeOf, anchorIdx, firstView);
+    }
     const kept: (number | undefined)[] = [last, indexes.get(focusKey!), reach === null ? undefined : indexes.get(reach.key)];
     // What just arrived after the newest heard, so it is heard, and what still streams, so its end is.
     const since = indexes.get(heard!) ?? last;
@@ -1580,6 +1604,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
 
   // Keeps the reader's place after messages came, went, moved or changed size: set by the effect below.
   const holdRef = useRef<() => void>(undefined);
+  // The message open() centred on, while its height above was still an estimate. Re-centred once (by hold(), below).
+  const openTargetRef = useRef<HTMLElement | null>(null);
   // How far the content is drawn up (a `translate`) to hold the reader's place while the wheel turns: what the scroll position
   // takes once the wheel rests, or before the reader reaches an end. Set by the effect below.
   const carriedRef = useRef(0);
@@ -1590,7 +1616,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Stryker disable next-line ConditionalExpression: with nothing carried, removing no translate and setting the carry to 0 again change nothing.
     if (carriedRef.current !== 0) {
       carriedRef.current = 0;
-      contentRef.current!.style.removeProperty("translate");
+      dropCarried(contentRef.current!);
     }
     const before = scroller.scrollTop;
     scroller.scrollTop = scroller.scrollHeight;
@@ -1609,6 +1635,34 @@ export function MessageList(props: MessageListProps): JSX.Element {
     toBottom();
     setShowJump(false);
   };
+
+  const inputAt = useRef(Number.NEGATIVE_INFINITY);
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current!;
+    // Code choosing a new place ends a hold, even when it chooses a nearby pixel. Native scroll feedback does not
+    // pass through the setter, so it is told apart by ownership, never by how many pixels it moved.
+    const previousTop = Object.getOwnPropertyDescriptor(scroller, "scrollTop");
+    const topProperty = previousTop ?? Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+    const setTop = (top: number) => {
+      held.current = false;
+      topProperty.set!.call(scroller, top);
+    };
+    Object.defineProperty(scroller, "scrollTop", {
+      configurable: true,
+      get: () => topProperty.get!.call(scroller),
+      set: setTop,
+    });
+    const onFocus = () => void (inputAt.current = performance.now());
+    scroller.addEventListener("focusin", onFocus, true);
+    return () => {
+      scroller.removeEventListener("focusin", onFocus, true);
+      if (Object.getOwnPropertyDescriptor(scroller, "scrollTop")?.set !== setTop) return;
+      if (previousTop) Object.defineProperty(scroller, "scrollTop", previousTop);
+      else Reflect.deleteProperty(scroller, "scrollTop");
+    };
+  },
+  // Stryker disable next-line ArrayDeclaration: a dependency list holding one constant has the same mount/unmount lifetime as an empty one.
+  []);
 
   // Open at the newest message (or at `initialAnchor`), then follow growth (new messages, streaming text, images
   // loading, the keyboard resizing the list) only while pinned. Layout effect and resize
@@ -1637,11 +1691,40 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // half a pixel is not made, so each correction's remainder goes into the next. Dropped, the remainders of a page of older
     // messages drawn a row a frame would add up, and the reader's place would creep.
     let owed = 0;
+    // Between two holds, a 1px mark keeps the scroll range down to where the content ended when its place was last kept. When the
+    // content gets shorter than the scroll position needs, for good (rows above coming in shorter than the space kept for them, by
+    // more than lies below the view) or for a moment in a commit (the window takes out a space before it puts the rows in, and
+    // WebKit can lay the page out between), the browser would pull the scroll position up at the next layout, before the hold has
+    // corrected it; the hold, which reads where each message sits in the content, would take that pull for the reader's own scroll
+    // and leave the row being read moved by it (ourostack/ouro-ui#3892). Held, the place stays until the hold has kept it, and
+    // keepAnchor then moves the mark to where the content ends now, so content truly shorter than the view still pulls the scroll
+    // position up. The mark moves only when the content's end does, not as the reader scrolls.
+    const endMark = endMarkRef.current!;
+    let endHeld = 0;
+    const holdEnd = (px: number) => {
+      // Stryker disable next-line ConditionalExpression: only spares writing the values the mark already holds.
+      if (px === endHeld) return;
+      endHeld = px;
+      // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral: a mark at the very top holds no range the content does not, in the layout or out of it.
+      endMark.style.display = px > 0 ? "block" : "";
+      endMark.style.top = `${Math.max(0, px - 1)}px`;
+    };
+    // Where the content ends, in the scroller's own coordinates: below the space kept above the first message, if any.
+    const contentEnd = () => content.offsetTop + content.offsetHeight;
+    // Stryker disable next-line ArrowFunction,ConditionalExpression,StringLiteral: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
+    const browserAnchors = () => getComputedStyle(scroller).overflowAnchor === "auto";
     const keepAnchor = () => {
       // Hidden by an app around it (a pane put away behind an open thread), the scroller reads all zeros: reading it now
       // would make the list think it sits at the top, and a message that arrives meanwhile would be lost once it shows
       // again. Left alone, what was taken before it was hidden is still good once it is shown and the resize observer runs.
       if (!laidOut(scroller)) return;
+      // Where an app turned the browser's own anchoring on, the mark is not moved, which would stop WebKit's: it goes only once
+      // the content has come up past it, where letting it go is a change the browser's own clamp would make anyway.
+      const anchoring = browserAnchors();
+      // Stryker disable next-line ConditionalExpression: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
+      if (!anchoring) holdEnd(contentEnd());
+      // Stryker disable next-line EqualityOperator,LogicalOperator,ConditionalExpression: a mark exactly at the content's end holds nothing past it, gone or not, and where the browser does not anchor the line above has just put it there; and Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
+      if (anchoring && endHeld > contentEnd()) holdEnd(0);
       const view = scroller.getBoundingClientRect();
       // Finds the anchors among the nodes, in the order they come in the page.
       const find = (nodes: readonly Element[]) => {
@@ -1787,6 +1870,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
       }
       // In the middle of the view, or its top at the view's top when it is taller. The springs are at rest as it opens.
       centre(target);
+      // Heights above it may still be estimates: hold(), below, re-centres on this once they are known.
+      openTargetRef.current = target;
       // Held from here, so older messages loading before the browser reports this scroll leave it where it opened, and
       // following only if it opened at the end (the anchor was the newest).
       keepAnchor();
@@ -1865,9 +1950,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // hands a wheel's scroll over in steps of hundreds of pixels) would otherwise see the content jump up by that part. It sits
     // above the content as a margin, so where each message sits in the content, which the anchors and the window read, stays.
     const setSlack = (px: number) => {
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: moving the mark to where it already is writes nothing, and a list whose space changed and whose mark stayed has it moved by the keepAnchor that follows every change of the space.
+      const moved = px !== slack;
       slack = px;
       content.style.marginBlockStart = `${px}px`;
       placeFloor();
+      // The mark held the content's end where the space put it: it follows the end.
+      // Only a pay makes space, and nothing is paid where the browser anchors.
+      // Stryker disable next-line ConditionalExpression,CallExpression: the keepAnchor that follows every change of the space moves the mark to the content's end as well.
+      if (moved) holdEnd(contentEnd());
     };
     // Scrolls the list by `by` itself, which the springs leave alone, and returns how far it went.
     const scrollOwn = (by: number) => {
@@ -1903,14 +1994,25 @@ export function MessageList(props: MessageListProps): JSX.Element {
         if (!pinned.current && !turning()) moveFloor(0);
         release();
       };
-      // Stryker disable next-line ConditionalExpression: paying nothing removes no translate and scrolls by 0, which moves nothing.
-      if (by === 0) return letGo();
+      // Stryker disable next-line ConditionalExpression,BlockStatement: paying nothing removes no translate and scrolls by 0, which moves nothing, and lets go as the rest of a pay does.
+      if (by === 0) {
+        // Stryker disable next-line CallExpression,StringLiteral: with nothing carried there is a translate only where a carry and a change cancelled to the pixel, which draws the content where it is.
+        dropCarried(content);
+        return letGo();
+      }
       const wheeling = turning();
-      content.style.removeProperty("translate");
       const before = scroller.scrollTop;
+      // The translate holds the scroll range where it draws the content past the content's end: the mark holds it down to the view's
+      // bottom instead while the translate goes and the scroll position takes it, so a carry the content came up by (rows above coming
+      // in shorter) is not pulled up by the browser first (ourostack/ouro-ui#3892). Where the browser anchors, hold() leaves the correction
+      // to it and carries nothing, so this never runs there.
+      holdEnd(Math.max(endHeld, before + scroller.clientHeight));
+      dropCarried(content);
       // In whole pixels: WebKit drops the fraction of a scroll position written to it, so a carry of 3,499.99 px moved the
       // reader's place a whole pixel there (ourostack/ouro-ui#2648).
       const applied = scrollOwn(Math.round(by));
+      // Stryker disable next-line CallExpression: left where it held the view, the mark is moved to the content's end by the keepAnchor the write's scroll event brings.
+      holdEnd(contentEnd());
       // A scroll position written while the wheel turns may land in part there, and the rest settles frames later against the
       // reader. Where no end stopped the write, what has not landed stays carried, drawn by the translate, until a later write lands it.
       const top = scroller.scrollTop;
@@ -1919,7 +2021,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // Stryker disable next-line EqualityOperator: a part of exactly one pixel kept carried or paid with the next write moves nothing on screen that WebKit shows, which keeps whole pixels.
       if (Math.abs(unlanded) >= 1) {
         carriedRef.current = unlanded;
-        content.style.translate = `0 ${-unlanded}px`;
+        drawCarried(content, unlanded);
         // Stryker disable next-line AssignmentOperator: the scroll event the write brings takes the anchors again, so `taken` is read stale only in the task of the write, as everywhere else it is paid.
         taken += applied;
         return rest();
@@ -1941,7 +2043,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     };
     const carry = (by: number) => {
       carriedRef.current += by;
-      content.style.translate = `0 ${-carriedRef.current}px`;
+      drawCarried(content, carriedRef.current);
       if (nearEnd()) pay();
       else rest();
     };
@@ -1969,8 +2071,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     scroller.addEventListener("wheel", onWheel, { passive: true });
     // When the reader last did something that may scroll the list, besides the wheel (turning), or code asked the list to scroll
     // (scrollTo, scrollBy: a find's smooth scroll to its match, an app's own), which may take frames to get there.
-    let inputAt = Number.NEGATIVE_INFINITY;
-    const onInput = () => void (inputAt = performance.now());
+    const onInput = () => void (inputAt.current = performance.now());
     // Stryker disable next-line BooleanLiteral: passive only tells the browser these listeners never cancel the event; onInput never calls preventDefault, so no test can observe it.
     for (const type of ["pointerdown", "keydown", "touchstart"]) scroller.addEventListener(type, onInput, { capture: true, passive: true });
     const asked = (name: "scrollTo" | "scrollBy") => {
@@ -1982,8 +2083,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     asked("scrollBy");
     // hold()'s write is put back to only until the frame after next: a stray comes in the frame after it, and a scroll later is another's.
     let disarm = 0;
-    const armHeld = () => {
-      held.current = true;
+    const armHeld = (applied: number) => {
+      held.current = applied !== 0;
       // Stryker disable next-line CallExpression: hold() writes again within two frames only in the frame it wrote, whose disarm comes in the same frame either way.
       cancelAnimationFrame(disarm);
       disarm = requestAnimationFrame(() => (disarm = requestAnimationFrame(() => (held.current = false))));
@@ -1991,6 +2092,18 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const hold = () => {
       // A list unmounted before this ran has no scroller left to hold.
       if (scrollerRef.current === null) return;
+      // Re-centres once real heights replace the estimate open() centred on; keepAnchor() refreshes the baseline so
+      // the anchor correction below (same call) finds nothing left to correct.
+      if (openTargetRef.current !== null) {
+        const target = openTargetRef.current;
+        openTargetRef.current = null;
+        if (target.isConnected) {
+          centre(target);
+          // Stryker disable next-line all: the same guard as the place check below, which keeps only a pixel or two of overflow from reading as the end.
+          if (placed !== null) placed = scroller.scrollTop;
+          keepAnchor();
+        }
+      }
       // Away from the bottom, by a scroll the scroll event has not reported yet (code scrolled to a message, a key), stops the following.
       // A list at the old bottom follows. One that was following keeps on when its end came up, though something grew below
       // in the same frame: the browser pulled the scroll down, the reader did not scroll. One the bottom came up to that was
@@ -2039,7 +2152,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         if (Math.abs(moved) >= 0.5 && carriedRef.current !== 0) {
           owed = 0;
           carriedRef.current += moved;
-          content.style.removeProperty("translate");
+          // pay() takes the translate away itself, holding the range as it does.
           pay();
           return keepAnchor();
         }
@@ -2048,8 +2161,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
           const before = scroller.scrollTop;
           scroller.scrollTop += moved;
           ownTop.current = heldTop.current = scroller.scrollTop;
-          armHeld();
           const applied = scroller.scrollTop - before;
+          armHeld(applied);
           springsRef.current?.moved(applied);
           // What rounding left over, carried: under a pixel. A move the browser did not apply in full (the list's end or start stopped it, smooth scrolling or snapping took it) is not a debt a later write can pay.
           owed = Math.abs(moved - applied) < 1 ? moved - applied : 0;
@@ -2103,14 +2216,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = (event: Event) => {
-      // Just after hold() kept the reader's place, with nothing from the reader since (a wheel, a touch, a key, a press, the scrollbar's
-      // too), a scroll of a few pixels the list didn't write is none of the reader's: Chromium sometimes moves the scroll position a
-      // pixel or two by itself in the frame after hold() wrote it through rows measured above the view, which moves what the reader is
-      // reading. The list puts hold()'s position back. It stays the place to put back to through the scroll event its write brings, as
-      // the stray move comes a frame later.
+      // Just after hold() kept the place, a native scroll with no input is feedback from that layout, not a new place
+      // chosen by the reader or code. Chromium can coalesce several pixels of it into one event. The hold lasts through
+      // its own scroll event, until the frame after next; input, focus and explicit writes always end it first.
       const stray = scroller.scrollTop - heldTop.current;
-      // Stryker disable next-line EqualityOperator: a stray of exactly STRAY_PX is put back or kept, a pixel either way.
-      if (stray !== 0 && Math.abs(stray) <= STRAY_PX && held.current && !turning() && performance.now() - inputAt > INPUT_MS) {
+      if (stray !== 0 && held.current && !turning() && performance.now() - inputAt.current > INPUT_MS) {
         scrollOwn(-stray);
         return;
       }
@@ -2631,6 +2741,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         });
       },
       jumpToNewest: toNewest,
+      holdPlace: () => holdRef.current!(),
     }),
   );
 
@@ -3169,6 +3280,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
               in the bar (Tab, the arrows) reaches the list's keyboard handling as a key in its message would. */}
           {Layer && <Layer scroller={scrollerRef} layer={layer} />}
           <span ref={floorRef} aria-hidden="true" data-ouro-message-list-floor="" className="pointer-events-none absolute start-0 top-0 hidden size-px" />
+          <span ref={endMarkRef} aria-hidden="true" data-ouro-message-list-end-mark="" data-slot="message-list-end-mark" className="pointer-events-none absolute start-0 top-0 hidden size-px [overflow-anchor:none]" />
         </div>
         {/* There only while the scroller has focus: at rest nothing lies over the content, so a contrast check sees the text's own background. */}
         <span

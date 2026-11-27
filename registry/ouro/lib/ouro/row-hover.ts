@@ -84,6 +84,8 @@ let pointerAt: { x: number; y: number } | null = null;
 // The events of a pointer that has not moved: as the page changes under a resting mouse, the browser hit-tests it again
 // and sends pointerover (WebKit, a moment later, pointermove too) where it already was. The page moved, not the person.
 const resting = new WeakSet<Event>();
+// What the pointer last moved onto itself: a row drawn under a pointer that has stayed still is not one it went to.
+let movedOnto: Element | null = null;
 const still = (event: PointerEvent) => event.clientX === pointerAt?.x && event.clientY === pointerAt.y;
 /* istanbul ignore else @preserve -- the else path is server rendering, which has no document */
 // Stryker disable next-line ConditionalExpression,StringLiteral: on a server there is no page to listen to, and every browser the tests run in has a document, so the server branch cannot be reached.
@@ -99,17 +101,27 @@ if (typeof document !== "undefined") {
     (event) => {
       // Stryker disable next-line ConditionalExpression,CallExpression: Chromium, where the mutants run, sends no pointermove for a pointer that has not moved; the WebKit runs of the tests hold it.
       if (still(event)) resting.add(event);
+      else movedOnto = event.target instanceof Element ? event.target : null;
       // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral: a finger leaves nothing resting; no browser test can move a touch pointer without lifting it.
       pointerAt = event.pointerType === "touch" ? null : { x: event.clientX, y: event.clientY };
     },
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: capture marks WebKit's pointermove for a pointer that has not moved before the list sees it, which Chromium, where the mutants run, never sends (the WebKit runs of the tests hold it); passive only says the listener never cancels the event.
     { capture: true, passive: true },
   );
+  // A press is the person's too: a click on a row drawn under a pointer that stayed still goes to that row.
+  document.addEventListener("pointerdown", (event) => void (movedOnto = event.target as Element | null), {
+    capture: true,
+    // Stryker disable next-line BooleanLiteral: passive only tells the browser the listener never cancels the event.
+    passive: true,
+  });
   // A pointer that left the page rests on nothing: a list drawn later must not show its layer under where it left.
   document.addEventListener(
     "pointerout",
     (event) => {
-      if (event.relatedTarget === null) pointerAt = null;
+      if (event.relatedTarget === null) {
+        pointerAt = null;
+        movedOnto = null;
+      }
     },
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: capture and passive only order the listener and say it never cancels the event; a pointerout reaches the document in either phase.
     { capture: true, passive: true },
@@ -256,8 +268,9 @@ function listenOn<T>(root: HTMLElement, layer: RowLayer<T>, { live, menuRef, api
   };
   // Held for a menu that opens: hidden in the same update as the menu, so opening it draws once.
   api.current = { hide, hold: (on) => ((held = on), on && show(null, null, false, false)) };
-  // Focus already in a row, from the keyboard, as the layer arrives; else the pointer already resting on one (the
-  // layer's code came after the pointer did, and a pointer that stays still sends nothing more).
+  // Focus already in a row, from the keyboard, as the layer arrives; else the pointer already resting on one it moved
+  // onto (the layer's code came after the pointer did, and a pointer that stays still sends nothing more). Not a row
+  // drawn under a pointer that stayed still: the page moved, not the person, as for `over`; its first move shows it.
   const focused = rowOf(doc.activeElement);
   // pointerAt is only ever set by a real event, but nothing clears it when the pointer leaves with
   // no event the page can see (parked off the viewport between tests; a real tab or window switch).
@@ -265,12 +278,15 @@ function listenOn<T>(root: HTMLElement, layer: RowLayer<T>, { live, menuRef, api
   // a row that moved under a pointer that stayed still keeps matching it, and a pointerAt the
   // pointer already left never does.
   const hit = pointerAt === null ? null : doc.elementFromPoint(pointerAt.x, pointerAt.y);
-  const under = hit !== null && hit.matches(":hover") ? rowOf(hit) : null;
+  const pointed = hit !== null && hit.matches(":hover") ? rowOf(hit) : null;
+  const under = pointed !== null && pointed.contains(movedOnto) ? pointed : null;
   // Stryker disable next-line ConditionalExpression: row and via are freshly null at the top of this effect, so forcing this guard true when focused is actually null calls show(null, "focus", false), which show's own (next === row && to === via) guard already turns into a no-op.
   if (focused !== null && lastInput() === "keyboard") show(focused, "focus", false);
   else {
     // Stryker disable next-line ConditionalExpression,StringLiteral,LogicalOperator: a touch's lingering hover is the tap handler's to decide; no browser test can make one before the layer arrives. Forcing the whole condition true calls show(null, "pointer", false) when under is null, which is a no-op: row and via are freshly null at the top of this effect, so show's own (next === row && to === via) guard already returns before anything happens.
     if (under !== null && lastInput() !== "touch") show(under, "pointer", false);
+    // A row drawn under the pointer shows on the pointer's first move, as one `over` turned away does.
+    else if (pointed !== null) root.addEventListener("pointermove", over);
   }
 
   root.addEventListener("pointerover", over);

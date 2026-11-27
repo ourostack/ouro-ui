@@ -179,6 +179,15 @@ const runsTests = (step) => /\bvitest\b|\bplaywright\b|scripts\/install-test\.sh
 const jobBlock = (workflow, id) => workflow.split("\njobs:\n")[1]?.split(/\n(?= {2}[\w-]+:\n)/).find((candidate) => candidate.startsWith(`  ${id}:`));
 
 /**
+ * Whether a job failed because the runner could not pull its container image from the registry (a
+ * timeout reaching mcr.microsoft.com, say), before any of its steps ran: its only failed step is
+ * "Initialize containers" and its log says the pull failed.
+ */
+export function failedPull(job) {
+  return job.conclusion === "failure" && job.failedSteps.length === 1 && job.failedSteps[0] === "Initialize containers" && /Docker pull failed with exit code/.test(job.log ?? "");
+}
+
+/**
  * A job is explained when its failure is quarantined, open, unexpired tests alone, or a gate (a
  * job whose failing step reads only such jobs' results) on such jobs. Shared by `retryPlan`, which
  * explains a failure across one or more completed runs so it may rerun them, and `judgeOwnRun`,
@@ -191,9 +200,10 @@ const jobBlock = (workflow, id) => workflow.split("\njobs:\n")[1]?.split(/\n(?= 
  * caller that judges several failing jobs collects every reason and every quarantined failure
  * found, together.
  */
-function makeExplainer(entries) {
+function makeExplainer(entries, { pullRetry = false } = {}) {
   const problems = [];
   const retried = [];
+  const pulls = [];
   const explained = new Map();
   const explain = (run, job, graph, seen = new Set()) => {
     const key = `${run.id}/${job.id}`;
@@ -221,6 +231,10 @@ function makeExplainer(entries) {
       ok = upstreamExplained(new Set(node.needs));
     } else if (job.conclusion !== "failure") {
       problems.push(`${job.name} (run ${run.id}) is ${job.conclusion || "not finished"}, not a test failure`);
+    } else if (pullRetry && failedPull(job)) {
+      // The runner could not pull the job's container image: no step of the job ran, so a rerun of it tests exactly what the first attempt would have.
+      ok = true;
+      pulls.push({ run: run.id, job: job.name, url: job.url });
     } else if (found.tests.length > 0) {
       const block = node ? jobBlock(run.workflow, node.id) : undefined;
       const step = block && job.failedSteps.length === 1 ? stepBlock(block, job.failedSteps[0]) : "";
@@ -270,7 +284,7 @@ function makeExplainer(entries) {
     explained.set(key, ok);
     return ok;
   };
-  return { explain, problems, retried };
+  return { explain, problems, retried, pulls };
 }
 
 /**
@@ -284,16 +298,16 @@ function makeExplainer(entries) {
 export function retryPlan({ runs, contexts, entries }) {
   const failing = contexts.filter((context) => !passes(context, runs.flatMap((run) => run.jobs.filter((job) => job.name === context).map((job) => job.conclusion))));
   if (failing.length === 0) return { retry: false, problems: ["no check failed"], retried: [] };
-  const { explain, problems, retried } = makeExplainer(entries);
+  const { explain, problems, retried, pulls } = makeExplainer(entries, { pullRetry: true });
   for (const context of failing) {
     const instances = runs.flatMap((run) => run.jobs.filter((job) => job.name === context && job.conclusion !== "success").map((job) => ({ run, job })));
     if (instances.length === 0) problems.push(`${context} is not in the runs`);
     for (const { run, job } of instances) explain(run, job, jobGraph(run.workflow));
   }
   for (const run of runs) {
-    if (run.attempt > 1 && retried.some((entry) => entry.run === run.id)) problems.push(`run ${run.id} is already on attempt ${run.attempt}: a quarantined test is retried only once`);
+    if (run.attempt > 1 && (retried.some((entry) => entry.run === run.id) || pulls.some((pull) => pull.run === run.id))) problems.push(`run ${run.id} is already on attempt ${run.attempt}: a quarantined test is retried only once (a failed image pull too)`);
   }
-  return { retry: problems.length === 0 && retried.length > 0, problems, retried };
+  return { retry: problems.length === 0 && retried.length + pulls.length > 0, problems, retried, pulls };
 }
 
 /**
@@ -414,9 +428,10 @@ async function retry(args, { dryRun = false } = {}) {
   }
   const by = process.env["GITHUB_RUN_ID"] ? `${process.env["GITHUB_SERVER_URL"]}/${repo}/actions/runs/${process.env["GITHUB_RUN_ID"]}` : undefined;
   const summary = process.env["GITHUB_STEP_SUMMARY"];
-  for (const id of new Set(plan.retried.map((retried) => retried.run))) {
+  for (const id of new Set([...plan.retried, ...plan.pulls].map((retried) => retried.run))) {
     const before = runs.find((run) => run.id === id).attempt;
     const ofRun = plan.retried.filter((retried) => retried.run === id);
+    const pullsOfRun = plan.pulls.filter((pull) => pull.run === id);
     // Recorded as retried only once GitHub has accepted the rerun.
     if (gh(["run", "rerun", id, "--repo", repo, "--failed"], { allowFail: true }) === undefined) {
       for (const retried of ofRun) {
@@ -424,7 +439,13 @@ async function retry(args, { dryRun = false } = {}) {
         console.log(`::error title=Quarantined test not retried::${line}`);
         if (summary) appendFileSync(summary, `- ${line}\n`);
       }
+      for (const pull of pullsOfRun) console.log(`::error title=Image pull not retried::Retry requested but the rerun failed: ${pull.job} could not pull its image (${pull.url}).`);
       return 1;
+    }
+    for (const pull of pullsOfRun) {
+      const line = `Retried once, as its container image could not be pulled: ${pull.job} (${pull.url}).${by ? ` By ${by}.` : ""}`;
+      console.log(`::warning title=Image pull retried::${line}`);
+      if (summary) appendFileSync(summary, `- ${line}\n`);
     }
     for (const retried of ofRun) {
       const line = record(retried, by);

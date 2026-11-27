@@ -1500,8 +1500,13 @@ describe("Dialog and the page's scroll", () => {
     document.documentElement.style.scrollBehavior = "smooth";
     document.querySelector<HTMLElement>('[data-ouro="button"]')!.focus({ preventScroll: true });
     const arrowScroll = scrollEnd();
+    const scrollStarted = new Promise<boolean>((resolve) => {
+      window.addEventListener("scroll", () => resolve(true), { once: true });
+      // real clock: WebKit sends no scroll at all for a synthetic arrow key, so none is waited for past this
+      setTimeout(() => resolve(false), 500);
+    });
     await userEvent.keyboard("{ArrowDown}");
-    await arrowScroll;
+    if (await scrollStarted) await arrowScroll;
     window.scrollTo({ top: 1500, behavior: "instant" });
     await frame();
     await frame();

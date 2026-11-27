@@ -128,7 +128,7 @@ describe("OuroProvider and useOuro", () => {
     const mutationDisconnect = vi.spyOn(MutationObserver.prototype, "disconnect");
     await mount(<OuroProvider>content</OuroProvider>);
     await expect.poll(() => mutationObserve.mock.calls.length).toBe(1);
-    expect(mutationObserve).toHaveBeenCalledExactlyOnceWith(document.documentElement, { childList: true, subtree: true });
+    expect(mutationObserve).toHaveBeenCalledExactlyOnceWith(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
     // The provider's own gate reaches the import exactly once: it is what decides whether the chunk loads at all.
     expect(installSquircleCapsules).toHaveBeenCalledExactlyOnceWith(document);
     // The watcher is the fallback for exactly these two features, checked by their exact names. Positional,

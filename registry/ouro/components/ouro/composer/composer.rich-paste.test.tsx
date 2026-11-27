@@ -135,12 +135,23 @@ describe("Composer rich paste", () => {
     expect(document.activeElement).toBe(editor);
   });
 
-  it("asks nothing with the caret alone, or in a read-only box", async () => {
-    const editor = await render(rich({ defaultValue: "read this" }));
+  it("asks for a link with just the caret too, the typed address becoming the new link's own text", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ onValueChange: (value: string) => void seen.push(value) }));
     editor.focus();
     await key(editor, { key: "k", metaKey: true });
-    expect(linkForm()).toBeNull();
+    await expect.poll(linkForm).not.toBeNull();
+    await userEvent.type(addressField(), "https://w.test/");
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => seen.at(-1)).toBe("[https://w.test/](https://w.test/)");
+    await expect.poll(linkForm).toBeNull();
+  });
+
+  it("asks nothing in a read-only box, caret alone or with a selection", async () => {
     const fixed = await render(rich({ defaultValue: "read this", readOnly: true }));
+    fixed.focus();
+    await key(fixed, { key: "k", metaKey: true });
+    expect(linkForm()).toBeNull();
     await selectAll(fixed);
     await key(fixed, { key: "k", metaKey: true });
     expect(linkForm()).toBeNull();
@@ -345,11 +356,9 @@ describe("Composer rich paste", () => {
     await expect.poll(() => seen.at(-1)).toBe("[words](https://y.test/)");
   });
 
-  it("leaves the text alone when ⌘K has no selection, no answer or an unsafe one, and in a read-only box", async () => {
+  it("leaves the text alone when ⌘K has no answer or an unsafe one, and in a read-only box", async () => {
     const editor = await render(rich({ defaultValue: "words" }));
     editor.focus();
-    await key(editor, { key: "k", metaKey: true });
-    expect(linkForm()).toBeNull();
     await selectAll(editor);
     // Shift or Alt held with the mod key is not the shortcut, so it opens no popover.
     await key(editor, { key: "k", metaKey: true, shiftKey: true });

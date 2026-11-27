@@ -36,7 +36,7 @@ import { claim } from "../registry/ouro/lib/ouro/claims.ts";
 import { vendored } from "./vendored.mjs";
 import { APP_SETUP, groupOrder } from "./catalog-groups.mts";
 import { componentsDir, pascal, readComponents } from "./components.mts";
-import { trackedFiles, uncommitted } from "./generated-files.mjs";
+import { trackedFiles, uncommitted, uncommittedGlobs } from "./generated-files.mjs";
 import { spawnSync } from "node:child_process";
 import { pageTitle, summary } from "./docs-summary.mts";
 import { axDocs } from "./ax-docs.mts";
@@ -859,8 +859,10 @@ const strayIn = (dir: string) =>
 const stray = existsSync(docsDir) ? [...strayIn("docs"), ...strayIn("docs/ax")] : [];
 
 // In this checkout, the outputs main does not commit are build products: always written, never compared.
-const tracked = new Set(outRoot === root ? trackedFiles(root) : []);
-const writtenAlways = new Set(outRoot === root ? uncommitted.filter((path) => outputs.has(path) && !tracked.has(path)) : []);
+const tracked = new Set(outRoot === root ? [...trackedFiles(root), ...trackedFiles(root, uncommittedGlobs)] : []);
+const writtenAlways = new Set(
+  outRoot === root ? [...uncommitted, ...[...outputs.keys()].filter((path) => /^docs\/[^/]+\.md$/.test(path))].filter((path) => outputs.has(path) && !tracked.has(path)) : [],
+);
 const writeAlways = () => {
   for (const path of writtenAlways) {
     const file = join(outRoot, path);
