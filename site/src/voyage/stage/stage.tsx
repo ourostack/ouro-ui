@@ -70,6 +70,13 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   const [lights, setLights] = useState(false);
   const [speed, setSpeed] = useState<Speed>("half");
   const [log, setLog] = useState<Entry[]>(() => OPENING_LOG.map((line, index) => ({ ...line, id: index })));
+  // When the depth, the tanks, a dive, the lights, the speed or the bell last changed: each handler that
+  // changes one of them marks it, in the same synchronous call that changes the value, rather than reading
+  // performance.now() where the picture's own commit happens (useAfterPaint delays that by a frame and a task,
+  // independently for each change), which would let two changes close together land with a gap that has
+  // nothing to do with how far apart they really were (stepping.ts).
+  const [changedAt, setChangedAt] = useState(0);
+  const markChanged = useStable(() => setChangedAt(performance.now()));
   const nextId = useRef(OPENING_LOG.length);
   const depthAtLastLog = useRef(0);
   const root = useRef<HTMLDivElement>(null);
@@ -141,6 +148,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
       // CI's WebKit (ourostack/ouro-ui#667) inside the window meant for the switch's own settle (ourostack/ouro-ui#728).
       flushSync(() => {
         if (slow) {
+          markChanged();
           setSpeed("stop");
           appendLog(LOG.stillWater);
         }
@@ -192,7 +200,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
       document.removeEventListener("visibilitychange", soon);
       menu.disconnect();
     };
-  }, [paced, offscreen, speed]);
+  }, [paced, offscreen, speed, markChanged]);
   // A press on the stage means they are playing. Its listeners stay for the stage's life: taken off as the verdict committed,
   // they cost CI's WebKit a frame of 300 to 700 ms (ourostack/ouro-ui#667).
   useEffect(() => {
@@ -208,6 +216,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   }, []);
 
   const onDepth = useStable((value: number) => {
+    markChanged();
     // Going down sends up a stream of bubbles.
     if (value > depth) setStream((count) => (value - depth >= 20 || count === 0 ? count + 1 : count));
     setDepth(value);
@@ -218,6 +227,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     depthAtLastLog.current = value;
   });
   const onTank = useStable((id: TankId, on: boolean) => {
+    markChanged();
     const next = { ...tanks, [id]: on };
     setTanks(next);
     const tank = TANKS.find((entry) => entry.id === id)!;
@@ -233,6 +243,7 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
   // The ship moves and the button turns at once; the porthole's descent and the emptied tanks
   // follow as a transition, so the press paints first.
   const onDive = useStable(() => {
+    markChanged();
     if (dived) {
       setDived(false);
       startTransition(() => {
@@ -249,15 +260,18 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
     }
   });
   const onLights = useStable((on: boolean) => {
+    markChanged();
     setLights(on);
     write(on ? (dived ? LOG.lightsOnDeep : LOG.lightsOn) : LOG.lightsOff);
   });
   const onSpeed = useStable((value: Speed) => {
+    markChanged();
     setPaced(true);
     setSpeed(value);
     write(LOG.speed[value]);
   });
   const onBell = useStable(() => {
+    markChanged();
     const line = LOG.bell[rings % LOG.bell.length]!;
     setRings((count) => count + 1);
     // The crew answers in turn, in its own line under the porthole, once the bell has swung: the
@@ -268,7 +282,9 @@ export function Stage({ onXray }: { onXray: () => void }): JSX.Element {
 
   // The picture follows the controls once the press has painted (useAfterPaint), so no press waits
   // on the porthole's repaint.
-  const scene = useAfterPaint(useMemo(() => ({ depth, band, tanks: full, dived, lights, speed, dives: stream, rings }), [depth, band, full, dived, lights, speed, stream, rings]));
+  const scene = useAfterPaint(
+    useMemo(() => ({ depth, band, tanks: full, dived, lights, speed, dives: stream, rings, changedAt }), [depth, band, full, dived, lights, speed, stream, rings, changedAt]),
+  );
 
   return (
     <div ref={root} className="stage" data-stage="" data-offscreen={offscreen ? "" : undefined} data-paced={paced ? "" : undefined}>

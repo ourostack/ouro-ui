@@ -1,8 +1,7 @@
-import { lazy, startTransition, Suspense, useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
+import { lazy, startTransition, Suspense, useEffect, useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { href } from "../paths";
-import { PlatformMark } from "../components/platform-marks";
 
 /*
  * The site's navigation, by platform and by part (Compass): the bar's four panels (Platforms, Parts, Proof, Docs) and the
@@ -180,7 +179,7 @@ export function Eyebrow({ children, id }: { children: ReactNode; id?: string }):
   );
 }
 
-function Links({ label, pages, current, hint = true }: { label?: string; pages: readonly NavPage[]; current: string; hint?: boolean }): JSX.Element {
+export function Links({ label, pages, current, hint = true }: { label?: string; pages: readonly NavPage[]; current: string; hint?: boolean }): JSX.Element {
   const id = useId();
   return (
     <div className="grid content-start">
@@ -211,92 +210,60 @@ export function Head({ page, title, hint, current, end }: { page?: NavPage; titl
   );
 }
 
-/** A platform's name: its mark, its name and its kit. */
-export function PlatformName({ platform, kit = true }: { platform: NavPlatform; kit?: boolean }): JSX.Element {
-  return (
-    <span className="inline-flex items-baseline gap-2">
-      <PlatformMark id={platform.id} className="text-foreground" />
-      <span className="font-[family-name:var(--font-heading,inherit)] font-semibold text-foreground">{platform.name}</span>
-      {kit && <span className="text-xs text-muted-foreground">{platform.kit}</span>}
-    </span>
-  );
-}
-
 /* ---------------------------------------------------------------- the bar's panels */
+
+/** The bar's three heaviest panels, the real platform marks among them (nav-panels.tsx), load only once a pointer, a
+ * finger or focus first reaches the header (header.tsx's wantPanels, which loads this module alongside the Docs panel's),
+ * long before a person can open one: a page nobody ever points at the header on never pays for them. */
+let navPanels: typeof import("./nav-panels") | undefined;
+export const loadNavPanels = () => import("./nav-panels").then((module) => (navPanels = module));
+const LazyPlatformsPanel = lazy(() => loadNavPanels().then((module) => ({ default: module.PlatformsPanel })));
+const LazyPartsPanel = lazy(() => loadNavPanels().then((module) => ({ default: module.PartsPanel })));
+const LazyProofPanel = lazy(() => loadNavPanels().then((module) => ({ default: module.ProofPanel })));
+
+/** Marks a panel still loading, which the phone menu's scroll to the current page waits out (site-menu.tsx). */
+function Pending({ children }: { children?: ReactNode }): JSX.Element {
+  return <div data-nav-pending="" className="contents">{children}</div>;
+}
 
 /** The four platforms side by side, each with the same four pages: two columns on a phone, four from 640px. */
 export function PlatformsPanel({ current, compact = false }: { current: string; compact?: boolean }): JSX.Element {
-  const id = useId();
+  if (navPanels) return <navPanels.PlatformsPanel current={current} compact={compact} />;
   return (
-    <section aria-labelledby={id} className="grid gap-1">
-      {compact ? <Eyebrow id={id}>Pick a platform</Eyebrow> : <div id={id} className="contents"><Head title="Platforms" hint="Web, Apple, Windows and Android" current={current} /></div>}
-      <ul className={cn("m-0 grid list-none gap-x-2 gap-y-3 p-0", compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-[repeat(4,minmax(0,1fr))] sm:gap-x-6")}>
-        {NAV_PLATFORMS.map((platform) => (
-          <li key={platform.id} className="grid content-start gap-0.5">
-            <span className="px-3 pb-0.5">
-              <PlatformName platform={platform} kit={!compact} />
-            </span>
-            <ul aria-label={platform.name} className="m-0 grid list-none gap-0.5 p-0">
-              {platform.pages.map((page) => (
-                <li key={page.label}>
-                  <NavLink page={page} current={current} size="sm" label={page.label} mark={page.path !== NAV_DOCS.path} />
-                </li>
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <Suspense fallback={<Pending>{compact ? <Eyebrow>Pick a platform</Eyebrow> : <Head title="Platforms" hint="Web, Apple, Windows and Android" current={current} />}</Pending>}>
+      <LazyPlatformsPanel current={current} compact={compact} />
+    </Suspense>
   );
 }
 
 /** Every part on a line: the part and its line, then its pages across. Stacked on a phone. */
 export function PartsPanel({ current, compact = false, more }: { current: string; compact?: boolean; more?: Readonly<Record<string, ReactNode>> | undefined }): JSX.Element {
-  const id = useId();
+  if (navPanels) return <navPanels.PartsPanel current={current} compact={compact} more={more} />;
   return (
-    <section aria-labelledby={id}>
-      {compact ? <Eyebrow id={id}>Ouro UI, part by part</Eyebrow> : <div id={id} className="contents"><Head title="Parts" hint="Ouro UI, part by part" current={current} /></div>}
-      <div className={cn("grid gap-y-1", !compact && "sm:grid-cols-[max-content_minmax(0,22rem)] sm:items-start sm:gap-x-6")}>
-        {NAV_PARTS.map((part) => (
-          <div key={part.path} className="contents">
-            <NavLink page={part} current={current} />
-            <div className={cn("grid", compact && "ps-4 pb-2")}>
-              <ul aria-label={`In ${part.label}`} className="m-0 flex list-none flex-wrap items-center gap-0.5 p-0 sm:pt-px">
-                {part.pages.map((page) => (
-                  <li key={page.path}>
-                    <NavLink page={page} current={current} size="sm" hint={false} />
-                  </li>
-                ))}
-              </ul>
-              {more?.[part.label]}
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
+    <Suspense fallback={<Pending>{compact ? <Eyebrow>Ouro UI, part by part</Eyebrow> : <Head title="Parts" hint="Ouro UI, part by part" current={current} />}</Pending>}>
+      <LazyPartsPanel current={current} compact={compact} more={more} />
+    </Suspense>
   );
 }
 
 export function ProofPanel({ current, compact = false }: { current: string; compact?: boolean }): JSX.Element {
+  if (navPanels) return <navPanels.ProofPanel current={current} compact={compact} />;
   return (
-    <div>
-      {!compact && <Head page={NAV_PROOF} hint={NAV_PROOF.hint} current={current} />}
-      <div className={cn("grid gap-x-8 gap-y-3", !compact && "sm:grid-flow-col sm:auto-cols-max")}>
-        {NAV_PROOF.groups.map((group) => (
-          <Links key={group.label} label={group.label} pages={group.pages} current={current} />
-        ))}
-      </div>
-    </div>
+    <Suspense fallback={<Pending>{compact ? null : <Head page={NAV_PROOF} hint={NAV_PROOF.hint} current={current} />}</Pending>}>
+      <LazyProofPanel current={current} compact={compact} />
+    </Suspense>
   );
 }
 
 /** The Docs panel's lists come from the docs' generated index, which the voyage pages never load up front: the panel's
  * own module loads as soon as the page is live (loadDocsPanel), long before a person can open it. */
-export const loadDocsPanel = () => import("./docs-panel");
+let docsPanel: typeof import("./docs-panel") | undefined;
+export const loadDocsPanel = () => import("./docs-panel").then((module) => (docsPanel = module));
 const LazyDocsPanel = lazy(() => loadDocsPanel().then((module) => ({ default: module.DocsPanel })));
 
 /** Docs: the components by group and the guides (docs-panel.tsx), under the panel's head while they load. */
 export function DocsPanel({ current, compact = false }: { current: string; compact?: boolean }): JSX.Element {
+  if (docsPanel) return <docsPanel.DocsPanel current={current} compact={compact} />;
   return (
     <Suspense fallback={compact ? null : <Head page={NAV_DOCS} hint={NAV_DOCS.hint} current={current} />}>
       <LazyDocsPanel current={current} compact={compact} />
@@ -381,17 +348,36 @@ function WaySwitch<T extends string>({ label, items, value, onChange }: { label:
 function Crossfade({ shown, panes }: { shown: string; panes: ReadonlyArray<{ id: string; content: ReactNode }> }): JSX.Element {
   const box = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number | undefined>(undefined);
+  const [warm, setWarm] = useState(false);
+  // The pane that is not shown mounts after the press's first paint, so opening the menu draws and lays out one pane,
+  // not both (#3628); by the time anyone switches it is there to fade in.
+  useEffect(() => {
+    let timer = 0;
+    const frame = requestAnimationFrame(() => (timer = window.setTimeout(() => setWarm(true))));
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }, []);
   useLayoutEffect(() => {
     const pane = box.current?.querySelector<HTMLElement>(`[data-site-pane="${shown}"]`);
     if (!pane) return;
-    const measure = () => setHeight(pane.offsetHeight);
-    measure();
-    const observer = new ResizeObserver(measure);
+    // The observer's own first callback, not an eager pane.offsetHeight read here: a read forces the browser to lay
+    // out the whole sheet synchronously, in the same task as the press that opens it, which this menu's heavier
+    // panels (the platform marks, Proof and Docs) made slow enough to push the press past its budget (#3628). The
+    // callback still runs after layout and before paint, on this same frame, so the box is sized before it shows.
+    // This box has no border or padding, so its content-box height is also its offsetHeight.
+    const observer = new ResizeObserver(([entry]) => entry && setHeight(entry.contentRect.height));
     observer.observe(pane);
     return () => observer.disconnect();
   }, [shown]);
   return (
-    <div ref={box} style={{ height }} className="relative overflow-hidden motion-safe:transition-[height] motion-safe:duration-(--ouro-duration-base) motion-safe:ease-(--ouro-ease-out)">
+    <div
+      ref={box}
+      data-site-crossfade=""
+      style={{ height }}
+      className="relative overflow-hidden motion-safe:transition-[height] motion-safe:duration-(--ouro-duration-base) motion-safe:ease-(--ouro-ease-out)"
+    >
       {panes.map((pane) => {
         const on = pane.id === shown;
         return (
@@ -403,7 +389,7 @@ function Crossfade({ shown, panes }: { shown: string; panes: ReadonlyArray<{ id:
             style={on ? undefined : { maxHeight: height }}
             className={cn("absolute inset-x-0 top-0 transition-[opacity,visibility] duration-(--ouro-duration-base) ease-(--ouro-ease-out)", on ? "opacity-100" : "pointer-events-none invisible overflow-hidden opacity-0")}
           >
-            {pane.content}
+            {on || warm ? pane.content : null}
           </div>
         );
       })}

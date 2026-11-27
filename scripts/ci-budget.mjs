@@ -30,6 +30,7 @@ import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { inflateRawSync } from "node:zlib";
+import { JOBS_PER_PAGE, listJobsAsync } from "./run-jobs.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -416,20 +417,30 @@ export async function get(url, token, { raw = false, fetch = globalThis.fetch, s
 const getJson = (url, token) => get(url, token);
 
 /**
- * Main's latest completed merge queue runs of ci.yml that ran once, newest first, as
- * `{ attempt, record }` with each run's ci-timings record (null when it has none), until `count`
- * of them passed (of the latest 30).
+ * The address of main's latest merge queue runs of ci.yml that passed, newest first. Only the runs that
+ * passed are asked for: a queue that is failing or cancelling its groups (each failure rebuilds the groups
+ * behind it) leaves few passed runs among its latest 30 completed ones, and a baseline of fewer than
+ * `baselineRuns` has no work time, which left the pull requests fixing that queue to the bare ceiling.
  */
-async function mergeQueueRuns({ repository, token, count }) {
+export const mergeQueueRunsUrl = (repository) => `https://api.github.com/repos/${repository}/actions/workflows/ci.yml/runs?event=merge_group&status=success&per_page=30`;
+
+/**
+ * Main's latest merge queue runs of ci.yml that passed and ran once, newest first, as
+ * `{ attempt, record }` with each run's ci-timings record (null when it has none), until `count`
+ * of them passed their own record's check (of the latest 30).
+ */
+export async function mergeQueueRunsFrom({ runs, recordOf }, count) {
   const found = [];
-  const { workflow_runs: runs } = await getJson(`https://api.github.com/repos/${repository}/actions/workflows/ci.yml/runs?event=merge_group&status=completed&per_page=30`, token);
-  for (const run of runs) {
+  for (const run of await runs()) {
     if (found.filter((candidate) => recordPassed(candidate.record)).length >= count) break;
     if (run.run_attempt !== 1) continue;
-    found.push({ attempt: 1, record: await timingsOf({ repository, token, runId: run.id }) });
+    found.push({ attempt: 1, record: await recordOf(run.id) });
   }
   return found;
 }
+
+const mergeQueueRuns = ({ repository, token, count }) =>
+  mergeQueueRunsFrom({ runs: async () => (await getJson(mergeQueueRunsUrl(repository), token)).workflow_runs, recordOf: (runId) => timingsOf({ repository, token, runId }) }, count);
 
 /** A run's ci-timings record, or null when it kept none. */
 async function timingsOf({ repository, token, runId }) {
@@ -472,16 +483,11 @@ async function previousRunWork({ repository, token, branch, runId }, key = "work
 export const recentRuns = 20;
 
 /** Jobs per page: a page of 100 answers 502 on every try for a run of about 160 jobs (each carries its steps), so the check waited out all its retries; 30 answers at once. */
-export const jobsPerPage = 30;
+export const jobsPerPage = JOBS_PER_PAGE;
 
 /** Every job of a run attempt, through the API's pages. */
 async function fetchJobs({ repository, runId, attempt, token }) {
-  const jobs = [];
-  for (let page = 1; ; page += 1) {
-    const body = await getJson(`https://api.github.com/repos/${repository}/actions/runs/${runId}/attempts/${attempt}/jobs?per_page=${jobsPerPage}&page=${page}`, token);
-    jobs.push(...body.jobs);
-    if (jobs.length >= body.total_count || body.jobs.length === 0) return jobs;
-  }
+  return listJobsAsync((url) => getJson(`https://api.github.com/${url}`, token), `repos/${repository}/actions/runs/${runId}/attempts/${attempt}`);
 }
 
 /** What a run that GitHub would not answer for reports: on a pull request a failure, because an unjudged budget is a guard turned off; elsewhere a warning and a passing exit code. Any other error is rethrown. */

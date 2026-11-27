@@ -55,7 +55,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [composed-surface](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/composed-surface) | 2 | 0 | none yet |
 | [composer](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/composer) | 13 | 0 | [composer.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/composer.sr.spec.ts): 1 test on `chat-composer--basic` |
 | [conversation-find](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/conversation-find) | 3 | 0 | none yet |
-| [conversation-list](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/conversation-list) | 11 | 0 | none yet |
+| [conversation-list](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/conversation-list) | 12 | 0 | none yet |
 | [copy-button](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/copy-button) | 2 | 0 | none yet |
 | [cover](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/cover) | 3 | 0 | none yet |
 | [description-list](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/description-list) | 3 | 0 | none yet |
@@ -77,14 +77,14 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [item](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/item) | 9 | 0 | [item.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/item.sr.spec.ts): 1 test on `lists-item--in-context` |
 | [kbd](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/kbd) | 2 | 0 | none yet |
 | [level-meter](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/level-meter) | 3 | 0 | none yet |
-| [lightbox](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/lightbox) | 8 | 1 | none yet |
+| [lightbox](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/lightbox) | 9 | 1 | none yet |
 | [link](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/link) | 6 | 0 | none yet |
 | [live-captions](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/live-captions) | 9 | 0 | none yet |
 | [local-date](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/local-date) | 4 | 0 | none yet |
 | [mcp-app](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/mcp-app) | 2 | 0 | none yet |
 | [media-tile](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/media-tile) | 9 | 0 | none yet |
 | [menu](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/menu) | 6 | 0 | [menu.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/menu.sr.spec.ts): 2 tests on `menus-menu--playground` |
-| [message](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/message) | 41 | 0 | none yet |
+| [message](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/message) | 43 | 0 | none yet |
 | [moment](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/moment) | 8 | 0 | none yet |
 | [navbar](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/navbar) | 3 | 0 | none yet |
 | [navigation-menu](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/navigation-menu) | 3 | 0 | none yet |
@@ -107,7 +107,7 @@ Stories are counted as the `export const` entries of each component's `*.stories
 | [route-progress](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/route-progress) | 2 | 0 | [route-progress.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/route-progress.sr.spec.ts): 1 test on `feedback-routeprogress--in-context` |
 | [scroll-area](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/scroll-area) | 2 | 0 | none yet |
 | [section-header](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/section-header) | 2 | 0 | none yet |
-| [segmented-control](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/segmented-control) | 4 | 0 | none yet |
+| [segmented-control](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/segmented-control) | 5 | 0 | none yet |
 | [select](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/select) | 7 | 0 | [select.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/select.sr.spec.ts): 1 test on `forms-select--playground` |
 | [separator](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/separator) | 4 | 0 | none yet |
 | [share-button](https://github.com/ourostack/ouro-ui/tree/main/registry/ouro/components/ouro/share-button) | 2 | 0 | none yet |
@@ -143,6 +143,7 @@ Screen-reader specs that cover a pattern rather than one component:
 
 - [menu-bar.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/menu-bar.sr.spec.ts): MenuBar opens File from the keyboard on its first item, reads the next item, and returns to File on Escape
 - [patterns.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/patterns.sr.spec.ts): a row is heard by its title, its entry's heading as the detail takes the list's place, and the row again after Back; a search that finds nothing says so; its chart and its table's scrolling region are heard by their names
+- [toast-undo.sr.spec.ts](https://github.com/ourostack/ouro-ui/blob/main/registry/ouro/e2e/screen-reader/toast-undo.sr.spec.ts): A toast's Undo is reached from the keyboard and read out
 
 ## What each screen-reader test says it proves
 

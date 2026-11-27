@@ -124,6 +124,32 @@ const frame = () =>
     );
   });
 
+// Counts the times viewport()'s own bail fires, so a test can prove the path ran rather than inferring it from timing alone.
+let viewportBails = 0;
+/**
+ * Resizes the browser's real viewport, as a reader rotating their device or window does. Bounded: the browser provider's own
+ * resize round trip is a protocol call to the browser process, which can itself go unanswered when a sibling browser project
+ * starves this one's host process (the same install-job contention #3730 bounded frame() against, #3785/#3788) — this fails
+ * fast with its own clear error instead of hanging past the test's own timeout and dragging later tests into the same wait.
+ */
+const viewport = (width: number, height: number) =>
+  new Promise<void>((resolve, reject) => {
+    const bail = setTimeout(() => {
+      viewportBails++;
+      reject(new Error("viewport(): page.viewport did not settle within 5000ms; the renderer looks stalled"));
+    }, 5000);
+    page.viewport(width, height).then(
+      () => {
+        clearTimeout(bail);
+        resolve();
+      },
+      (error: unknown) => {
+        clearTimeout(bail);
+        reject(error);
+      },
+    );
+  });
+
 /** A post the app's own component draws, its variant set by the component's own state, not by the list's render. */
 function OwnPost({ expose }: { expose: (set: (variant: "post" | "chat") => void) => void }) {
   const [variant, setVariant] = useState<"post" | "chat">("post");
@@ -135,13 +161,20 @@ function OwnPost({ expose }: { expose: (set: (variant: "post" | "chat") => void)
   );
 }
 
-/** Waits until the list has settled: the scroll position, its height and the messages drawn read the same across two frames. */
+/**
+ * Waits until the list has settled: the scroll position, its height, the messages drawn, and the content's own carried offset
+ * (its `translate` and `margin-block-start`, which hold()'s carry()/pay() path writes when a wheel's momentum correction
+ * cannot land on scroller.scrollTop in full, #3785) read the same across two frames. A fingerprint of scrollTop, scrollHeight
+ * and the ids alone goes stable one beat before such a carried write lands, since none of those three change when content
+ * moves by its own translate instead of the scroller's own scroll position.
+ */
 async function settle(scroller: HTMLElement) {
+  const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]");
   let last = "";
   await expect
     .poll(async () => {
       await frame();
-      const now = `${scroller.scrollTop}|${scroller.scrollHeight}|${ids(scroller).join(",")}`;
+      const now = `${scroller.scrollTop}|${scroller.scrollHeight}|${ids(scroller).join(",")}|${content?.style.translate}|${content?.style.marginBlockStart}`;
       const same = now === last;
       last = now;
       return same;
@@ -287,6 +320,70 @@ describe("MessageList windowing", () => {
       expect(frameBails).toBe(1);
     } finally {
       vi.useRealTimers();
+    }
+  });
+
+  it("fails viewport() fast, with its own error, when the browser provider's resize round trip does not answer, instead of hanging past the test's own timeout (#3785, #3788)", async () => {
+    viewportBails = 0;
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      // A browser process too starved by a concurrent sibling (chromium + webkit on the same install-job runner, #3785/#3788)
+      // to answer page.viewport's protocol call at all: it never settles.
+      const unresolved = new Promise<void>(() => {});
+      vi.spyOn(page, "viewport").mockReturnValue(unresolved);
+      const waiting = viewport(800, 600).then(
+        () => "resolved" as const,
+        () => "rejected" as const,
+      );
+      // Advance past viewport()'s own bail, then give its rejection a turn to settle the race before reading it.
+      await vi.advanceTimersByTimeAsync(5000);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(await waiting).toBe("rejected");
+      expect(viewportBails).toBe(1);
+    } finally {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+    }
+  });
+
+  it("waits for content's own carried offset to stop moving too, not only for scrollTop, scrollHeight and the ids drawn (#3785)", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    const scroller = document.createElement("div");
+    const content = document.createElement("div");
+    content.setAttribute("data-ouro-message-list-content", "");
+    const message = document.createElement("div");
+    message.dataset.ouro = "message";
+    message.id = "m1";
+    content.append(message);
+    scroller.append(content);
+    host.append(scroller);
+    try {
+      // scrollTop, scrollHeight and the ids drawn never change across this whole test: a fingerprint of those three alone
+      // goes stable from the very first poll. hold()'s pay() path, though, keeps landing a correction on content's own
+      // translate for several more frames, the way it carries a wheel's momentum across frames rather than all at once.
+      const landingFrames = 9;
+      let frame_ = 0;
+      let landing = true;
+      let counting = true;
+      const drive = () => {
+        frame_++;
+        if (landing) {
+          content.style.translate = `0 -${frame_ * 8}px`;
+          if (frame_ >= landingFrames) landing = false;
+        }
+        if (counting) requestAnimationFrame(drive);
+      };
+      requestAnimationFrame(drive);
+      onTestFinished(() => void (counting = false));
+      const settling = settle(scroller);
+      let translateAtResolve = "";
+      void settling.then(() => (translateAtResolve = content.style.translate));
+      await settling;
+      counting = false;
+      expect(translateAtResolve).toBe(`0px -${landingFrames * 8}px`);
+    } finally {
+      host.remove();
     }
   });
 
@@ -2074,7 +2171,7 @@ describe("MessageList windowing", () => {
 
   it("opens with no more rows than fill the window, and draws the rows past the view's edges only after the first paint", async () => {
     const { innerWidth: width, innerHeight: height } = window;
-    await page.viewport(800, 600);
+    await viewport(800, 600);
     try {
       // A list taller than the window measured last: the next one still draws no more than the window holds.
       await render(<Chat items={conversation(100)} style={{ height: 1000, width: 360 }} />);
@@ -2115,7 +2212,7 @@ describe("MessageList windowing", () => {
       expect(messages(scroller).length).toBeGreaterThanOrEqual(Math.floor((400 + 800) / 96));
       expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
     } finally {
-      await page.viewport(width, height);
+      await viewport(width, height);
     }
   });
 
@@ -2196,7 +2293,7 @@ describe("MessageList windowing", () => {
 
   it("draws only the rows that fill the view in the first commit, given their estimatedItemHeight, where the built-in estimate would draw more", async () => {
     const { innerWidth: width, innerHeight: height } = window;
-    await page.viewport(800, 900);
+    await viewport(800, 900);
     try {
       // A 600px view, measured, for the next list to take as its own.
       await render(<Chat items={conversation(100)} style={{ height: 600, width: 360 }} />);
@@ -2209,7 +2306,7 @@ describe("MessageList windowing", () => {
       // Five 130px rows fill 600px; at 96px a row, the list would draw seven.
       expect(first).toBe(5);
     } finally {
-      await page.viewport(width, height);
+      await viewport(width, height);
     }
   });
 
@@ -2793,7 +2890,7 @@ describe("MessageList windowing", () => {
     const actions = createRef<MessageListActions>();
     const items = [...conversation(800, 0, true), { id: 800, text: "Yes, that one.", quote: 42 }];
     const { scroller } = await render(<Chat items={items} actionsRef={actions} onQuote={(id) => actions.current!.reveal(`m${id}`, { focus: true })} />);
-    await userEvent.click(page.getByRole("button", { name: /Quoting Ana/ }));
+    await userEvent.click(page.getByRole("button", { name: /Reply to Ana/ }));
     await settle(scroller);
     expect(document.activeElement).toBe(document.getElementById("m42"));
     expect(Math.abs(offCentre(scroller, "m42"))).toBeLessThanOrEqual(ROUNDING);

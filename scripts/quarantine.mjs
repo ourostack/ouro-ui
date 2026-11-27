@@ -46,6 +46,7 @@ import { dirname, join } from "node:path";
 import { setTimeout as wait } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { jobGraph } from "./ci-budget.mjs";
+import { JOBS_PER_PAGE } from "./run-jobs.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 // OURO_QUARANTINE_FILE lets the tests hand it a list of their own.
@@ -117,12 +118,32 @@ export function failedTests(log) {
   return { tests: [...tests.values()], failed, unexplained };
 }
 
+// A page the watchdog found unresponsive, and the tests its "no test finished" line says were running.
+const hangLine = /a page did not answer at the warn check, so failing now/;
+const inFlightLine = /Vitest has had no test finish for .*? In flight: /;
+const inFlightTest = /(\S+) \((\w+)\) (\S+\.[cm]?[jt]sx?) > .+? \(running [^)]*\)/g;
+
 /**
- * Whether a quarantine entry names this test: the same project and title, and the same file, or
+ * The tests a job's log says were in flight when the hang watchdog failed it, `[{ project, file,
+ * title }]` (title is the whole in-flight description), or undefined when the watchdog did not fire.
+ * An in-flight list that is not only tests, or no list at all, gives `[]`.
+ */
+export function hungTests(log) {
+  const lines = log.split("\n").map(text);
+  if (!lines.some((line) => hangLine.test(line))) return undefined;
+  const flight = lines.filter((line) => inFlightLine.test(line)).at(-1);
+  if (!flight) return [];
+  const segment = flight.split(/In flight: /)[1].split(/\. Not started: /)[0];
+  const tests = [...segment.matchAll(inFlightTest)].map((match) => ({ project: match[1], file: match[3], title: match[0] }));
+  return segment.replace(inFlightTest, "").replace(/[;,.\s]/g, "") === "" ? tests : [];
+}
+
+/**
+ * Whether a quarantine entry names this test (a title of "*" names every test in its file): the same project and title, and the same file, or
  * the copy an installed app runs (registry/ouro/<path> installs to src/<path>).
  */
 export function names(entry, test) {
-  if (entry.project !== test.project || entry.title !== test.title) return false;
+  if (entry.project !== test.project || (entry.title !== "*" && entry.title !== test.title)) return false;
   if (entry.file === test.file) return true;
   return entry.file.startsWith("registry/ouro/") && test.file === `src/${entry.file.slice("registry/ouro/".length)}`;
 }
@@ -216,6 +237,22 @@ function makeExplainer(entries) {
       else {
         ok = true;
         for (const test of found.tests) retried.push({ entry: entries.find((entry) => names(entry, test)), test, run: run.id, job: job.name, url: job.url });
+      }
+    } else if (hungTests(job.log ?? "") !== undefined) {
+      // The hang watchdog failed the job: forgiven only when every test in flight is in a file an
+      // open, unexpired entry quarantines whole (title "*"), and nothing else failed in the job.
+      const hung = hungTests(job.log);
+      const block = node ? jobBlock(run.workflow, node.id) : undefined;
+      const step = block && job.failedSteps.length === 1 ? stepBlock(block, job.failedSteps[0]) : "";
+      const whole = (test) => entries.find((entry) => entry.title === "*" && entry.open && !entry.expired && names(entry, test));
+      if (job.failedSteps.length !== 1) problems.push(`${job.name} (run ${run.id}) failed in ${job.failedSteps.length} steps (${job.failedSteps.join(", ")}), not in its test step alone`);
+      else if (!runsTests(step)) problems.push(`${job.name} (run ${run.id}) failed in "${job.failedSteps[0]}", which is not a step that runs the tests`);
+      else if (found.unexplained.length > 0 || found.failed > 0) problems.push(`${job.name} (run ${run.id}) hung and also failed beyond a hang: ${found.unexplained.join("; ") || `${found.failed} failed tests`}`);
+      else if (hung.length === 0) problems.push(`${job.name} (run ${run.id}) hung with no in-flight test named`);
+      else if (!hung.every(whole)) problems.push(`${job.name} (run ${run.id}) hung with a test in flight outside a file quarantined whole: ${hung.filter((test) => !whole(test)).map((test) => test.title).join("; ")}`);
+      else {
+        ok = true;
+        for (const test of hung) retried.push({ entry: whole(test), test, run: run.id, job: job.name, url: job.url });
       }
     } else {
       // A gate: each failed step reads the result of a job it needs, and every failed instance of
@@ -318,7 +355,7 @@ function gh(args, { allowFail = false } = {}) {
 /** Reads one run's own jobs (and, for each failed one, its log) and the workflow text it ran. */
 function buildRun(repo, id) {
   const [attempt, path] = gh(["api", `repos/${repo}/actions/runs/${id}`, "--jq", "[.run_attempt, .path] | @tsv"]).trim().split("\t");
-  const jobs = gh(["api", `repos/${repo}/actions/runs/${id}/jobs?per_page=100`, "--paginate", "--jq", ".jobs[] | {id, name, conclusion, url: .html_url, failedSteps: [.steps[] | select(.conclusion == \"failure\") | .name]} | tojson"])
+  const jobs = gh(["api", `repos/${repo}/actions/runs/${id}/jobs?per_page=${JOBS_PER_PAGE}`, "--paginate", "--jq", ".jobs[] | {id, name, conclusion, url: .html_url, failedSteps: [.steps[] | select(.conclusion == \"failure\") | .name]} | tojson"])
     .split("\n")
     .filter(Boolean)
     .map((line) => JSON.parse(line));
@@ -450,7 +487,7 @@ function rehearsed(id) {
   }
   const repo = process.env["GITHUB_REPOSITORY"];
   const url = `${process.env["GITHUB_SERVER_URL"] ?? "https://github.com"}/${repo}/actions/runs/${id}`;
-  const jobs = gh(["api", `repos/${repo}/actions/runs/${id}/jobs?per_page=100`, "--paginate", "--jq", ".jobs[].id"], { allowFail: true });
+  const jobs = gh(["api", `repos/${repo}/actions/runs/${id}/jobs?per_page=${JOBS_PER_PAGE}`, "--paginate", "--jq", ".jobs[].id"], { allowFail: true });
   if (jobs === undefined) {
     console.log(`::warning::Could not read the jobs of the rehearsal ${url}, so its retries are not shown here.`);
     return 0;

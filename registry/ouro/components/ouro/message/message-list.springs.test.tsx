@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { commands, server, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
+import { isFlingKick } from "@/registry/ouro/components/ouro/message/message-list-styles";
 import { springAt } from "@/registry/ouro/lib/ouro/spring";
 import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -918,5 +919,22 @@ describe("MessageList springs at rest", () => {
     expect(messageLayers(after)).toEqual([]);
     const elements = (layers: { element: string | null }[]) => layers.map((layer) => layer.element);
     expect(elements(after)).toEqual(elements(before));
+  });
+});
+
+describe("isFlingKick", () => {
+  // #3736: a long frame (a busy page mid-fling) can leave `going` stale, false, on the one frame that first sees a
+  // jump-sized distance the reader's own still-latched scroll produced, which the un-gated `Math.abs(scrolled) < view.height`
+  // check alone misreads as a jump (End from far up, a link to an old message) rather than a kick of the fling: the messages
+  // it was carrying are rested at once, clearing their settling before the fling's own `scrollend`. `scrolling`, which only
+  // `scrollend` clears, catches this where `going` cannot.
+  it("treats a jump-sized distance as a kick of the fling once scrolling is latched, even with going stale", () => {
+    expect(isFlingKick(false, true, 1000, 800)).toBe(true);
+  });
+  it("still treats a jump-sized distance with neither flag as a jump, not a kick", () => {
+    expect(isFlingKick(false, false, 1000, 800)).toBe(false);
+  });
+  it("still treats a distance under the view's height as a kick, with neither flag", () => {
+    expect(isFlingKick(false, false, 10, 800)).toBe(true);
   });
 });

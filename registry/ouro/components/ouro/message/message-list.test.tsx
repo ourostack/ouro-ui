@@ -72,6 +72,7 @@ function Chat({
   loadingOlderLabel?: string;
   hasOlder?: boolean;
   windowing?: boolean;
+  ref?: ((node: HTMLDivElement | null) => void) | undefined;
 }) {
   return (
     <MessageList label={label} style={{ height: 300 }} {...rest}>
@@ -781,38 +782,82 @@ describe("MessageList", () => {
     await wheel(scroller, -400);
     const heldAt = await armHeld(scroller, items, rerender);
     await act(async () => {
-      scroller.scrollTop = heldAt + 2;
+      Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!.set!.call(scroller, heldAt - 4);
       scroller.dispatchEvent(new Event("scroll"));
     });
-    // The stray within STRAY_PX of the held place, just after the list held it, is none of the reader's: put back.
     expect(scroller.scrollTop).toBe(heldAt);
     await act(async () => {
-      scroller.scrollTop = heldAt + 2;
+      Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!.set!.call(scroller, heldAt - 4);
       scroller.dispatchEvent(new Event("scroll"));
     });
     // Correcting a stray lets the hold go, as any other move does: a second one so close after is the reader's or the browser's,
     // and stays where it left the list.
-    expect(scroller.scrollTop).toBe(heldAt + 2);
+    expect(scroller.scrollTop).toBe(heldAt - 4);
   });
 
-  it("lets a move far past the held place end the hold too, so a near one right after stays where it left the list", async () => {
+  it.each([2, 50])("lets an explicit scrollTop write of %i px end the hold, so a native move right after stays where it left the list", async (distance) => {
     const items = history(20, 10);
     const { scroller, rerender } = await render(<Chat items={items} />);
-    await wheel(scroller, -400);
+    scroller.scrollTop -= 400;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
     const heldAt = await armHeld(scroller, items, rerender);
     await act(async () => {
-      scroller.scrollTop = heldAt + 50;
+      scroller.scrollTop = heldAt + distance;
       scroller.dispatchEvent(new Event("scroll"));
     });
-    // Far outside STRAY_PX, this is the reader's or the browser's own move, not a stray to put back.
-    expect(scroller.scrollTop).toBe(heldAt + 50);
+    expect(scroller.scrollTop).toBe(heldAt + distance);
     await act(async () => {
-      scroller.scrollTop = heldAt + 2;
+      Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!.set!.call(scroller, heldAt - 4);
       scroller.dispatchEvent(new Event("scroll"));
     });
     // That move, as any other does, let the hold go: a near one measured against the place it held before is none of the hold's
     // business anymore, and stays where it left the list.
+    expect(scroller.scrollTop).toBe(heldAt - 4);
+  });
+
+  it.each(["before", "after"])("chains a scrollTop observer installed %s the list, through holding and unmounting", async (when) => {
+    let setter: ((top: number) => void) | undefined;
+    const writes: number[] = [];
+    const watch = (scroller: HTMLElement) => {
+      const property = Object.getOwnPropertyDescriptor(scroller, "scrollTop") ?? Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+      setter = (top) => {
+        property.set!.call(scroller, top);
+        writes.push(property.get!.call(scroller));
+      };
+      Object.defineProperty(scroller, "scrollTop", { configurable: true, get: () => property.get!.call(scroller), set: setter });
+    };
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} ref={when === "before" ? (node) => node && watch(node.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!) : undefined} />);
+    if (when === "after") watch(scroller);
+    scroller.scrollTop -= 400;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+    const heldAt = await armHeld(scroller, items, rerender);
+    expect(writes.at(-1)).toBe(heldAt);
+    await act(() => {
+      scroller.scrollTop = heldAt + 2;
+      scroller.dispatchEvent(new Event("scroll"));
+    });
     expect(scroller.scrollTop).toBe(heldAt + 2);
+    await rerender(<div />);
+    expect(Object.getOwnPropertyDescriptor(scroller, "scrollTop")?.set).toBe(setter);
+    scroller.scrollTop = 0;
+    expect(writes.at(-1)).toBe(0);
+  });
+
+  it("restores native scrollTop access after unmount", async () => {
+    const { scroller, rerender } = await render(<Chat items={history(20)} />);
+    expect(Object.hasOwn(scroller, "scrollTop")).toBe(true);
+    await rerender(<div />);
+    expect(Object.hasOwn(scroller, "scrollTop")).toBe(false);
+    const now = vi.spyOn(performance, "now");
+    try {
+      scroller.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+      expect(now).not.toHaveBeenCalled();
+    } finally {
+      now.mockRestore();
+    }
   });
 
   it("lets a stray near the place a message moving to the end held be, once Jump to latest has taken the reader past it", async () => {
@@ -894,6 +939,28 @@ describe("MessageList", () => {
     expect(scroller.scrollTop).toBe(top);
   });
 
+  // An app opens a chat at its first unread message, which is often among the last: the list can't centre it, so it opens
+  // at its end with the newest message in view. Nothing is below to jump to, so it offers no Jump to latest, which would
+  // sit over the newest message; scrolled up more than a line, it does.
+  it("offers no jump to the latest when it opens at a message with the newest in view, and does once the reader scrolls up", async () => {
+    // Drawn whole: a windowed list opens at a message this near its end some rows up from it (ourostack/ouro-ui#3830).
+    const { scroller } = await render(<Found windowing={false} items={history(30)} initialAnchor="found-28" />);
+    await settle(scroller);
+    expect(inView(scroller, "found-29")).toBe(true);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+    await wheel(scroller, -400);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+  });
+
+  it("offers the jump when messages arrive below a reader who opened with the newest in view, with no scroll", async () => {
+    const { scroller, rerender } = await render(<Found windowing={false} items={history(30)} initialAnchor="found-28" />);
+    await settle(scroller);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+    await rerender(<Found windowing={false} items={history(34)} initialAnchor="found-28" />);
+    await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
+  });
+
   it("opens at initialAnchor when it comes with the first messages, after the list mounted empty", async () => {
     const items = history(30);
     const { scroller, rerender } = await render(<Found windowing={false} items={[]} />);
@@ -941,6 +1008,18 @@ describe("MessageList", () => {
     await settle(scroller);
     expect(scroller.scrollTop).toBe(opened);
     expect(top()).toBe(placed);
+  });
+
+  it("follows its end down when the content's padding shrinks, which changes its border box but not its content box", async () => {
+    const { scroller } = await render(<Chat items={history(30)} />);
+    await settle(scroller);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    content.style.paddingBottom = "190px";
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    content.style.paddingBottom = "0px";
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
   });
 
   it("keeps the message it opened at in place when older messages load before the browser reports the scroll", async () => {
@@ -1456,20 +1535,15 @@ describe("MessageList", () => {
     await settle(scroller);
     const pill = page.getByRole("button", { name: "Jump to latest" });
     await expect.element(pill).toBeVisible();
-    const room = scroller.querySelector<HTMLElement>("[data-ouro-message-list-jump-room]")!;
     const last = () => [...scroller.querySelectorAll<HTMLElement>('[data-ouro="message"]')].at(-1)!;
     const clearOf = () => (pill.element() as HTMLElement).getBoundingClientRect().top - last().getBoundingClientRect().bottom;
-    // Land a quarter of the reserve's own height clear of the newest message: comfortably inside what a scroll
-    // this far down can clear at all (the reserve run out from under the pill before clear reaches the reserve's
-    // own full height, ourostack/ouro-ui#3512), so this margin stays well short of the real scroll range's own
-    // end, not merely of the newest message. A margin close to that end lands within onScroll's own AT_BOTTOM
-    // tolerance of the true farthest scroll position by only a sub-pixel amount a browser's own text layout
-    // decides, which a browser that happens to round the other way turns into "at the very end" on its own,
-    // with nothing for this test's own write to decide; onScroll then hides the pill outright (pinned, not
-    // merely a few px of drift), well before this test ever reaches clearJump below, which is what made 50px
-    // close enough to that end to land there under WebKit (and would eventually under Chromium too, on text
-    // metrics that happened to round the other way).
-    await act(async () => void (scroller.scrollTop += room.offsetHeight / 4 - clearOf()));
+    // Land clear of the newest message but more than a line (40px) from the end, where the pill still shows: halfway
+    // between that line and how far clear the pill is with the list at its end, so a few px of text rounding either way
+    // (WebKit's whole-pixel scroll position) neither hides the pill nor puts it over the newest message.
+    const end = scroller.scrollHeight - scroller.clientHeight;
+    const clearAtEnd = clearOf() + end - scroller.scrollTop;
+    expect(clearAtEnd).toBeGreaterThan(40);
+    await act(async () => void (scroller.scrollTop = end - (40 + clearAtEnd) / 2));
     // The raw write above schedules the browser's own, real "scroll" event regardless of whether this test
     // dispatches one: settling here lets that genuine event (and whatever onScroll bookkeeping it runs) land
     // and finish before the baseline below is read, rather than leaving it free to fire asynchronously, at a

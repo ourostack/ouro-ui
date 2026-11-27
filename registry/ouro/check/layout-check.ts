@@ -36,8 +36,8 @@ import type { PageIssue } from "./size-check.ts";
 //                      (Switch's track and thumb, a custom checkbox's box and mark) are drawn as one piece. Nor is it
 //                      judged on an axis a scrolling ancestor between it and that surface scrolls: where it sits down
 //                      that axis is wherever it's scrolled to, not a design gap. The same skip applies to two separate
-//                      surfaces: a floating one (fixed, sticky or absolutely positioned, such as a "Jump to latest"
-//                      button) paired with one that scrolls under it, on the axis their shared scrolling ancestor
+//                      surfaces: a floating one (fixed, sticky or absolutely positioned, or inside such an element
+//                      below their shared ancestor, such as a "Jump to latest" button) paired with one that scrolls under it, on the axis their shared scrolling ancestor
 //                      scrolls, since that gap is the scroll position's, not the design's. Two that both scroll, or
 //                      both float, are still judged: only a floating-over-scrolling pair is skipped
 //
@@ -234,7 +234,12 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
       n = n.parentElement!;
     }
   };
-  const floats = (el: Element) => /fixed|sticky|absolute/.test(getComputedStyle(el).position);
+  // An element floats by its own position, or because an ancestor below the shared container does (a title pill in a
+  // fixed header over a scroller).
+  const floats = (el: Element, container: Element) => {
+    for (let n: Element | null = el; n && n !== container; n = n.parentElement) if (/fixed|sticky|absolute/.test(getComputedStyle(n).position)) return true;
+    return false;
+  };
   // A pair where one sits over a scroll area the other scrolls in (a "Jump to latest" button, a header pill over a
   // picture that scrolls under it): their gap depends on scroll position, not a design gap, like a surface's own
   // scrolling container's edge.
@@ -242,7 +247,7 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
     const container = nearestCommonAncestor(a, b);
     const aScrolls = container !== a && scrollsBetween(a, container, axis);
     const bScrolls = container !== b && scrollsBetween(b, container, axis);
-    return (aScrolls && !bScrolls && floats(b)) || (bScrolls && !aScrolls && floats(a));
+    return (aScrolls && !bScrolls && floats(b, container)) || (bScrolls && !aScrolls && floats(a, container));
   };
   const apart = (a: Element, b: Element) => {
     const ra = rects.get(a)!;

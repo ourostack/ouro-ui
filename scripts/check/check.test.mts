@@ -10,7 +10,7 @@ import { BUDGETS, check, knownKey, merge, RULES, type Finding, type Gate, type R
 import { fragmentFocusScript } from "../../registry/ouro/lib/ouro/fragment-focus-script.ts";
 
 
-import { axe, browser, dir, fixtures, page, quiet, site, spots, two } from "./kit.mts";
+import { axe, browser, dir, fixtures, page, quiet, site, spots, steady, two } from "./kit.mts";
 
 // Part of Ouro check's Node side tests; scripts/check.test.mjs runs every file here under Node's coverage.
 
@@ -57,6 +57,10 @@ describe("Ouro check", () => {
     assert.equal(result.shots.length, 142 * 2);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
     assert.equal(report.pages.length, 142);
+    // report.json says what it scanned, so a run that reached nothing reads differently from one with no findings
+    // (#3864): every page, size and theme the sweep swept, with the elements and rules each visit read.
+    assert.deepEqual(report.scanned, { pages: 142, sizes: 2, themes: 1, visits: 142 * 2, ready: 142 * 2, elements: report.shots.reduce((sum, s) => sum + s.elements, 0), rules: report.shots.reduce((sum, s) => sum + s.rules, 0) });
+    assert.ok(report.scanned!.elements > 0 && report.scanned!.rules > 0);
     assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 142 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
     for (const ref of report.pages) assert.ok(existsSync(join(out, "sheets", `${ref.name}.png`)), ref.name);
     for (const f of result.findings.filter((f) => f.closeUp)) {
@@ -146,14 +150,33 @@ describe("Ouro check", () => {
     assert.ok(parts.every((part) => part.shard && part.findings.length < whole.findings.length));
     assert.match(readFileSync(join(shards[0]!, "summary.md"), "utf8"), /, shard 1\/3$/m);
     const merged = await merge({ dirs: shards, out: dir("merged"), chromium });
-    assert.deepEqual(spots(merged.findings), spots(whole.findings));
+    // dropped-frames reads real frame timing: four check() runs sharing this runner on purpose can still read one
+    // extra or missing sample from run to run even once serialized (#3503), so it's left out of this merge-equals-
+    // whole comparison the way the measured-rules test above already leaves it out of its own (#3836).
+    assert.deepEqual(spots(steady(merged.findings)), spots(steady(whole.findings)));
     assert.equal(merged.shots.length, whole.shots.length);
     assert.equal(merged.pages.length, 71);
-    assert.equal(merged.findings.filter((f) => f.closeUp).length, whole.findings.filter((f) => f.closeUp).length);
+    // A merge sums the shards' own coverage rather than reading one shard's, so scanned.visits is every shard's
+    // shots added together, the same total a single whole run reads from its own.
+    assert.deepEqual(merged.scanned, whole.scanned);
+    assert.ok(merged.scanned!.visits > 0 && merged.scanned!.ready > 0 && merged.scanned!.elements > 0 && merged.scanned!.rules > 0);
+    assert.equal(steady(merged.findings).filter((f) => f.closeUp).length, steady(whole.findings).filter((f) => f.closeUp).length);
     assert.equal(merged.gated.length, merged.findings.length);
     const waived = await merge({ dirs: shards, out: dir("merged"), config: { waive: { "axe-*": { "*": "an axe fixture" }, "/overlap-fail.html": { overlap: "an overlap fixture" } } }, chromium, executablePath: browser });
     assert.ok(waived.gated.length > 0 && waived.gated.every((f) => !f.page.startsWith("/axe-") && !(f.page === "/overlap-fail.html" && f.rule === "overlap")));
     assert.ok(waived.findings.some((f) => !f.gated && f.rule === "overlap"));
+  });
+
+  test("steady drops only dropped-frames, which four racing check() runs can read once more or less on either side (#3836)", () => {
+    const base = (rule: string, theme = "light"): Finding => ({ site: "fixtures", page: "/jump-fail.html", width: 1440, height: 900, theme, rule, element: 'pressing button "Lobby": the page', detail: "", gated: true });
+    const whole = [base("jump"), base("dropped-frames")];
+    // An extra dropped-frames finding, as a shard reading a longer frame gap than the whole run did (or the reverse)
+    // would add: not a real difference, so steady drops it from both sides before they're compared.
+    const merged = [...whole, base("dropped-frames", "dark")];
+    assert.deepEqual(spots(steady(merged)), spots(steady(whole)));
+    // An extra finding of any other rule is still a real difference: steady must not hide it too.
+    const otherRule = [...whole, base("jump", "dark")];
+    assert.notDeepEqual(spots(steady(otherRule)), spots(steady(whole)));
   });
 
   test("passes a finding ouro-check.json knows, as an update seeds it for a rule it brings, and still fails another of that rule", async () => {

@@ -109,6 +109,44 @@ describe("ToggleGroup overflow scroll", () => {
     }
   });
 
+  it("does not scroll on mount when the pressed toggle is the first, and does when it is a later one", async () => {
+    const spy = vi.fn();
+    const original = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = spy;
+    try {
+      await page.viewport(320, 400);
+      await render(
+        <ToggleGroup label="Show" hideLabel overflow="scroll" items={filters} value="all" onValueChange={() => {}} />,
+      );
+      expect(spy).not.toHaveBeenCalled();
+      await render(
+        <ToggleGroup label="Show" hideLabel overflow="scroll" items={filters} value="drafts" onValueChange={() => {}} />,
+      );
+      expect(spy).toHaveBeenCalledWith({ inline: "nearest", block: "nearest" });
+    } finally {
+      HTMLElement.prototype.scrollIntoView = original;
+    }
+  });
+
+  it("scrolls back to the first toggle when the value changes to it after mount", async () => {
+    const spy = vi.fn();
+    const original = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = spy;
+    try {
+      await page.viewport(320, 400);
+      const { rerender } = await render(
+        <ToggleGroup label="Show" hideLabel overflow="scroll" items={filters} value="drafts" onValueChange={() => {}} />,
+      );
+      spy.mockClear();
+      await rerender(
+        <ToggleGroup label="Show" hideLabel overflow="scroll" items={filters} value="all" onValueChange={() => {}} />,
+      );
+      expect(spy).toHaveBeenCalledWith({ inline: "nearest", block: "nearest" });
+    } finally {
+      HTMLElement.prototype.scrollIntoView = original;
+    }
+  });
+
   it("re-scrolls on a multiple value change that joins to the same string without a separator", async () => {
     const collisionItems: ToggleGroupItem[] = [
       { value: "a", label: "A" },

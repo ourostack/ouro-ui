@@ -114,6 +114,24 @@
     "reason": "Breaches main's Headroom budget (#3032), one of the repeat-red quarantine job's three named failures. No FAIL line is ever printed for a Headroom breach (the test itself passes in Vitest; a separate reporter judges the timing), so quarantine.mjs's FAIL-line retry gate cannot see or retry it. This is the mechanism that actually judges the breach, so its issue and expiry live here instead of in .github/quarantine.json.",
     "owner": "lane-hang-windowing",
     "issue": "https://github.com/ourostack/ouro-ui/issues/3032",
-    "expiry": "2026-11-27T01:50:00Z"
+    "expiry": "2026-11-28T01:50:00Z"
+  },
+  {
+    "test": "* registry/ouro/lib/ouro/testing/commands.touch.test.ts > a touch on a ::before box inside a frame waits for that frame",
+    "reason": "Waits out the kit's own TOUCH_HANDLED_TIMEOUT_MS = 5000 refusal wait, which commands.ts's claims require to hold a real 5 seconds however long Node is starved (#3845), so it takes half its timeout by design.",
+    "owner": "drain-5",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/3845"
+  },
+  {
+    "test": "* registry/ouro/lib/ouro/testing/commands.touch.test.ts > on a page zoomed and panned by touch, the kit waits for the frame where the touch lands",
+    "reason": "Asserts performance.now() - started >= 5000 against the kit's own real-time refusal wait, plus a real 2000 ms touchDrag (#3845), so it takes half its timeout by design.",
+    "owner": "drain-5",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/3845"
+  },
+  {
+    "test": "* registry/ouro/lib/ouro/testing/commands.touch.test.ts > a touch into a cross-origin iframe added just before it is handled",
+    "reason": "Loops 10 times creating and tearing down a real sandboxed cross-origin iframe and a touch round-trip through it (#3845), inherently expensive cross-process browser work.",
+    "owner": "drain-5",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/3845"
   }
 ]

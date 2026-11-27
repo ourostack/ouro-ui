@@ -86,13 +86,16 @@ describe("capsule measure", () => {
     document.body.append(el);
     const stop = installSquircleCapsules(document);
     expect(observe).toHaveBeenCalledExactlyOnceWith(el, { box: "border-box" });
-    // A later mutation re-runs watch(); an element already watched is not observed twice.
-    document.body.append(document.createElement("span"));
-    await Promise.resolve();
-    await Promise.resolve();
+    // A sheet added later re-runs the watch over every match; an element already watched is not observed twice.
+    const other = document.createElement("style");
+    other.textContent = ".once-other { --sq-half: 0 }";
+    const scanned = vi.spyOn(Document.prototype, "querySelectorAll");
+    document.head.append(other);
+    await expect.poll(() => scanned.mock.calls.length).toBeGreaterThan(0);
     expect(observe).toHaveBeenCalledOnce();
     stop();
     style.remove();
+    other.remove();
     el.remove();
   });
 
@@ -122,6 +125,15 @@ describe("capsule measure", () => {
     await Promise.resolve();
     // A mutation after stop() finds no watcher left to run watch() again.
     expect(observe).toHaveBeenCalledOnce();
+    // Nor does a linked sheet that loads after stop().
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = URL.createObjectURL(new Blob([".after-stop { --sq-half: 0 }"], { type: "text/css" }));
+    const loaded = new Promise((resolve) => link.addEventListener("load", resolve));
+    document.head.append(link);
+    await loaded;
+    expect(observe).toHaveBeenCalledOnce();
+    link.remove();
     style.remove();
     before.remove();
     after.remove();
@@ -164,5 +176,156 @@ describe("capsule measure", () => {
     later.remove();
     nested.remove();
     plain.remove();
+  });
+
+  describe("cost", () => {
+    const force = () => vi.spyOn(CSS, "supports").mockImplementation((prop: string) => prop === "clip-path");
+    const settle = async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    };
+
+    it("rescans no stylesheet and no document across a burst of text edits", async () => {
+      force();
+      const style = document.createElement("style");
+      style.textContent = ".typing-cap { --sq-half: 0; width: 100px; height: 30px; display: block }";
+      document.head.append(style);
+      const field = document.createElement("div");
+      field.contentEditable = "true";
+      document.body.append(field);
+      const stop = installSquircleCapsules(document);
+      const rules = vi.spyOn(CSSStyleSheet.prototype, "cssRules", "get");
+      const all = vi.spyOn(Document.prototype, "querySelectorAll");
+      const computed = vi.spyOn(window, "getComputedStyle");
+      for (let i = 0; i < 20; i++) {
+        field.append(document.createTextNode("k"));
+        field.firstChild!.textContent += "j";
+        await Promise.resolve();
+        await Promise.resolve();
+      }
+      await settle();
+      expect(rules).not.toHaveBeenCalled();
+      expect(all).not.toHaveBeenCalled();
+      expect(computed).not.toHaveBeenCalled();
+      stop();
+      style.remove();
+      field.remove();
+    });
+
+    it("draws a node added later with a capsule class, nested ones too", async () => {
+      force();
+      const style = document.createElement("style");
+      style.textContent = ".added-cap { --sq-half: 0; width: 100px; height: 30px; display: block }";
+      document.head.append(style);
+      const stop = installSquircleCapsules(document);
+      const wrap = document.createElement("section");
+      const el = document.createElement("div");
+      el.className = "added-cap";
+      const own = el.cloneNode() as HTMLElement;
+      // A node added on its own that matches no capsule rule is left alone.
+      const plain = document.createElement("div");
+      plain.style.cssText = "width: 100px; height: 30px";
+      wrap.append(el);
+      document.body.append(wrap, own, plain);
+      await expect.poll(() => el.style.getPropertyValue("--sq-half")).toBe("15px");
+      await expect.poll(() => own.style.getPropertyValue("--sq-half")).toBe("15px");
+      await settle();
+      expect(plain.style.getPropertyValue("--sq-half")).toBe("");
+      stop();
+      style.remove();
+      wrap.remove();
+      own.remove();
+      plain.remove();
+    });
+
+    it("draws an existing element once a stylesheet made it a capsule", async () => {
+      force();
+      const el = document.createElement("div");
+      el.className = "late-cap";
+      document.body.append(el);
+      const stop = installSquircleCapsules(document);
+      const style = document.createElement("style");
+      style.textContent = ".late-cap { --sq-half: 0; width: 100px; height: 30px; display: block }";
+      document.head.append(style);
+      await expect.poll(() => el.style.getPropertyValue("--sq-half")).toBe("15px");
+      stop();
+      style.remove();
+      el.remove();
+    });
+
+    it("reads a linked stylesheet once it has loaded", async () => {
+      force();
+      const el = document.createElement("div");
+      el.className = "linked-cap";
+      document.body.append(el);
+      const stop = installSquircleCapsules(document);
+      const css = ".linked-cap { --sq-half: 0; width: 100px; height: 30px; display: block }";
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = URL.createObjectURL(new Blob([css], { type: "text/css" }));
+      document.head.append(link);
+      await expect.poll(() => el.style.getPropertyValue("--sq-half")).toBe("15px");
+      stop();
+      link.remove();
+      el.remove();
+    });
+
+    it("draws an element after its style element's text is replaced", async () => {
+      force();
+      const style = document.createElement("style");
+      document.head.append(style);
+      const el = document.createElement("div");
+      el.className = "text-cap";
+      document.body.append(el);
+      const stop = installSquircleCapsules(document);
+      style.textContent = ".text-cap { --sq-half: 0; width: 100px; height: 30px; display: block }";
+      await expect.poll(() => el.style.getPropertyValue("--sq-half")).toBe("15px");
+      stop();
+      style.remove();
+      el.remove();
+    });
+    it("rescans nothing for an added link that is no stylesheet, or a load that is no link's", async () => {
+      force();
+      const stop = installSquircleCapsules(document);
+      const rules = vi.spyOn(CSSStyleSheet.prototype, "cssRules", "get");
+      const icon = document.createElement("link");
+      icon.rel = "icon";
+      const wrap = document.createElement("div");
+      wrap.append(icon.cloneNode());
+      document.body.append(wrap);
+      document.head.append(icon);
+      wrap.dispatchEvent(new Event("load"));
+      await settle();
+      expect(rules).not.toHaveBeenCalled();
+      stop();
+      icon.remove();
+      wrap.remove();
+    });
+
+    it("reads a stylesheet that arrives inside an added subtree", async () => {
+      force();
+      const stop = installSquircleCapsules(document);
+      const wrap = document.createElement("div");
+      wrap.innerHTML = '<style>.nested-sheet-cap { --sq-half: 0; width: 100px; height: 30px; display: block }</style><p class="nested-sheet-cap"></p>';
+      document.body.append(wrap);
+      const el = wrap.querySelector("p")!;
+      await expect.poll(() => el.style.getPropertyValue("--sq-half")).toBe("15px");
+      stop();
+      wrap.remove();
+    });
+
+    it("looks at an added node when no capsule selector exists", async () => {
+      force();
+      const iframe = document.createElement("iframe");
+      document.body.append(iframe);
+      const frameDoc = iframe.contentDocument!;
+      vi.spyOn(frameDoc.defaultView!.CSS, "supports").mockImplementation((prop: string) => prop === "clip-path");
+      const stop = installSquircleCapsules(frameDoc);
+      frameDoc.body.append(frameDoc.createElement("div"));
+      await settle();
+      stop();
+      iframe.remove();
+    });
   });
 });

@@ -63,8 +63,8 @@ test("report logs one candidate verdict per red-main-fix pull request whose fres
     if (path.startsWith("repos/o/r/pulls?")) return pulls;
     if (path.includes("head_sha=sha3798")) return { workflow_runs: [{ id: 1, status: "completed", html_url: "https://x/run/1" }] };
     if (path.includes("head_sha=sha3799")) return { workflow_runs: [{ id: 2, status: "completed", html_url: "https://x/run/2" }] };
-    if (path === "repos/o/r/actions/runs/1/jobs?per_page=100") return { jobs: [{ id: 11, name: "fresh-main", conclusion: "failure" }] };
-    if (path === "repos/o/r/actions/runs/2/jobs?per_page=100") return { jobs: [{ id: 22, name: "fresh-main", conclusion: "failure" }] };
+    if (path === "repos/o/r/actions/runs/1/jobs?per_page=30&page=1") return { total_count: 1, jobs: [{ id: 11, name: "fresh-main", conclusion: "failure" }] };
+    if (path === "repos/o/r/actions/runs/2/jobs?per_page=30&page=1") return { total_count: 1, jobs: [{ id: 22, name: "fresh-main", conclusion: "failure" }] };
     throw new Error(`unexpected path ${path}`);
   };
   const jobLog = (repo, jobId) => (jobId === 11 || jobId === 22 ? `some step\n${BASE_OVER}\nanother line` : "");

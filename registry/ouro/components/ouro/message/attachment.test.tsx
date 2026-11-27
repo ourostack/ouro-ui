@@ -413,6 +413,104 @@ describe("Attachment", () => {
   });
 });
 
+describe("Attachment preview", () => {
+  it("shows the picture itself, about 56px square, instead of the kind's icon", async () => {
+    const { attachment } = await render(<Attachment name="crumb.jpg" preview="/crumb-thumb.jpg" />);
+    const preview = attachment.querySelector<HTMLElement>("[data-ouro-attachment-preview]")!;
+    expect(preview).not.toBeNull();
+    expect(attachment.querySelector("[data-ouro-attachment-icon]")).toBeNull();
+    const rect = preview.getBoundingClientRect();
+    expect(rect.width).toBeGreaterThanOrEqual(48);
+    expect(rect.width).toBeLessThanOrEqual(64);
+    expect(rect.height).toBe(rect.width);
+    const img = preview.querySelector("img")!;
+    expect(img.getAttribute("src")).toBe("/crumb-thumb.jpg");
+    // The picture is decorative; the name carries the meaning.
+    expect(img.getAttribute("alt")).toBe("");
+  });
+
+  it.each([
+    ["null", null],
+    ["false", false],
+  ])("treats preview={%s} as no picture, keeping the icon, the visible name and the side padding", async (_, preview) => {
+    const { attachment } = await render(<Attachment name="menu.pdf" preview={preview as never} />);
+    expect(attachment.querySelector("[data-ouro-attachment-preview]")).toBeNull();
+    expect(attachment.querySelector("[data-ouro-attachment-icon]")).not.toBeNull();
+    expect(attachment.querySelector("[data-ouro-attachment-name]")!.closest(".sr-only")).toBeNull();
+  });
+
+  it("draws a node passed as preview directly, instead of treating it as a picture address", async () => {
+    const { attachment } = await render(<Attachment name="crumb.jpg" preview={<svg data-testid="custom-preview" />} />);
+    expect(attachment.querySelector("img")).toBeNull();
+    expect(attachment.querySelector('[data-testid="custom-preview"]')).not.toBeNull();
+  });
+
+  it("keeps the name and size readable to screen readers, hidden only from sight", async () => {
+    const { attachment } = await render(<Attachment name="crumb.jpg" size={348_160} preview="/crumb-thumb.jpg" />);
+    expect(attachment.textContent).toBe("crumb.jpg 340 kB");
+    const name = attachment.querySelector<HTMLElement>("[data-ouro-attachment-name]")!;
+    expect(name.closest(".sr-only")).not.toBeNull();
+  });
+
+  it("opens from a link named by the file and its size, with the picture as its only visible content", async () => {
+    const onOpen = vi.fn();
+    await render(<Attachment name="crumb.jpg" size={348_160} href="#crumb" preview="/crumb-thumb.jpg" onOpen={onOpen} />);
+    const link = page.getByRole("link", { name: "crumb.jpg 340 kB" }).element() as HTMLAnchorElement;
+    await userEvent.click(link);
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves the remove button onto the picture's corner, keeping its 44px touch target", async () => {
+    const onRemove = vi.fn();
+    const { attachment } = await render(<Attachment name="crumb.jpg" preview="/crumb-thumb.jpg" onRemove={onRemove} />);
+    const remove = page.getByRole("button", { name: "Remove crumb.jpg" });
+    await userEvent.click(remove);
+    expect(onRemove).toHaveBeenCalledTimes(1);
+    const button = attachment.querySelector<HTMLElement>('[data-ouro-part="remove"]')!;
+    expect(button.className).toMatch(/\babsolute\b/);
+    // This project runs with a fine pointer; attachment.touch.test.tsx checks the 44px coarse target.
+    // The layout width: the click's press scale may still be releasing, and it scales the drawn box.
+    expect(button.offsetWidth).toBe(28);
+  });
+
+  it("frames the picture 6px in from each edge, where a file's icon keeps 12px at its sides", async () => {
+    const { attachment } = await render(<Attachment name="crumb.jpg" preview="/crumb-thumb.jpg" />);
+    const card = attachment.getBoundingClientRect();
+    const picture = attachment.querySelector("[data-ouro-attachment-preview]")!.getBoundingClientRect();
+    expect([picture.left - card.left, picture.top - card.top, card.right - picture.right, card.bottom - picture.bottom]).toEqual([6, 6, 6, 6]);
+    const { attachment: file } = await render(<Attachment name="menu.pdf" />);
+    const icon = file.querySelector("[data-ouro-attachment-icon]")!.getBoundingClientRect();
+    expect(icon.left - file.getBoundingClientRect().left).toBe(12);
+  });
+
+  it("sets the remove button 8px in from the card's corner, clear of its edges", async () => {
+    const { attachment } = await render(<Attachment name="crumb.jpg" preview="/crumb-thumb.jpg" onRemove={() => {}} />);
+    const card = attachment.getBoundingClientRect();
+    const button = attachment.querySelector('[data-ouro-part="remove"]')!.getBoundingClientRect();
+    expect([card.right - button.right, button.top - card.top]).toEqual([8, 8]);
+  });
+
+  it("warns that icon does nothing once preview is set, and keeps the picture", async () => {
+    const appIcon = (
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor">
+        <circle cx="10" cy="10" r="8" />
+      </svg>
+    );
+    const { attachment } = await render(<Attachment name="crumb.jpg" icon={appIcon} preview="/crumb-thumb.jpg" />);
+    expect(warn).toHaveBeenCalledWith(
+      '[ouro-ui] Attachment: icon does nothing with preview: preview draws the picture instead. Fix: <Attachment name="crumb.jpg" preview={file.url} />.',
+    );
+    expect(attachment.querySelector("[data-ouro-attachment-preview]")).not.toBeNull();
+    expect(attachment.querySelector("svg circle")).toBeNull();
+  });
+
+  it("warns for thumbnail with the fix", async () => {
+    const props = { name: "crumb.jpg", thumbnail: "/crumb-thumb.jpg" } as unknown as Parameters<typeof Attachment>[0];
+    await render(<Attachment {...props} />);
+    expect(warn).toHaveBeenCalledWith('[ouro-ui] Attachment: thumbnail is not a prop. Fix: <Attachment name="crumb.jpg" preview={file.url} />.');
+  });
+});
+
 describe("Attachment development messages", () => {
   it.each([
     ["fileName", { fileName: "menu.pdf" }, "fileName is not a prop", '<Attachment name="menu.pdf" />'],
