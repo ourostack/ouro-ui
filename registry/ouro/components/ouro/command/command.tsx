@@ -1220,47 +1220,64 @@ function LoadingRows(): JSX.Element | null {
 function CommandList({ children, className, after, snap }: { children: (group: Group, index: number) => ReactNode; className: string; after: ReactNode; snap: boolean }): JSX.Element {
   const empty = Autocomplete.useFilteredItems().length === 0;
   const list = useRef<HTMLDivElement>(null);
-  // The list ends on a whole row or heading, never through one: its height is cut to the last bottom edge that fits.
+  const observer = useRef<ResizeObserver | null>(null);
+  // The list ends on a whole row or heading, never through one: its height is cut to the last bottom edge that fits. It is
+  // measured in a ResizeObserver's callback, once the browser has laid the list out, so a key that changes the rows reads
+  // no layout of its own: the room is the box around the list less what else that box holds, never the list's own height
+  // with its cut lifted.
   useLayoutEffect(() => {
     const node = list.current;
     // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
     if (!snap || !node) return;
+    const box = node.parentElement!;
     const fit = () => {
+      let room = box.clientHeight;
       // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
-      node.style.maxHeight = "";
-      // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
-      if (node.scrollHeight <= node.clientHeight) return;
-      // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
-      const box = node.getBoundingClientRect();
-      // Rects carry an ancestor's transform (a Dialog entering at scale 0.96) and clientHeight does not: measure in layout space.
-      // The overflow guard above means offsetHeight is not 0 here.
-      const scale = box.height / node.offsetHeight;
-      const end = parseFloat(getComputedStyle(node).paddingBottom);
+      for (const other of box.children) if (other !== node) room -= (other as HTMLElement).offsetHeight;
       let best = 0;
-      for (const edge of node.querySelectorAll("[data-ouro-command-value],[data-ouro-command-group-label]")) {
-        // Stryker disable next-line all: pixel geometry; command.rows.test.tsx checks the cut flush with the last whole edge, scaled or not.
-        const bottom = (edge.getBoundingClientRect().bottom - box.top) / scale + node.scrollTop + end;
+      // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
+      if (node.scrollHeight > room) {
         // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
-        if (bottom <= node.clientHeight + 0.5 && bottom > best) best = bottom;
+        const rect = node.getBoundingClientRect();
+        // Rects carry an ancestor's transform (a Dialog entering at scale 0.96) and clientHeight does not: measure in layout space.
+        // The list holds more than its room here, so it is laid out and offsetHeight is not 0.
+        const scale = rect.height / node.offsetHeight;
+        const end = parseFloat(getComputedStyle(node).paddingBottom);
+        for (const edge of node.querySelectorAll("[data-ouro-command-value],[data-ouro-command-group-label]")) {
+          // Stryker disable next-line all: pixel geometry; command.rows.test.tsx checks the cut flush with the last whole edge, scaled or not.
+          const bottom = (edge.getBoundingClientRect().bottom - rect.top) / scale + node.scrollTop + end;
+          // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
+          if (bottom <= room + 0.5 && bottom > best) best = bottom;
+        }
       }
       // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
-      if (best > 0) node.style.maxHeight = `${best}px`;
+      const cut = best > 0 ? `${best}px` : "";
+      if (node.style.maxHeight !== cut) node.style.maxHeight = cut;
     };
-    // Stryker disable next-line all: the observer's first callback runs fit as well; command.rows.test.tsx checks the cut.
-    fit();
-    const observer = new ResizeObserver(fit);
+    const watch = new ResizeObserver(fit);
+    observer.current = watch;
     // Stryker disable next-line all: listener wiring and the cleanup that undoes it; command.rows.test.tsx checks the cut follows the window.
-    observer.observe(node.parentElement!);
+    watch.observe(box);
     // The palette's own size is held by this list's cut, so a taller window has to be heard on its own.
     // Stryker disable next-line all: listener wiring and the cleanup that undoes it; command.rows.test.tsx checks the cut follows the window.
     window.addEventListener("resize", fit);
     // Stryker disable next-line all: listener wiring and the cleanup that undoes it; command.rows.test.tsx checks the cut follows the window.
     return () => {
-      // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
-      observer.disconnect();
-      // Stryker disable next-line all: pixel geometry or a guard around it; command.rows.test.tsx checks the cut flush with the last whole edge, and its growing back.
+      observer.current = null;
+      watch.disconnect();
+      // Stryker disable next-line all: listener wiring and the cleanup that undoes it; command.rows.test.tsx checks the cut follows the window.
       window.removeEventListener("resize", fit);
     };
+  }, [snap]);
+  // Each render asks for a fit once the browser has laid out what it drew: observing the box afresh delivers its size again.
+  // The box is watched, not the list, whose cut the fit changes: a callback that resizes what it watches never settles.
+  useLayoutEffect(() => {
+    const watch = observer.current;
+    // Stryker disable next-line all: a guard; the phone sheet's list has no cut, and command.rows.test.tsx checks the cut after a key.
+    if (!watch) return;
+    const box = list.current!.parentElement!;
+    watch.unobserve(box);
+    watch.observe(box);
   });
   return (
     <Autocomplete.List ref={list} hidden={empty} className={className}>
