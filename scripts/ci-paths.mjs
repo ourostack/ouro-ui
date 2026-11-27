@@ -64,7 +64,7 @@ export const runsAll = {
     "kit-pin.mjs", "kits/", "latency-quiet.mjs", "latest-release.mjs", "local-test-gate.sh", "layout-animation-allowed.json", "links.mjs", "lint/", "mcp-app.mts", "mcp-app/", "mirror/", 
     "motion-coverage.mts", "motion-reporter.mts", "motion-states.mts", "mutation.mjs", "mutation/", "namespace.sh", "ouro-actions/", "parity-matrix.mjs",
     "parity-rows.d.mts", "parity-rows.mjs", "part-names-baseline.json", "part-names.mts", "pattern-size.json", "pattern-size.mjs", "physical-allowed.json", "pin-only.mjs", "platform-parity.mjs", "platform-versions.mjs",
-    "pre-push.mjs", "public-registry.mjs", "published-release.mjs", "radius-codemod.mjs", "read-stdin.mjs", "readme-steps.mjs", "real-clock-ratchet.mjs", "registry.mts",
+    "pre-push.mjs", "public-registry.mjs", "quarantined-files.d.mts", "quarantined-files.mjs", "published-release.mjs", "radius-codemod.mjs", "read-stdin.mjs", "readme-steps.mjs", "real-clock-ratchet.mjs", "registry.mts",
     "sandbox.mjs", "scratch.mjs", "shard.d.mts", "size-gate.d.mts", "size-gate.mjs", "source-rules.mjs", "sr-classify.mjs", "sr-impact.mjs",
     "sr-lane-timings.mjs", "sr-yield.mjs", "stale-pages.mjs", "stall-reporter-default.mts", "stall-reporter.mts", "story-costs.mjs", "subset-coverage.mjs", "sweeps-compare.mjs", "sweeps-retake.mjs",
     "test-impact.mjs", "ts71.mts", "timings-node-reporter.mjs", "timings-playwright-reporter.mjs", "tree.d.mts", "tree.mjs", "upkeep/", "vendored.d.mts", "vendored.mjs", "waivers.mjs",
@@ -73,7 +73,7 @@ export const runsAll = {
   test: [
     "__screenshots__/", "check-known.ts", "check-story.ts", "check-sweep.ts", "conformance/", "control-suite.tsx", "controls.ts", "fixtures/", "form-answer-fixture/",
     "form-answer.config.ts", "form-answer.probe.tsx", "incumbent-fixture/", "ax-standalone-fixture/", "install-fixture-next/", "install-fixture-tests/",
-    "install-fixture-themes/", "install-fixture-upgrade/", "install-fixture/", "mcp-app/", "motion.ts", "shadcn-stock.css", "slice-core.ts", "slice.ts", "stories.tsx",
+    "install-fixture-themes/", "install-fixture-upgrade/", "install-fixture/", "mcp-app/", "motion.ts", "scroll-rest.ts", "shadcn-stock.css", "slice-core.ts", "slice.ts", "stories.tsx",
     "story-axe.ts", "story-costs.json", "story-selection.ts", "theme-fixtures.ts", "theme-fixtures/", "themes/", "warm-stories.ts",
   ],
   ".github": ["actions/", "copilot/", "dependabot.yml", "ouro-check.json", "ouro-current.json", "quarantine.json", "repeat-red-quarantine.json", "required-checks.json", "workflows/ci.yml", "workflows/screens.yml"],
