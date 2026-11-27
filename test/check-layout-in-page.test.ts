@@ -307,15 +307,17 @@ describe("findLayoutIssues: near-miss", () => {
     ]);
     // A row that hides its overflow, its surface past its end and 3px inside the card around it; a box that hides its
     // surface 3px above the one after the box; and a pane that hides two surfaces 3px apart below its end, whose gap is
-    // their design wherever the pane scrolls; and a pane that shows its surface 3px above a static one below the pane.
+    // their design wherever the pane scrolls; and a pane that shows its surface 3px from a static one beside the pane, below it and above it.
     host.innerHTML = `
       <div id="card" style="position:fixed;left:10px;top:10px;width:300px;height:100px;box-sizing:border-box;padding:40px;background:#eee"><div style="width:100px;height:30px;overflow:hidden"><div style="width:60px;height:30px;margin-left:197px;background:#cde"></div></div></div>
       <div style="position:fixed;left:10px;top:400px;width:60px;height:30px;overflow:hidden"><div style="width:60px;height:30px;margin-top:40px;background:#cde"></div></div>${box("after", 10, 473, 60, 30)}
       <div style="position:fixed;left:10px;top:200px;width:200px;height:100px;overflow:auto"><div style="height:200px"></div>${box("c", 0, 0, 60, 30).replace("position:fixed;", "")}${box("d", 0, 0, 60, 30).replace("position:fixed;", "margin-top:3px;")}</div>
-      <div style="position:fixed;left:400px;top:10px"><div style="height:30px;overflow-y:auto"><div id="e" style="width:60px;height:30px;background:#cde"></div><div style="height:90px"></div></div><div id="f" style="width:60px;height:30px;margin-top:3px;background:#cde"></div></div>`;
+      <div style="position:fixed;left:400px;top:10px"><div style="height:30px;overflow-y:auto"><div id="e" style="width:60px;height:30px;background:#cde"></div><div style="height:90px"></div></div><div id="f" style="width:60px;height:30px;margin-top:3px;background:#cde"></div></div>
+      <div style="position:fixed;left:600px;top:10px"><div id="g" style="width:60px;height:30px;margin-bottom:3px;background:#cde"></div><div style="height:30px;overflow-y:auto"><div id="h" style="width:60px;height:30px;background:#cde"></div><div style="height:90px"></div></div></div>`;
     expect(found()).toEqual([
       ["div#c and div#d", "3px"],
       ["div#e and div#f", "3px"],
+      ["div#g and div#h", "3px"],
     ]);
   });
 
