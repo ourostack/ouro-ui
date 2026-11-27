@@ -252,6 +252,19 @@ describe("findDesignIssues: nested-frame", () => {  it("finds a frame hugging a 
     ]);
   });
 
+  it("finds a lighter framed card inside a clipping frame even when it is inset well beyond the hug gap", () => {
+    render(`
+      <div id="shell" style="box-sizing:border-box;width:360px;height:220px;overflow:hidden;border:1px solid #888;background:#d8dce0;padding:24px">
+        <div id="card" style="box-sizing:border-box;width:220px;height:110px;border:1px solid #999;background:#fff">A collection of notes</div>
+      </div>`);
+    expect(of("nested-frame")).toEqual([
+      expect.objectContaining({
+        element: "div#card in div#shell",
+        detail: expect.stringMatching(/border|frame/i),
+      }),
+    ]);
+  });
+
   it("finds a filled box in a rounded corner whose radius isn't the corner's less the inset", () => {
     render(`
       <div id="card" style="background:#eef;border-radius:24px;padding:4px"><div id="flat" style="background:#3a7;height:60px;border-radius:4px"></div></div>
@@ -320,6 +333,49 @@ describe("findDesignIssues: nested-frame", () => {  it("finds a frame hugging a 
       <div data-ouro-allow="nested-frame" data-ouro-allow-why="a chip in a card" style="background:#eef;border-radius:24px;padding:4px"><div style="background:#3a7;height:60px"></div></div>
       <div style="border:1px solid #888;border-radius:12px;padding:2px;margin-top:20px"><div id="once" style="border:1px solid #888;height:40px"></div></div>`);
     expect(of("nested-frame").map((issue) => issue.element)).toEqual(["div#once in div"]);
+  });
+});
+
+describe("findDesignIssues: cut-off-edge", () => {
+  it("finds a scroll list whose rows disappear into the same surface before the window edge", () => {
+    render(`
+      <div style="width:360px;height:320px;background:#e6e8eb">
+        <div id="list" style="width:340px;height:250px;overflow:auto;background:#e6e8eb">
+          <div style="height:80px">One note</div><div style="height:80px">Two notes</div>
+          <div style="height:80px">Three notes</div><div style="height:80px">Four notes</div>
+        </div>
+      </div>`);
+    expect(of("cut-off-edge")).toEqual([
+      expect.objectContaining({
+        element: expect.stringContaining("div#list"),
+        detail: expect.stringMatching(/surface.*(step|token)|(step|token).*surface/i),
+      }),
+    ]);
+  });
+});
+
+describe("findDesignIssues: pane-edge", () => {
+  it("finds adjoining large panes split by a line or by no surface step", () => {
+    render(`
+      <div style="display:flex;width:360px;height:200px;background:#eee">
+        <aside id="same-side" style="width:170px;background:#eee">Folders</aside>
+        <main id="same-main" style="width:190px;background:#eee">Notes</main>
+      </div>
+      <div style="display:flex;width:360px;height:200px;margin-top:24px">
+        <aside id="lined-side" style="box-sizing:border-box;width:170px;border-right:1px solid #aaa;background:#e5e5e5">Collections</aside>
+        <main id="lined-main" style="width:190px;background:#fff">Details</main>
+      </div>`);
+    expect(of("pane-edge")).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        element: expect.stringMatching(/same-side.*same-main/),
+        detail: expect.stringMatching(/surface.*(step|token)|(step|token).*surface/i),
+      }),
+      expect.objectContaining({
+        element: expect.stringMatching(/lined-side.*lined-main/),
+        detail: expect.stringMatching(/border|line/i),
+      }),
+    ]));
+    expect(of("pane-edge")).toHaveLength(2);
   });
 });
 
