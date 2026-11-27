@@ -963,6 +963,27 @@ interface Spoken {
 }
 
 /**
+ * The live region, with the messages it reads as its own state, so a message read re-renders this and not the list: the list
+ * hands `announce` back a function that adds them.
+ */
+function LiveRegion({ announce }: { announce: { current: ((texts: string[]) => void) | null } }): JSX.Element {
+  const announce = useRef<((texts: string[]) => void) | null>(null);
+  useEffect(() => {
+    announce.current = (texts) => setSpoken((previous) => [...previous, ...texts.map((text) => ({ id: nextId.current++, text }))].slice(-KEEP_SPOKEN));
+    return () => {
+      announce.current = null;
+    };
+  }, [announce]);
+  return (
+    <div data-ouro-message-list-live="" aria-live="polite" className="sr-only">
+      {spoken.map((item) => (
+        <p key={item.id}>{item.text}</p>
+      ))}
+    </div>
+  );
+}
+
+/**
  * A conversation: `Message`s in a scrolling, labeled region that opens at the newest one.
  * A short conversation sits at the region's bottom, by the composer under it, as in a chat
  * app; put what starts it (who it is with, a way to older history) first among the children,
@@ -1216,8 +1237,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [jumpRoom, setJumpRoom] = useState(false);
   const jumpRoomRef = useRef<HTMLDivElement | null>(null);
   const jumpRef = useRef<HTMLButtonElement | null>(null);
-  const [spoken, setSpoken] = useState<Spoken[]>([]);
-  const nextId = useRef(0);
+  const announce = useRef<((texts: string[]) => void) | null>(null);
   // The newest label function, for the observer set up once below.
   const labelFor = useRef(newMessageLabel);
   const keyFor = useRef(onMessageKeyDown);
@@ -2845,7 +2865,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       waiting = still;
       publish();
       if (fresh.length === 0) return;
-      setSpoken((previous) => [...previous, ...fresh.map((text) => ({ id: nextId.current++, text }))].slice(-KEEP_SPOKEN));
+      announce.current?.(fresh);
     };
     // Only messages coming and going, and streaming ending, matter; each streamed token
     // changes text, which is skipped without a scan.
@@ -3293,11 +3313,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         />
       </div>
       {/* Read politely, outside the scrolling content, so new messages are heard once. */}
-      <div data-ouro-message-list-live="" aria-live="polite" className="sr-only">
-        {spoken.map((item) => (
-          <p key={item.id}>{item.text}</p>
-        ))}
-      </div>
+      <LiveRegion announce={announce} />
       {/* Over the list, never in it, so it moves no message. Always in the page, so screen readers hear it as it shows; a live region without the status role, so an app's own status stays the page's only one. Marked, so an app can set it lower, below a header of its own over the list. */}
       <div data-ouro-message-list-older="" className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
         <div aria-live="polite">
