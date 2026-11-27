@@ -213,22 +213,24 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     }
     return matchMedia("(prefers-color-scheme: dark)").matches && /dark/.test(getComputedStyle(document.documentElement).colorScheme) ? [18, 18, 18, 1] : [255, 255, 255, 1];
   };
-  // The actual solid surface, with translucent fills composited over their ancestors. A picture, gradient, filter or
-  // faded ancestor cannot be represented by one colour, so an edge over it is not guessed.
+  // The actual solid surface, with translucent fills and group opacity composited over their ancestors. A picture,
+  // gradient or filter that affects the result cannot be represented by one colour, so an edge over it is not guessed.
   const surfaceOf = (el: Element | null): [number, number, number] | null => {
     const colour: [number, number, number] = [0, 0, 0];
-    let remaining = 1;
+    let alpha = 0;
     for (let n = el; n; n = n.parentElement) {
       const s = getComputedStyle(n);
-      if (s.backgroundImage !== "none" || s.filter !== "none" || (s.backdropFilter && s.backdropFilter !== "none") || Number(s.opacity) < 0.999) return null;
+      if ((s.backgroundImage !== "none" && alpha < 0.999) || s.filter !== "none" || (s.backdropFilter && s.backdropFilter !== "none") || s.mixBlendMode !== "normal") return null;
       const fill = rgba(s.backgroundColor);
-      const weight = remaining * fill[3];
+      const weight = (1 - alpha) * fill[3];
       for (let i = 0; i < 3; i++) colour[i]! += fill[i]! * weight;
-      remaining -= weight;
-      if (remaining < 0.001) return colour;
+      alpha += weight;
+      const opacity = Number(s.opacity);
+      for (let i = 0; i < 3; i++) colour[i]! *= opacity;
+      alpha *= opacity;
     }
     const canvas = matchMedia("(prefers-color-scheme: dark)").matches && /dark/.test(getComputedStyle(document.documentElement).colorScheme) ? 18 : 255;
-    return colour.map((channel) => channel + canvas * remaining) as [number, number, number];
+    return colour.map((channel) => channel + canvas * (1 - alpha)) as [number, number, number];
   };
   const colourDistance = (a: number[], b: number[]) => Math.abs(a[0]! - b[0]!) + Math.abs(a[1]! - b[1]!) + Math.abs(a[2]! - b[2]!);
   const visibleBorder = (el: Element, side: "top" | "right" | "bottom" | "left", surface: number[]) => {
@@ -398,7 +400,9 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       const hugs = insets.every((d) => d >= -1 && d <= hugPx);
       const own = rgba(getComputedStyle(inner).backgroundColor);
       const [surface, behind] = [surfaceOf(inner), surfaceOf(inner.parentElement)];
-      const lighter = own[3] > 0 && surface && behind && colourDistance(surface, behind) > 12 && hsl(surface).l > hsl(behind).l
+      const inside = Math.min(drawn.right, o.right) - Math.max(drawn.left, o.left) > 1
+        && Math.min(drawn.bottom, o.bottom) - Math.max(drawn.top, o.top) > 1;
+      const lighter = inside && own[3] > 0 && surface && behind && colourDistance(surface, behind) > 12 && hsl(surface).l > hsl(behind).l
         && !inner.matches("button, input, select, textarea, [role=button]");
       if (hugs || lighter) {
         reported.add(inner);
@@ -581,6 +585,11 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       const cs = getComputedStyle(child);
       return hasText(child) || child.matches("img, video, canvas, svg, input, textarea, button, [role=row], li") || rgba(cs.backgroundColor)[3] > 0 || frameOf(child) !== null;
     });
+    const textRects = [...el.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim()).flatMap((node) => {
+      const range = document.createRange();
+      range.selectNode(node);
+      return [...range.getClientRects()];
+    });
     const cut = sideNames.filter((side) => {
       const horizontal = side === "top" || side === "bottom";
       if (horizontal ? !scrollY : !scrollX) return false;
@@ -589,16 +598,17 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       if (edge <= 1 || edge >= limit - 1 || visibleBorder(el, side, surface)) return false;
       if ((side === "top" && drawn.top > edge + 1) || (side === "bottom" && drawn.bottom < edge - 1)
         || (side === "left" && drawn.left > edge + 1) || (side === "right" && drawn.right < edge - 1)) return false;
-      const crossing = content.some((child) => {
+      const crosses = (r: DOMRect) => horizontal
+        ? r.top < edge - 0.5 && r.bottom > edge + 0.5 && r.right > left && r.left < right
+        : r.left < edge - 0.5 && r.right > edge + 0.5 && r.bottom > top && r.top < bottom;
+      const crossing = textRects.some(crosses) || content.some((child) => {
         const r = child.getBoundingClientRect();
         const d = drawnRect(child)!;
         if (d.width < 1 || d.height < 1) return false;
-        return horizontal
-          ? r.top < edge - 0.5 && r.bottom > edge + 0.5 && d.top <= edge + 1 && d.bottom >= edge - 1 && r.right > left && r.left < right
-          : r.left < edge - 0.5 && r.right > edge + 0.5 && d.left <= edge + 1 && d.right >= edge - 1 && r.bottom > top && r.top < bottom;
+        return crosses(r) && (horizontal ? d.top <= edge + 1 && d.bottom >= edge - 1 : d.left <= edge + 1 && d.right >= edge - 1);
       });
       if (!crossing) return false;
-      return [0.25, 0.5, 0.75].some((share) => {
+      const unclear = [0.25, 0.5, 0.75].some((share) => {
         const along = horizontal ? left + (right - left) * share : top + (bottom - top) * share;
         const direction = side === "top" || side === "left" ? -1 : 1;
         const [ix, iy] = horizontal ? [along, edge - direction * 2] : [edge - direction * 2, along];
@@ -609,6 +619,23 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
         const beyond = surfaceOf(outside);
         return beyond !== null && colourDistance(surface, beyond) <= 12;
       });
+      if (!unclear) return false;
+      const fade = visible.some((candidate) => {
+        if (candidate === el || candidate.contains(el) || !el.parentElement?.contains(candidate)) return false;
+        const cs = getComputedStyle(candidate);
+        if (!/absolute|fixed|sticky/.test(cs.position) || !/gradient\(/.test(`${cs.backgroundImage} ${cs.maskImage}`)) return false;
+        const z = Number.parseFloat(cs.zIndex);
+        const scrollZ = Number.parseFloat(s.zIndex);
+        if (z < 0 || (!(el.compareDocumentPosition(candidate) & Node.DOCUMENT_POSITION_FOLLOWING) && !(z > (Number.isFinite(scrollZ) ? scrollZ : 0)))) return false;
+        const r = drawnRect(candidate)!;
+        const overlap = horizontal ? Math.min(r.right, right) - Math.max(r.left, left) : Math.min(r.bottom, bottom) - Math.max(r.top, top);
+        if (overlap < (horizontal ? right - left : bottom - top) / 2) return false;
+        if (side === "top") return r.top <= edge + 1 && r.bottom > edge + 1;
+        if (side === "bottom") return r.top < edge - 1 && r.bottom >= edge - 1;
+        if (side === "left") return r.left <= edge + 1 && r.right > edge + 1;
+        return r.left < edge - 1 && r.right >= edge - 1;
+      });
+      return !fade;
     });
     if (cut.length) {
       issues.push({
@@ -647,8 +674,6 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
         });
         if (!seam) continue;
         const { first, second, f, s, side, other, across } = seam;
-        const firstSurface = surfaceOf(first);
-        const secondSurface = surfaceOf(second);
         const at = across ? f.bottom : f.right;
         const from = across ? Math.max(f.left, s.left) : Math.max(f.top, s.top);
         const to = across ? Math.min(f.right, s.right) : Math.min(f.bottom, s.bottom);
@@ -656,18 +681,33 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
         const separator = lines.some((line) => line.across === across && line.el.parentElement === parent
           && line.el !== first && line.el !== second && line.near >= at - 1 && line.far <= at + gap + 1
           && Math.min(line.to, to) - Math.max(line.from, from) >= 160);
-        const line = separator || (firstSurface !== null && visibleBorder(first, side, firstSurface))
-          || (secondSurface !== null && visibleBorder(second, other, secondSurface));
-        if ((!line && gap > 0.5) || (!line && (!firstSurface || !secondSurface || colourDistance(firstSurface, secondSurface) > 12))) continue;
-        const visibleSeam = [0.25, 0.5, 0.75].some((share) => {
+        const samples = [0.25, 0.5, 0.75].flatMap((share) => {
           const along = from + (to - from) * share;
           const [fx, fy] = across ? [along, at - 2] : [at - 2, along];
           const [sx, sy] = across ? [along, at + gap + 2] : [at + gap + 2, along];
           const firstHit = document.elementFromPoint(fx, fy);
           const secondHit = document.elementFromPoint(sx, sy);
-          return firstHit !== null && secondHit !== null && first.contains(firstHit) && second.contains(secondHit);
+          if (!firstHit || !secondHit || !first.contains(firstHit) || !second.contains(secondHit)
+            || optedOut(firstHit, "pane-edge") || optedOut(secondHit, "pane-edge")) return [];
+          return [{ firstHit, secondHit, firstSurface: surfaceOf(firstHit), secondSurface: surfaceOf(secondHit) }];
         });
-        if (!visibleSeam) continue;
+        if (samples.length < 2) continue;
+        const borderAt = (hit: Element, pane: Element, edge: number, borderSide: typeof side | typeof other, surface: number[] | null) => {
+          if (!surface) return false;
+          for (let node: Element | null = hit; node && pane.contains(node); node = node.parentElement) {
+            const r = drawnRect(node)!;
+            const onEdge = borderSide === "right" ? r.right : borderSide === "left" ? r.left : borderSide === "bottom" ? r.bottom : r.top;
+            const length = across ? Math.min(r.right, to) - Math.max(r.left, from) : Math.min(r.bottom, to) - Math.max(r.top, from);
+            if (Math.abs(onEdge - edge) <= 1 && length >= 160 && visibleBorder(node, borderSide, surface)) return true;
+            if (node === pane) break;
+          }
+          return false;
+        };
+        const line = separator || samples.some(({ firstHit, secondHit, firstSurface, secondSurface }) =>
+          borderAt(firstHit, first, at, side, firstSurface) || borderAt(secondHit, second, at + gap, other, secondSurface));
+        const sameSurface = samples.filter(({ firstSurface, secondSurface }) =>
+          firstSurface && secondSurface && colourDistance(firstSurface, secondSurface) <= 12).length >= 2;
+        if (!line && (gap > 0.5 || !sameSurface)) continue;
         const detail = line
           ? "large panes are split by a drawn line: remove the border and use a step between theme surface tokens"
           : "large panes share the same surface: use a step between theme surface tokens, without a border";
