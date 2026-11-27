@@ -48,5 +48,11 @@ test.describe("on a small tablet", () => {
         [...demo.querySelectorAll<HTMLElement>("*")].filter((el) => el.clientWidth > 2 && !el.closest("[data-ouro='time-grid']") && !el.querySelector("[data-ouro='time-grid']") && /auto|hidden|clip/.test(getComputedStyle(el).overflowX) && el.scrollWidth > el.clientWidth + 1).map((el) => `${el.textContent}|${el.closest("[data-ouro]")?.getAttribute("data-ouro")}:${el.scrollWidth}>${el.clientWidth}`),
       );
     await expect.poll(clipped).toEqual([]);
+    const past = () =>
+      page.locator("[data-site-calendar-demo]").evaluate((demo) => {
+        const edge = demo.getBoundingClientRect().right;
+        return [...demo.querySelectorAll<HTMLElement>("button")].filter((button) => !button.closest("[data-ouro='time-grid']") && button.getBoundingClientRect().right > edge + 1).map((button) => button.getAttribute("aria-label") ?? button.textContent);
+      });
+    await expect.poll(past).toEqual([]);
   });
 });
