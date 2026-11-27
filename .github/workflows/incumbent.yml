@@ -55,11 +55,13 @@ jobs:
         working-directory: test/incumbent-fixture
         run: |
           npx vite preview --port 4173 --strictPort &
+          trap 'pkill -f "vite preview --port" || true' EXIT
           for i in $(seq 30); do curl -sf http://localhost:4173 >/dev/null && break; sleep 1; done
           node xray.check.mjs http://localhost:4173
       - name: Actions over both pages
         working-directory: test/incumbent-fixture
         run: |
           npx vite preview --port 4174 --strictPort &
+          trap 'pkill -f "vite preview --port" || true' EXIT
           for i in $(seq 30); do curl -sf http://localhost:4174 >/dev/null && break; sleep 1; done
           node actions.check.mjs http://localhost:4174

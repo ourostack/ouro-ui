@@ -35,4 +35,18 @@ test.describe("on a small tablet", () => {
     );
     expect(cut).toBe(0);
   });
+
+  for (const width of [700, 1100]) test(`the calendar demo's controls show each label whole at large text at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("docs/calendar-demo/");
+    await expect(page.locator("[data-site-calendar-demo]")).toBeAttached();
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "200%";
+    });
+    const clipped = () =>
+      page.locator("[data-site-calendar-demo]").evaluate((demo) =>
+        [...demo.querySelectorAll<HTMLElement>("*")].filter((el) => el.clientWidth > 2 && !el.closest("[data-ouro='time-grid']") && !el.querySelector("[data-ouro='time-grid']") && /auto|hidden|clip/.test(getComputedStyle(el).overflowX) && el.scrollWidth > el.clientWidth + 1).map((el) => `${el.textContent}|${el.closest("[data-ouro]")?.getAttribute("data-ouro")}:${el.scrollWidth}>${el.clientWidth}`),
+      );
+    await expect.poll(clipped).toEqual([]);
+  });
 });
