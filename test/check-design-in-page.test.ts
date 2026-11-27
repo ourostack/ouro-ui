@@ -252,6 +252,97 @@ describe("findDesignIssues: nested-frame", () => {  it("finds a frame hugging a 
     ]);
   });
 
+  it("finds a lighter framed card inside a clipping frame even when it is inset well beyond the hug gap", () => {
+    render(`
+      <div id="shell" style="box-sizing:border-box;width:360px;height:220px;overflow:hidden;border:1px solid #888;background:#d8dce0;padding:24px">
+        <div id="card" style="box-sizing:border-box;width:220px;height:110px;border:1px solid #999;background:#fff">A collection of notes</div>
+      </div>`);
+    expect(of("nested-frame")).toEqual([
+      expect.objectContaining({
+        element: "div#card in div#shell",
+        detail: expect.stringMatching(/border|frame/i),
+      }),
+    ]);
+  });
+
+  it("finds lighter framed surfaces at different insets and leaves unfilled, darker, hidden and allowed ones alone", () => {
+    render(`
+      <div id="shell" style="position:relative;box-sizing:border-box;width:360px;height:340px;overflow:hidden;border:1px solid #888;background:#c8cdd1;padding:20px">
+        <div id="near" style="width:160px;height:50px;border:1px solid #888;background:#fff">First</div>
+        <div id="far" style="width:160px;height:50px;margin:60px 0 0 80px;border:1px solid #888;background:#fff">Second</div>
+        <div style="width:160px;height:40px;border:1px solid #888">Unfilled</div>
+        <div style="width:160px;height:40px;border:1px solid #888;background:#9ba0a4">Darker</div>
+        <div data-ouro-allow="nested-frame" data-ouro-allow-why="a deliberate framed example" style="width:160px;height:40px;border:1px solid #888;background:#fff">Allowed</div>
+        <div style="position:absolute;top:500px;width:160px;height:40px;border:1px solid #888;background:#fff">Clipped away</div>
+      </div>`);
+    expect(of("nested-frame").map((issue) => issue.element)).toEqual([
+      "div#near in div#shell",
+      "div#far in div#shell",
+    ]);
+  });
+
+  it("does not mistake a framed surface positioned outside its ancestor for a frame inside it", () => {
+    render(`
+      <div style="position:relative;width:200px;height:120px;border:1px solid #888;background:#ddd">
+        <div style="position:absolute;top:150px;width:120px;height:60px;border:1px solid #888;background:#fff">Outside</div>
+      </div>`);
+    expect(of("nested-frame")).toEqual([]);
+  });
+
+  it("passes a lighter surface whose border is the same colour as that surface", () => {
+    render(`
+      <div style="width:300px;height:180px;padding:20px;border:1px solid #888;background:#ddd">
+        <div style="width:180px;height:80px;border:1px solid #fff;background:#fff">A collection</div>
+      </div>`);
+    expect(of("nested-frame")).toEqual([]);
+  });
+
+  it("passes a framed editor but still finds a framed card that contains a field", () => {
+    render(`
+      <div style="width:360px;padding:20px;border:1px solid #888;background:#ddd">
+        <div id="editor" style="width:300px;height:110px;border:1px solid #888;background:#fff">
+          <textarea aria-label="Message" style="width:90%;height:65px"></textarea><button>Send</button>
+        </div>
+        <div id="card" style="width:300px;height:110px;margin-top:20px;border:1px solid #888;background:#fff">
+          <h2>Preferences</h2><input aria-label="Name">
+        </div>
+      </div>`);
+    expect(of("nested-frame").map((issue) => issue.element)).toEqual(["div#card in div"]);
+  });
+
+  it("distinguishes composite colour and chip fields from a framed card", () => {
+    render(`
+      <div style="width:360px;padding:20px;border:1px solid #888;background:#ddd">
+        <div id="colour" style="display:flex;align-items:center;width:300px;height:48px;border:1px solid #888;background:#fff">
+          <input type="color" aria-label="Pick a colour" style="width:32px;height:32px">
+          <input aria-label="Colour" style="width:240px;height:32px">
+        </div>
+        <div id="chips" style="display:flex;flex-wrap:wrap;width:300px;height:90px;border:1px solid #888;background:#fff">
+          <span style="display:flex;width:100px;height:32px">One<button>Remove one</button></span>
+          <span style="display:flex;width:100px;height:32px">Two<button>Remove two</button></span>
+          <span style="display:flex;width:100px;height:32px">Three<button>Remove three</button></span>
+          <input role="combobox" aria-label="Add a tag" style="width:64px;height:32px">
+        </div>
+        <div id="read-only-chips" style="display:flex;flex-wrap:wrap;width:300px;height:80px;border:1px solid #888;background:#fff">
+          <div style="display:contents">
+            <span style="display:inline-flex;width:120px;height:32px;border-radius:4px;background:#eee">One</span>
+            <span style="display:inline-flex;width:120px;height:32px;border-radius:4px;background:#eee">Two</span>
+            <input role="combobox" aria-label="Selected tags" readonly style="width:64px;height:32px">
+          </div>
+          <span><svg width="12" height="12"></svg></span>
+        </div>
+        <div id="choice" role="combobox" aria-label="Oven" style="width:300px;height:44px;border:1px solid #888;background:#fff">Fan</div>
+        <div id="card" style="width:300px;height:140px;border:1px solid #888;background:#fff">
+          <label>Name <input></label>
+        </div>
+        <div id="card-flex" style="display:flex;flex-wrap:wrap;width:300px;height:100px;border:1px solid #888;background:#fff">
+          <p style="width:200px;height:40px;margin:0">Choose a collection</p>
+          <input role="combobox" aria-label="Collection" style="width:64px;height:32px">
+        </div>
+      </div>`);
+    expect(of("nested-frame").map((issue) => issue.element)).toEqual(["div#card in div", "div#card-flex in div"]);
+  });
+
   it("finds a filled box in a rounded corner whose radius isn't the corner's less the inset", () => {
     render(`
       <div id="card" style="background:#eef;border-radius:24px;padding:4px"><div id="flat" style="background:#3a7;height:60px;border-radius:4px"></div></div>
