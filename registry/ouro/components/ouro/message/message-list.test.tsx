@@ -964,11 +964,16 @@ describe("MessageList", () => {
     await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
   });
 
-  it("offers the jump when messages arrive below a reader who opened with the newest in view, with no scroll", async () => {
-    const { scroller, rerender } = await render(<Found windowing={false} items={history(30)} initialAnchor="found-28" />);
+  // A list opened at an anchor that lands at its end follows it (ourostack/ouro-ui#3873), so a reader who stopped following
+  // within a line of the end stands in for one who isn't following: messages that arrive below them bring the pill.
+  it("offers the jump when messages arrive below a reader within a line of the end who isn't following it, with no scroll", async () => {
+    const { scroller, rerender } = await render(<Found windowing={false} items={history(30)} />);
     await settle(scroller);
+    await wheel(scroller, -20);
+    expect(distanceFromBottom(scroller)).toBeGreaterThan(2);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(40);
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
-    await rerender(<Found windowing={false} items={history(34)} initialAnchor="found-28" />);
+    await rerender(<Found windowing={false} items={history(34)} />);
     await expect.element(page.getByRole("button", { name: "Jump to latest" })).toBeVisible();
   });
 
@@ -1043,6 +1048,19 @@ describe("MessageList", () => {
     await settle(scroller);
     expect(scroller.scrollTop).toBe(opened);
     expect(top()).toBe(placed);
+  });
+
+  it("opened at a message whose centring leaves the list at its end, is pinned there: no Jump to latest, and a new message is followed", async () => {
+    const items = history(30);
+    const { scroller, rerender } = await render(<Found windowing={false} items={items} initialAnchor="found-28" />);
+    await nextFrame(scroller);
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
+    await rerender(<Found windowing={false} items={[...items, { id: 30, role: "assistant", text: "A new reply." }]} initialAnchor="found-28" />);
+    await settle(scroller);
+    expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    expect(inView(scroller, "found-30")).toBe(true);
   });
 
   it("follows its end down when the content's padding shrinks, which changes its border box but not its content box", async () => {
