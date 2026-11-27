@@ -710,9 +710,12 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     // selectionEnd one after another, as often as it likes on each key: each pair is read once.
     let last: { key: unknown[]; read: ReturnType<typeof readControl> } | undefined;
     const read = () => {
-      const dom = window.getSelection();
-      const key = [editor.getEditorState(), inMarkdown.current, dom?.anchorNode, dom?.anchorOffset, dom?.focusNode, dom?.focusOffset];
-      if (!last || key.some((part, i) => part !== last?.key[i])) last = { key, read: inMarkdown.current ? readMarkdownControl(editor, copy()) : readControl(editor) };
+      // A document with a window always has a selection: getSelection is null only in a frame that has none.
+      const { anchorNode, anchorOffset, focusNode, focusOffset } = window.getSelection()!;
+      const key = [editor.getEditorState(), inMarkdown.current, anchorNode, anchorOffset, focusNode, focusOffset];
+      const prior = last;
+      if (prior && key.every((part, i) => part === prior.key[i])) return prior.read;
+      last = { key, read: inMarkdown.current ? readMarkdownControl(editor, copy()) : readControl(editor) };
       return last.read;
     };
     Object.defineProperties(root, {
