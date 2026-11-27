@@ -1671,7 +1671,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const anchoring = browserAnchors();
       // Stryker disable next-line ConditionalExpression: Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
       if (!anchoring) holdEnd(contentEnd());
-      // Stryker disable next-line EqualityOperator: a mark exactly at the content's end holds nothing past it, gone or not; and Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
+      // Stryker disable next-line EqualityOperator,LogicalOperator,ConditionalExpression: a mark exactly at the content's end holds nothing past it, gone or not, and where the browser does not anchor the line above has just put it there; and Chromium's own anchoring takes no notice of the mark and WebKit's stops when it moves (message-list.test.tsx, in WebKit), and mutation testing runs Chromium only.
       if (anchoring && endHeld > contentEnd()) holdEnd(0);
       const view = scroller.getBoundingClientRect();
       // Finds the anchors among the nodes, in the order they come in the page.
@@ -1940,7 +1940,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         if (!pinned.current && !turning()) moveFloor(0);
         release();
       };
-      // Stryker disable next-line ConditionalExpression: paying nothing removes no translate and scrolls by 0, which moves nothing.
+      // Stryker disable next-line ConditionalExpression,BlockStatement: paying nothing removes no translate and scrolls by 0, which moves nothing, and lets go as the rest of a pay does.
       if (by === 0) {
         // Stryker disable next-line CallExpression,StringLiteral: with nothing carried there is a translate only where a carry and a change cancelled to the pixel, which draws the content where it is.
         content.style.removeProperty("translate");
