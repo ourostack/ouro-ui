@@ -701,7 +701,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
   // The width of one day and of a rem, which decide how many overlapping events a day can show: the
   // server HTML and the first render draw them all, in steps, until a measure.
   const [dayWidth, setDayWidth] = useState(0);
-  // The hour as drawn, in px: the lines an event holds follow it.
+  // The hour as drawn, in px at a 16px rem, as the events' lines and padding are: the lines an event holds follow it.
   const [hourPx, setHourPx] = useState(48);
   const [dayRem, setDayRem] = useState(16);
   const [chipRem, setChipRem] = useState(2);
@@ -780,8 +780,13 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
       // The app's day summaries make the header as tall as they are, which only a measure knows; events scrolled into view stop below it.
       if (summaries) root.style.setProperty("--ouro-time-grid-head", `${headHeight}px`);
       root.style.setProperty("--ouro-time-grid-fill", `${(viewport.clientHeight - headHeight) / 24}px`);
-      setHourPx(body.offsetHeight / (dayLength / 60));
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      setHourPx(((body.offsetHeight / (dayLength / 60)) * 16) / rem);
     };
+    // Measured now, before the first paint, when there are events to give lines to, as the fold below is: a hour taller
+    // than the shortest would otherwise draw them a frame on the shortest hour's lines. A grid with no events forces no
+    // layout while it mounts.
+    if (timed.some((placements) => placements.length > 0)) fill();
     const observer = new ResizeObserver(fill);
     // Stryker disable next-line CallExpression: a change that resizes the room in a test resizes the header's sticky box with it, which measures again.
     observer.observe(viewport);
@@ -790,8 +795,9 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
     observer.observe(body);
     // Stryker disable next-line ArrowFunction: once the grid is gone, nothing reads what the observer would set.
     return () => observer.disconnect();
-  },
-  [summaries]);
+    // The events only decide whether the first measure runs before the first paint; the observer keeps it after.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [summaries]);
 
   // The day's background lane, measured for its stacks (above). Every day's lane is as wide.
   const hasLane = labelBackground && hasBackground;
@@ -1010,13 +1016,16 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           <span className="line-clamp-(--ouro-lines) font-medium [unicode-bidi:isolate] @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": lines } as CSSProperties}>
             {event.title}
           </span>{" "}
-          <span dir="ltr" data-slot="time-grid-event-time" className={`${mutedLineClass} [unicode-bidi:isolate] rtl:text-end`}>
+          {/* lineCount counts an event's padding but not the pixel it is drawn short or a free or unanswered event's
+              border: the lines after the title count 3px less, so a line the count promised still shows, at most its
+              foot's leading clipped, rather than stepping out of the event. */}
+          <span dir="ltr" data-slot="time-grid-event-time" className={`${mutedLineClass} -mb-[3px] [unicode-bidi:isolate] rtl:text-end`}>
             {startAndRest(rangeText(formats.time, start!, end!))}
           </span>
           {lines >= 3 && event.description ? (
             <>
               {" "}
-              <span dir="auto" className={mutedLineClass}>
+              <span dir="auto" className={`${mutedLineClass} -mb-[3px]`}>
                 {event.description}
               </span>
             </>
