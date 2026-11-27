@@ -19,8 +19,8 @@ describe("Composer rich mode, before its editor has loaded", () => {
     expect(box).not.toBeNull();
     box.focus();
     box.setSelectionRange(3, 3);
-    // Long enough for the editor's module to load: the box the person is in is still the plain box.
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await import("@/registry/ouro/components/ouro/composer/composer-parts");
+    await act(async () => {});
     expect(host.querySelector("[data-ouro-composer-editor]")).toBeNull();
     expect(document.activeElement).toBe(box);
     await userEvent.keyboard("X");
