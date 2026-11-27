@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { URL } from "node:url";
-import { conflictComment, conflictedPaths, logLine, mergeVerdict, pickUnmergeable } from "./queue-unmergeable.mjs";
+import { commentEnv, conflictComment, conflictedPaths, logLine, mergeVerdict, pickUnmergeable } from "./queue-unmergeable.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 test("pickUnmergeable takes the first UNMERGEABLE entry in queue order, and nothing when none is", () => {
@@ -64,4 +64,9 @@ test("the workflow runs every 10 minutes by hand or schedule, one run at a time,
   assert.doesNotMatch(text, /github\.token/);
   assert.match(text, /test -n "\$GH_TOKEN"/);
   assert.match(text, /COMMENT_TOKEN: \$\{\{ secrets\.GITHUB_TOKEN \}\}/);
+});
+
+test("comments are posted with COMMENT_TOKEN when it is set, since the pushing app token cannot comment", () => {
+  assert.equal(commentEnv({ GH_TOKEN: "app", COMMENT_TOKEN: "actions" }).GH_TOKEN, "actions");
+  assert.equal(commentEnv({ GH_TOKEN: "app" }).GH_TOKEN, "app");
 });
