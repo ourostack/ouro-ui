@@ -105,6 +105,26 @@ interface Shot {
   height: number;
   theme: string;
   count: number;
+  // Whether the page said it was ready before readyTimeout ran out; false means it never reached first content, so
+  // this visit's rules read whatever was on screen at the time, not a settled page.
+  ready: boolean;
+  // The page's own elements at the time its rules ran (0 when the page did not load, so no rule read it).
+  elements: number;
+  // The rule checks this visit ran, counted once each whether or not they found anything: a visit with no findings
+  // and rules: 0 scanned nothing, unlike one with rules: 18 and no findings.
+  rules: number;
+}
+
+// What the sweep actually covered, read back from the shots it took: a report with zero findings and an empty or
+// short scanned count means the run itself did not reach the pages, sizes or themes it names, not that they passed.
+interface ScanCoverage {
+  pages: number;
+  sizes: number;
+  themes: number;
+  visits: number;
+  ready: number;
+  elements: number;
+  rules: number;
 }
 
 interface PageRef {
@@ -127,6 +147,9 @@ interface Report {
   // The elements a page opts out of a rule, with their reasons, once a page.
   allowances: (Allowance & { site: string; page: string })[];
   shots: Shot[];
+  // Missing in a report written before coverage was recorded; a reader that wants it should treat its absence as
+  // unknown, not as zero.
+  scanned?: ScanCoverage;
 }
 
 interface CheckResult extends Report {
@@ -674,6 +697,20 @@ async function settle(page: Page): Promise<void> {
   );
 }
 
+// Sums the coverage a report's own shots recorded, so a reader can tell a swept page from one the run never reached
+// without reading findings at all: zero findings and scanned.ready below scanned.visits is a sweep that didn't land.
+function coverageOf(shots: Shot[], pages: number, sizes: number, themes: number): ScanCoverage {
+  return {
+    pages,
+    sizes,
+    themes,
+    visits: shots.length,
+    ready: shots.filter((s) => s.ready).length,
+    elements: shots.reduce((sum, s) => sum + s.elements, 0),
+    rules: shots.reduce((sum, s) => sum + s.rules, 0),
+  };
+}
+
 // An app's WKWebView has no corner-shape, which Playwright's WebKit has: it answers as the app's engine does.
 const HIDE_CORNER_SHAPE = `const supports = CSS.supports.bind(CSS); CSS.supports = (...query) => !/corner-shape/.test(query.join(" ")) && supports(...query);`;
 
@@ -694,6 +731,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     await close();
     // A shard with nothing to sweep still writes its report, so a merge of every shard's folder works.
     await mkdir(out, { recursive: true });
+    report.scanned = coverageOf(report.shots, report.pages.length, sizes.length, themes.length);
     await write(out, report);
     return { ...report, gated: [] };
   }
@@ -1064,10 +1102,20 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     const runtime = listenForRuntime(page, target.url);
     const { failed, ready } = await reach(page, target);
     const issues: PageIssue[] = [];
+    // Counted once a rule here, whether or not it finds anything, so scanned.rules says what ran even when
+    // scanned.rules * 0 findings looks like an empty report: the always-run rules below, plus the loading budgets
+    // (when measured), axe (at its sizes) and off-theme/fragment-focus (at inp's size and theme).
+    let rulesRun = 0;
+    let elements = 0;
     if (failed) issues.push({ ref: "", rule: "http-error", element: "the page", detail: failed });
     else {
       // Checked as it is, but never a pass: on a slower machine the same page could draw something else in time.
       if (!ready) issues.push({ ref: "", rule: "not-ready", element: "the page", detail: `no ready signal in ${readyTimeout / 1000} s (ouro:ready, data-app-ready or a drawn h1)` });
+      elements = await page.evaluate(`document.querySelectorAll("*").length`);
+      // The rules that run at every page, size and theme below: overlap, size, image-fades, design, text, layout,
+      // theme, interaction, decision, wrap, panel, first-run, dead-zones, dark-art and corners (15), plus the ones
+      // that run only sometimes.
+      rulesRun = 15 + (measured ? 1 : 0) + (axe && axeAt.has(`${width}x${height}`) ? 1 : 0) + (inpAt === `${width}x${height} ${theme}` ? 2 : 0);
       // The loading measures first, before any rule scrolls: a script's scroll doesn't end largest-contentful-paint as a
       // person's does, so a picture far down that a later rule scrolls to would otherwise read as the first content.
       if (measured) {
@@ -1169,7 +1217,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     }
     const count = issues.length + pressed + walked;
     log(`${count ? "✗" : "✓"} ${`${width}×${height}`.padEnd(9)} ${theme.padEnd(5)} ${pageOf(target)}${count ? `: ${count}` : ""}`);
-    shots.push({ site: target.site, page: target.page, file, width, height, theme, count });
+    shots.push({ site: target.site, page: target.page, file, width, height, theme, count, ready, elements, rules: rulesRun });
   };
 
   try {
@@ -1231,6 +1279,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
     await browser.close();
     await close();
   }
+  report.scanned = coverageOf(report.shots, report.pages.length, sizes.length, themes.length);
   await write(out, report);
   return { ...report, gated: findings.filter((f) => f.gated) };
 }
@@ -1388,6 +1437,7 @@ async function merge({ dirs, out, config, chromium, executablePath, install }: M
   } finally {
     await browser.close();
   }
+  merged.scanned = coverageOf(merged.shots, merged.pages.length, sizes.length, themes.length);
   await write(out, merged);
   return { ...merged, gated: merged.findings.filter((f) => f.gated) };
 }

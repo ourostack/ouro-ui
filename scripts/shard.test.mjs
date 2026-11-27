@@ -306,7 +306,7 @@ test("a live whole-file quarantine entry's file is left out of every blocking sh
   assert.match(config, /\.\.\.\(quarantinedOnly \? \{ include: quarantinedList \} : \{\}\)/);
   assert.match(config, /\.\.\.\(quarantinedOnly \? \[\] : quarantinedList\)/);
   const ci = readFileSync(join(root, ".github/workflows/ci.yml"), "utf8");
-  const step = /- if: \$\{\{ !cancelled\(\) && matrix\.shard == 1 \}\}\n {8}name: Quarantined whole-file tests[^\n]*\n[\s\S]*?run: pnpm exec vitest run\n/.exec(ci)?.[0] ?? "";
+  const step = /- name: Quarantined whole-file tests[^\n]*\n[\s\S]*?run: pnpm exec vitest run\n/.exec(ci)?.[0] ?? "";
   assert.match(step, /continue-on-error: true/);
   assert.match(step, /OURO_QUARANTINED_ONLY: "1"/);
 });

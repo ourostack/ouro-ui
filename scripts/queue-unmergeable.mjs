@@ -95,8 +95,12 @@ export function run(repo) {
     comment(repo, number, conflictComment({ author: author?.login ?? "author", paths }));
   }
   const line = logLine({ number, position: entry.position, verdict, paths });
-  comment(repo, LOG_ISSUE, line);
   console.log(line);
+  try {
+    comment(repo, LOG_ISSUE, line);
+  } catch (error) {
+    console.log(`The log comment on #${LOG_ISSUE} failed: ${String(error.stderr ?? error.message).trim()}`);
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv[2] === "run") run(process.env.GITHUB_REPOSITORY);

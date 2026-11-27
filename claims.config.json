@@ -39,7 +39,7 @@
     {
       "match": "^docs/guides/accessibility-evidence\\.md$",
       "mode": "generated",
-      "reason": "scripts/a11y-evidence/page.mjs renders it from the components' story files, component.json files and screen-reader specs; pnpm claims:check renders it again and compares"
+      "reason": "scripts/a11y-evidence/page.mjs renders it from the components' story files, component.json files and screen-reader specs, at pnpm i, and git ignores it; pnpm claims:check renders it again and compares"
     },
     {
       "match": "^docs/guides/model-interviews\\.md$",
