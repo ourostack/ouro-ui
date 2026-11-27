@@ -28,6 +28,14 @@
       "lone-word": "The interview tables quote each model's own picks and pairings from the run records, which can't be reworded; at a phone's width a long list's last name can wrap alone even with text-wrap: pretty."
     }
   },
+  "states": {
+    "/docs/ring-card/": {
+      "connecting": ["[data-ouro='ring-card'] button:has-text('Audio')"],
+      "failure": ["[role='radio']:has-text('Failure')"],
+      "replying": ["[data-ouro='ring-card'] button:has-text('Message instead')"],
+      "audio-fallback": ["[role='radio']:has-text('Failure')", "[data-ouro='ring-card'] button:has-text('Answer with audio')"]
+    }
+  },
   "known": {
     "off-theme": [
       ".stage-window sets box-shadow: oklab(0 none none / 0.35) 0px 10px 14px -12px, a fixed shadow",
