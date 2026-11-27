@@ -156,13 +156,41 @@ it("skips invisible layers and an all-rule allowance, and names a class-only sur
 }, paintTimeout);
 
 it("detects a low-contrast square and a descendant outline beyond the surface", async () => {
-  const root = render('<div class="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"><div class="layer" style="position:absolute;inset:0;background:#f2f2f2"></div></div>');
+  const root = render('<div class="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"><div class="layer" style="position:absolute;inset:0;background:#fdfdfd"></div></div>');
   root.style.background = "#fff";
   expect(await findSquirclePaint()).toHaveLength(1);
   const layer = root.querySelector<HTMLElement>(".layer")!;
   layer.style.background = "transparent";
   layer.style.outline = "6px solid #222";
   expect(await findSquirclePaint()).toHaveLength(1);
+}, paintTimeout);
+
+it("samples a leaking layer at each of the four corners", async () => {
+  const root = render('<div class="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"><div class="layer" style="position:absolute;width:16px;height:16px;background:#f40"></div></div>');
+  const layer = root.querySelector<HTMLElement>(".layer")!;
+  for (const [horizontal, vertical] of [["left", "top"], ["right", "top"], ["right", "bottom"], ["left", "bottom"]]) {
+    layer.style.cssText = `position:absolute;width:16px;height:16px;background:#f40;${horizontal}:0;${vertical}:0`;
+    expect(await findSquirclePaint(), `${vertical} ${horizontal}`).toHaveLength(1);
+  }
+}, paintTimeout);
+
+it("detects a protruding sibling without reporting an inset one", async () => {
+  const root = render('<div style="position:relative;width:160px;height:120px"><div class="surface" style="position:absolute;inset:0;background:#fff;border-radius:28px;corner-shape:squircle"></div><div class="control" style="position:absolute;top:24px;right:24px;width:24px;height:24px;background:#f40"></div></div>');
+  const control = root.querySelector<HTMLElement>(".control")!;
+  expect(await findSquirclePaint()).toEqual([]);
+  control.style.top = "-6px";
+  control.style.right = "-6px";
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+}, paintTimeout);
+
+it("keeps a native shadow and its probe separate from a descendant's external paint", async () => {
+  const root = render('<div style="position:relative;width:160px;height:120px"><div style="position:absolute;inset:0"></div><div class="surface" data-ouro-paint-solo="original" style="position:absolute;inset:0;background:#fff;border-radius:28px;corner-shape:squircle;box-shadow:0 4px 12px #0008"></div></div>');
+  const surface = root.querySelector<HTMLElement>(".surface")!;
+  expect(await findSquirclePaint()).toEqual([]);
+  expect(surface.getAttribute("data-ouro-paint-solo")).toBe("original");
+  surface.innerHTML = '<div style="position:absolute;left:-12px;top:-12px;width:8px;height:8px;background:#f40"></div>';
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+  expect(surface.getAttribute("data-ouro-paint-solo")).toBe("original");
 }, paintTimeout);
 
 it("finds paint on a forced fallback and skips invisible or offscreen surfaces", async () => {
@@ -218,6 +246,34 @@ it("reports a missing capture and a screenshot whose size changed", async () => 
   state.__ouroPaintCapture = async () => captures.shift()!;
   try {
     await expect(findSquirclePaint()).rejects.toThrow("screenshots changed size");
+  } finally {
+    state.__ouroPaintCapture = (clip) => commands.squircleCapture(clip);
+  }
+});
+
+it("restores the native-shadow probe when its capture fails or changes size", async () => {
+  const root = render('<div style="width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle;box-shadow:0 4px 12px #0008"></div>');
+  const surface = root.firstElementChild as HTMLElement;
+  const original = surface.getAttribute("style");
+  const image = (size: number) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size;
+    return canvas.toDataURL("image/png");
+  };
+  try {
+    let captures = [image(2), image(2), image(2), image(1)];
+    state.__ouroPaintCapture = async () => captures.shift()!;
+    await expect(findSquirclePaint()).rejects.toThrow("screenshots changed size");
+    expect(surface.getAttribute("style")).toBe(original);
+    expect(surface.hasAttribute("data-ouro-paint-solo")).toBe(false);
+    captures = [image(2), image(2), image(2)];
+    state.__ouroPaintCapture = async () => {
+      if (captures.length === 0) throw new Error("probe failed");
+      return captures.shift()!;
+    };
+    await expect(findSquirclePaint()).rejects.toThrow("probe failed");
+    expect(surface.getAttribute("style")).toBe(original);
+    expect(surface.hasAttribute("data-ouro-paint-solo")).toBe(false);
   } finally {
     state.__ouroPaintCapture = (clip) => commands.squircleCapture(clip);
   }

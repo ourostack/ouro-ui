@@ -182,6 +182,43 @@ test("squircle-paint passes a clipped surface at fractional layout coordinates",
   }
 });
 
+test("squircle-paint finds a two-level difference in a square fill", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+  await bindCapture(tab);
+  try {
+    await tab.setContent(`<style>
+      body { margin: 0; background: white; }
+      .surface { position: absolute; left: 60px; top: 60px; width: 200px; height: 140px; background: white; border-radius: 32px; corner-shape: squircle; }
+      .fill { position: absolute; inset: 0; background: #fdfdfd; }
+    </style><div class="surface"><div class="fill"></div></div>`);
+    assert.equal((await tab.evaluate(findSquirclePaint)).length, 1);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("squircle-paint ignores a surface fully hidden by an opaque sibling", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+  await bindCapture(tab);
+  try {
+    for (const pointer of ["auto", "none"]) {
+      await tab.setContent(`<style>
+        body { margin: 0; background: white; }
+        .stage { position: absolute; left: 60px; top: 60px; width: 200px; height: 140px; }
+        .surface, .cover { position: absolute; inset: 0; }
+        .surface { background: white; border-radius: 32px; corner-shape: squircle; }
+        .fill { position: absolute; inset: 0; background: #d11; }
+        .cover { background: #eee; pointer-events: ${pointer}; }
+      </style><div class="stage"><div class="surface"><div class="fill"></div></div><div class="cover"></div></div>`);
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], pointer);
+    }
+  } finally {
+    await browser.close();
+  }
+});
+
 test("squircle-paint finds a square sibling exposed when the fallback clips a corner-covering shadow", async () => {
   const generated = await styles(`
     body { margin: 0; background: #edf2f6; }

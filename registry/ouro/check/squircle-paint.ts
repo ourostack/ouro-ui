@@ -109,10 +109,6 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height))) {
       throw new Error("squircle-paint screenshots changed size during measurement");
     }
-    let previous = new Uint8Array(a.width);
-    let count = 0;
-    let largest = 0;
-    let adjacent = false;
     const guardX = Math.max(1, Math.ceil(a.width / clip.width * 0.75));
     const guardY = Math.max(1, Math.ceil(a.height / clip.height * 0.75));
     const difference = (first: Uint8ClampedArray, second: Uint8ClampedArray, index: number) => Math.max(
@@ -120,48 +116,64 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       Math.abs(first[index + 1]! - second[index + 1]!),
       Math.abs(first[index + 2]! - second[index + 2]!),
     );
-    for (let y = 0; y < a.height; y++) {
-      const row = new Uint8Array(a.width);
-      for (let x = 0; x < a.width; x++) {
-        const index = (y * a.width + x) * 4;
-        const px = clip.x + (x + 0.5) * clip.width / a.width;
-        const py = clip.y + (y + 0.5) * clip.height / a.height;
-        const outsideCorner = px < rect.left || px >= rect.right || py < rect.top || py >= rect.bottom;
-        if (outsideCorner && !corners.some((corner, index) => corner.squircle &&
-          (index === 0 || index === 3 ? px < rect.left + corner.x * rect.width / width : px >= rect.right - corner.x * rect.width / width) &&
-          (index < 2 ? py < rect.top + corner.y * rect.height / height : py >= rect.bottom - corner.y * rect.height / height))) continue;
-        const delta = difference(a.data, outsideCorner ? c.data : b.data, index);
-        const behind = difference(b.data, c.data, index);
-        if (delta < 8 || (!outsideCorner && behind > 4)) continue;
-        if (own && difference(a.data, own.data, index) < 8) continue;
-        if (outsideCorner && difference(a.data, b.data, index) > 4) continue;
-        if (!outsideCorner) {
-          let edge = false;
-          for (let dy = -guardY; dy <= guardY && !edge; dy++) {
-            for (let dx = -guardX; dx <= guardX; dx++) {
-              const nx = x + dx;
-              const ny = y + dy;
-              if (nx >= 0 && nx < a.width && ny >= 0 && ny < a.height && difference(b.data, c.data, (ny * a.width + nx) * 4) > 4) {
-                edge = true;
-                break;
+    for (const [cornerIndex, corner] of corners.entries()) {
+      if (!corner.squircle) continue;
+      const left = cornerIndex === 0 || cornerIndex === 3;
+      const top = cornerIndex < 2;
+      const cornerX = left ? rect.left + corner.x * rect.width / width : rect.right - corner.x * rect.width / width;
+      const cornerY = top ? rect.top + corner.y * rect.height / height : rect.bottom - corner.y * rect.height / height;
+      const pixelX = (cornerX - clip.x) * a.width / clip.width;
+      const pixelY = (cornerY - clip.y) * a.height / clip.height;
+      const startX = left ? 0 : Math.max(0, Math.floor(pixelX));
+      const endX = left ? Math.min(a.width, Math.ceil(pixelX)) : a.width;
+      const startY = top ? 0 : Math.max(0, Math.floor(pixelY));
+      const endY = top ? Math.min(a.height, Math.ceil(pixelY)) : a.height;
+      let previous = new Uint8Array(a.width);
+      for (let y = startY; y < endY; y++) {
+        const row = new Uint8Array(a.width);
+        for (let x = startX; x < endX; x++) {
+          const index = (y * a.width + x) * 4;
+          const px = clip.x + (x + 0.5) * clip.width / a.width;
+          const py = clip.y + (y + 0.5) * clip.height / a.height;
+          const outsideCorner = px < rect.left || px >= rect.right || py < rect.top || py >= rect.bottom;
+          const delta = difference(a.data, outsideCorner ? c.data : b.data, index);
+          const behind = difference(b.data, c.data, index);
+          if (delta < 2 || (!outsideCorner && behind > 4)) continue;
+          if (own && difference(a.data, own.data, index) < 2) continue;
+          if (outsideCorner && difference(a.data, b.data, index) > 4) continue;
+          if (!outsideCorner) {
+            let edge = false;
+            for (let dy = -guardY; dy <= guardY && !edge; dy++) {
+              for (let dx = -guardX; dx <= guardX; dx++) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx >= 0 && nx < a.width && ny >= 0 && ny < a.height && difference(b.data, c.data, (ny * a.width + nx) * 4) > 4) {
+                  edge = true;
+                  break;
+                }
               }
             }
+            if (edge) continue;
           }
-          if (edge) continue;
+          if (delta >= 64 || (x > startX && row[x - 1]) || previous[x]) return true;
+          row[x] = 1;
         }
-        count++;
-        largest = Math.max(largest, delta);
-        row[x] = 1;
-        if ((x > 0 && row[x - 1]) || previous[x]) adjacent = true;
+        previous = row;
       }
-      previous = row;
     }
-    return count > 0 && (largest >= 64 || adjacent);
+    return false;
   };
   const save = (el: HTMLElement, property: string): Saved => ({ value: el.style.getPropertyValue(property), priority: el.style.getPropertyPriority(property) });
   const restore = (el: HTMLElement, property: string, saved: Saved) => {
     if (saved.value) el.style.setProperty(property, saved.value, saved.priority);
     else el.style.removeProperty(property);
+  };
+  const colorContext = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+  const opaque = (color: string) => {
+    colorContext.clearRect(0, 0, 1, 1);
+    colorContext.fillStyle = color;
+    colorContext.fillRect(0, 0, 1, 1);
+    return colorContext.getImageData(0, 0, 1, 1).data[3] === 255;
   };
   const issues: PageIssue[] = [];
   const targets = [document.body, ...document.body.querySelectorAll<HTMLElement>("*")]
@@ -180,7 +192,27 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       const rect = other.getBoundingClientRect();
       if (!other.offsetWidth || !other.offsetHeight || getComputedStyle(other).transform !== transform ||
         Math.abs(rect.width / other.offsetWidth - scaleX) > 0.01 || Math.abs(rect.height / other.offsetHeight - scaleY) > 0.01) return false;
-      if ([rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5)) return true;
+      if ([rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5)) {
+        const otherStyle = getComputedStyle(other);
+        const x = (Math.max(0, bounds.left) + Math.min(innerWidth, bounds.right)) / 2;
+        const y = (Math.max(0, bounds.top) + Math.min(innerHeight, bounds.bottom)) / 2;
+        const opaqueCover = Number(otherStyle.opacity) === 1 && otherStyle.clipPath === "none" && otherStyle.maskImage === "none" && otherStyle.filter === "none" && otherStyle.mixBlendMode === "normal" &&
+          otherStyle.backgroundImage === "none" && otherStyle.backgroundClip === "border-box" &&
+          names.every(({ property }) => parseFloat(otherStyle[`border${property}Radius`]) === 0) && opaque(otherStyle.backgroundColor);
+        if (!opaqueCover) return true;
+        const ownStyle = el.getAttribute("style");
+        const siblingStyle = other.getAttribute("style");
+        try {
+          el.style.setProperty("pointer-events", "auto", "important");
+          other.style.setProperty("pointer-events", "auto", "important");
+          return !other.contains(document.elementFromPoint(x, y));
+        } finally {
+          if (ownStyle === null) el.removeAttribute("style");
+          else el.setAttribute("style", ownStyle);
+          if (siblingStyle === null) other.removeAttribute("style");
+          else other.setAttribute("style", siblingStyle);
+        }
+      }
       if (rect.width > bounds.width + 0.5 || rect.height > bounds.height + 0.5) return false;
       return initial.corners.some((corner, index) => {
         if (!corner.squircle) return false;
