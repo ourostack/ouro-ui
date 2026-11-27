@@ -1,0 +1,26 @@
+{
+  "order": 2660,
+  "components": ["ring-card"],
+  "controls": {
+    "ring-card": [
+      {"part": "decline", "role": "button", "portal": false},
+      {"part": "audio", "role": "button", "portal": false},
+      {"part": "video", "role": "button", "portal": false}
+    ]
+  },
+  "motion": {
+    "ring-card": {
+      "states": {
+        "data-starting-style": {
+          "kind": "motion",
+          "parts": {
+            "root": {"properties": ["opacity", "transform"], "reduced": ["opacity"]}
+          },
+          "tests": [
+            "registry/ouro/components/ouro/ring-card/ring-card.test.tsx::RingCard > slides down twelve pixels on arrival and only fades under reduced motion"
+          ]
+        }
+      }
+    }
+  }
+}

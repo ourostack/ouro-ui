@@ -518,6 +518,7 @@ Components:
 `relative-time`,
 `reorderable`,
 `resizable`,
+`ring-card`,
 `route-progress`,
 `row`,
 `scroll-area`,
@@ -923,6 +924,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **ReactionBar** — A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. [Docs](docs/ReactionBar.md)
 - **readFailure** — Whether a failed read's HTTP status is the service's (`"failed"`: no answer, signed out, throttled, timed out or failing, so every read waits) or this person's (`"missing"`: the service refused them alone, so they are kept as missing and no one waits). [Docs](docs/readFailure.md)
 - **ReadReceipt** — Who has seen a message, as small faces under it: the first three readers, overlapping, then "+N" for the rest. [Docs](docs/ReadReceipt.md)
+- **RingCard** — An incoming call, with the caller and the person's choice of audio, video or decline. [Docs](docs/RingCard.md)
 - **ThreadRail** — A thread beside its conversation: a labelled landmark with a header and a close button. [Docs](docs/ThreadRail.md)
 - **ThreadSummary** — The line under a post that leads to its thread: who replied, "N replies" (a button that opens the thread) and when the last reply came. [Docs](docs/ThreadSummary.md)
 - **TypingIndicator** — The line under a chat that says who is writing: their faces, pulsing dots and "Ned Land is writing…". [Docs](docs/TypingIndicator.md)
