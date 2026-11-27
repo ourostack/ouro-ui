@@ -310,7 +310,7 @@ function useHeldTop(): (popup: HTMLElement) => () => void {
     screen.observe(viewport);
     // A same-size reopen need not notify ResizeObserver.
     const state = new MutationObserver(place);
-    state.observe(popup, { attributes: true, attributeFilter: ["data-closed", "hidden"] });
+    state.observe(popup, { attributes: true, attributeFilter: ["data-closed"] });
     // Stryker disable next-line BlockStatement: the observers watch a popup and viewport that are leaving the page, so no test sees them stop.
     return () => {
       // Stryker disable next-line CallExpression: as above.
