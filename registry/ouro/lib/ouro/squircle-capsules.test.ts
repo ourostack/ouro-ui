@@ -79,7 +79,7 @@ describe("capsule measure", () => {
     vi.spyOn(CSS, "supports").mockImplementation((prop: string) => prop === "clip-path");
     const observe = vi.spyOn(ResizeObserver.prototype, "observe");
     const style = document.createElement("style");
-    style.textContent = ".once { --sq-half: 0; width: 40px; height: 20px; display: block }";
+    style.textContent = ".once { --sq-tl: var(--sq-half); width: 40px; height: 20px; display: block }";
     document.head.append(style);
     const el = document.createElement("div");
     el.className = "once";
@@ -88,7 +88,7 @@ describe("capsule measure", () => {
     expect(observe).toHaveBeenCalledExactlyOnceWith(el, { box: "border-box" });
     // A sheet added later re-runs the watch over every match; an element already watched is not observed twice.
     const other = document.createElement("style");
-    other.textContent = ".once-other { --sq-half: 0 }";
+    other.textContent = ".once-other { --sq-tl: var(--sq-half) }";
     const scanned = vi.spyOn(Document.prototype, "querySelectorAll");
     document.head.append(other);
     await expect.poll(() => scanned.mock.calls.length).toBeGreaterThan(0);
@@ -108,7 +108,7 @@ describe("capsule measure", () => {
     expect(mutationObserve).toHaveBeenCalledExactlyOnceWith(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
     const observe = vi.spyOn(ResizeObserver.prototype, "observe");
     const style = document.createElement("style");
-    style.textContent = ".after-stop { --sq-half: 0; width: 40px; height: 20px; display: block }";
+    style.textContent = ".after-stop { --sq-tl: var(--sq-half); width: 40px; height: 20px; display: block }";
     document.head.append(style);
     // Before stop(), a mutation still runs watch(), proving this check means something.
     const before = document.createElement("div");
@@ -128,7 +128,7 @@ describe("capsule measure", () => {
     // Nor does a linked sheet that loads after stop().
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = URL.createObjectURL(new Blob([".after-stop { --sq-half: 0 }"], { type: "text/css" }));
+    link.href = URL.createObjectURL(new Blob([".after-stop { --sq-tl: var(--sq-half) }"], { type: "text/css" }));
     const loaded = new Promise((resolve) => link.addEventListener("load", resolve));
     document.head.append(link);
     await loaded;
@@ -220,7 +220,7 @@ describe("capsule measure", () => {
     it("rescans no stylesheet and no document across a burst of text edits", async () => {
       force();
       const style = document.createElement("style");
-      style.textContent = ".typing-cap { --sq-half: 0; width: 100px; height: 30px; display: block }";
+      style.textContent = ".typing-cap { --sq-tl: var(--sq-half); width: 100px; height: 30px; display: block }";
       document.head.append(style);
       const field = document.createElement("div");
       field.contentEditable = "true";
@@ -247,7 +247,7 @@ describe("capsule measure", () => {
     it("draws a node added later with a capsule class, nested ones too", async () => {
       force();
       const style = document.createElement("style");
-      style.textContent = ".added-cap { --sq-half: 0; width: 100px; height: 30px; display: block }";
+      style.textContent = ".added-cap { --sq-tl: var(--sq-half); width: 100px; height: 30px; display: block }";
       document.head.append(style);
       const stop = installSquircleCapsules(document);
       const wrap = document.createElement("section");
@@ -277,7 +277,7 @@ describe("capsule measure", () => {
       document.body.append(el);
       const stop = installSquircleCapsules(document);
       const style = document.createElement("style");
-      style.textContent = ".late-cap { --sq-half: 0; width: 100px; height: 30px; display: block }";
+      style.textContent = ".late-cap { --sq-tl: var(--sq-half); width: 100px; height: 30px; display: block }";
       document.head.append(style);
       await expect.poll(() => el.style.getPropertyValue("--sq-half")).toBe("15px");
       stop();
@@ -291,7 +291,7 @@ describe("capsule measure", () => {
       el.className = "linked-cap";
       document.body.append(el);
       const stop = installSquircleCapsules(document);
-      const css = ".linked-cap { --sq-half: 0; width: 100px; height: 30px; display: block }";
+      const css = ".linked-cap { --sq-tl: var(--sq-half); width: 100px; height: 30px; display: block }";
       const link = document.createElement("link");
       link.rel = "stylesheet";
       link.href = URL.createObjectURL(new Blob([css], { type: "text/css" }));
@@ -310,7 +310,7 @@ describe("capsule measure", () => {
       el.className = "text-cap";
       document.body.append(el);
       const stop = installSquircleCapsules(document);
-      style.textContent = ".text-cap { --sq-half: 0; width: 100px; height: 30px; display: block }";
+      style.textContent = ".text-cap { --sq-tl: var(--sq-half); width: 100px; height: 30px; display: block }";
       await expect.poll(() => el.style.getPropertyValue("--sq-half")).toBe("15px");
       stop();
       style.remove();
@@ -338,7 +338,7 @@ describe("capsule measure", () => {
       force();
       const stop = installSquircleCapsules(document);
       const wrap = document.createElement("div");
-      wrap.innerHTML = '<style>.nested-sheet-cap { --sq-half: 0; width: 100px; height: 30px; display: block }</style><p class="nested-sheet-cap"></p>';
+      wrap.innerHTML = '<style>.nested-sheet-cap { --sq-tl: var(--sq-half); width: 100px; height: 30px; display: block }</style><p class="nested-sheet-cap"></p>';
       document.body.append(wrap);
       const el = wrap.querySelector("p")!;
       await expect.poll(() => el.style.getPropertyValue("--sq-half")).toBe("15px");
