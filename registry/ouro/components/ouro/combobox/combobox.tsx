@@ -4,7 +4,7 @@ import "@/registry/ouro/lib/ouro/last-input";
 import { Autocomplete as BaseAutocomplete } from "@base-ui/react/autocomplete";
 import { Combobox as BaseCombobox } from "@base-ui/react/combobox";
 import { mergeProps } from "@base-ui/react/merge-props";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ClipboardEvent, type JSX, type KeyboardEvent, type ReactNode, type Ref, type RefCallback, type RefObject } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState, type ClipboardEvent, type JSX, type KeyboardEvent, type ReactNode, type Ref, type RefCallback, type RefObject } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { contractWarnings } from "@/registry/ouro/components/ouro/field/field-styles";
@@ -113,6 +113,18 @@ export interface ComboboxBaseProps {
   onInputChange?: ((text: string) => void) | undefined;
   /** A search is running: the list shows a spinner and `loadingLabel`, and is `aria-busy`. */
   loading?: boolean | undefined;
+  /**
+   * The query that `items` answer; `null` means no answer yet. With `autoHighlight`,
+   * Enter waits for this query's answer and picks its first enabled, unpicked item.
+   * Queries compare ignoring case and extra spaces. Keep `loading` true until the
+   * answer is complete; on failure, pass an empty answer for that query and show your error.
+   * Editing, Escape, moving focus or closing the list cancels the waiting pick.
+   * Omit for local filtering. Not used with `allowCustomValue`.
+   * @claim "The query that `items` answer; `null` means no answer yet." registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox keys > cancels a waiting Enter on edit, Escape, blur or a closed list)
+   * @claim "Enter waits for this query's answer" registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox keys > waits for the typed query's answer on Enter, then picks one enabled unpicked result)
+   * @claim "Editing, Escape, moving focus or closing the list cancels the waiting pick." registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox keys > cancels a waiting Enter on edit, Escape, blur or a closed list)
+   */
+  resultsFor?: string | null | undefined;
   /**
    * The first item that matches is highlighted as people type, so Enter picks it.
    * @claim "The first item that matches is" registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox keys > picks the first match on Enter with autoHighlight, and nothing without it)
@@ -370,6 +382,8 @@ interface ControlProps {
   onInputKeyDown: ((event: KeyboardEvent<HTMLInputElement>) => void) | undefined;
   readOnly: boolean | undefined;
   inputValue: string | undefined;
+  resultsFor: string | null | undefined;
+  disabled: boolean | undefined;
 }
 
 /** Field's messages and root name Combobox. */
@@ -485,6 +499,7 @@ export function Combobox(props: ComboboxProps): JSX.Element {
     placeholder,
     onInputChange,
     loading,
+    resultsFor,
     autoHighlight,
     onInputKeyDown,
     readOnly,
@@ -600,6 +615,8 @@ export function Combobox(props: ComboboxProps): JSX.Element {
     onInputKeyDown,
     readOnly,
     inputValue,
+    resultsFor,
+    disabled,
   };
 
   return (
@@ -813,13 +830,19 @@ function useCustomReset(ref: RefObject<HTMLInputElement | HTMLButtonElement | nu
 function ComboboxControl(props: ControlProps): JSX.Element {
   const { label, items, multiple, value, defaultValue, onValueChange, onInputChange, placeholder, required, loading } = props;
   const { loadingLabel, emptyLabel, empty, clearLabel, doneLabel, closeLabel, removeLabel, customValueLabel, custom, tokens, inputRef, sheet } = props;
-  const { autoHighlight, onInputKeyDown, readOnly, inputValue } = props;
+  const { autoHighlight, onInputKeyDown, readOnly, inputValue, resultsFor, disabled } = props;
   const field = useField()!;
   // Ouro's own invalid state (the error prop or the Form's error for this name), not Base UI's,
   // which would count it as a failed check and block the next submit.
   const invalid = field.invalid;
   // The input's text: for the "nothing matched" line and the row that keeps typed text.
   const [text, setText] = useState("");
+  const queryAware = resultsFor !== undefined && !custom && !tokens;
+  const currentText = inputValue ?? text;
+  const stale = queryAware && (resultsFor === null || normalized(resultsFor) !== normalized(currentText));
+  const [pending, setPending] = useState<string | null>(null);
+  const [ownValue, setOwnValue] = useState(defaultValue);
+  const selected = value === undefined ? ownValue : value;
   // With allowCustomValue the text is the value, so an item's label is what it submits, as in
   // the popup (Autocomplete), whatever its `value`.
   const options = useMemo(
@@ -852,7 +875,8 @@ function ComboboxControl(props: ControlProps): JSX.Element {
     (tokens
       ? sheet && ![...options, ...picked.map(toSelected)].some((option) => normalized(option.label) === normalized(typed))
       : custom && !options.some((option) => option.label === typed));
-  const listed = offerTyped ? [{ value: typed, label: customValueLabel(typed), custom: true }, ...options] : options;
+  const available = queryAware && multiple ? options.filter((option) => !((selected as string[] | undefined) ?? []).includes(option.value)) : options;
+  const listed = stale || (queryAware && loading) ? [] : offerTyped ? [{ value: typed, label: customValueLabel(typed), custom: true }, ...available] : available;
   const shown = (option: Option) => (option.custom ? option.value : option.label);
 
   const [open, setOpen] = useState(false);
@@ -897,9 +921,34 @@ function ComboboxControl(props: ControlProps): JSX.Element {
     return true;
   };
   const setTyped = (next: string) => {
+    setPending(null);
     setText(next);
     onInputChange?.(next);
   };
+  const finishPending = useEffectEvent(() => {
+    if (pending === null) return;
+    if (!open || readOnly || disabled || !queryAware || normalized(currentText) !== pending) {
+      setPending(null);
+      return;
+    }
+    if (stale || loading) return;
+    setPending(null);
+    const already = multiple ? (selected as string[] | undefined) ?? [] : [];
+    const first = options.find((option) => !option.disabled && !already.includes(option.value));
+    if (!first) return;
+    const next = multiple ? [...already, first.value] : first.value;
+    setOwnValue(next);
+    setTyped(multiple ? "" : first.label);
+    report(next);
+    if (!multiple) setOpen(false);
+  });
+  useEffect(() => {
+    if (pending === null) return;
+    let cancelled = false;
+    queueMicrotask(() => { if (!cancelled) finishPending(); });
+    return () => { cancelled = true; };
+  }, [pending, open, readOnly, disabled, queryAware, currentText, stale, loading, options, selected]);
+  const busy = loading || pending !== null;
   useCustomReset(
     sheet ? triggerRef : resetInputRef,
     tokens ? picked : value,
@@ -925,7 +974,19 @@ function ComboboxControl(props: ControlProps): JSX.Element {
           if (addTyped(input.value.slice(0, input.selectionStart!) + pasted + input.value.slice(input.selectionEnd!))) setTyped("");
         },
       }
-    : { onKeyDown: onInputKeyDown };
+    : {
+        onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => {
+          onInputKeyDown?.(event);
+          if (event.defaultPrevented) return;
+          if (event.key === "Escape" || event.key === "ArrowDown" || event.key === "ArrowUp") setPending(null);
+          if (!queryAware || !autoHighlight || readOnly || disabled || event.key !== "Enter" ||
+            event.nativeEvent.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey ||
+            !event.currentTarget.value.trim() || (!stale && !loading)) return;
+          event.preventDefault();
+          setPending(normalized(event.currentTarget.value));
+          setOpen(true);
+        },
+      };
   // The sheet's clear button, beside the field for a single pick that can change.
   // Stryker disable next-line ConditionalExpression,LogicalOperator,BooleanLiteral: the sheet shows only on a coarse-pointer phone, which the Chromium project mutation runs in cannot be; combobox.touch.test.tsx holds a read-only field's missing clear button there.
   const sheetClear = !multiple && !readOnly;
@@ -979,11 +1040,11 @@ function ComboboxControl(props: ControlProps): JSX.Element {
   );
   const body = (className: string) => (
     <ListBody
-      loading={loading}
+      loading={busy}
       loadingLabel={loadingLabel}
       emptyLabel={emptyLabel}
       empty={empty}
-      showEmpty={showEmpty}
+      showEmpty={showEmpty && !stale}
       className={className}
       renderItem={renderItem}
     />
@@ -994,11 +1055,13 @@ function ComboboxControl(props: ControlProps): JSX.Element {
       {...extra}
       {...inputHandlers(tokenHandlers.onKeyDown)}
       onPaste={tokenHandlers.onPaste}
+      onBlur={() => setPending(null)}
       readOnly={readOnly}
       ref={setInputRef}
       data-ouro-control="combobox"
       data-ouro-part="input"
       placeholder={placeholder}
+      aria-busy={busy || undefined}
       aria-describedby={sheet ? undefined : field.describedBy}
       {...(invalid && !sheet ? { "aria-invalid": true } : {})}
       className={className}
@@ -1021,11 +1084,15 @@ function ComboboxControl(props: ControlProps): JSX.Element {
           return;
         }
         setText(next);
+        setPending(null);
         if (details.reason !== "item-press") onInputChange?.(next);
       }}
-      onItemHighlighted={(option: Option | undefined) => setHighlighted(option !== undefined)}
+      onItemHighlighted={(option: Option | undefined, details) => {
+        setHighlighted(option !== undefined);
+        if (details.reason === "pointer") setPending(null);
+      }}
       // Stryker disable next-line ConditionalExpression: the other modes' uncontrolled input shows the same text that onInputValueChange keeps in step.
-      inputValue={tokens ? (inputValue ?? text) : inputValue}
+      inputValue={tokens || queryAware ? currentText : inputValue}
       autoHighlight={autoHighlight}
       readOnly={readOnly}
       required={required}
@@ -1036,10 +1103,15 @@ function ComboboxControl(props: ControlProps): JSX.Element {
         // An inline trigger closes Base UI's always-open list; its own click opens our sheet.
         if (!sheet || details.reason !== "trigger-press") setOpen(next);
       }}
-      {...(tokens ? { value: toBase(picked) } : value !== undefined ? { value: toBase(value) } : { defaultValue: toBase(defaultValue) })}
+      {...(tokens ? { value: toBase(picked) } : queryAware ? { value: toBase(selected) } : value !== undefined ? { value: toBase(value) } : { defaultValue: toBase(defaultValue) })}
       onValueChange={(next: Option | Option[] | null) => {
+        setPending(null);
         if (tokens) setTokens((next as Option[]).map((option) => option.value));
-        else report(Array.isArray(next) ? next.map((option) => option.value) : (next?.value ?? (custom ? "" : null)));
+        else {
+          const picked = Array.isArray(next) ? next.map((option) => option.value) : (next?.value ?? (custom ? "" : null));
+          setOwnValue(picked);
+          report(picked);
+        }
       }}
       {...(sheet
         ? {
@@ -1138,7 +1210,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
             )}
             <EndButtons clearLabel={clearLabel} readOnly={readOnly} />
           </BaseCombobox.InputGroup>
-          <Popup input={resetInputRef} loading={loading}>{body(listClass)}</Popup>
+          <Popup input={resetInputRef} loading={busy}>{body(listClass)}</Popup>
         </>
       )}
     </BaseCombobox.Root>

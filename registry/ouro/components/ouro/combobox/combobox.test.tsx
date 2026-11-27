@@ -893,11 +893,16 @@ describe("Combobox looks", () => {
 
   it("closes with only a fade when reduced motion is on", async () => {
     await commands.emulateMedia({ reducedMotion: "reduce" });
-    const { input } = await render(<Combobox label="Herb" items={herbs} />);
-    await userEvent.click(input);
-    await userEvent.keyboard("{ArrowDown}");
-    await expect.poll(popup).not.toBeNull();
-    expect(getComputedStyle(popup()!).transitionProperty).toBe("opacity");
+    try {
+      const { input } = await render(<Combobox label="Herb" items={herbs} />);
+      await userEvent.click(input);
+      await userEvent.keyboard("{ArrowDown}");
+      await expect.poll(popup).not.toBeNull();
+      await expect.poll(() => popup()!.hasAttribute("data-starting-style")).toBe(false);
+      expect(getComputedStyle(popup()!).transitionProperty).toBe("opacity");
+    } finally {
+      await commands.emulateMedia({ reducedMotion: "no-preference" });
+    }
   });
 });
 
@@ -1328,6 +1333,134 @@ describe("Combobox rich items", () => {
 });
 
 describe("Combobox keys", () => {
+  it("waits for the typed query's answer on Enter, then picks one enabled unpicked result", async () => {
+    const changed = vi.fn();
+    const searched = vi.fn();
+    const props = { label: "To", multiple: true, autoHighlight: true, onValueChange: changed, onInputChange: searched } as const;
+    const { input, host, rerender } = await render(<Combobox {...props} defaultValue={["Basil"]} items={herbs} resultsFor="" />);
+    await userEvent.click(input);
+    await userEvent.type(input, "thy");
+    await userEvent.keyboard("{Enter}{Enter}");
+    expect(changed).not.toHaveBeenCalled();
+    expect(input.value).toBe("thy");
+    expect(popup()?.getAttribute("aria-busy")).toBe("true");
+    await rerender(<Combobox {...props} defaultValue={["Basil"]} items={["Mint"]} resultsFor="th" loading />);
+    expect(changed).not.toHaveBeenCalled();
+    await rerender(<Combobox {...props} defaultValue={["Basil"]} items={["Thyme"]} resultsFor="thy" loading />);
+    expect(changed).not.toHaveBeenCalled();
+    await rerender(<Combobox {...props} defaultValue={["Basil"]} items={["Basil", { value: "Mint", label: "Mint", disabled: true }, "Thyme"]} resultsFor=" THY " />);
+    await expect.poll(() => changed.mock.calls).toEqual([[["Basil", "Thyme"]]]);
+    expect(input.value).toBe("");
+    expect(searched).toHaveBeenLastCalledWith("");
+    expect(host.querySelectorAll("[data-ouro-combobox-chip]")).toHaveLength(2);
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("uses a current answer immediately without offering picked people again", async () => {
+    const changed = vi.fn();
+    const { input, host } = await render(
+      <Combobox label="To" multiple autoHighlight defaultValue={["Basil"]} items={["Basil", "Thyme"]}
+        onInputChange={() => {}} resultsFor="thy" onValueChange={changed} />,
+    );
+    await userEvent.click(input);
+    await userEvent.type(input, "thy");
+    await expect.poll(options).toEqual(["Thyme"]);
+    await userEvent.keyboard("{Enter}");
+    expect(changed).toHaveBeenLastCalledWith(["Basil", "Thyme"]);
+    expect(input.value).toBe("");
+    expect(host.querySelectorAll("[data-ouro-combobox-chip]")).toHaveLength(2);
+  });
+
+  it("ignores composing and modified Enter, and gives arrow navigation precedence over a waiting pick", async () => {
+    const changed = vi.fn();
+    const props = { label: "To", autoHighlight: true, onInputChange: vi.fn(), onValueChange: changed };
+    const { input, rerender } = await render(<Combobox {...props} items={[]} resultsFor={null} />);
+    await userEvent.click(input);
+    await userEvent.type(input, "thy");
+    for (const extra of [{ isComposing: true }, { ctrlKey: true }, { altKey: true }, { metaKey: true }, { shiftKey: true }]) {
+      await act(async () => { input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, ...extra })); });
+      expect(input.getAttribute("aria-busy")).toBeNull();
+    }
+    await userEvent.keyboard("{Enter}{ArrowDown}");
+    await rerender(<Combobox {...props} items={["Thyme", "Mint"]} resultsFor="thy" />);
+    expect(changed).not.toHaveBeenCalled();
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+    expect(changed).toHaveBeenCalledOnce();
+  });
+
+  it("cancels a waiting Enter on edit, Escape, blur or a closed list", async () => {
+    const changed = vi.fn();
+    const props = { label: "To", autoHighlight: true, onInputChange: vi.fn(), onValueChange: changed };
+    const { input, rerender } = await render(<Combobox {...props} items={["Basil"]} resultsFor={null} />);
+    for (const cancel of ["edit", "escape", "blur", "close"]) {
+      await rerender(<Combobox {...props} items={["Basil"]} resultsFor={null} />);
+      await userEvent.click(input);
+      await userEvent.fill(input, "thy");
+      await userEvent.keyboard("{Enter}");
+      if (cancel === "edit") await userEvent.keyboard("m");
+      if (cancel === "escape") await userEvent.keyboard("{Escape}");
+      if (cancel === "blur") await act(async () => input.blur());
+      if (cancel === "close") await userEvent.click(document.body);
+      await rerender(<Combobox {...props} items={["Thyme"]} resultsFor="thy" />);
+      await act(async () => {});
+      expect(changed).not.toHaveBeenCalled();
+    }
+  });
+
+  it("ends a waiting Enter with no result and never commits while read-only or disabled", async () => {
+    const changed = vi.fn();
+    const props = { label: "To", autoHighlight: true, onInputChange: vi.fn(), onValueChange: changed };
+    const { input, rerender } = await render(<Combobox {...props} items={[]} resultsFor={null} />);
+    await userEvent.click(input);
+    await userEvent.type(input, "thy");
+    await userEvent.keyboard("{Enter}");
+    await rerender(<Combobox {...props} items={[]} resultsFor="thy" />);
+    await expect.poll(() => popup()?.getAttribute("aria-busy")).toBeNull();
+    expect(input.value).toBe("thy");
+    await rerender(<Combobox {...props} items={["Thyme"]} resultsFor="thy" />);
+    expect(changed).not.toHaveBeenCalled();
+    for (const state of [{ readOnly: true }, { disabled: true }]) {
+      await rerender(<Combobox {...props} items={[]} resultsFor={null} />);
+      await userEvent.click(input);
+      await userEvent.keyboard("{Enter}");
+      await rerender(<Combobox {...props} {...state} items={["Thyme"]} resultsFor="thy" />);
+      expect(changed).not.toHaveBeenCalled();
+    }
+  });
+
+  it("lets an app prevent a queued pick and finish after a controlled search picks", async () => {
+    const changed = vi.fn();
+    const done = vi.fn();
+    function People({ answer, prevent = false }: { answer: boolean; prevent?: boolean }) {
+      const [text, setText] = useState("");
+      const [value, setValue] = useState<string[]>([]);
+      return <Combobox label="To" multiple autoHighlight items={answer ? ["Thyme"] : ["Basil"]} resultsFor={answer ? "thy" : null}
+        inputValue={text} onInputChange={setText} value={value}
+        onValueChange={(next) => { changed(next); setValue(next); setText(""); }}
+        onInputKeyDown={(event) => {
+          if (event.key === "Enter" && (prevent || (!text && value.length))) {
+            event.preventDefault();
+            if (!prevent) done();
+          }
+        }} />;
+    }
+    const { input, rerender } = await render(<People answer={false} prevent />);
+    await userEvent.click(input);
+    await userEvent.type(input, "thy");
+    await userEvent.keyboard("{Enter}");
+    await rerender(<People answer />);
+    expect(changed).not.toHaveBeenCalled();
+    await rerender(<People answer={false} />);
+    expect(input.value).toBe("thy");
+    await userEvent.keyboard("{Enter}");
+    expect(popup()?.getAttribute("aria-busy")).toBe("true");
+    await rerender(<People answer />);
+    await expect.poll(() => changed.mock.calls).toEqual([[["Thyme"]]]);
+    expect(input.value).toBe("");
+    await userEvent.keyboard("{Enter}");
+    expect(done).toHaveBeenCalledOnce();
+  });
+
   it("picks the first match on Enter with autoHighlight, and nothing without it", async () => {
     const first = vi.fn();
     const plain = vi.fn();

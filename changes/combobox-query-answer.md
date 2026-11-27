@@ -1,0 +1,1 @@
+- Combobox: with `autoHighlight` and `resultsFor`, [Enter waits for the typed query's answer before adding its first enabled, unpicked result](registry/ouro/components/ouro/combobox/combobox.test.tsx "verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox keys > waits for the typed query's answer on Enter, then picks one enabled unpicked result)").
