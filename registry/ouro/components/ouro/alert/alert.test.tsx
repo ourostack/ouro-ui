@@ -130,13 +130,22 @@ describe("Alert", () => {
     const title = () => wide.alert.querySelector("[data-ouro-alert-title]")!.getBoundingClientRect();
     const action = () => wide.alert.querySelector("[data-ouro-alert-action]")!.getBoundingClientRect();
     expect(action().left).toBeGreaterThanOrEqual(title().right);
-    expect(action().top).toBeLessThan(title().bottom);
+    // On one line, level: the title, its buttons and the icon share a middle.
+    const middle = (box: DOMRect) => box.top + box.height / 2;
+    const button = wide.alert.querySelector("[data-ouro-alert-action] button")!.getBoundingClientRect();
+    const icon = wide.alert.querySelector("[data-ouro-alert-icon]")!.getBoundingClientRect();
+    expect(Math.abs(middle(button) - middle(title()))).toBeLessThanOrEqual(1);
+    expect(Math.abs(middle(icon) - middle(title()))).toBeLessThanOrEqual(1);
     const narrow = await render(band("260px"));
     const narrowTitle = narrow.alert.querySelector("[data-ouro-alert-title]")!;
     const narrowAction = narrow.alert.querySelector("[data-ouro-alert-action]")!;
     // The title keeps its whole line, unbroken, and the action goes under it.
     expect(narrowTitle.getBoundingClientRect().height).toBeLessThan(30);
-    expect(narrowAction.getBoundingClientRect().top).toBeGreaterThanOrEqual(narrowTitle.getBoundingClientRect().bottom);
+    const wrapped = narrow.alert.querySelector("[data-ouro-alert-action] button")!.getBoundingClientRect();
+    expect(wrapped.top - narrowTitle.getBoundingClientRect().bottom).toBeCloseTo(12, 0);
+    const last = [...narrow.alert.querySelectorAll("[data-ouro-alert-action] button")].at(-1)!.getBoundingClientRect();
+    // 16px of padding and the 1px border under the last button, as without the overhang.
+    expect(narrow.alert.getBoundingClientRect().bottom - last.bottom).toBeCloseTo(17, 0);
   });
 
   it("shows a dismiss button with onDismiss, named by dismissLabel", async () => {

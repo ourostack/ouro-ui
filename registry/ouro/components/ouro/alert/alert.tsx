@@ -269,8 +269,10 @@ export function Alert(props: AlertProps): JSX.Element {
       {Icon && <Icon aria-hidden="true" data-slot="alert-icon" data-ouro-alert-icon="" className={cn("mt-0.5 size-ouro-5 shrink-0", accent)} />}
       {/* A long word (an address in an error) wraps anywhere, so it stays inside the alert, however narrow. */}
       {/* With no description, the title and the action share a line where they fit: the title keeps its whole line
-          before the action wraps under it. */}
-      <div data-slot="alert-body" className={cn("flex min-w-0 flex-1 [overflow-wrap:anywhere]", description === undefined && action !== undefined ? "flex-row flex-wrap items-center gap-3" : "flex-col gap-1")}>
+          before the action wraps under it. The action overhangs its line as the dismiss button does, so the line stays the
+          title's, level with the icon and the dismiss button; the body's foot and the row gap give the overhang back, so a
+          wrapped action sits 12px under the title and 16px over the alert's edge, as before. */}
+      <div data-slot="alert-body" className={cn("flex min-w-0 flex-1 [overflow-wrap:anywhere]", description === undefined && action !== undefined ? "flex-row flex-wrap items-center gap-x-3 gap-y-[18px] pb-1.5" : "flex-col gap-1")}>
         <div data-slot="alert-title" data-ouro-alert-title="" data-ouro-text="" className={cn("max-w-full shrink-0 text-base/6 font-medium sm:pointer-fine:text-sm/5", accent)}>
           {title}
         </div>
@@ -280,7 +282,7 @@ export function Alert(props: AlertProps): JSX.Element {
           </div>
         )}
         {action !== undefined && (
-          <div data-slot="alert-action" data-ouro-alert-action="" className={cn("flex flex-wrap gap-2", description === undefined ? "" : "mt-2")}>
+          <div data-slot="alert-action" data-ouro-alert-action="" className={cn("flex flex-wrap gap-2", description === undefined ? "-my-1.5" : "mt-2")}>
             {action}
           </div>
         )}
