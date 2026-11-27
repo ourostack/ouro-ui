@@ -11,6 +11,7 @@ import { $getRoot, type ElementNode } from "lexical";
 
 const roots: Root[] = [];
 let mounted: HTMLElement[] = [];
+const nativeMod = /Mac/.test(navigator.platform) ? "Meta" : "Control";
 
 /** Renders and waits for the rich editor, which loads after the first render. */
 async function render(node: ReactNode) {
@@ -170,7 +171,7 @@ describe("Composer rich mode", () => {
     const seen: string[] = [];
     const { editor } = await render(rich({ defaultValue: "trailing word_", onValueChange: (value) => void seen.push(value) }));
     editor.focus();
-    await userEvent.keyboard("{Control>}a{/Control}Xtrailing word_");
+    await userEvent.keyboard(`{${nativeMod}>}a{/${nativeMod}}Xtrailing word_`);
     await expect.poll(() => seen.at(-1)).toBe("Xtrailing word\\_");
   });
 
@@ -281,7 +282,7 @@ describe("Composer rich mode", () => {
     const seen: string[] = [];
     const { editor } = await render(rich({ editorRef: handle, defaultValue: "__bold__", onValueChange: (value) => void seen.push(value) }));
     editor.focus();
-    await userEvent.keyboard("{Control>}a{/Control}");
+    await userEvent.keyboard(`{${nativeMod}>}a{/${nativeMod}}`);
     await act(async () => handle.current!.format("italic"));
     await expect.poll(() => seen.at(-1)).toBe("**_bold_**");
   });
@@ -482,9 +483,9 @@ describe("Composer rich mode", () => {
     editor.focus();
     await userEvent.keyboard("bc");
     await expect.poll(() => editor.textContent).toBe("abc");
-    await userEvent.keyboard("{Control>}z{/Control}");
+    await userEvent.keyboard(`{${nativeMod}>}z{/${nativeMod}}`);
     await expect.poll(() => editor.textContent).toBe("a");
-    await userEvent.keyboard("{Control>}{Shift>}z{/Shift}{/Control}");
+    await userEvent.keyboard(`{${nativeMod}>}{Shift>}z{/Shift}{/${nativeMod}}`);
     await expect.poll(() => editor.textContent).toBe("abc");
   });
 
@@ -501,7 +502,7 @@ describe("Composer rich mode", () => {
     await new Promise((resolve) => setTimeout(resolve, 350));
     await userEvent.keyboard("c");
     await expect.poll(() => editor.textContent).toBe("abc");
-    await userEvent.keyboard("{Control>}z{/Control}");
+    await userEvent.keyboard(`{${nativeMod}>}z{/${nativeMod}}`);
     await expect.poll(() => editor.textContent).toBe("a");
   });
 
@@ -645,7 +646,7 @@ describe("Composer rich mode", () => {
   it("keeps the loaded value out of the undo history, so undoing never empties the box", async () => {
     const { editor } = await render(rich({ defaultValue: "hello" }));
     editor.focus();
-    await userEvent.keyboard("{Control>}z{/Control}");
+    await userEvent.keyboard(`{${nativeMod}>}z{/${nativeMod}}`);
     await expect.poll(() => editor.textContent).toBe("hello");
   });
 
