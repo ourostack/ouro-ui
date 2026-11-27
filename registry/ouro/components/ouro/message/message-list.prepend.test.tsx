@@ -244,6 +244,29 @@ describe("MessageList prepending older history", () => {
     expect(Math.abs(firstVisible(scroller).top - reading.top)).toBeLessThanOrEqual(2);
   });
 
+  it("does not undo a layout correction the browser applied later", async () => {
+    const list = await mountScrolledUp(false);
+    const property = Object.getOwnPropertyDescriptor(list.scroller, "scrollTop")!;
+    let requested: number | undefined;
+    let deferred = true;
+    Object.defineProperty(list.scroller, "scrollTop", {
+      configurable: true,
+      get: () => property.get!.call(list.scroller),
+      set: (top: number) => {
+        if (deferred) requested = top;
+        else property.set!.call(list.scroller, top);
+      },
+    });
+    vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame"] });
+    await list.grow();
+    await expect.poll(() => requested).toBeDefined();
+    deferred = false;
+    Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!.set!.call(list.scroller, requested);
+    const at = list.scroller.scrollTop;
+    await act(() => list.scroller.dispatchEvent(new Event("scroll")));
+    expect(list.scroller.scrollTop).toBe(at);
+  });
+
   const inputs: [string, (scroller: HTMLElement) => void][] = [
     // A press on a message whose own handler stops it still counts: the list hears it on the way down.
     ["a press", (scroller) => {

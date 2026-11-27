@@ -1623,10 +1623,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // pass through the setter, so it is told apart by ownership, never by how many pixels it moved.
     const previousTop = Object.getOwnPropertyDescriptor(scroller, "scrollTop");
     const topProperty = previousTop ?? Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
-    let watchingTop = true;
-    let holdingTop = false;
     const setTop = (top: number) => {
-      if (watchingTop && !holdingTop) held.current = false;
+      held.current = false;
       topProperty.set!.call(scroller, top);
     };
     Object.defineProperty(scroller, "scrollTop", {
@@ -1635,7 +1633,6 @@ export function MessageList(props: MessageListProps): JSX.Element {
       set: setTop,
     });
     const forgetTop = () => {
-      watchingTop = false;
       if (Object.getOwnPropertyDescriptor(scroller, "scrollTop")?.set !== setTop) return;
       if (previousTop) Object.defineProperty(scroller, "scrollTop", previousTop);
       else Reflect.deleteProperty(scroller, "scrollTop");
@@ -1989,10 +1986,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // When the reader last did something that may scroll the list, besides the wheel (turning), or code asked the list to scroll
     // (scrollTo, scrollBy: a find's smooth scroll to its match, an app's own), which may take frames to get there.
     let inputAt = Number.NEGATIVE_INFINITY;
-    const onInput = () => {
-      inputAt = performance.now();
-      held.current = false;
-    };
+    const onInput = () => void (inputAt = performance.now());
     // Stryker disable next-line BooleanLiteral: passive only tells the browser these listeners never cancel the event; onInput never calls preventDefault, so no test can observe it.
     for (const type of ["pointerdown", "keydown", "touchstart", "focusin"]) scroller.addEventListener(type, onInput, { capture: true, passive: true });
     const asked = (name: "scrollTo" | "scrollBy") => {
@@ -2068,12 +2062,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
         owed = moved;
         if (Math.abs(moved) >= 0.5) {
           const before = scroller.scrollTop;
-          holdingTop = true;
-          try {
-            scroller.scrollTop += moved;
-          } finally {
-            holdingTop = false;
-          }
+          scroller.scrollTop += moved;
           ownTop.current = heldTop.current = scroller.scrollTop;
           const applied = scroller.scrollTop - before;
           armHeld(applied);

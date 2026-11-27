@@ -798,7 +798,9 @@ describe("MessageList", () => {
   it.each([2, 50])("lets an explicit scrollTop write of %i px end the hold, so a native move right after stays where it left the list", async (distance) => {
     const items = history(20, 10);
     const { scroller, rerender } = await render(<Chat items={items} />);
-    await wheel(scroller, -400);
+    scroller.scrollTop -= 400;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
     const heldAt = await armHeld(scroller, items, rerender);
     await act(async () => {
       scroller.scrollTop = heldAt + distance;
@@ -828,7 +830,9 @@ describe("MessageList", () => {
     const items = history(20, 10);
     const { scroller, rerender } = await render(<Chat items={items} ref={when === "before" ? (node) => node && watch(node.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!) : undefined} />);
     if (when === "after") watch(scroller);
-    await wheel(scroller, -400);
+    scroller.scrollTop -= 400;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
     const heldAt = await armHeld(scroller, items, rerender);
     expect(writes.at(-1)).toBe(heldAt);
     await act(() => {
@@ -840,6 +844,13 @@ describe("MessageList", () => {
     expect(Object.getOwnPropertyDescriptor(scroller, "scrollTop")?.set).toBe(setter);
     scroller.scrollTop = 0;
     expect(writes.at(-1)).toBe(0);
+  });
+
+  it("restores native scrollTop access after unmount", async () => {
+    const { scroller, rerender } = await render(<Chat items={history(20)} />);
+    expect(Object.hasOwn(scroller, "scrollTop")).toBe(true);
+    await rerender(<div />);
+    expect(Object.hasOwn(scroller, "scrollTop")).toBe(false);
   });
 
   it("lets a stray near the place a message moving to the end held be, once Jump to latest has taken the reader past it", async () => {
