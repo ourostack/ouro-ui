@@ -55,6 +55,7 @@ test("squircle corners: an unsupported selector cannot discard another surface's
   const generated = await run(`
     .surface { position: relative; width: 120px; height: 80px; border-radius: 20px; background: #dce5ef; }
     .surface::before { content: ""; position: absolute; inset: 0; border-radius: 20px; background: #557799; }
+    .quoted[data-note="::,]"] { width: 120px; height: 80px; border-radius: 20px; background: #dce5ef; }
     .picker::-moz-color-swatch { border-radius: 20px; }
     .other:ouro-unavailable { border-radius: 20px; }
   `);
@@ -62,22 +63,26 @@ test("squircle corners: an unsupported selector cannot discard another surface's
     const browser = await engine.launch({ headless: true });
     const tab = await browser.newPage();
     try {
-      for (const fallback of [false, true]) {
-        const css = fallback ? generated.replaceAll("(corner-shape: squircle)", "(ouro-native-corner-shape: squircle)") : generated;
-        await tab.setContent(`<style>${css}</style><div class="surface"></div>`);
-        const styles = await tab.locator(".surface").evaluate((element) => {
-          const read = (pseudo) => {
-            const style = getComputedStyle(element, pseudo);
-            return { radius: style.getPropertyValue("--sq-tl").trim(), clip: style.clipPath, shape: style.getPropertyValue("corner-top-left-shape") };
-          };
-          return [read(null), read("::before")];
-        });
-        for (const style of styles) {
-          if (fallback) {
-            assert.equal(style.radius, "20px", `${engine.name()}: fallback radius`);
-            assert.notEqual(style.clip, "none", `${engine.name()}: fallback clip`);
-          } else {
-            assert.equal(style.shape, "superellipse(2)", `${engine.name()}: native shape`);
+      for (const built of [generated, dedupe(generated + generated)]) {
+        for (const fallback of [false, true]) {
+          const css = fallback ? built.replaceAll("(corner-shape: squircle)", "(ouro-native-corner-shape: squircle)") : built;
+          await tab.setContent(`<style>${css}</style><div class="surface"></div><div class="quoted" data-note="::,]"></div>`);
+          const styles = await tab.evaluate(() => {
+            const { document, getComputedStyle } = globalThis;
+            const read = (element, pseudo) => {
+              const style = getComputedStyle(element, pseudo);
+              return { radius: style.getPropertyValue("--sq-tl").trim(), clip: style.clipPath, shape: style.getPropertyValue("corner-top-left-shape") };
+            };
+            const surface = document.querySelector(".surface");
+            return [read(surface, null), read(surface, "::before"), read(document.querySelector(".quoted"), null)];
+          });
+          for (const style of styles) {
+            if (fallback) {
+              assert.equal(style.radius, "20px", `${engine.name()}: fallback radius`);
+              assert.notEqual(style.clip, "none", `${engine.name()}: fallback clip`);
+            } else {
+              assert.equal(style.shape, "superellipse(2)", `${engine.name()}: native shape`);
+            }
           }
         }
       }

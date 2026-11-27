@@ -1,0 +1,1 @@
+- Fix: [`squircleCorners()` keeps supported native and fallback corners when a stylesheet also names a selector the browser does not recognize](scripts/squircle-corners.test.mjs "verify:testExists(scripts/squircle-corners.test.mjs::squircle corners: an unsupported selector cannot discard another surface's native or fallback shape)").

@@ -72,21 +72,23 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
       });
       for (const [parent, byBody] of groups) {
         for (const group of byBody.values()) {
-          const sibling = { selector: group.selectors.join(","), nodes: [] as object[] };
-          for (const v of group.vars) sibling.nodes.push({ prop: v.split(": ")[0], value: v.split(": ")[1] });
-          sibling.nodes.push({ prop: "border-radius", value: group.radii.join(" ") });
-          const wrap = { name: "supports", params: MISSING, nodes: [sibling] };
-          parent.append(wrap);
+          for (const selector of selectorGroups(group.selectors)) {
+            const sibling = { selector, nodes: [] as object[] };
+            for (const v of group.vars) sibling.nodes.push({ prop: v.split(": ")[0], value: v.split(": ")[1] });
+            sibling.nodes.push({ prop: "border-radius", value: group.radii.join(" ") });
+            const wrap = { name: "supports", params: MISSING, nodes: [sibling] };
+            parent.append(wrap);
+          }
         }
       }
       if (selectors.size === 0) return;
-      const list = [...selectors].join(",\n");
+      const lists = selectorGroups([...selectors]);
       const layer = {
         name: "layer",
         params: "squircle-corners",
         nodes: [
-          { name: "supports", params: "(corner-shape: squircle)", nodes: [{ selector: list, nodes: [{ prop: "corner-shape", value: "squircle" }] }] },
-          { name: "supports", params: MISSING, nodes: [{ selector: list, nodes: [{ prop: "--sq-clip", value: clipPath() }, { prop: "clip-path", value: "var(--sq-clip)" }] }] },
+          { name: "supports", params: "(corner-shape: squircle)", nodes: lists.map((selector) => ({ selector, nodes: [{ prop: "corner-shape", value: "squircle" }] })) },
+          { name: "supports", params: MISSING, nodes: lists.map((selector) => ({ selector, nodes: [{ prop: "--sq-clip", value: clipPath() }, { prop: "clip-path", value: "var(--sq-clip)" }] })) },
         ],
       };
       root.append(layer);
@@ -140,16 +142,54 @@ function matchingClose(css: string, openIndex: number, open: string, close: stri
 function splitSelectors(list: string): string[] {
   const out: string[] = [];
   let depth = 0;
+  let quote = "";
   let start = 0;
   for (let i = 0; i < list.length; i++) {
     const ch = list[i];
     if (ch === "\\") { i++; continue; }
+    if (quote) { if (ch === quote) quote = ""; continue; }
+    if (ch === '"' || ch === "'") { quote = ch; continue; }
     if (ch === "(" || ch === "[") depth++;
     else if (ch === ")" || ch === "]") depth--;
     else if (ch === "," && depth === 0) { out.push(list.slice(start, i)); start = i + 1; }
   }
   out.push(list.slice(start));
   return out.map((s) => s.trim()).filter(Boolean);
+}
+
+function pseudoElementAt(selector: string): number {
+  let depth = 0;
+  let quote = "";
+  for (let i = 0; i < selector.length; i++) {
+    const ch = selector[i];
+    if (ch === "\\") { i++; continue; }
+    if (quote) { if (ch === quote) quote = ""; continue; }
+    if (ch === '"' || ch === "'") { quote = ch; continue; }
+    if (ch === "(" || ch === "[") { depth++; continue; }
+    if (ch === ")" || ch === "]") { depth--; continue; }
+    if (depth === 0 && ch === ":" && /^::[-\w]+|^:(?:before|after|first-line|first-letter)\b/i.test(selector.slice(i))) return i;
+  }
+  return -1;
+}
+
+// Unknown selectors must not discard the whole rule. :is() forgives unknown pseudo-classes; pseudo-elements cannot
+// appear inside it, so each kind gets a separate rule instead.
+function selectorGroups(lists: string[]): string[] {
+  const groups = new Map<string, string[]>();
+  const forgiving = (selector: string) => {
+    if (!/(?<!\\):/.test(selector)) return selector;
+    if (selector.startsWith(":is(") && matchingClose(selector, 3, "(", ")") === selector.length - 1) return selector;
+    return `:is(${selector})`;
+  };
+  for (const selector of lists.flatMap(splitSelectors)) {
+    const pseudo = pseudoElementAt(selector);
+    const suffix = pseudo < 0 ? "" : selector.slice(pseudo);
+    const prefix = pseudo < 0 ? selector : selector.slice(0, pseudo) || "*";
+    const group = groups.get(suffix) ?? [];
+    group.push(`${forgiving(prefix)}${suffix}`);
+    groups.set(suffix, group);
+  }
+  return [...groups.values()].map((selectors) => selectors.join(","));
 }
 
 // Merges adjacent `selectors{declBody}` rules that share one exact declBody, within one already-bundled span.
@@ -169,10 +209,10 @@ function dedupeStyleRules(body: string): string {
     selectors.push(...splitSelectors(selectorText));
     i = close + 1;
   }
-  return order.map((declBody) => {
+  return order.flatMap((declBody) => {
     const seen = new Set<string>();
     const merged = bySelectors.get(declBody)!.filter((s) => (seen.has(s) ? false : (seen.add(s), true)));
-    return `${merged.join(",")}{${declBody}}`;
+    return selectorGroups(merged).map((selector) => `${selector}{${declBody}}`);
   }).join("");
 }
 

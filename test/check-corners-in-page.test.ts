@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, expect, it } from "vitest";
 import { commands } from "vitest/browser";
 import { findCornerIssues } from "@/registry/ouro/check/corner-check";
 import { findSquirclePaint, type PaintClip } from "@/registry/ouro/check/squircle-paint";
+import { forceSquircleFallback } from "./squircle-fallback";
 
 const state = window as unknown as { __ouroPaintCapture?: (clip: PaintClip) => Promise<string>; __ouroCheckRef?: number };
 const paintTimeout = 30_000;
@@ -253,6 +254,19 @@ it("keeps a clipped fallback outline but finds a protruding sibling beside it", 
   expect(await findSquirclePaint()).toEqual([]);
   root.querySelector<HTMLElement>(".control")!.style.display = "block";
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+}, paintTimeout);
+
+it("activates the compiled fallback in both browser engines", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render('<div class="surface rounded-ouro-xl" style="width:160px;height:120px;background:#fff"></div>');
+    const style = getComputedStyle(root.firstElementChild!);
+    expect(parseFloat(style.getPropertyValue("--sq-tl"))).toBeGreaterThan(0);
+    expect(style.clipPath).not.toBe("none");
+    expect(await findSquirclePaint()).toEqual([]);
+  } finally {
+    restore();
+  }
 }, paintTimeout);
 
 it("checks a single squircle corner, accepts raw PNG data, and restores existing effects", async () => {
