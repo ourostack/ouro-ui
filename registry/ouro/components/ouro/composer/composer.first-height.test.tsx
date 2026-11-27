@@ -62,4 +62,25 @@ describe("Composer first height", () => {
       host.remove();
     }
   });
+
+  it("keeps a measured expanded box still when its props rerender without changing mode", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    const root = createRoot(host);
+    const frames: FrameRequestCallback[] = [];
+    const raf = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => frames.push(callback));
+    const moving = vi.fn();
+    host.addEventListener("ouro-composer-move", moving);
+    try {
+      flushSync(() => root.render(<Composer label="Reply" expanded toolbar={<span>Formatting</span>} onSend={() => {}} />));
+      await act(async () => frames.splice(0).forEach((callback) => callback(performance.now())));
+      flushSync(() => root.render(<Composer label="Reply" expanded placeholder="Keep writing" toolbar={<span>Formatting</span>} onSend={() => {}} />));
+      expect(moving).not.toHaveBeenCalled();
+      expect(host.querySelector("[data-ouro-composer-frame]")!.hasAttribute("data-ouro-moving")).toBe(false);
+    } finally {
+      raf.mockRestore();
+      await act(async () => root.unmount());
+      host.remove();
+    }
+  });
 });
