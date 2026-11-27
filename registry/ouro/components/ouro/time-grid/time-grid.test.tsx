@@ -1792,6 +1792,7 @@ describe("TimeGrid", () => {
     });
 
     it("keeps clearing the slot while a toast slides in late, then stops once the grid is gone", async () => {
+      const request = window.requestAnimationFrame.bind(window);
       const frames = vi.spyOn(window, "requestAnimationFrame");
       const toast = document.createElement("div");
       toast.setAttribute("data-ouro-toast-id", "t");
@@ -1800,10 +1801,17 @@ describe("TimeGrid", () => {
       try {
         const { grid } = await open({ className: "h-[calc(100vh-1rem)]" });
         const cursor = grid.querySelector<HTMLElement>("[data-ouro-time-grid-cursor]")!;
+        // The loop clears for a bounded run of frames after a move, so the toast appears in the first frame that runs after it, never on a timer a loaded runner can outlast.
+        let armed = true;
+        frames.mockImplementation((callback) =>
+          request((time) => {
+            callback(time);
+            if (armed) toast.style.display = "block";
+            armed = false;
+          }),
+        );
         await userEvent.keyboard("{End}");
         await expect.poll(() => viewport().scrollTop).toBeGreaterThan(0);
-        expect(cursor.style.scrollMarginBottom).toBe("");
-        toast.style.display = "block";
         await expect.poll(() => cursor.style.scrollMarginBottom).not.toBe("");
         await userEvent.keyboard("{ArrowUp}");
         const started = frames.mock.calls.length;
