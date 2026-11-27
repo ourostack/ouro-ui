@@ -1016,6 +1016,8 @@ describe("TimeGrid", () => {
       events: [
         { id: "long", title: "Architecture retrospective", start: at(12, "13:00"), end: at(12, "14:00") },
         { id: "short", title: "Sync", start: at(12, "15:00"), end: at(12, "16:00") },
+        // Three quarters of an hour, drawn a pixel short and in an unanswered event's border: still room for its time.
+        { id: "check-in", title: "Check-in", start: at(12, "17:00"), end: at(12, "17:45"), status: "unanswered" },
       ],
     });
     const parts = (title: string) => {
@@ -1029,13 +1031,26 @@ describe("TimeGrid", () => {
     expect(long.title.scrollHeight).toBeLessThanOrEqual(long.title.clientHeight);
     expect(long.title.getBoundingClientRect().bottom).toBeLessThanOrEqual(long.text.bottom + 1);
     expect(long.time.left).toBeGreaterThanOrEqual(long.text.right);
-    const short = parts("Sync");
-    expect(short.time.left).toBeLessThan(short.text.right);
-    expect(short.time.bottom).toBeLessThanOrEqual(short.text.bottom + 1);
+    for (const title of ["Sync", "Check-in"]) {
+      const short = parts(title);
+      expect(short.time.left).toBeLessThan(short.text.right);
+      expect(short.time.bottom).toBeLessThanOrEqual(short.text.bottom + 3);
+    }
     expect(plain(titled("Architecture retrospective").getAttribute("aria-label"))).toBe("Architecture retrospective, 1:00 – 2:00 PM, Thursday");
   });
 
   it("draws the hour hourHeight asks for, and gives a short event the lines it holds", async () => {
+    // From the first frame: the lines are measured before it paints.
+    const host = document.createElement("div");
+    host.style.width = "1000px";
+    document.body.append(host);
+    const first = createRoot(host);
+    onTestFinished(() => {
+      first.unmount();
+      host.remove();
+    });
+    flushSync(() => first.render(<TimeGrid {...base} view="day" hourHeight={5} events={[{ id: "early", title: "Early sync", start: at(12, "08:30"), end: at(12, "09:00") }]} />));
+    expect(host.querySelector<HTMLElement>("[data-ouro-event-key] > span > span[style]")?.style.getPropertyValue("--ouro-lines")).toBe("2");
     const { grid, rerender } = await render({ view: "day", events: [{ id: "half", title: "Standup", start: at(12, "09:30"), end: at(12, "10:00") }] });
     const body = grid.querySelector<HTMLElement>("[data-ouro-time-grid-body]")!;
     // At the shortest hour a half hour holds one line, the title and its start.
@@ -1044,6 +1059,19 @@ describe("TimeGrid", () => {
     expect(body.offsetHeight).toBe(24 * 80);
     await expect.poll(() => titled("Standup").querySelector<HTMLElement>(":scope > span > span[style]")?.style.getPropertyValue("--ouro-lines")).toBe("2");
     expect(warnings()).toEqual([]);
+  });
+
+  it("counts an event's lines in rem, so a larger root text size draws no more lines than fit", async () => {
+    document.documentElement.style.fontSize = "18px";
+    onTestFinished(() => {
+      document.documentElement.style.fontSize = "";
+    });
+    await render({ view: "week", events: [{ id: "hour", title: "Interview: front-end engineer for the platform team", start: at(12, "14:00"), end: at(12, "15:00") }] });
+    const event = titled("Interview: front-end engineer for the platform team");
+    const text = event.querySelector<HTMLElement>(":scope > span:not([data-ouro-touch-target])")!;
+    const title = text.firstElementChild as HTMLElement;
+    await expect.poll(() => title.style.getPropertyValue("--ouro-lines")).toBe("2");
+    expect(title.getBoundingClientRect().bottom).toBeLessThanOrEqual(text.getBoundingClientRect().bottom + 1);
   });
 
   it("shows the title first, then the time and the description as the event's height allows", async () => {
