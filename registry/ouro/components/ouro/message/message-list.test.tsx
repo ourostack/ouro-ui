@@ -1,11 +1,11 @@
-import { createElement, useState, type ComponentType, type ReactNode } from "react";
+import { createElement, createRef, useLayoutEffect, useState, type ComponentType, type ReactNode } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
-import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
+import { MessageList, type MessageListActions } from "@/registry/ouro/components/ouro/message/message-list";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -72,6 +72,7 @@ function Chat({
   loadingOlderLabel?: string;
   hasOlder?: boolean;
   windowing?: boolean;
+  ref?: ((node: HTMLDivElement | null) => void) | undefined;
 }) {
   return (
     <MessageList label={label} style={{ height: 300 }} {...rest}>
@@ -700,6 +701,17 @@ describe("MessageList", () => {
     expect(firstVisible(scroller).message).toBe(before.message);
   });
 
+  it("leaves no room below the last message where an app turned the browser's anchoring on and the conversation then got shorter (#3892)", async () => {
+    const { scroller, rerender } = await render(<Chat items={history(30)} />);
+    await settle(scroller);
+    // The list marked where the content ended before the app turned the browser's own scroll anchoring on.
+    scroller.style.overflowAnchor = "auto";
+    await rerender(<Chat items={history(5)} />);
+    await settle(scroller);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    expect(scroller.scrollHeight).toBe(Math.max(scroller.clientHeight, content.offsetTop + content.offsetHeight));
+  });
+
   it("keeps the reader's place when a message above them moves to the end and the list keeps its height", async () => {
     const items = history(20, 10);
     // The messages sit in a group, as under a day's heading, so the move happens inside it.
@@ -781,38 +793,82 @@ describe("MessageList", () => {
     await wheel(scroller, -400);
     const heldAt = await armHeld(scroller, items, rerender);
     await act(async () => {
-      scroller.scrollTop = heldAt + 2;
+      Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!.set!.call(scroller, heldAt - 4);
       scroller.dispatchEvent(new Event("scroll"));
     });
-    // The stray within STRAY_PX of the held place, just after the list held it, is none of the reader's: put back.
     expect(scroller.scrollTop).toBe(heldAt);
     await act(async () => {
-      scroller.scrollTop = heldAt + 2;
+      Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!.set!.call(scroller, heldAt - 4);
       scroller.dispatchEvent(new Event("scroll"));
     });
     // Correcting a stray lets the hold go, as any other move does: a second one so close after is the reader's or the browser's,
     // and stays where it left the list.
-    expect(scroller.scrollTop).toBe(heldAt + 2);
+    expect(scroller.scrollTop).toBe(heldAt - 4);
   });
 
-  it("lets a move far past the held place end the hold too, so a near one right after stays where it left the list", async () => {
+  it.each([2, 50])("lets an explicit scrollTop write of %i px end the hold, so a native move right after stays where it left the list", async (distance) => {
     const items = history(20, 10);
     const { scroller, rerender } = await render(<Chat items={items} />);
-    await wheel(scroller, -400);
+    scroller.scrollTop -= 400;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
     const heldAt = await armHeld(scroller, items, rerender);
     await act(async () => {
-      scroller.scrollTop = heldAt + 50;
+      scroller.scrollTop = heldAt + distance;
       scroller.dispatchEvent(new Event("scroll"));
     });
-    // Far outside STRAY_PX, this is the reader's or the browser's own move, not a stray to put back.
-    expect(scroller.scrollTop).toBe(heldAt + 50);
+    expect(scroller.scrollTop).toBe(heldAt + distance);
     await act(async () => {
-      scroller.scrollTop = heldAt + 2;
+      Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!.set!.call(scroller, heldAt - 4);
       scroller.dispatchEvent(new Event("scroll"));
     });
     // That move, as any other does, let the hold go: a near one measured against the place it held before is none of the hold's
     // business anymore, and stays where it left the list.
+    expect(scroller.scrollTop).toBe(heldAt - 4);
+  });
+
+  it.each(["before", "after"])("chains a scrollTop observer installed %s the list, through holding and unmounting", async (when) => {
+    let setter: ((top: number) => void) | undefined;
+    const writes: number[] = [];
+    const watch = (scroller: HTMLElement) => {
+      const property = Object.getOwnPropertyDescriptor(scroller, "scrollTop") ?? Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+      setter = (top) => {
+        property.set!.call(scroller, top);
+        writes.push(property.get!.call(scroller));
+      };
+      Object.defineProperty(scroller, "scrollTop", { configurable: true, get: () => property.get!.call(scroller), set: setter });
+    };
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} ref={when === "before" ? (node) => node && watch(node.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!) : undefined} />);
+    if (when === "after") watch(scroller);
+    scroller.scrollTop -= 400;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+    const heldAt = await armHeld(scroller, items, rerender);
+    expect(writes.at(-1)).toBe(heldAt);
+    await act(() => {
+      scroller.scrollTop = heldAt + 2;
+      scroller.dispatchEvent(new Event("scroll"));
+    });
     expect(scroller.scrollTop).toBe(heldAt + 2);
+    await rerender(<div />);
+    expect(Object.getOwnPropertyDescriptor(scroller, "scrollTop")?.set).toBe(setter);
+    scroller.scrollTop = 0;
+    expect(writes.at(-1)).toBe(0);
+  });
+
+  it("restores native scrollTop access after unmount", async () => {
+    const { scroller, rerender } = await render(<Chat items={history(20)} />);
+    expect(Object.hasOwn(scroller, "scrollTop")).toBe(true);
+    await rerender(<div />);
+    expect(Object.hasOwn(scroller, "scrollTop")).toBe(false);
+    const now = vi.spyOn(performance, "now");
+    try {
+      scroller.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+      expect(now).not.toHaveBeenCalled();
+    } finally {
+      now.mockRestore();
+    }
   });
 
   it("lets a stray near the place a message moving to the end held be, once Jump to latest has taken the reader past it", async () => {
@@ -940,6 +996,30 @@ describe("MessageList", () => {
     expect(page.getByRole("button", { name: "Jump to latest" }).query()).toBeNull();
   });
 
+  it("keeps the reader's place when the message it opened at goes before the list re-centres on it", async () => {
+    // The app drops the message in the commit right after the list opened at it, before any observer or frame re-centres.
+    function Dropped() {
+      const [items, setItems] = useState(() => history(30));
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the test needs the synchronous second commit before any frame
+      useLayoutEffect(() => setItems((all) => all.filter((item) => item.id !== 10)), []);
+      return <Found items={items} initialAnchor="found-10" windowing={false} />;
+    }
+    const { scroller } = await render(<Dropped />);
+    await settle(scroller);
+    const below = document.getElementById("found-11")!;
+    const top = below.getBoundingClientRect().top;
+    await settle(scroller);
+    expect(Math.abs(below.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+    expect(inView(scroller, "found-11")).toBe(true);
+  });
+
+  it("opens with an initialAnchor near the end in view, not several rows above it", async () => {
+    const { scroller } = await render(<Found items={history(30)} initialAnchor="found-28" />);
+    await nextFrame(scroller);
+    await settle(scroller);
+    expect(inView(scroller, "found-28")).toBe(true);
+  });
+
   it("opened at a message before the newest, with the content 1px taller than the view, stays there instead of following the end", async () => {
     const Rows = ({ height, last = 100 }: { height?: number; last?: number }) => (
       <MessageList label="Conversation" style={{ height }} initialAnchor="row-0">
@@ -975,6 +1055,39 @@ describe("MessageList", () => {
     content.style.paddingBottom = "0px";
     await settle(scroller);
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+  });
+
+  it("holds the reader's place synchronously when its host changes the room below", async () => {
+    const actions = createRef<MessageListActions>();
+    const { scroller } = await render(
+      <MessageList label="Conversation" style={{ height: 300 }} actionsRef={actions}>
+        {history(30).map((item) => <Message key={item.id} role={item.role} name="Ana">{item.text}</Message>)}
+      </MessageList>,
+    );
+    await settle(scroller);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    await act(async () => {
+      content.style.paddingBottom = "190px";
+      actions.current!.holdPlace();
+      expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    });
+    await act(async () => void (scroller.scrollTop -= 150));
+    await settle(scroller);
+    const top = scroller.scrollTop;
+    const reading = firstVisible(scroller);
+    await act(async () => {
+      content.style.paddingBottom = "240px";
+      actions.current!.holdPlace();
+      expect(scroller.scrollTop).toBe(top);
+      expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
+    });
+    await act(async () => actions.current!.jumpToNewest());
+    await settle(scroller);
+    await act(async () => {
+      content.style.paddingBottom = "0px";
+      actions.current!.holdPlace();
+      expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    });
   });
 
   it("keeps the message it opened at in place when older messages load before the browser reports the scroll", async () => {

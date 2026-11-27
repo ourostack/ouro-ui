@@ -918,7 +918,14 @@ describe("MessageList springs at rest", () => {
     const after = await commands.compositedLayers();
     expect(messageLayers(after)).toEqual([]);
     const elements = (layers: { element: string | null }[]) => layers.map((layer) => layer.element);
-    expect(elements(after)).toEqual(elements(before));
+    // In the real frames the first layer read runs, the list holds the reader's place by what the fling's wheel carries, which
+    // draws the content on a layer of its own, with the 1px marks painted over it, until the wheel rests (#3785): no spring's.
+    // The held frames keep that wheel turning here, so those two are left out while the content is carried.
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    const carried = content.style.translate !== "";
+    const carryLayer = (layer: { element: string | null; width: number; height: number }) =>
+      carried && ((layer.element === "DIV" && Math.abs(layer.height - content.offsetHeight) <= 1) || (layer.element === "SPAN" && layer.width === 1));
+    expect(elements(after.filter((layer) => !carryLayer(layer)))).toEqual(elements(before));
   });
 });
 

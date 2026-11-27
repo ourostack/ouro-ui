@@ -9,6 +9,7 @@ export {
   ownLook,
   panelClass,
   rootClass,
+  stickyListClass,
   tabClass,
   tabFaceClass,
   tabLinkClass,
@@ -69,6 +70,14 @@ const listClass =
   "data-[orientation=horizontal]:shadow-[inset_0_-1px_0_0_var(--border)] " +
   "data-[orientation=vertical]:flex-col data-[orientation=vertical]:shadow-[inset_-1px_0_0_0_var(--border)] " +
   "rtl:data-[orientation=vertical]:shadow-[inset_1px_0_0_0_var(--border)]";
+
+/**
+ * A sticky row, filled with the surface it sits on (the page's background, a card's, a sheet's) so the panel scrolls under
+ * it, above the panel's own layers.
+ *
+ * @internal
+ */
+const stickyListClass = "sticky top-0 z-20 bg-(--ouro-scroller-surface)";
 
 /**
  * A tab: 44px tall with 16px text on a coarse pointer, stepping down to 36px and 14px from
@@ -175,5 +184,5 @@ const linkIndicatorClass =
  * @claim "It fades in when its tab" registry/ouro/components/ouro/tabs/tabs.test.tsx verify:testExists(registry/ouro/components/ouro/tabs/tabs.test.tsx::Tabs > switches by key without animating the indicator or the panel, and by pointer with both)
  */
 const panelClass =
-  "min-w-0 flex-1 rounded-ouro-md outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid " +
+  "min-w-0 flex-1 rounded-ouro-md outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid in-data-ouro-switching:[overflow-anchor:none] " +
   "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) data-starting-style:opacity-0 data-ending-style:transition-none in-data-ouro-keyboard:transition-none";

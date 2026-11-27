@@ -1,0 +1,1 @@
+- Fixed: Ouro check's cramped-heading no longer measures a heading's room against a popover, menu or tooltip floating over it from outside; a heading inside the popover is still judged.

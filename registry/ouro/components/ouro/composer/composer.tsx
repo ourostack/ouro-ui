@@ -275,7 +275,8 @@ export interface ComposerOwnProps {
    * web and mail links, line breaks, and lists and quotes as lines with their Markdown marks; scripts,
    * styles, attributes and other links are dropped and their text kept. ⌘⇧V pastes the text only, a web
    * address pasted over selected text links it, and ⌘K links the selection or takes its link off: over
-   * words that aren't an address it asks for one in its own popover, never the browser's prompt.
+   * words that aren't an address it asks for one in its own popover, never the browser's prompt, and
+   * with just the caret it still asks, the typed address becoming the new link's own text.
    * A `value` or `defaultValue` spelling italic with a star (`*italic*`) or bold with underscores
    * (`__bold__`) reads the same way and writes back out with that same mark, rather than switching
    * to the keys' own underscore or star; plain text keeps a star, an underscore or a tilde bare
@@ -288,6 +289,7 @@ export interface ComposerOwnProps {
    *
    * @claim "`value`, `defaultValue` and `onSend` stay Markdown text" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > shows Markdown marks as formatting, and writes formatting back out as the same Markdown)
    * @claim "over words that aren't an address it asks for one in its own popover, never the browser's prompt" registry/ouro/components/ouro/composer/composer.rich-paste.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich-paste.test.tsx::Composer rich paste > asks for an address in its own popover, never the browser's prompt, and links the words it was asked over)
+   * @claim "with just the caret it still asks, the typed address becoming the new link's own text" registry/ouro/components/ouro/composer/composer.rich-paste.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich-paste.test.tsx::Composer rich paste > asks for a link with just the caret too, the typed address becoming the new link's own text)
    * @claim "as the keys ⌘B, ⌘I, ⌘U, ⌘⇧X and ⌘⇧E" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > formats with the keys: mod+B, mod+I, mod+U, mod+Shift+X for strikethrough and mod+Shift+E for code)
    * @claim "so a page with only plain composers pays nothing for it" scripts/composer-weight.test.mjs verify:testExists(scripts/composer-weight.test.mjs::a page with a plain Composer loads no Lexical with it: the rich editor is a chunk fetched on first use)
    * @claim "until it arrives, and on the server, a plain textarea shows" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > renders the plain textarea on the server and until the editor has loaded, so the first render never touches the editor)
@@ -372,7 +374,7 @@ const toolbarClass =
   "group-data-[ouro-moving=shrink]/frame:motion-safe:animate-[ouro-composer-toolbar-out_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both]";
 
 // The quote: a box on the muted surface with a hairline, which fades in when it appears after the
-// composer is on screen (not with reduced motion); a quote there at mount is drawn at once. Message's quote looks the same (message.tsx).
+// composer is on screen (not with reduced motion); a quote there at mount is drawn at once.
 const quoteBoxClass =
   "flex min-w-0 items-center gap-2 rounded-ouro-inner [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] bg-muted pe-1 ring-1 ring-border/60 forced-colors:border forced-colors:border-solid " +
   "transition-opacity duration-(--ouro-duration-base) ease-(--ouro-ease-out) motion-reduce:transition-none";
@@ -471,12 +473,9 @@ function ownAttrsOf(rest: object): Record<string, unknown> {
   return picked;
 }
 
-// Nothing changes whether this is a client render after hydration, so nothing is subscribed to.
+// The module cache changes only when its explicit load settles.
 // Stryker disable next-line ArrowFunction: React ignores what the unsubscribe returns, so an unsubscribe that returns undefined is the same.
 const subscribeNothing = () => () => {};
-const onClient = () => true;
-// Stryker disable next-line ArrowFunction: undefined is as false as false in the state initializer's test, so a server snapshot of undefined is no different there.
-const onServer = () => false;
 
 /**
  * A chat message box: text that grows from one line as the person writes, a send button, and
@@ -656,23 +655,30 @@ export function Composer(props: ComposerProps): JSX.Element {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const setRef = useMergedRef(ref, textareaRef);
   const richRef = useRef<RichEditorHandle | null>(null);
-  // A page that already loaded the editor's module (an earlier Composer on it) draws a client-only mount with the editor from
-  // its very first render, with no plain box and no swap, so it takes focus once. A mount that hydrates server HTML draws the
-  // plain box the server drew (the server snapshot is false), and the effect below swaps it, so hydration matches. A cold load,
-  // or a later format change, is the effect below's job too.
-  const clientRender = useSyncExternalStore(subscribeNothing, onClient, onServer);
-  const [rich, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>(() =>
-    clientRender && formatMode === "rich" && richEditorModule() ? { Editor: richEditorModule()!.RichEditor, focus: rest.autoFocus === true } : undefined,
+  // Some sequences commit an input method's word as a plain insertText with no compositionend (ourostack/ouro-ui#3843): the rich editor sets this once it sees that happen, so a later Enter whose isComposing still reads true (the browser's own composition session never closed) is trusted as composing only until then.
+  const richComposed = useRef(false);
+  // A page that already loaded the editor's module (an earlier Composer on it) draws this mount with the editor from its very first render, with no plain box and no swap. The server snapshot is always empty, so hydration still matches the server's plain box and React then draws the editor before the paint.
+  const warm = useSyncExternalStore(
+    subscribeNothing,
+    () => richEditorModule()?.RichEditor,
+    // Stryker disable next-line ArrowFunction: the server snapshot only runs while hydrating server HTML, which test/conformance/hydration.test.tsx covers, never in a client render.
+    () => undefined,
   );
+  // Only the mount's own format draws from the warm module: a later switch to rich goes through the load below, which hands the focus over from the plain box that had it.
+  const [pristine, setPristine] = useState(true);
+  const [firstFormat] = useState(formatMode);
+  if (pristine && formatMode !== firstFormat) setPristine(false);
+  const [loaded, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>();
+  // Stryker disable next-line ConditionalExpression,LogicalOperator: richOn below also needs the rich format, so the editor drawn for a plain box (or none for a cold page) reads the same.
+  const rich = loaded ?? (formatMode === "rich" && warm && pristine ? { Editor: warm, focus: rest.autoFocus === true } : undefined);
   useEffect(() => {
+    const richModule = richEditorModule();
     // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral,BlockStatement: loading the editor in plain mode changes nothing a person or a test can read, as richOn below also needs the rich format.
     if (formatMode !== "rich") return;
-    // Stryker disable next-line ConditionalExpression: the state initializer above already drew the editor for this same mount, from a module that was already loaded; loading it again would only replace a correct focus flag with a wrong one.
-    /* istanbul ignore if @preserve -- this closure is the one React commits from the mount that set rich, so a test never observes rich already set when this runs */
-    if (rich !== undefined) return;
+    // Stryker disable next-line ConditionalExpression: a module that was already loaded draws the editor above; loading it again would only replace a correct focus flag with a wrong one.
+    if (richModule && pristine) return;
     // An app that turns rich on with the editor already loaded gets it at once, focus and all (its own change, not the load's).
     if (richModule) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- the format the app just chose, drawn in this same pass
       setRich({ Editor: richModule.RichEditor, focus: textareaRef.current === document.activeElement });
       return () => setRich(undefined);
     }
@@ -693,7 +699,6 @@ export function Composer(props: ComposerProps): JSX.Element {
       live = false;
       setRich(undefined);
     };
-    // `rich` is read only to skip a redundant load the state initializer above already did for this same mount, never to decide whether to re-run.
   }, [formatMode]); // eslint-disable-line react-hooks/exhaustive-deps
   // Stryker disable next-line LogicalOperator,ConditionalExpression: the effect clears the loaded editor when the format changes, so only one render between them could tell.
   const richOn = formatMode === "rich" && rich !== undefined;
@@ -846,7 +851,9 @@ export function Composer(props: ComposerProps): JSX.Element {
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement | HTMLDivElement>) => {
     onKeyDown?.(event as KeyboardEvent<HTMLTextAreaElement>);
     // A word an input method is still composing ends with Enter, and Escape cancels it; those keys are the input method's.
-    if (event.defaultPrevented || event.nativeEvent.isComposing || event.keyCode === 229) return;
+    if (event.defaultPrevented || event.keyCode === 229) return;
+    // A stale isComposing (ourostack/ouro-ui#3843) is trusted only until the editor itself has reported the word committed.
+    if (event.nativeEvent.isComposing && !(richOn && richComposed.current)) return;
     const apple = isApple();
     const keys = richOn ? richShortcuts : composerShortcuts;
     const key = formatting || richOn ? markFormats.find((kind) => pressed(event, keys[kind], apple)) : undefined;
@@ -962,6 +969,8 @@ export function Composer(props: ComposerProps): JSX.Element {
               rows={rows}
               maxRows={maxRows}
               onKeyDown={keyDown}
+              enterSends={!modEnter}
+              composedRef={richComposed}
               autoFocus={rich!.focus}
               name={name}
               controlRef={ref as Ref<HTMLDivElement> | undefined}

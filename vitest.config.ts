@@ -145,6 +145,9 @@ export default defineConfig({
           exclude: [...(project.test?.exclude ?? configDefaults.exclude), themeTests, conformanceTests, ...(quarantinedOnly ? [] : quarantinedList)],
           ...(mutation
             ? {
+                // A dry run over a shared file's 100-odd importers runs their touch files side by
+                // side and fails one finger test at random (issue #3982): one file at a time.
+                ...(project.test?.name === "ouro-touch" ? { fileParallelism: false } : {}),
                 setupFiles: [...[project.test?.setupFiles ?? []].flat(), "./scripts/mutation/setup.ts"],
                 browser: { ...project.test?.browser, commands: { ...project.test?.browser?.commands, ...mutationCommands } },
               }

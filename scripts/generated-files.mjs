@@ -19,9 +19,18 @@ export const uncommitted = [
   // data, and each committed page went stale on the next one's merge (#2600).
   "docs/guides/model-reviews.md",
   "docs/guides/model-interviews.md",
+  // The accessibility evidence page: its rows count each component's stories, so two pull requests that touch one component edit the same row, and the merge queue drops one on the conflict.
+  "docs/guides/accessibility-evidence.md",
   // Ouro Feel's probe, built from feel/probe/probe.ts: committed, any change to probe.ts that merged beside it could leave it stale.
   "registry/ouro/feel/ouro-feel-probe.js",
 ];
+
+/**
+ * The generated pages at the top of docs/ (one per export, and parts.md), which main does not commit either: a change to
+ * one component's JSDoc edits its page, and two queued pull requests that touch the same one conflict. A git pathspec,
+ * because the names come from the components' exports.
+ */
+export const uncommittedGlobs = [":(glob)docs/*.md"];
 
 /** The hand-written llms.txt, whose `## Items` list `pnpm registry` fills in to make site/public/llms.txt. */
 export const llmsSource = "site/llms.txt";

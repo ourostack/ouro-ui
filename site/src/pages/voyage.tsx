@@ -103,10 +103,12 @@ function Xray(): JSX.Element | null {
   const [painted, setPainted] = useState(false);
   useEffect(() => {
     if (!on) return;
+    const fallback = setTimeout(() => setPainted(true), 500);
     let frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(() => setPainted(true));
     });
     return () => {
+      clearTimeout(fallback);
       cancelAnimationFrame(frame);
       setPainted(false);
     };

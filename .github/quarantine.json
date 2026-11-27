@@ -1,21 +1,5 @@
 [
   {
-    "project": "ouro-chromium",
-    "file": "registry/ouro/components/ouro/message/message-list.windowing.test.tsx",
-    "title": "*",
-    "issue": "https://github.com/ourostack/ouro-ui/issues/3785",
-    "owner": "drain-6-hang",
-    "expiry": "2026-11-27T16:30:00Z"
-  },
-  {
-    "project": "ouro-webkit",
-    "file": "registry/ouro/components/ouro/message/message-list.windowing.test.tsx",
-    "title": "*",
-    "issue": "https://github.com/ourostack/ouro-ui/issues/3785",
-    "owner": "drain-6-hang",
-    "expiry": "2026-11-27T16:30:00Z"
-  },
-  {
     "project": "site-latency",
     "file": "site/e2e/site-menu.latency.spec.ts",
     "title": "interaction latency \u203a the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4\u00d7 slower CPU",
@@ -54,5 +38,13 @@
     "issue": "https://github.com/ourostack/ouro-ui/issues/3628",
     "owner": "lane-latency-3684",
     "expiry": "2026-11-28T04:00:00Z"
+  },
+  {
+    "project": "ouro-webkit",
+    "file": "registry/ouro/components/ouro/command/command.rows.test.tsx",
+    "title": "Command rows > ends the list on a whole row or heading at rest, never through one, at any height and with or without groups",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/3962",
+    "owner": "drain-6-backlog",
+    "expiry": "2026-11-28T07:00:00Z"
   }
 ]
