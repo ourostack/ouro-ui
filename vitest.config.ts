@@ -13,8 +13,11 @@ import { proofPlugin } from "./site/scripts/proof.mts";
 import { squircleCorners } from "./registry/ouro/lib/ouro/squircle-corners.ts";
 import { commands } from "./registry/ouro/lib/ouro/testing/commands.ts";
 import { ouroTestProjects } from "./registry/ouro/lib/ouro/testing/vitest.ts";
+import { quarantinedFilesNow } from "./scripts/quarantined-files.mjs";
 import { conformanceCommands } from "./test/conformance/commands.ts";
 
+const quarantinedList = quarantinedFilesNow();
+const quarantinedOnly = process.env["OURO_QUARANTINED_ONLY"] === "1";
 const visual = process.env["CI_VISUAL"] === "1";
 // test/themes/: every story under each third-party theme fixture, heavy enough to run apart
 // (`pnpm test:themes`, CI's sharded `themes` job), so `pnpm test` leaves it out.
@@ -137,7 +140,9 @@ export default defineConfig({
         ...project,
         test: {
           ...project.test,
-          exclude: [...(project.test?.exclude ?? configDefaults.exclude), themeTests, conformanceTests],
+          // A whole-file quarantine entry's file runs only in the one non-blocking job (OURO_QUARANTINED_ONLY=1).
+          ...(quarantinedOnly ? { include: quarantinedList } : {}),
+          exclude: [...(project.test?.exclude ?? configDefaults.exclude), themeTests, conformanceTests, ...(quarantinedOnly ? [] : quarantinedList)],
           ...(mutation
             ? {
                 setupFiles: [...[project.test?.setupFiles ?? []].flat(), "./scripts/mutation/setup.ts"],

@@ -1,0 +1,1 @@
+- Fix: a whole-file quarantine entry's test file now runs only in one non-blocking job while the entry is live, so a hang in it no longer fails the blocking shards.
