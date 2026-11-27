@@ -413,9 +413,12 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       const [surface, behind] = [surfaceOf(inner), surfaceOf(inner.parentElement)];
       const inside = Math.min(drawn.right, o.right) - Math.max(drawn.left, o.left) > 1
         && Math.min(drawn.bottom, o.bottom) - Math.max(drawn.top, o.top) > 1;
+      const editors = [...inner.querySelectorAll('textarea, select, input:not([type="hidden"]), [role="textbox"], [contenteditable="true"]')].filter((el) => visibleSet.has(el));
+      const editor = editors.length === 1 && !inner.querySelector("h1, h2, h3, h4, h5, h6, [role=heading]") ? editors[0]!.getBoundingClientRect() : null;
+      const fieldFrame = editor !== null && editor.width >= i.width / 2 && editor.height >= i.height * 0.35;
       const lighter = inside && own[3] > 0 && surface && behind && colourDistance(surface, behind) > 12 && hsl(surface).l > hsl(behind).l
         && sideNames.some((side) => visibleEdge(inner, side, surface))
-        && !inner.matches("button, input, select, textarea, [role=button]");
+        && !fieldFrame && !inner.matches("button, input, select, textarea, [role=button]");
       if (hugs || lighter) {
         reported.add(inner);
         const detail = hugs
