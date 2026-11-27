@@ -2188,6 +2188,13 @@ describe("Message actions", () => {
     expect(Number.parseFloat(getComputedStyle(rowOf(message)).minHeight)).toBeGreaterThanOrEqual(36);
     const { message: bare } = await render(<Message variant="chat" role="assistant" name="Mara Quill" actionsPlacement="beside" attachments={<Attachment name="menu.pdf" />} />);
     expect(getComputedStyle(rowOf(bare)).minHeight).toMatch(/^(0px|auto)$/);
+    // A bar in the corner sits over the bubble, not beside it, so its row keeps no bar-sized room either.
+    const { message: corner } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" actionsPlacement="corner" actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
+        Hi
+      </Message>,
+    );
+    expect(getComputedStyle(rowOf(corner)).minHeight).toMatch(/^(0px|auto)$/);
   });
 
   it("names each action, runs it, and shows its label in a tooltip", async () => {
