@@ -1381,6 +1381,19 @@ describe("MessageList windowing", () => {
     expect(watched).toBe(0);
   });
 
+  it("reads no message's box when a list at its end changes only its own height, and stays at its end", async () => {
+    const { scroller } = await render(<Chat items={conversation(40)} />);
+    await scrollTo(scroller, scroller.scrollHeight);
+    await settle(scroller);
+    const spy = vi.spyOn(Element.prototype, "getBoundingClientRect");
+    onTestFinished(() => spy.mockRestore());
+    scroller.style.height = "300px";
+    await expect.poll(() => scroller.clientHeight).toBeLessThan(400);
+    await settle(scroller);
+    expect(spy).not.toHaveBeenCalled();
+    expect(scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop).toBeLessThanOrEqual(1);
+  });
+
   /** Lets the wheel rest at the top, and waits until the list has taken it: the mark that held the scroll range while it turned goes. */
   async function restWheel(scroller: HTMLElement, clock: { now: number }) {
     const floor = scroller.querySelector<HTMLElement>("[data-ouro-message-list-floor]")!;

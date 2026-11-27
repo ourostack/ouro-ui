@@ -2158,7 +2158,20 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // change is set (the jump is drawn while its button is), as setting the same value here still costs a render.
       if (jumpOwed() !== (jumpRef.current !== null)) setShowJump(jumpOwed());
     };
-    const follow = new ResizeObserver(hold);
+    // The list at its end, with only its own height changed (a box beside it grew or shrank): it follows its end again, and reads
+    // no message's box, as none moved against the others.
+    let seenView: { width: number; content: number } | null = null;
+    const follow = new ResizeObserver(() => {
+      const width = scroller.clientWidth;
+      const size = content.offsetHeight;
+      const viewOnly = seenView !== null && seenView.width === width && seenView.content === size;
+      seenView = { width, content: size };
+      if (!viewOnly || !pinned.current || openTargetRef.current !== null || floor !== 0 || carriedRef.current !== 0 || turning() || !laidOut(scroller)) return hold();
+      followEnd();
+      end = farthest();
+      taken = scroller.scrollTop;
+      if (jumpOwed() !== (jumpRef.current !== null)) setShowJump(jumpOwed());
+    });
     follow.observe(content, { box: "border-box" });
     follow.observe(scroller);
     // Messages that move without the list changing size (a post moved to the end by a reply) resize nothing: while
