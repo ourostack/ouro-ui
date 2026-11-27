@@ -981,6 +981,7 @@ export function Composer(props: ComposerProps): JSX.Element {
               rows={rows}
               maxRows={maxRows}
               onKeyDown={keyDown}
+              enterSends={!modEnter}
               composedRef={richComposed}
               autoFocus={rich!.focus}
               name={name}

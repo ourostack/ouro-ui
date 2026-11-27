@@ -73,6 +73,75 @@ describe("Composer rich blocks", () => {
     await expect.poll(() => seen.at(-1)).toBe("1. one\n2. two");
   });
 
+  it.each([
+    ["expanded", { expanded: true }],
+    ['sendOn="mod-enter"', { sendOn: "mod-enter" as const }],
+  ])("makes Shift+Enter a line break inside a list item where Enter does not send (%s)", async (_name, props) => {
+    const seen: string[] = [];
+    const editor = await render(rich({ ...props, defaultValue: "- one", onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard(`${shiftEnter}two`);
+    await expect.poll(() => seen.at(-1)).toBe("- one\n  two");
+    expect(editor.querySelectorAll("ul > li")).toHaveLength(1);
+    expect(editor.querySelectorAll("ul > li > br")).toHaveLength(1);
+  });
+
+  it("makes Shift+Enter a line break in a paragraph where Enter does not send", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ expanded: true, defaultValue: "one", onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard(`${shiftEnter}two`);
+    await expect.poll(() => seen.at(-1)).toBe("one\ntwo");
+    expect(editor.querySelectorAll("p")).toHaveLength(1);
+  });
+
+  it("writes a line break in a list item as its indented next line, and reads that back as one item", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ expanded: true, defaultValue: "- a\n  b\n- c\n\n1. x\n   y", onValueChange: (value) => void seen.push(value) }));
+    expect(editor.querySelectorAll("ul > li")).toHaveLength(2);
+    expect(editor.querySelectorAll("ol > li")).toHaveLength(1);
+    expect(editor.querySelectorAll("li > br")).toHaveLength(2);
+    expect(editor.querySelector("ul > li")?.textContent).toBe("ab");
+    editor.focus();
+    await userEvent.keyboard("!");
+    await expect.poll(() => seen.at(-1)).toBe("- a\n  b\n- c\n\n1. x\n   y!");
+  });
+
+  it("indents a nested item's next line four spaces a level, and keeps a paragraph after a list apart from it", async () => {
+    const seen: string[] = [];
+    const nested = await render(rich({ expanded: true, defaultValue: "- a\n    - b\n      c", onValueChange: (value) => void seen.push(value) }));
+    expect(nested.querySelectorAll("li > br")).toHaveLength(1);
+    nested.focus();
+    await userEvent.keyboard("!");
+    await expect.poll(() => seen.at(-1)).toBe("- a\n    - b\n      c!");
+  });
+
+  it("reads a line of words straight after a list as its own paragraph, and writes it after a blank line", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ defaultValue: "- a\n\nb c", onValueChange: (value) => void seen.push(value) }));
+    expect(editor.querySelectorAll("li > br")).toHaveLength(0);
+    editor.focus();
+    await userEvent.keyboard("!");
+    await expect.poll(() => seen.at(-1)).toBe("- a\n\nb c!");
+    const joined = await render(rich({ defaultValue: "- a\nb c" }));
+    expect(joined.querySelectorAll("li > br")).toHaveLength(0);
+    expect(joined.querySelectorAll("li")).toHaveLength(1);
+  });
+
+  it("keeps an indented line after a line break in a paragraph in that paragraph", async () => {
+    const seen: string[] = [];
+    const editor = await render(rich({ expanded: true, defaultValue: "one", onValueChange: (value) => void seen.push(value) }));
+    editor.focus();
+    await userEvent.keyboard(`${shiftEnter}  two`);
+    await expect.poll(() => seen.at(-1)).toBe("one\n  two");
+  });
+
+  it("keeps a blank line between a list item and a line after it as a paragraph", async () => {
+    const editor = await render(rich({ defaultValue: "- a\n\n  b" }));
+    expect(editor.querySelectorAll("ul > li > br")).toHaveLength(0);
+    expect([...editor.querySelectorAll("p")].map((p) => p.textContent?.trim())).toContain("b");
+  });
+
   it("takes a list item back to a plain line on Backspace at its start", async () => {
     const seen: string[] = [];
     const editor = await render(rich({ defaultValue: "- one", onValueChange: (value) => void seen.push(value) }));
