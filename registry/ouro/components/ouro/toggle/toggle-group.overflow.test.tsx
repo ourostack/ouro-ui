@@ -128,6 +128,25 @@ describe("ToggleGroup overflow scroll", () => {
     }
   });
 
+  it("scrolls back to the first toggle when the value changes to it after mount", async () => {
+    const spy = vi.fn();
+    const original = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = spy;
+    try {
+      await page.viewport(320, 400);
+      const { rerender } = await render(
+        <ToggleGroup label="Show" hideLabel overflow="scroll" items={filters} value="drafts" onValueChange={() => {}} />,
+      );
+      spy.mockClear();
+      await rerender(
+        <ToggleGroup label="Show" hideLabel overflow="scroll" items={filters} value="all" onValueChange={() => {}} />,
+      );
+      expect(spy).toHaveBeenCalledWith({ inline: "nearest", block: "nearest" });
+    } finally {
+      HTMLElement.prototype.scrollIntoView = original;
+    }
+  });
+
   it("re-scrolls on a multiple value change that joins to the same string without a separator", async () => {
     const collisionItems: ToggleGroupItem[] = [
       { value: "a", label: "A" },
