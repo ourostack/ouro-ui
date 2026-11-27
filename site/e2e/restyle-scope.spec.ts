@@ -15,18 +15,10 @@ const PAGES = ["nautilus/", "docs/text-field/", "docs/composer/"];
 async function restyled(page: Page, act: () => Promise<void>): Promise<number> {
   const browser = page.context().browser()!;
   // Style the page now, and let two frames pass, so a recalculation left over from setting up is not counted.
-  // A transition or fade still running (a late font, a settling focus ring) restyles on its own, so wait it out first.
-  await page.evaluate(async () => {
-    await Promise.race([document.fonts.ready, new Promise((done) => setTimeout(done, 2000))]);
-    for (let round = 0; round < 5; round++) {
-      const running = document.getAnimations().filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity && (animation.playState === "running" || animation.pending));
-      if (running.length === 0) break;
-      // Bounded: a long animation must not hold the test; the idle window below nets out what it restyles.
-      await Promise.race([Promise.all(running.map((animation) => animation.finished.catch(() => undefined))), new Promise((done) => setTimeout(done, 1000))]);
-    }
+  await page.evaluate(() => new Promise((done) => {
     void getComputedStyle(document.documentElement).color;
-    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
-  });
+    requestAnimationFrame(() => requestAnimationFrame(done));
+  }));
   await browser.startTracing(page, { categories: ["devtools.timeline"] });
   await act();
   // Two frames, so the recalculation the switch scheduled has run.
