@@ -1,5 +1,7 @@
 /** The generated files that list every component, which main does not commit. */
 export const uncommitted: string[];
+/** The generated docs pages main does not commit, as a git pathspec. */
+export const uncommittedGlobs: string[];
 /** The hand-written llms.txt, whose items list makes site/public/llms.txt. */
 export const llmsSource: string;
 /** The files among `paths` that git tracks in `root`. */

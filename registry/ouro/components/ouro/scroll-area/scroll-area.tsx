@@ -106,7 +106,14 @@ function useScrollTabStop(viewportRef: { current: HTMLDivElement | null }): void
     viewport.addEventListener("scroll", update);
     // Content can gain or lose focusable elements with no resize (a disabled button turning
     // enabled), which changes whether the viewport itself still needs the tab stop.
-    const content = new MutationObserver(update);
+    // A burst of changes (a list mounting its rows) reads sizes once, in the next frame, not after each commit.
+    let frame = 0;
+    const content = new MutationObserver(() => {
+      if (!frame) frame = requestAnimationFrame(() => {
+        frame = 0;
+        update();
+      });
+    });
     content.observe(viewport, { childList: true, subtree: true, attributes: true, attributeFilter: ["tabindex", "disabled", "href"] });
     // Stryker disable next-line BlockStatement,CallExpression,StringLiteral: cleanup only releases listeners on an element that is going away, which nothing can observe
     return () => {
@@ -114,6 +121,8 @@ function useScrollTabStop(viewportRef: { current: HTMLDivElement | null }): void
       observer.disconnect();
       // Stryker disable next-line CallExpression: cleanup only releases an observer on an element that is going away, which nothing can observe
       content.disconnect();
+      // Stryker disable next-line CallExpression: cleanup only drops a read queued for an element that is going away, which nothing can observe
+      cancelAnimationFrame(frame);
       // Stryker disable next-line CallExpression,StringLiteral: cleanup only releases a listener on an element that is going away, which nothing can observe
       viewport.removeEventListener("scroll", update);
     };
