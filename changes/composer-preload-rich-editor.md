@@ -1,0 +1,1 @@
+- New: `preloadRichEditor()` loads the rich editor at launch, so the first rich Composer draws it from its first render and takes focus once.

@@ -1853,15 +1853,20 @@ export function MessageList(props: MessageListProps): JSX.Element {
       };
       return topItems(content).find((item) => item.id === id) ?? keyed(id);
     };
-    // Scrolls the message to the middle of the view, or its top to the top when it is taller.
+    // Scrolls the message to the middle of the view, or its top to the top when it is taller. Whether that asked for the end or
+    // beyond it, so the list was clamped there and sits at its end.
     const centre = (target: HTMLElement) => {
       const view = scroller.getBoundingClientRect();
       const box = boxOf(target);
-      scroller.scrollTop += box.top - view.top - Math.max(0, (scroller.clientHeight - box.height) / 2);
+      const wanted = scroller.scrollTop + box.top - view.top - Math.max(0, (scroller.clientHeight - box.height) / 2);
+      // Stryker disable next-line EqualityOperator,ArithmeticOperator: a centring within a pixel or two of the end clamps to it or stops short of it, and the list follows the end from there either way.
+      const reachesEnd = wanted >= scroller.scrollHeight - scroller.clientHeight - AT_BOTTOM;
+      scroller.scrollTop = wanted;
       ownTop.current = scroller.scrollTop;
       // Stryker disable next-line BooleanLiteral: both callers reach centre with the hold already clear, open()'s initial
       // ref default and reopen()'s followEnd (toBottom) called just before it, so a test cannot tell this write from none.
       held.current = false;
+      return reachesEnd;
     };
     const open = () => {
       if (content.querySelector(items) === null) return;
@@ -1878,16 +1883,16 @@ export function MessageList(props: MessageListProps): JSX.Element {
         return keepAnchor();
       }
       // In the middle of the view, or its top at the view's top when it is taller. The springs are at rest as it opens.
-      centre(target);
+      const reachesEnd = centre(target);
       // Heights above it may still be estimates: hold(), below, re-centres on this once they are known.
       openTargetRef.current = target;
       // Held from here, so older messages loading before the browser reports this scroll leave it where it opened, and
       // following only if it opened at the end (the anchor was the newest).
       keepAnchor();
-      const newest = target === topItems(content).at(-1);
-      placed = newest ? null : scroller.scrollTop;
-      // Stryker disable next-line ConditionalExpression: the hold in the microtask after this reads the list at its end and follows it, so not following here changes nothing.
-      pinned.current = newest && atBottom();
+      // An anchor whose centring leaves the list at its end (little after it) opens pinned, as the newest one does.
+      pinned.current = reachesEnd;
+      // Stryker disable next-line ConditionalExpression: a list at its end keeps no place: the scroll event it brings finds the end and pins it, whether or not placed holds it.
+      placed = pinned.current ? null : scroller.scrollTop;
     };
     followEnd();
     keepAnchor();
@@ -1903,13 +1908,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // At the message `initialAnchor` names when the switch brings it, as the list opened at it; else at the end, as before.
       const target = anchored();
       if (target) {
-        centre(target);
+        const reachesEnd = centre(target);
         // Stryker disable next-line all: the same read as at open, for a switch to another conversation.
-        const newest = target === topItems(content).at(-1);
+        pinned.current = reachesEnd;
         // Stryker disable next-line all: the same read as at open, for a switch to another conversation.
-        placed = newest ? null : scroller.scrollTop;
-        // Stryker disable next-line all: the same read as at open, for a switch to another conversation.
-        pinned.current = newest && atBottom();
+        placed = pinned.current ? null : scroller.scrollTop;
       }
       // Stryker disable next-line CallExpression: the observer's hold in the microtask after the commit takes the anchors and the end, before any frame or event; at the end of the new conversation, the next message is then followed.
       keepAnchor();
