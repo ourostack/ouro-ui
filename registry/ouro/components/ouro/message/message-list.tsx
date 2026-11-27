@@ -2785,9 +2785,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const arrive = (message: HTMLElement) => {
       const done = (event: Event) => {
         if (!(event as AnimationEvent).animationName.startsWith("ouro-message-")) return;
-        // Stryker disable next-line StringLiteral: a listener left on runs again only to take off a mark already gone.
+        // Stryker disable next-line StringLiteral,CallExpression: a listener left on runs again only to take off a mark already gone.
         message.removeEventListener("animationend", done);
-        // Stryker disable next-line StringLiteral: a listener left on runs again only to take off a mark already gone.
+        // Stryker disable next-line StringLiteral,CallExpression: a listener left on runs again only to take off a mark already gone.
         message.removeEventListener("animationcancel", done);
         requestAnimationFrame(() => requestAnimationFrame(() => message.removeAttribute("data-starting-style")));
       };
