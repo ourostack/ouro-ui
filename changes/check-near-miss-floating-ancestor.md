@@ -1,0 +1,1 @@
+- Ouro check: the near-miss rule skips an element that floats because an ancestor below the shared container is fixed, sticky or absolute (a title pill in a fixed header over a scroller), as it already skips one that floats by its own position.

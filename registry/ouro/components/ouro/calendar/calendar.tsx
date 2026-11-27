@@ -65,6 +65,13 @@ export interface CalendarBaseProps {
   /** The month shown first, as any ISO date in it. Without it, the selected date's month, or today's. */
   defaultMonth?: string | undefined;
   /**
+   * Today, as an ISO date, from the app's own clock: give it when the app keeps one, so the month marks the day the app
+   * shows as today and moves past midnight with it. Without it, today in the browser's zone, read once.
+   * @claim "Today, as an ISO date, from" registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > today from the app > marks the app's today, not the browser's)
+   * @claim "moves past midnight with it" registry/ouro/components/ouro/calendar/calendar.test.tsx verify:testExists(registry/ouro/components/ouro/calendar/calendar.test.tsx::Calendar > today from the app > moves its mark when the app's day moves)
+   */
+  today?: string | undefined;
+  /**
    * The previous month button's label. Translate it with your app.
    * @default "Previous month"
    */
@@ -200,6 +207,7 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
     dateDisabledReason,
     locale = "en-US",
     defaultMonth,
+    today: todayProp,
     previousMonthLabel = "Previous month",
     nextMonthLabel = "Next month",
     className,
@@ -283,7 +291,8 @@ export function Calendar<Range extends boolean = false>(props: CalendarProps<Ran
 
   // Today in the browser's zone. The server and hydration see `null`, so the server HTML marks
   // no day as today and hydration matches wherever the server runs; the browser then fills it in.
-  const today = useSyncExternalStore(noSubscription, todayIso, serverToday);
+  const browserToday = useSyncExternalStore(noSubscription, todayIso, serverToday);
+  const today = isIsoDate(todayProp) ? todayProp : browserToday;
   // The day with the Tab stop; the month on show is its month. Without a value or
   // `defaultMonth` it is today, so the server renders an empty month until hydration.
   const [chosen, setFocused] = useState<string | null>(() => {
