@@ -32,7 +32,7 @@ const measures = () => {
 };
 // Measures as a page recorded them, without observers that would add the test page's own.
 const recorded = (values: Partial<Measures>) => {
-  state.__ouroCheckMeasures = { shift: 0, shiftNode: null, shiftLog: [], paint: 0, paintNode: null, events: [], painted: new Map(), add: () => undefined, ...values };
+  state.__ouroCheckMeasures = { shift: 0, shiftNode: null, shiftLog: [], paint: 0, paintNode: null, events: [], painted: new Map(), shownAtInput: null, add: () => undefined, ...values };
 };
 
 describe("listenForMeasures", () => {
@@ -114,6 +114,22 @@ describe("listenForMeasures", () => {
     host.append(Object.assign(document.createElement("button"), { id: "late", textContent: "Late" }));
     await frames();
     expect(m.painted.has(at("late"))).toBe(false);
+  });
+
+  it("keeps the first frames' controls still shown when the first press comes, before the press changes the page", async () => {
+    host = render('<button id="press">Press</button><button id="hidden">Hidden</button><button id="kept">Kept</button>');
+    const m = measures();
+    await frames();
+    const [press, hidden, kept] = ["press", "hidden", "kept"].map((id) => document.getElementById(id)!);
+    expect(m.shownAtInput).toBeNull();
+    hidden!.hidden = true;
+    press!.addEventListener("pointerdown", () => press!.remove());
+    await userEvent.click(press!);
+    expect(m.shownAtInput).toEqual(new Set([press, kept]));
+    // Only the first input counts.
+    kept!.remove();
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
+    expect(m.shownAtInput).toEqual(new Set([press, kept]));
   });
 
   it("ends the reading at input that lands while a frame is on its way to be read", async () => {
@@ -312,6 +328,17 @@ describe("findLoadingIssues: first-paint-swap", () => {
     const more = control("More");
     host.append(more);
     expect((await swaps(new Map([drew(control("Settings"), 1, rectOf(more)), drew(control("Tasks"), 1, rectOf(more)), drew(more, 2)]))).map((issue) => issue.detail)).toEqual([
+      'button "Settings" drew in the first frame, then button "More" took its place without input',
+    ]);
+  });
+
+  it("passes a control still shown at the first input, which left after it, and reports one gone before it", async () => {
+    host = render("");
+    const more = control("More");
+    host.append(more);
+    const pressed = control("Decline");
+    recorded({ painted: new Map([drew(pressed, 1, rectOf(more)), drew(control("Settings"), 1, rectOf(more)), drew(more, 2)]), shownAtInput: new Set([pressed, more]) });
+    expect((await findLoadingIssues(budgets)).filter((issue) => issue.rule === "first-paint-swap").map((issue) => issue.detail)).toEqual([
       'button "Settings" drew in the first frame, then button "More" took its place without input',
     ]);
   });

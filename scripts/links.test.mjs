@@ -86,6 +86,18 @@ test("the source check fails on a dead relative link, a wrong letter case, a mis
   assert.match(problems[3], /^README\.md:5: .*docs\/radio\.md is not a page the site publishes/);
 });
 
+test("the source check reads the change fragments, whose links start at the repository root, and skips a claim's titled link", () => {
+  const dir = repoFiles({
+    "changes/form.md": [
+      "- New: [TextField](docs/TextField.md#props) at https://ui.ouroboros.bot/docs/text-field/, proven [here](id \"verify:testExists(a.test.ts::writes @[Name](id) back)\").",
+      "- Fixed: [the guide](https://ui.ouroboros.bot/docs/guides/text-field/ \"verify:fileLine(a, /b/)\").",
+    ].join("\n"),
+  });
+  const problems = sourceProblems(dir);
+  assert.equal(problems.length, 1, problems.join("\n"));
+  assert.match(problems[0], /^changes\/form\.md:2: .*docs\/guides\/text-field\/ is not a page the site publishes/);
+});
+
 test("the source check reads every item's install message", () => {
   const dir = repoFiles({
     "registry.json": JSON.stringify({ items: [{ name: "radio-group", type: "registry:ui", docs: "Docs: https://ui.ouroboros.bot/docs/radio-group.md" }] }),

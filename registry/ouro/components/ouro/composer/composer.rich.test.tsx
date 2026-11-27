@@ -7,6 +7,7 @@ import { page, userEvent } from "vitest/browser";
 import { Composer, type ComposerEditor } from "@/registry/ouro/components/ouro/composer/composer";
 import type { EmojiCatalogue, EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+import { $getRoot, type ElementNode } from "lexical";
 
 const roots: Root[] = [];
 let mounted: HTMLElement[] = [];
@@ -348,6 +349,78 @@ describe("Composer rich mode", () => {
     expect(onSend).not.toHaveBeenCalled();
   });
 
+  it("sends on the next plain Enter once a committed word lands with no compositionend, even though that Enter still reads isComposing as true (ourostack/ouro-ui#3843)", async () => {
+    const onSend = vi.fn();
+    const { editor } = await render(rich({ defaultValue: "hi", onSend }));
+    editor.focus();
+    await act(async () => void editor.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true, data: "" })));
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: "insertCompositionText", data: "にほん", isComposing: true })));
+    // The input method's own Enter commits the word.
+    await act(async () => void editor.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, keyCode: 229 })));
+    // This CDP sequence (Edge) delivers the committed word as a plain insertText instead of a compositionend: the editor's own composition session never closes.
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: "insertText", data: "にほん" })));
+    // The next, plain Enter still reads isComposing as true, since compositionend never fired.
+    await act(async () => void editor.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, isComposing: true })));
+    expect(onSend).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not send on a stray isComposing Enter from a plain insertText that never followed a compositionstart", async () => {
+    const onSend = vi.fn();
+    const { editor } = await render(rich({ defaultValue: "hi", onSend }));
+    editor.focus();
+    // No input method session opened this editor at all: an ordinary beforeinput, with no
+    // compositionstart before it, must count for nothing toward the committed-word signal.
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: "insertText", data: "hi" })));
+    await act(async () => void editor.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, isComposing: true })));
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it("does not resend on a later isComposing Enter once a second, ordinary composition starts and closes with its own compositionend", async () => {
+    const onSend = vi.fn();
+    const { editor } = await render(rich({ defaultValue: "hi", onSend }));
+    editor.focus();
+    await act(async () => void editor.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true, data: "" })));
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: "insertCompositionText", data: "にほん", isComposing: true })));
+    await act(async () => void editor.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, keyCode: 229 })));
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: "insertText", data: "にほん" })));
+    await act(async () => void editor.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, isComposing: true })));
+    expect(onSend).toHaveBeenCalledTimes(1);
+    // A second composition opens and closes the ordinary way, with its own compositionend: starting
+    // it must reset the committed-word flag the first one left behind, and closing it properly (no
+    // insertText standing in) must leave no stale flag of its own for a later, unrelated Enter to read.
+    await act(async () => void editor.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true, data: "" })));
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: "insertCompositionText", data: "ご", isComposing: true })));
+    await act(async () => void editor.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true, data: "ご" })));
+    // Ordinary typing right after, unrelated to any composition, must not look like a committed word.
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: "insertText", data: "!" })));
+    await act(async () => void editor.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, isComposing: true })));
+    expect(onSend).toHaveBeenCalledTimes(1);
+  });
+
+  it("also sends on a committed word that lands as insertReplacementText instead of insertText, the other no-compositionend quirk", async () => {
+    const onSend = vi.fn();
+    const { editor } = await render(rich({ defaultValue: "hi", onSend }));
+    editor.focus();
+    await act(async () => void editor.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true, data: "" })));
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: "insertCompositionText", data: "にほん", isComposing: true })));
+    await act(async () => void editor.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, keyCode: 229 })));
+    // Some sequences commit the word by replacing the composition's own marked range rather than inserting plain text.
+    await act(async () => void editor.dispatchEvent(new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: "insertReplacementText", data: "にほん" })));
+    await act(async () => void editor.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, isComposing: true })));
+    expect(onSend).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops listening for the three composition signals once the box leaves the page", async () => {
+    const { editor } = await render(rich({ defaultValue: "hi" }));
+    const removed: string[] = [];
+    vi.spyOn(editor, "removeEventListener").mockImplementation((type) => void removed.push(type));
+    const root = roots.pop()!;
+    const host = mounted.pop()!;
+    await act(async () => root.unmount());
+    host.remove();
+    expect(removed).toEqual(expect.arrayContaining(["compositionstart", "compositionend", "beforeinput"]));
+  });
+
   it("takes composed text, as Chinese, Japanese and Korean input methods write it, through composition events", async () => {
     const seen: string[] = [];
     const { editor } = await render(rich({ onValueChange: (value) => void seen.push(value) }));
@@ -368,6 +441,21 @@ describe("Composer rich mode", () => {
       editor.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true, data: "日本" }));
     });
     expect(editor.textContent).not.toContain("にほ");
+  });
+
+  it("leaves focus where the person is when the app sets a value while they are outside the box", async () => {
+    const { editor, rerender } = await render(rich({ value: "one", onValueChange: () => {} }));
+    // The editor keeps its last caret once the person has been in it, which is what a value change used to carry back.
+    editor.focus();
+    await userEvent.keyboard("{End}");
+    const elsewhere = document.createElement("input");
+    elsewhere.setAttribute("aria-label", "Search");
+    document.body.append(elsewhere);
+    mounted.push(elsewhere);
+    elsewhere.focus();
+    await rerender(rich({ value: "two", onValueChange: () => {} }));
+    await expect.poll(() => editor.textContent).toBe("two");
+    expect(document.activeElement).toBe(elsewhere);
   });
 
   it("follows a value the app sets, and reports only what the person types", async () => {
@@ -1048,6 +1136,56 @@ describe("Composer rich mode with a catalogue", () => {
     const box = host.querySelector("[data-ouro-highlight]")!.getBoundingClientRect();
     expect(Math.abs(box.left - picture.left)).toBeLessThan(3);
     expect(Math.abs(box.right - picture.right)).toBeLessThan(3);
+  });
+});
+
+describe("Composer rich mode mentions", () => {
+  const id = "8:orgid:00000000-0000-4000-8000-0000000000a1";
+  const value = (editor: HTMLElement) => (editor as unknown as { value: string }).value;
+
+  it("draws a mention written as @[Name](id) as the person's name, never a link, and writes it back as it came", async () => {
+    const written = `@[Avery Kim](${id}), the plan for **Thursday** is ready`;
+    const onValueChange = vi.fn();
+    const { editor } = await render(rich({ defaultValue: written, offsets: "markdown", onValueChange }));
+    const person = editor.querySelector<HTMLElement>("[data-ouro-mention]");
+    expect(person?.textContent).toBe("Avery Kim");
+    expect(person?.getAttribute("data-ouro-mention")).toBe("");
+    expect(person?.isContentEditable).toBe(false);
+    // Drawn as a sent message draws a mention, in its line's paragraph with the words around it.
+    expect(getComputedStyle(person!).fontWeight).toBe("600");
+    expect(person?.parentElement?.tagName).toBe("P");
+    expect(editor.querySelector("a")).toBeNull();
+    expect(value(editor)).toBe(written);
+    editor.focus();
+    await userEvent.keyboard("{Control>}{End}{/Control}!");
+    await expect.poll(() => onValueChange.mock.lastCall?.[0]).toBe(`${written}!`);
+  });
+
+  it("stays the same person through the editor's own copies: its state saved and read back, and the node written to and redrawn", async () => {
+    const written = `@[Avery Kim](${id}) hi`;
+    const { editor } = await render(rich({ defaultValue: written, offsets: "markdown" }));
+    type State = { toJSON(): unknown };
+    const lexical = (editor as unknown as { __lexicalEditor: { getEditorState(): State; parseEditorState(json: unknown): State; setEditorState(state: State): void; update(fn: () => void, options: { discrete: boolean }): void } }).__lexicalEditor;
+    await act(async () => lexical.setEditorState(lexical.parseEditorState(JSON.stringify(lexical.getEditorState().toJSON()))));
+    expect(editor.querySelector("[data-ouro-mention]")?.textContent).toBe("Avery Kim");
+    expect(value(editor)).toBe(written);
+    await act(async () => lexical.update(() => { for (const node of ($getRoot().getFirstChildOrThrow() as ElementNode).getChildren()) if (node.getType() === "ouro-mention") node.markDirty(); }, { discrete: true }));
+    expect(editor.querySelector("[data-ouro-mention]")?.textContent).toBe("Avery Kim");
+    expect(value(editor)).toBe(written);
+  });
+
+  it("reads as @Name in the box's words where offsets are the words'", async () => {
+    const { editor } = await render(rich({ defaultValue: `@[Avery Kim](${id}) hi` }));
+    expect(value(editor)).toBe("@Avery Kim hi");
+  });
+
+  it("keeps an @ before a link to a web address an @ and a link", async () => {
+    for (const address of ["https://example.com/docs", "http://example.com/docs", "mailto:docs@example.com"]) {
+      const { editor } = await render(rich({ defaultValue: `@[the docs](${address})`, offsets: "markdown" }));
+      expect(editor.querySelector("[data-ouro-mention]")).toBeNull();
+      expect(editor.querySelector("a")?.getAttribute("href")).toBe(address);
+      expect(value(editor)).toBe(`@[the docs](${address})`);
+    }
   });
 });
 

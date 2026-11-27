@@ -37,6 +37,19 @@ async function settled() {
     .toBe(true);
 }
 
+/** Whether the controls sit 12px in from the shown picture's top and end edges, to the pixel: its edges fall between pixels. */
+function onCorner(dialog: HTMLElement) {
+  const shownPic = [...dialog.querySelectorAll<HTMLImageElement>("[data-ouro-lightbox-figure] > img")]
+    .find((p) => {
+      const r = p.getBoundingClientRect();
+      return r.left >= 0 && r.right <= innerWidth;
+    })!
+    .getBoundingClientRect();
+  const group = dialog.querySelector('[data-ouro-lightbox-header] [data-ouro="button-group"]')!.getBoundingClientRect();
+  const end = getComputedStyle(dialog).direction === "rtl" ? group.left - shownPic.left - 12 : shownPic.right - group.right - 12;
+  return { right: Math.abs(end) <= 1, top: Math.abs(group.top - shownPic.top - 12) <= 1 };
+}
+
 beforeEach(async () => {
   await page.viewport(1280, 800);
   vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -63,7 +76,8 @@ describe("Lightbox fit", () => {
     expect(popup()).not.toBeNull();
     await userEvent.click(popup()!, { position: { x: 20, y: 400 } });
     await expect.poll(popup).toBeNull();
-  });
+    // The file's first viewer: it also waits for the browser to load the dialog's and carousel's code (8.7 s in WebKit on a loaded shard).
+  }, 30_000);
 
   it("grows from the thumbnail's size, not from 0.9, and only fades with reduced motion", async () => {
     const host = await render(true);
@@ -168,7 +182,7 @@ describe("Lightbox fit", () => {
     expect(getComputedStyle(popup()!).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
   });
 
-  it("gives the title a quiet look and the header buttons a plain look, only with fit", async () => {
+  it("hides the title from sight and puts the header buttons in one glass group, only with fit", async () => {
     // Large enough that the dialog draws it smaller than its own size, so the zoom button renders too.
     const bigImage: LightboxImage = { src: picture(2400, 1600, "#59a"), alt: "A big picture", href: "https://example.com/full.jpg" };
     const withHref = [bigImage, images[1]!];
@@ -186,21 +200,252 @@ describe("Lightbox fit", () => {
       const zoom = dialog.querySelector<HTMLElement>('[data-ouro-part="zoom"]')!;
       const close = dialog.querySelector<HTMLElement>('[data-ouro-part="close"]')!;
       if (fit) {
-        expect(getComputedStyle(title).fontWeight).toBe("400");
+        // Named for screen readers, not drawn: the picture is the viewer.
+        expect(title.closest("[data-ouro-lightbox-header] > div")!.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+        // One glass group holds them all, each button plain inside it.
+        const group = dialog.querySelector<HTMLElement>('[data-ouro-lightbox-header] [data-ouro="button-group"]')!;
+        const glass = getComputedStyle(group);
+        expect(glass.backdropFilter || glass.getPropertyValue("-webkit-backdrop-filter")).toMatch(/blur/);
         for (const button of [original, zoom, close]) {
-          expect(getComputedStyle(button).borderColor).toBe("rgba(0, 0, 0, 0)");
-          // Beyond the border, which an unrecognised variant falling back to "solid" would also
-          // leave transparent for tone="secondary": a filled background tells plain from solid.
+          expect(button.parentElement).toBe(group);
+          expect(button.getAttribute("data-variant")).toBe("plain");
           expect(getComputedStyle(button).backgroundColor).toBe("rgba(0, 0, 0, 0)");
         }
+        expect(group.lastElementChild).toBe(close);
       } else {
         expect(getComputedStyle(title).fontWeight).toBe("600");
         for (const button of [original, zoom, close]) {
+          expect(button.getAttribute("data-variant")).toBe("outline");
           expect(getComputedStyle(button).borderColor).not.toBe("rgba(0, 0, 0, 0)");
         }
       }
       await userEvent.click(close);
       await expect.poll(popup).toBeNull();
     }
+  });
+  it("draws a picture smaller than the screen as large as fits, at its own shape, with its caption under it", async () => {
+    const host = await render(true);
+    await userEvent.click(thumbnail(host));
+    await settled();
+    const img = popup()!.querySelector<HTMLImageElement>("[data-ouro-lightbox-figure] > img")!;
+    await expect.poll(() => img.getBoundingClientRect().width).toBeGreaterThan(900);
+    const pic = img.getBoundingClientRect();
+    expect(pic.width / pic.height).toBeCloseTo(900 / 600, 2);
+    const figure = img.parentElement!.getBoundingClientRect();
+    const caption = popup()!.querySelector("figcaption")!.getBoundingClientRect();
+    // Height-bound at 1280 by 800: the picture and its caption take the figure's whole height.
+    expect(caption.bottom).toBeGreaterThan(figure.bottom - 2);
+    expect(caption.top).toBeGreaterThan(pic.bottom);
+    // With no panel behind it the caption is over the scrim, so it is the foreground colour, not the muted one.
+    const probe = document.createElement("span");
+    probe.className = "text-foreground";
+    popup()!.append(probe);
+    expect(getComputedStyle(popup()!.querySelector("figcaption")!).color).toBe(getComputedStyle(probe).color);
+    probe.remove();
+    expect(pic.top).toBeLessThan(figure.top + 2);
+    // A picture drawn past its own size has nothing more to zoom into.
+    expect(popup()!.querySelector('[data-ouro-part="zoom"]')).toBeNull();
+  });
+
+  it("draws a wide picture as wide as its figure, and again when the window narrows", async () => {
+    const host = await render(true, [{ src: picture(1800, 500, "#68a"), alt: "A long shore", width: 1800, height: 500 }]);
+    await userEvent.click(thumbnail(host));
+    await settled();
+    const img = popup()!.querySelector<HTMLImageElement>("[data-ouro-lightbox-figure] > img")!;
+    // As wide as the figure, at the picture's own shape.
+    const fills = () => {
+      const { width, height } = img.getBoundingClientRect();
+      return Math.abs(width - img.parentElement!.clientWidth) <= 1 && Math.abs(width / height - 1800 / 500) < 0.02;
+    };
+    await expect.poll(fills).toBe(true);
+    const before = img.getBoundingClientRect().width;
+    await page.viewport(900, 800);
+    await expect.poll(() => img.getBoundingClientRect().width).toBeLessThan(before);
+    await expect.poll(fills).toBe(true);
+  });
+
+  it("shows the position in the foreground colour on dark glass with fit, in either theme, and muted without", async () => {
+    for (const fit of [true, false]) {
+      const host = await render(fit);
+      await userEvent.click(thumbnail(host));
+      await settled();
+      const probe = document.createElement("span");
+      probe.className = fit ? "dark text-foreground" : "text-muted-foreground";
+      popup()!.append(probe);
+      if (fit) {
+        const glass = getComputedStyle(popup()!.querySelector('[data-ouro-lightbox-header] [data-ouro="button-group"]')!).backgroundColor;
+        expect(glass).toMatch(/^(oklab|rgba)\(0,? 0,? 0 ?[/,] ?0\.55\)$/);
+      }
+      expect(getComputedStyle(popup()!.querySelector("[data-ouro-lightbox-position]")!).color).toBe(getComputedStyle(probe).color);
+      probe.remove();
+      await userEvent.keyboard("{Escape}");
+      await expect.poll(popup).toBeNull();
+    }
+  });
+
+  it("keeps the controls on the shown picture's top-end corner, set in from it, after the picture changes", async () => {
+    const host = await render(true);
+    await userEvent.click(thumbnail(host));
+    await settled();
+    const dialog = popup()!;
+    const corner = () => onCorner(dialog);
+    await expect.poll(corner).toEqual({ right: true, top: true });
+    await userEvent.keyboard("{ArrowRight}");
+    await expect.poll(() => dialog.querySelector("[data-ouro-lightbox-position]")!.textContent).toBe("2 of 2");
+    await expect.poll(corner).toEqual({ right: true, top: true });
+  });
+
+  it("stays open for a press on the buttons' cluster that misses a button, as on the picture", async () => {
+    const host = await render(true);
+    await userEvent.click(thumbnail(host));
+    await settled();
+    const header = popup()!.querySelector<HTMLElement>("[data-ouro-lightbox-header]")!;
+    await userEvent.click(header.querySelector("[data-ouro-lightbox-position]")!);
+    header.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    header.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(popup()).not.toBeNull();
+  });
+  it("groups Previous, the position, Next and Close as one glass control, and hides the carousel's own", async () => {
+    const host = await render(true);
+    await userEvent.click(thumbnail(host));
+    await settled();
+    const dialog = popup()!;
+    const group = dialog.querySelector<HTMLElement>('[data-ouro-lightbox-header] [data-ouro="button-group"]')!;
+    const style = getComputedStyle(group);
+    expect(style.backdropFilter || style.getPropertyValue("-webkit-backdrop-filter")).toMatch(/blur/);
+    expect([...group.children].map((c) => c.getAttribute("data-ouro-part") ?? (c.hasAttribute("data-ouro-lightbox-position") ? "position" : "?"))).toEqual(["previous", "position", "next", "close"]);
+    for (const part of ["previous", "next"]) expect(dialog.querySelector<HTMLElement>(`[data-ouro-control="carousel"][data-ouro-part="${part}"]`)!.getClientRects().length).toBe(0);
+    const previous = group.querySelector<HTMLButtonElement>('[data-ouro-part="previous"]')!;
+    const next = group.querySelector<HTMLButtonElement>('[data-ouro-part="next"]')!;
+    expect(previous.disabled).toBe(true);
+    await userEvent.click(next);
+    await expect.poll(() => group.querySelector("[data-ouro-lightbox-position]")!.textContent).toBe("2 of 2");
+    await expect.poll(() => next.disabled).toBe(true);
+    // A button disabled under focus at an end hands focus to the other, never to the page.
+    expect(document.activeElement).toBe(previous);
+    await userEvent.click(previous);
+    await expect.poll(() => group.querySelector("[data-ouro-lightbox-position]")!.textContent).toBe("1 of 2");
+    expect(document.activeElement).toBe(next);
+    // Focus elsewhere stays where it is.
+    group.querySelector<HTMLButtonElement>('[data-ouro-part="close"]')!.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(popup()).not.toBeNull();
+  });
+
+  it("rounds the picture with the large squircle, not the thumbnail's small one", async () => {
+    const host = await render(true);
+    await userEvent.click(thumbnail(host));
+    await settled();
+    const img = popup()!.querySelector<HTMLElement>("[data-ouro-lightbox-figure] > img")!;
+    const probe = document.createElement("div");
+    probe.style.borderRadius = "var(--radius-ouro-2xl)";
+    document.body.append(probe);
+    mounted.push(probe);
+    expect(getComputedStyle(img).borderTopLeftRadius).toBe(getComputedStyle(probe).borderTopLeftRadius);
+    expect(Number.parseFloat(getComputedStyle(img).borderTopLeftRadius)).toBeGreaterThan(Number.parseFloat(getComputedStyle(thumbnail(host)).borderTopLeftRadius || "0"));
+  });
+  it("sizes the picture as the viewer opens, before the browser draws it, and not until its shape is known", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    // Pictures that never load, given only a width or only a height: their shape is not known.
+    const broken = "data:image/png;base64,AAAA";
+    const unknown: LightboxImage[] = [
+      { src: broken, alt: "Wide only", width: 900 },
+      { src: broken, alt: "Tall only", height: 600 },
+    ];
+    for (const list of [images, unknown]) {
+      await act(async () => root.render(<Lightbox label="Photos" images={list} open={false} onOpenChange={() => {}} fit />));
+      await act(async () => root.render(<Lightbox label="Photos" images={list} open onOpenChange={() => {}} fit />));
+      const pics = [...popup()!.querySelectorAll<HTMLImageElement>("[data-ouro-lightbox-figure] > img")];
+      const group = popup()!.querySelector<HTMLElement>("[data-ouro-lightbox-header]")!;
+      if (list === images) {
+        // In the same task as the viewer opened: the controls are placed before any observer runs.
+        expect(group.style.top).not.toBe("");
+      } else {
+        await settled();
+        for (const pic of pics) expect([pic.style.width, pic.style.height]).toEqual(["", ""]);
+        // Given its whole shape while open, the picture is sized from it.
+        const known = unknown.map((image) => ({ ...image, width: 900, height: 600 }));
+        await act(async () => root.render(<Lightbox label="Photos" images={known} open onOpenChange={() => {}} fit />));
+        await expect.poll(() => pics[0]!.style.width).not.toBe("");
+      }
+      await act(async () => root.render(<Lightbox label="Photos" images={list} open={false} onOpenChange={() => {}} fit />));
+      await expect.poll(popup).toBeNull();
+    }
+  });
+
+  it("fills a picture given without its size once it loads, with the controls on its corner", async () => {
+    const host = await render(true, images.map(({ src, alt }) => ({ src, alt })));
+    await userEvent.click(thumbnail(host));
+    await settled();
+    const dialog = popup()!;
+    const img = dialog.querySelector<HTMLImageElement>("[data-ouro-lightbox-figure] > img")!;
+    await expect.poll(() => img.getBoundingClientRect().width).toBeGreaterThan(900);
+    const pic = img.getBoundingClientRect();
+    expect(pic.width / pic.height).toBeCloseTo(900 / 600, 2);
+    await expect.poll(() => onCorner(dialog)).toEqual({ right: true, top: true });
+    // A shape that arrives after the viewer opened, as a picture over the network does: it fits again, and the controls follow.
+    img.src = picture(600, 900, "#abc");
+    await expect.poll(() => img.getBoundingClientRect().width / img.getBoundingClientRect().height).toBeCloseTo(600 / 900, 2);
+    await expect.poll(() => onCorner(dialog)).toEqual({ right: true, top: true });
+  });
+
+  it("keeps the controls on the picture's corner as the viewer grows from the thumbnail and as the window changes size", async () => {
+    await commands.emulateMedia({ reducedMotion: "no-preference" });
+    const host = await render(true);
+    await userEvent.click(thumbnail(host));
+    await settled();
+    const dialog = popup()!;
+    await expect.poll(() => onCorner(dialog)).toEqual({ right: true, top: true });
+    // Wider, at the same height: the picture keeps its size and moves, and the controls with it, placed in the viewer's
+    // own pixels while it is drawn at half its size, as it is partway through growing from the thumbnail.
+    const header = dialog.querySelector<HTMLElement>("[data-ouro-lightbox-header]")!;
+    const before = header.style.insetInlineEnd;
+    dialog.style.scale = "0.5";
+    await page.viewport(1500, 800);
+    await expect.poll(() => header.style.insetInlineEnd).not.toBe(before);
+    dialog.style.scale = "";
+    expect(onCorner(dialog)).toEqual({ right: true, top: true });
+  });
+
+  it("puts the controls on the picture's top-left corner right to left", async () => {
+    document.documentElement.dir = "rtl";
+    try {
+      const host = await render(true);
+      await userEvent.click(thumbnail(host));
+      await settled();
+      const dialog = popup()!;
+      expect(getComputedStyle(dialog).direction).toBe("rtl");
+      await expect.poll(() => onCorner(dialog)).toEqual({ right: true, top: true });
+    } finally {
+      document.documentElement.dir = "";
+    }
+  });
+
+  it("points Previous's chevron back and Next's forward", async () => {
+    const host = await render(true);
+    await userEvent.click(thumbnail(host));
+    await settled();
+    const flip = (part: string) => getComputedStyle(popup()!.querySelector(`[data-ouro-control="lightbox"][data-ouro-part="${part}"] svg`)!).scale;
+    expect(flip("previous")).toBe("-1 1");
+    expect(flip("next")).toBe("none");
+  });
+
+  it("shows one picture with no Previous, Next or position, and opens with no pictures at all", async () => {
+    const host = await render(true, images.slice(0, 1));
+    await userEvent.click(thumbnail(host));
+    await settled();
+    const group = popup()!.querySelector<HTMLElement>('[data-ouro-lightbox-header] [data-ouro="button-group"]')!;
+    expect([...group.children].map((child) => child.getAttribute("data-ouro-part"))).toEqual(["close"]);
+    const empty = document.createElement("div");
+    document.body.append(empty);
+    mounted.push(empty);
+    const root = createRoot(empty);
+    roots.push(root);
+    await act(async () => root.render(<Lightbox label="Photos" images={[]} open onOpenChange={() => {}} fit />));
+    expect(document.querySelectorAll('[data-ouro="dialog"]').length).toBe(2);
   });
 });
