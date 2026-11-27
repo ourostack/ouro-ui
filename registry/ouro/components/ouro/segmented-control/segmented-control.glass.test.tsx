@@ -90,6 +90,7 @@ describe("SegmentedControl glass", () => {
     const iconOf = (segment: HTMLElement) => segment.querySelector<HTMLElement>('[data-slot="segmented-control-icon"]')!;
     expect(parseFloat(getComputedStyle(iconOf(places)).marginInlineEnd)).toBe(6);
     expect(parseFloat(getComputedStyle(iconOf(people)).marginInlineEnd)).toBe(0);
+    expect(getComputedStyle(people.querySelector<HTMLElement>('[data-slot="segmented-control-label"]')!).position).toBe("absolute");
     const box = people.getBoundingClientRect();
     const ink = iconOf(people).getBoundingClientRect();
     expect(Math.abs((ink.left + ink.right) / 2 - (box.left + box.right) / 2)).toBeLessThanOrEqual(0.5);
