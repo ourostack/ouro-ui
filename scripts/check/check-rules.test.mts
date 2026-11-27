@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 import { chromium } from "playwright";
-import { blank, BUDGETS, check, goTo, summary, transportIssues, type Report } from "../../registry/ouro/check/run.ts";
+import { blank, BUDGETS, caption, check, goTo, summary, transportIssues, type Report } from "../../registry/ouro/check/run.ts";
 
 import { globToRegExp, listPages, serve } from "../../registry/ouro/check/serve.ts";
 import { dir, fixtures, page, quiet, site, two } from "./kit.mts";
@@ -144,6 +144,37 @@ describe("Ouro check's server", () => {
 });
 
 describe("Ouro check's design rules", () => {
+  test("reports edge and inset-frame findings with their fixes at both sizes and themes", async () => {
+    const markup = (fixed: boolean) => `
+      <div style="width:340px;height:140px;background:var(--shell)">
+        <div id="list" style="width:320px;height:90px;overflow:auto;background:var(${fixed ? "--card" : "--shell"})">
+          <div style="height:70px">One note</div><div style="height:70px">Two notes</div>
+        </div>
+      </div>
+      <div style="display:flex;width:340px;height:170px;margin-top:16px">
+        <aside id="side" style="box-sizing:border-box;width:160px;background:var(--shell);${fixed ? "" : "border-right:1px solid var(--line)"}">Folders</aside>
+        <section id="main" style="width:180px;background:var(--card)">Notes</section>
+      </div>
+      <div id="frame" style="box-sizing:border-box;width:340px;height:140px;margin-top:16px;padding:20px;overflow:hidden;border:1px solid var(--line);background:var(--shell)">
+        <div id="card" style="width:200px;height:70px;background:var(--card);${fixed ? "" : "border:1px solid var(--line)"}">A collection</div>
+      </div>`;
+    const styles = "<style>:root{--shell:#ddd;--card:#fff;--line:#888}.dark{--shell:#202020;--card:#555;--line:#888}</style>";
+    const folder = site("edge-rules", {
+      "broken.html": page(markup(false), styles),
+      "fixed.html": page(markup(true), styles),
+    });
+    const report = await check({ targets: [folder], out: dir("edge-rules"), sizes: [[390, 844], [1280, 800]], themes: ["light", "dark"], config: { walk: false }, measured: false, axe: false, chromium, log: quiet });
+    for (const rule of ["cut-off-edge", "pane-edge", "nested-frame"]) {
+      const findings = report.findings.filter((finding) => finding.rule === rule);
+      assert.equal(findings.length, 4, JSON.stringify(findings));
+      assert.ok(findings.every((finding) => finding.page.includes("broken.html") && finding.gated));
+      assert.deepEqual(new Set(findings.map(({ width, theme }) => `${width} ${theme}`)), new Set(["390 light", "390 dark", "1280 light", "1280 dark"]));
+      assert.ok(findings.every((finding) => /theme surface tokens|inner border/.test(caption(finding))));
+    }
+    assert.match(summary(report), /content cut off mid-surface/);
+    assert.match(summary(report), /pane edge without a surface step/);
+  });
+
   // Ari's findings of 2026-11-09, each as a fixture page that reproduces it: the check fails on each and passes once it
   // is fixed (each rule's pass page, in the test above).
   test("fails each seed case where a person saw it, with numbers that say why", async () => {

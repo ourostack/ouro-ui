@@ -371,7 +371,7 @@ describe("findDesignIssues: cut-off-edge", () => {
 
   it("names the clipped sides after scrolling without changing the scroll position", () => {
     render(`
-      <div style="width:360px;height:320px;background:#eee">
+      <div style="width:360px;height:320px;padding-top:20px;background:#eee">
         <div id="scroller" style="width:340px;height:190px;overflow:auto;background:#eee">
           <div style="height:80px">One note</div><div style="height:80px">Two notes</div>
           <div style="height:80px">Three notes</div><div style="height:80px">Four notes</div>
@@ -398,6 +398,27 @@ describe("findDesignIssues: cut-off-edge", () => {
     expect(issues).toHaveLength(1);
     expect(issues[0]!.element).toContain("div#strip");
     expect(issues[0]!.detail).toMatch(/right/i);
+  });
+
+  it("finds direct text clipped in a scroll container without child elements", () => {
+    render(`
+      <div style="width:340px;height:120px;background:#eee">
+        <div id="text" style="width:320px;height:45px;overflow:auto;white-space:pre-line;line-height:20px;background:#eee">First&#10;Second&#10;Third</div>
+      </div>`);
+    expect(of("cut-off-edge")).toEqual([
+      expect.objectContaining({ element: "div#text", detail: expect.stringMatching(/bottom/) }),
+    ]);
+  });
+
+  it("passes a gradient fade drawn over the clipped edge", () => {
+    render(`
+      <div style="position:relative;width:340px;height:120px;background:#eee">
+        <div style="width:320px;height:80px;overflow:auto;background:#eee">
+          <div style="height:60px">First</div><div style="height:60px">Second</div>
+        </div>
+        <div aria-hidden="true" style="position:absolute;top:60px;left:0;width:320px;height:20px;pointer-events:none;background:linear-gradient(transparent,#eee)"></div>
+      </div>`);
+    expect(of("cut-off-edge")).toEqual([]);
   });
 
   it("passes a surface step, a visible edge, a fade, content that fits, a viewport edge and an opted-out scroller", () => {
@@ -451,6 +472,32 @@ describe("findDesignIssues: pane-edge", () => {
     expect(of("pane-edge").map((issue) => issue.element)).toEqual([
       expect.stringMatching(/upper.*lower/),
       expect.stringMatching(/left.*right/),
+    ]);
+  });
+
+  it("compares the surfaces actually painted through translucent panes", () => {
+    render(`
+      <div style="display:flex;width:360px;height:200px;background:#fff">
+        <aside id="translucent" style="width:170px;background:#000;opacity:.5">Folders</aside>
+        <main id="mixed" style="width:190px;background:#808080">Notes</main>
+      </div>`);
+    expect(of("pane-edge")).toEqual([
+      expect.objectContaining({ element: expect.stringMatching(/translucent.*mixed/) }),
+    ]);
+  });
+
+  it("reads panes painted by wrappers' children, including a line drawn by a child", () => {
+    render(`
+      <div style="display:flex;width:360px;height:180px">
+        <div style="width:170px;height:180px"><aside style="height:100%;background:#eee">Folders</aside></div>
+        <div style="width:190px;height:180px"><main style="height:100%;background:#fff">Notes</main></div>
+      </div>
+      <div style="display:flex;width:360px;height:180px;margin-top:20px">
+        <div id="left-wrap" style="width:170px;height:180px"><aside style="box-sizing:border-box;height:100%;background:#eee;border-right:1px solid #888">Folders</aside></div>
+        <div id="right-wrap" style="width:190px;height:180px"><main style="height:100%;background:#fff">Notes</main></div>
+      </div>`);
+    expect(of("pane-edge")).toEqual([
+      expect.objectContaining({ element: expect.stringMatching(/left-wrap.*right-wrap/), detail: expect.stringMatching(/line|border/i) }),
     ]);
   });
 
