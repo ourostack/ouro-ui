@@ -3,6 +3,7 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Combobox, type ComboboxItem } from "@/registry/ouro/components/ouro/combobox/combobox";
+import { pickerSheetQuery } from "@/registry/ouro/lib/ouro/use-sheet-presentation";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
@@ -217,6 +218,8 @@ export const Highlighted: Story = {
   parameters: { screenshot: { name: "combobox-highlighted" } },
   render: () => <Combobox label="Herb" name="herb" items={herbs} />,
   play: async ({ canvasElement }) => {
+    // A touch phone's Combobox opens its list in a sheet a tap brings up, not with the arrow keys: the story stays closed there.
+    if (window.matchMedia(pickerSheetQuery).matches) return;
     const input = await frameUntil(() => canvasElement.querySelector("input"));
     input.focus();
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
