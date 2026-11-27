@@ -11,6 +11,7 @@ import { devWarn } from "@/registry/ouro/lib/ouro/dev";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { FieldOwnerContext, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
+import { useRestingCaret, type RestingCaretOptions } from "@/registry/ouro/lib/ouro/use-resting-caret";
 import {
   autoGrowBounds,
   autoGrowClass,
@@ -62,6 +63,8 @@ export interface TextAreaHighlight {
 
 /** The props TextArea adds to the textarea attributes it passes through. */
 export interface TextAreaOwnProps {
+  /** A native host's resting-caret policy. Leave unset on ordinary web pages; see the resting-caret guide for accessibility and native-input requirements. */
+  restingCaret?: RestingCaretOptions | undefined;
   /**
    * What the field is for, shown above it and read as its name. Required: every control
    * needs a name. To hide it visually, keep it and add `hideLabel`. A placeholder is not a label.
@@ -300,6 +303,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
     onChange,
     highlights,
     onHighlightsChange,
+    restingCaret,
     // Guard props (hint types), dropped here so they never reach the DOM.
     errorMessage,
     helperText,
@@ -314,6 +318,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
     ...rest
   } = props;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  useRestingCaret(textareaRef, restingCaret, rest.readOnly === true, disabled === true);
   const stableHandlersRef = useRef<{ registry: Map<string, (...args: unknown[]) => unknown>; latest: TextareaHTMLAttributes<HTMLTextAreaElement> } | null>(null);
   stableHandlersRef.current ??= { registry: new Map(), latest: {} };
   const variant = Object.hasOwn(textAreaVariants, variantProp) ? (variantProp as keyof typeof textAreaVariants) : "outline";
@@ -505,12 +510,12 @@ export function TextArea(props: TextAreaProps): JSX.Element {
                 className={cn(textAreaClass, textAreaVariants[variant], textAreaSizes[size], autoGrow ? autoGrowClass : "resize-y")}
               />
             );
-            if (!highlighting) return textarea;
+            if (!highlighting && !restingCaret) return textarea;
             // The marks are drawn over the textarea in a layer the same size, so they need a box around both.
             return (
               <div data-ouro-highlights="" className="relative min-w-0">
                 {textarea}
-                <HighlightLayer textareaRef={textareaRef} text={marked.text} highlights={marked.ranges} styleKey={`${size} ${variant}`} />
+                {highlighting && <HighlightLayer textareaRef={textareaRef} text={marked.text} highlights={marked.ranges} styleKey={`${size} ${variant}`} />}
                 {marksDescription && (
                   <span id={descriptionId} hidden>
                     {marksDescription}
