@@ -1,0 +1,1 @@
+- Fixed: Composer reads its frame's height on its first mount in the frame's own pass, not forced in the commit, so opening a conversation no longer blocks on a layout.

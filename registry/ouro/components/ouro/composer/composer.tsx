@@ -785,6 +785,15 @@ export function Composer(props: ComposerProps): JSX.Element {
     // A render that leaves the box expanded or collapsed as it was lets the move run on.
     // Stryker disable next-line ConditionalExpression,OptionalChaining: a render that changes nothing during a move and one that restarts it with the same result differ only in frames a test cannot sample.
     if (running && height.current?.expanded === expanded) return;
+    // The first render only notes its state; its height is read in the frame's own pass, not forced in the commit.
+    if (!running && height.current === null) {
+      const first = { expanded, px: Number.NaN };
+      height.current = first;
+      requestAnimationFrame(() => {
+        if (height.current === first) first.px = frame.offsetHeight;
+      });
+      return;
+    }
     const shown = running ? running.full - clipTop(frame) : frame.offsetHeight;
     running?.end();
     const toolbarElement = frame.querySelector<HTMLElement>("[data-ouro-composer-toolbar]");
@@ -795,7 +804,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     if (toolbarElement) toolbarElement.style.display = "";
     const before = height.current;
     height.current = { expanded, px };
-    if (before === null || before.expanded === expanded) return;
+    if (before === null || before.expanded === expanded || Number.isNaN(before.px)) return;
     const reduced = matchMedia(reducedQuery).matches;
     if (reduced && !expanded) return;
     const from = running ? shown : before.px;
