@@ -142,6 +142,36 @@ it("passes clipped paint, explained allowances, and a surface hidden by another 
   expect(await findSquirclePaint()).toEqual([]);
 }, paintTimeout);
 
+it("keeps absent inline styles absent when an opaque sibling hides the surface", async () => {
+  const root = render(`<style>
+    .cover-stage { position:relative; width:160px; height:120px; }
+    .covered-surface, .opaque-cover { position:absolute; inset:0; }
+    .covered-surface { background:white; border-radius:28px; corner-shape:squircle; }
+    .opaque-cover { background:#eee; pointer-events:none; }
+  </style><div class="cover-stage"><div class="covered-surface"><div style="position:absolute;inset:0;background:#f40"></div></div><div class="opaque-cover"></div></div>`);
+  const surface = root.querySelector(".covered-surface")!;
+  const cover = root.querySelector(".opaque-cover")!;
+  expect(await findSquirclePaint()).toEqual([]);
+  expect(surface.getAttribute("style")).toBeNull();
+  expect(cover.getAttribute("style")).toBeNull();
+}, paintTimeout);
+
+it("ignores unrelated sibling geometry and passes a clipped single corner", async () => {
+  render(`<div style="position:relative;width:160px;height:120px">
+    <svg width="10" height="10"></svg>
+    <div style="position:absolute;inset:0;overflow:hidden;background:white;border-radius:28px 0 0 0;corner-shape:squircle"><div style="position:absolute;inset:0;background:#f40"></div></div>
+    <div hidden></div>
+    <div style="position:absolute;width:0;height:10px"></div>
+    <div style="position:absolute;width:10px;height:0"></div>
+    <div style="position:absolute;width:20px;height:20px;transform:translateX(1px)"></div>
+    <div style="position:absolute;width:20.3px;height:20px"></div>
+    <div style="position:absolute;width:20px;height:20.3px"></div>
+    <div style="position:absolute;width:300px;height:200px"></div>
+    <div style="position:absolute;left:80px;top:50px;width:20px;height:20px"></div>
+  </div>`);
+  expect(await findSquirclePaint()).toEqual([]);
+}, paintTimeout);
+
 it("skips invisible layers and an all-rule allowance, and names a class-only surface", async () => {
   const root = render('<div class="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:20%;corner-shape:squircle"><div style="position:absolute;inset:0;background:#f40"></div></div>');
   const surface = root.querySelector<HTMLElement>(".surface")!;

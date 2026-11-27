@@ -187,32 +187,12 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     const ownEffects = initial.native && (style.boxShadow !== "none" || style.outlineStyle !== "none");
     const scaleX = bounds.width / initial.width;
     const scaleY = bounds.height / initial.height;
-    const siblings = [...(el.parentElement?.children ?? [])].filter((other): other is HTMLElement => {
+    const siblings = [...el.parentElement!.children].filter((other): other is HTMLElement => {
       if (!(other instanceof HTMLElement) || other === el || !visible(other)) return false;
       const rect = other.getBoundingClientRect();
       if (!other.offsetWidth || !other.offsetHeight || getComputedStyle(other).transform !== transform ||
         Math.abs(rect.width / other.offsetWidth - scaleX) > 0.01 || Math.abs(rect.height / other.offsetHeight - scaleY) > 0.01) return false;
-      if ([rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5)) {
-        const otherStyle = getComputedStyle(other);
-        const x = (Math.max(0, bounds.left) + Math.min(innerWidth, bounds.right)) / 2;
-        const y = (Math.max(0, bounds.top) + Math.min(innerHeight, bounds.bottom)) / 2;
-        const opaqueCover = Number(otherStyle.opacity) === 1 && otherStyle.clipPath === "none" && otherStyle.maskImage === "none" && otherStyle.filter === "none" && otherStyle.mixBlendMode === "normal" &&
-          otherStyle.backgroundImage === "none" && otherStyle.backgroundClip === "border-box" &&
-          names.every(({ property }) => parseFloat(otherStyle[`border${property}Radius`]) === 0) && opaque(otherStyle.backgroundColor);
-        if (!opaqueCover) return true;
-        const ownStyle = el.getAttribute("style");
-        const siblingStyle = other.getAttribute("style");
-        try {
-          el.style.setProperty("pointer-events", "auto", "important");
-          other.style.setProperty("pointer-events", "auto", "important");
-          return !other.contains(document.elementFromPoint(x, y));
-        } finally {
-          if (ownStyle === null) el.removeAttribute("style");
-          else el.setAttribute("style", ownStyle);
-          if (siblingStyle === null) other.removeAttribute("style");
-          else other.setAttribute("style", siblingStyle);
-        }
-      }
+      if ([rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5)) return true;
       if (rect.width > bounds.width + 0.5 || rect.height > bounds.height + 0.5) return false;
       return initial.corners.some((corner, index) => {
         if (!corner.squircle) return false;
@@ -227,6 +207,27 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       normalizedStyle: layer.style.cssText,
       saved: new Map(["clip-path", "opacity", "box-shadow", "outline", "transition"].map((property) => [property, save(layer, property)])),
     }));
+    const covers = (other: HTMLElement, rect: DOMRect) => {
+      const box = other.getBoundingClientRect();
+      if (![box.left - rect.left, box.top - rect.top, box.right - rect.right, box.bottom - rect.bottom].every((distance) => Math.abs(distance) < 0.5)) return false;
+      const otherStyle = getComputedStyle(other);
+      const opaqueCover = Number(otherStyle.opacity) === 1 && otherStyle.clipPath === "none" && otherStyle.maskImage === "none" && otherStyle.filter === "none" && otherStyle.mixBlendMode === "normal" &&
+        otherStyle.backgroundImage === "none" && otherStyle.backgroundClip === "border-box" &&
+        names.every(({ property }) => parseFloat(otherStyle[`border${property}Radius`]) === 0) && opaque(otherStyle.backgroundColor);
+      if (!opaqueCover) return false;
+      const ownStyle = el.getAttribute("style")!;
+      const siblingStyle = other.getAttribute("style")!;
+      const x = (Math.max(0, rect.left) + Math.min(innerWidth, rect.right)) / 2;
+      const y = (Math.max(0, rect.top) + Math.min(innerHeight, rect.bottom)) / 2;
+      try {
+        el.style.setProperty("pointer-events", "auto", "important");
+        other.style.setProperty("pointer-events", "auto", "important");
+        return other.contains(document.elementFromPoint(x, y));
+      } finally {
+        el.setAttribute("style", ownStyle);
+        other.setAttribute("style", siblingStyle);
+      }
+    };
     const scroll = [...function* () { for (let n = el.parentElement; n; n = n.parentElement) yield n; }()]
       .map((node) => ({ node, left: node.scrollLeft, top: node.scrollTop }));
     const windowScroll = { x: scrollX, y: scrollY };
@@ -245,17 +246,18 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const y = Math.max(0, r.top - margin);
           const clip = { x, y, width: Math.min(r.right + margin, innerWidth) - x, height: Math.min(r.bottom + margin, innerHeight) - y };
           if (clip.width < 1 || clip.height < 1) continue;
+          const active = layers.filter((layer) => layer.el === el || !covers(layer.el, r));
           const actual = await capture(clip);
-          for (const layer of layers) {
+          for (const layer of active) {
             const layerRect = layer.el.getBoundingClientRect();
             const offsetX = (r.left - layerRect.left) / scaleX;
             const offsetY = (r.top - layerRect.top) / scaleY;
             layer.el.style.setProperty("clip-path", clipPath(initial.width, initial.height, initial.corners, offsetX, offsetY), "important");
           }
           const masked = await capture(clip);
-          for (const layer of layers) layer.el.style.setProperty("opacity", "0", "important");
+          for (const layer of active) layer.el.style.setProperty("opacity", "0", "important");
           const hidden = await capture(clip);
-          for (const layer of layers) {
+          for (const layer of active) {
             restore(layer.el, "opacity", layer.saved.get("opacity")!);
             restore(layer.el, "clip-path", layer.saved.get("clip-path")!);
           }
@@ -271,13 +273,13 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             try {
               el.setAttribute(attribute, marker);
               document.head.append(probe);
-              for (const layer of layers.slice(1)) layer.el.style.setProperty("opacity", "0", "important");
+              for (const layer of active.slice(1)) layer.el.style.setProperty("opacity", "0", "important");
               solo = await capture(clip);
             } finally {
               probe.remove();
               if (previous === null) el.removeAttribute(attribute);
               else el.setAttribute(attribute, previous);
-              for (const layer of layers.slice(1)) restore(layer.el, "opacity", layer.saved.get("opacity")!);
+              for (const layer of active.slice(1)) restore(layer.el, "opacity", layer.saved.get("opacity")!);
             }
           }
           if (await differences(actual, masked, hidden, solo, clip, r, initial.width, initial.height, initial.corners)) { found = true; break; }

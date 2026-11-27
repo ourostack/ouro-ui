@@ -90,6 +90,7 @@ describe("Ouro check's command", () => {
     const help = await run(["--help"]);
     assert.equal(help.code, 0);
     assert.match(help.out, /^ouro-check: checks every page/);
+    assert.match(help.out, /mismatched nested corners and paint beyond squircle curves/);
     assert.match(help.out, /--ready-event <name>\.\.\./);
     const wrong = await run(["--wat"]);
     assert.equal(wrong.code, 2);
