@@ -1,5 +1,5 @@
 #!/bin/bash
-# Runs one command (a single test file) when memory_pressure reports at least 30% free and one of two test slots is free.
+# Runs one command (a single test file) when memory_pressure reports at least 30% free and one of two test slots is free, then holds the machine-wide browser lock (lane.sh browser) so one browser suite runs at a time.
 # Swap is not the measure: macOS holds it long after pressure ends.
 # Usage: bash scripts/local-test-gate.sh <command> [args...] (contributing/testing.md)
 while :; do
@@ -8,7 +8,7 @@ while :; do
     for s in 1 2; do
       if mkdir /tmp/ouro-test-slot-$s 2>/dev/null; then
         trap 'rmdir /tmp/ouro-test-slot-'$s' 2>/dev/null' EXIT INT TERM
-        "$@"
+        bash "$(dirname "$0")/lane.sh" browser "$@"
         exit $?
       fi
     done

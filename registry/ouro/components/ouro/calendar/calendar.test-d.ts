@@ -16,6 +16,7 @@ expectTypeOf<{
   isDateDisabled: (date: string) => boolean;
   locale: "en-GB";
   defaultMonth: "2026-11-01";
+  today: "2026-11-12";
   previousMonthLabel: "Vorheriger Monat";
   nextMonthLabel: "Nächster Monat";
   className: "mt-4";

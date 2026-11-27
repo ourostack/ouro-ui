@@ -32,6 +32,7 @@ export const storyIds = {
   timeGridDay: "data-timegrid--day",
   timer: "feedback-timer--short",
   toast: "feedback-toast--playground",
+  toastAction: "feedback-toast--with-action",
 } as const;
 
 /**

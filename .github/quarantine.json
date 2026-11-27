@@ -21,7 +21,7 @@
     "title": "interaction latency \u203a the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4\u00d7 slower CPU",
     "issue": "https://github.com/ourostack/ouro-ui/issues/3628",
     "owner": "lane-latency-3684",
-    "expiry": "2026-11-27T01:50:00Z"
+    "expiry": "2026-11-28T04:00:00Z"
   },
   {
     "project": "voiceover",
@@ -46,5 +46,13 @@
     "issue": "https://github.com/ourostack/ouro-ui/issues/3676",
     "owner": "drain-redcheck",
     "expiry": "2026-11-28T01:00:00Z"
+  },
+  {
+    "project": "site-latency",
+    "file": "site/e2e/site-menu.latency.spec.ts",
+    "title": "interaction latency \u203a the menu on /docs/button/ opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4\u00d7 slower CPU",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/3628",
+    "owner": "lane-latency-3684",
+    "expiry": "2026-11-28T04:00:00Z"
   }
 ]
