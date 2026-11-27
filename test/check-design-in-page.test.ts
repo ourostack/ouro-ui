@@ -324,6 +324,13 @@ describe("findDesignIssues: nested-frame", () => {
           <span style="display:flex;width:100px;height:32px">Three<button>Remove three</button></span>
           <input role="combobox" aria-label="Add a tag" style="width:64px;height:32px">
         </div>
+        <div id="read-only-chips" style="display:flex;flex-wrap:wrap;width:300px;height:80px;border:1px solid #888;background:#fff">
+          <div style="display:contents">
+            <span style="display:inline-flex;width:120px;height:32px">One</span>
+            <span style="display:inline-flex;width:120px;height:32px">Two</span>
+            <input role="combobox" aria-label="Selected tags" readonly style="width:64px;height:32px">
+          </div>
+        </div>
         <div id="choice" role="combobox" aria-label="Oven" style="width:300px;height:44px;border:1px solid #888;background:#fff">Fan</div>
         <div id="card" style="width:300px;height:140px;border:1px solid #888;background:#fff">
           <label>Name <input></label>
