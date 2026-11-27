@@ -251,6 +251,13 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const ring = /(?:^|,\s*)([a-z]+\([^)]*\))\s+0px 0px 0px ([\d.]+)px/.exec(s.boxShadow);
     return ring !== null && px(ring[2]!) >= 0.5 && visibleInk(ring[1]!, surface);
   };
+  const gradientFades = (image: string) => {
+    if (!/gradient\(/.test(image)) return false;
+    const stops = image.match(/(?:rgba?|hsla?|oklch|lab|lch|color)\([^()]*\)|#[0-9a-f]{3,8}\b|\btransparent\b/gi) ?? [];
+    if (stops.length < 2) return false;
+    const alphas = stops.map((stop) => rgba(stop)[3]);
+    return Math.max(...alphas) - Math.min(...alphas) > 0.05;
+  };
   const pictureLike = (el: Element) => el.matches("img, video, canvas, picture, svg, [role=img]") || (getComputedStyle(el).backgroundImage.includes("url(") && !el.textContent!.trim());
   // A page behind a gradient or a picture has no one colour to differ from, so no fill is judged against it.
   const fillDiffers = (el: Element) => {
@@ -583,7 +590,8 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const s = getComputedStyle(el);
     const scrollX = /auto|scroll/.test(s.overflowX) && el.scrollWidth > el.clientWidth + 1;
     const scrollY = /auto|scroll/.test(s.overflowY) && el.scrollHeight > el.clientHeight + 1;
-    if ((!scrollX && !scrollY) || (s.maskImage && s.maskImage !== "none")) continue;
+    const mask = s.maskImage || "none";
+    if ((!scrollX && !scrollY) || (mask !== "none" && (!/gradient\(/.test(mask) || gradientFades(mask)))) continue;
     const surface = surfaceOf(el);
     if (!surface) continue;
     const box = el.getBoundingClientRect();
@@ -649,7 +657,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       const fade = visible.some((candidate) => {
         if (candidate === el || candidate.contains(el) || !el.parentElement?.contains(candidate)) return false;
         const cs = getComputedStyle(candidate);
-        if (!/absolute|fixed|sticky/.test(cs.position) || !/gradient\(/.test(`${cs.backgroundImage} ${cs.maskImage}`)) return false;
+        if (!/absolute|fixed|sticky/.test(cs.position) || (!gradientFades(cs.backgroundImage) && !gradientFades(cs.maskImage))) return false;
         const z = Number.parseFloat(cs.zIndex);
         const scrollZ = Number.parseFloat(s.zIndex);
         if (z < 0 || (!(el.compareDocumentPosition(candidate) & Node.DOCUMENT_POSITION_FOLLOWING) && !(z > (Number.isFinite(scrollZ) ? scrollZ : 0)))) return false;
