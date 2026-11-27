@@ -1,0 +1,3 @@
+# Changes in this release
+
+- The Ouro AX census takes `skip` on its `argv-entries` and `tool-schemas` sources: folders of another product's code vendored into the source folder, such as the Ouro AX kit, so a product can compile the kit with its own code without the kit's commands counting as its doors. A skipped folder's files must match their sha256 in `upstream-sources.lock.json`, and the report lists the folder under `excluded` as `vendored` ([tests](scripts/ouro-census/walkers/argv-entries.node-test.mts "verify:fileLine(scripts/ouro-census/walkers/argv-entries.node-test.mts, /a skip proves itself/)")).
