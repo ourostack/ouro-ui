@@ -31,9 +31,13 @@ if [ "${#debs[@]}" -gt 0 ]; then
     exit 0
   fi
   echo "The cached system packages did not install (dpkg -i, $dir.log); installing them from the network."
-  # Mend what dpkg left half done, and drop the files, so the network install starts clean.
+  # Mend what dpkg left half done, and drop the files, so the network install starts clean. apt may
+  # not remove anything to do it: when the cached files needed a newer package than the image has
+  # (libasound2t64 over libasound2-data, run 46079895502, #4092), a plain -f install removed 19
+  # packages (Chrome, the JDKs) and began upgrading Firefox's snap, and the install failed. The
+  # network install below brings the newer package in.
   sudo dpkg --configure -a || true
-  sudo apt-get -f install -y || true
+  sudo apt-get -f install -y --no-remove || true
   find "$dir" -maxdepth 1 -name '*.deb' -delete
 fi
 
