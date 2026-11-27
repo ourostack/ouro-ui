@@ -911,8 +911,8 @@ describe("Combobox looks", () => {
     await userEvent.click(input);
     await userEvent.keyboard("{ArrowDown}");
     await expect.poll(popup).not.toBeNull();
-    const minimum = parseFloat(getComputedStyle(document.documentElement).fontSize) / 2;
-    await expect.poll(() => popup()!.getBoundingClientRect().top - group.getBoundingClientRect().bottom).toBeGreaterThanOrEqual(minimum);
+    const gap = parseFloat(getComputedStyle(document.documentElement).fontSize) / 2;
+    await expect.poll(() => popup()!.getBoundingClientRect().top - group.getBoundingClientRect().bottom).toBeCloseTo(gap, 1);
   });
 
   it("closes with only a fade when reduced motion is on", async () => {
