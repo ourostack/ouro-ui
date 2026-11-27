@@ -130,7 +130,9 @@ const groupListClass = "m-0 box-border grid min-w-0 list-none border-0 border-s-
  * @claim "How long a call took, short" registry/ouro/components/ouro/tool-call/tool-call.test.tsx verify:testExists(registry/ouro/components/ouro/tool-call/tool-call.test.tsx::ToolCall > shows how long it took, short, and nothing for a duration it cannot read)
  */
 function formatDuration(seconds: number | undefined): string | undefined {
+  // Stryker disable next-line ConditionalExpression: Number.isFinite also turns undefined away, so the first test only narrows the type.
   if (seconds === undefined || !Number.isFinite(seconds) || seconds < 0) return undefined;
+  // Stryker disable next-line EqualityOperator: at 9.95 both branches write "10s".
   if (seconds < 9.95) return `${(Math.round(seconds * 10) / 10).toString()}s`;
   const whole = Math.round(seconds);
   if (whole < 60) return `${whole}s`;

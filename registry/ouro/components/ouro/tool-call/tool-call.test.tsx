@@ -4,7 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { ToolCall } from "@/registry/ouro/components/ouro/tool-call/tool-call";
-import { formatDuration } from "@/registry/ouro/components/ouro/tool-call/tool-call-styles";
+import { formatDuration, toolCallStatusFix } from "@/registry/ouro/components/ouro/tool-call/tool-call-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -125,10 +125,11 @@ describe("ToolCall", () => {
   });
 
   it("shows how long it took, short, and nothing for a duration it cannot read", async () => {
-    expect([undefined, -1, Number.NaN, 0.42, 4.2, 9.96, 12.4, 59.6, 60, 125].map(formatDuration)).toEqual([
+    expect([undefined, -1, Number.NaN, 0, 0.42, 4.2, 9.96, 12.4, 59.6, 60, 125].map(formatDuration)).toEqual([
       undefined,
       undefined,
       undefined,
+      "0s",
       "0.4s",
       "4.2s",
       "10s",
@@ -164,6 +165,39 @@ describe("ToolCall", () => {
     expect(said()).toContain('[ouro-ui] ToolCall: status="output-error" is not a status; use "running", "done", "failed" or "waiting". Fix: <ToolCall status="failed">.');
   });
 
+  it("maps AI Elements' and other libraries' states to its own in the fix", () => {
+    expect(
+      ["input-streaming", "input-available", "output-available", "output-error", "approval-requested", "pending", "success", "error", "toString", "nonsense"].map(toolCallStatusFix),
+    ).toEqual([
+      '<ToolCall status="running">',
+      '<ToolCall status="running">',
+      '<ToolCall status="done">',
+      '<ToolCall status="failed">',
+      '<ToolCall status="waiting">',
+      '<ToolCall status="running">',
+      '<ToolCall status="done">',
+      '<ToolCall status="failed">',
+      '<ToolCall status="done">',
+      '<ToolCall status="done">',
+    ]);
+  });
+
+  it("draws an icon for each settled status", async () => {
+    for (const status of ["done", "failed", "waiting"] as const) {
+      const view = await render(<ToolCall name="Read file" status={status} />);
+      const box = view.part("icon")!.getBoundingClientRect();
+      const drawn = [...view.part("icon")!.children].map((shape) => (shape as SVGGraphicsElement).getBBox());
+      expect(box.width).toBe(16);
+      expect(drawn.every((bounds) => bounds.width > 0 && bounds.height > 0)).toBe(true);
+      expect(drawn.length).toBe(status === "waiting" ? 2 : 1);
+    }
+  });
+
+  it("says nothing in development for a call with only its own props", async () => {
+    await render(<ToolCall name="Ran command" detail="npm test" status="failed" duration={4.2} output="1 failed" outputLanguage="ansi" defaultOpen onOpenChange={() => {}} className="mt-1" />);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("names the fix for a guessed prop in development", async () => {
     // @ts-expect-error state is not a prop.
     await render(<ToolCall name="Ran command" status="done" state="input-streaming" />);
@@ -188,7 +222,7 @@ describe("ToolCall", () => {
 
   it("names the fix for an appearance class, and leaves a layout class alone", async () => {
     await render(<ToolCall name="Read file" status="done" className="mt-1 text-red-500" />);
-    expect(said().some((line: string) => line.includes('remove "text-red-500"; ToolCall sets its own look from the theme'))).toBe(true);
+    expect(said().some((line: string) => line.startsWith("[ouro-ui] ToolCall: ") && line.includes('remove "text-red-500"; ToolCall sets its own look from the theme'))).toBe(true);
     expect(said().some((line: string) => line.includes("mt-1"))).toBe(false);
   });
 });

@@ -143,13 +143,21 @@ describe("ToolCallGroup", () => {
     expect(errors).not.toHaveBeenCalled();
   });
 
+  it("says nothing in development for a group with only its own props", async () => {
+    await render(<ToolCallGroup calls={[read, running]} summary="Read the recipe" defaultOpen onOpenChange={() => {}} className="mt-2" />);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("names the fix for a guessed prop in development", async () => {
+    // @ts-expect-error children is not a prop.
+    await render(<ToolCallGroup calls={[read]}>{"Read file"}</ToolCallGroup>);
     // @ts-expect-error tools is not a prop.
     await render(<ToolCallGroup calls={[read]} tools={[read]} />);
     // @ts-expect-error title is not a prop.
     await render(<ToolCallGroup calls={[read]} title="Read the recipe" />);
     expect(said()).toEqual(
       expect.arrayContaining([
+        "[ouro-ui] ToolCallGroup: children is not a prop; the calls are calls, as data. Fix: <ToolCallGroup calls={[{ id, name, status }]} />.",
         "[ouro-ui] ToolCallGroup: tools is not a prop; the calls are calls. Fix: <ToolCallGroup calls={[{ id, name, status }]} />.",
         '[ouro-ui] ToolCallGroup: title is not a prop; the title is summary. Fix: <ToolCallGroup summary="Read the recipe">.',
       ]),
@@ -158,7 +166,7 @@ describe("ToolCallGroup", () => {
 
   it("names the fix for an appearance class, and leaves a layout class alone", async () => {
     await render(<ToolCallGroup calls={[read]} className="mt-2 bg-card" />);
-    expect(said().some((line: string) => line.includes('remove "bg-card"; ToolCallGroup sets its own look from the theme'))).toBe(true);
+    expect(said().some((line: string) => line.startsWith("[ouro-ui] ToolCallGroup: ") && line.includes('remove "bg-card"; ToolCallGroup sets its own look from the theme'))).toBe(true);
     expect(said().some((line: string) => line.includes("mt-2"))).toBe(false);
   });
 });
