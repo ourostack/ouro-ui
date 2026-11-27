@@ -25,3 +25,4 @@ export function TouchTarget(): JSX.Element {
     />
   );
 }
+
