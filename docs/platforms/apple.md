@@ -20,7 +20,7 @@ It needs iOS 18 or macOS 15, and Swift 6.1.[^floor] In the box:[^products]
 - `OuroAXTesting`, for your tests: Siri evaluation wordings and pass rates, and the App Intents X-ray's checks.
 - `ouro-ax-xray`, for you and CI: X-rays a built app's App Intents against Ouro AX for Apple's claims.
 - `OuroReins`, for your app's UI-free core and its agents: screens as state and actions, driven headless or over a debug-only socket.[^products]
-- `OuroFeel`, for your UI tests: checks for the way back, overlays, tap landing, flicker and settle time, among others.[^products]
+- `OuroFeel`, for your UI tests: checks for the way back, overlays, tap landing, a viewport that holds still, chrome that floats over content, flicker and settle time, among others.[^products]
 - `ouro-ax-skills` and `OuroAXSkillsLintPlugin`: a linter for an app's `Skills.skillsbundle`, from the command line or at build time, with errors pinned to the line.
 - `ouro-devicehub`, for a Mac CI job: presses the buttons in Xcode's Device Hub, so a test can fold the simulator.
 
