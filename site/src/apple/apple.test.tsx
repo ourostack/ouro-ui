@@ -12,6 +12,7 @@ import { cellText, componentRows, surfaceRows } from "../../../scripts/parity-ro
 import kit from "./kit.json";
 import { TWIN } from "./spring-twin";
 import { FRESH, report, TAP_LOCK, tap } from "./feel-duel";
+import feelCatalog from "./feel-checks.json";
 import gatefold from "./feel-gatefold.json";
 import { JOURNEY, ls, run, START, suggestions } from "./reins-kitchen";
 import { journeysIn, SIMULATOR_MS } from "./reins-race";
@@ -28,7 +29,7 @@ afterEach(async () => {
 const TITLES = {
   "/apple/": "Same manners, now in Swift.",
   "/apple/hx/": "Feel it before you read about it.",
-  "/apple/feel/": "Jank has genres. Feel has a check for each.",
+  "/apple/feel/": "Good feel keeps its promises. Feel checks.",
   "/apple/ax/": "Siri reads your app like a manual. Write a good one.",
   "/apple/reins/": "Hand an agent the reins.",
   "/apple/start/": "One line of Swift.",
@@ -243,6 +244,29 @@ describe("Ouro UI for Apple", () => {
     await userEvent.keyboard(" ");
     await expect.element(ready).toBeChecked();
     expect(document.querySelector('[data-feel-contender="ready"] [data-feel-report]')?.textContent).toBe("One tap landed. Now try two, quickly.");
+  });
+
+  it("lists every promise and every check in Feel's catalog, with no count written by hand", async () => {
+    const named = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+    await renderPage("/apple/feel/");
+    for (const principle of feelCatalog.principles) {
+      await expect.element(page.getByRole("heading", { level: 3, name: named(principle.name) })).toBeInTheDocument();
+      const section = document.getElementById(`feel-principle-${principle.id}`)?.closest("section");
+      expect(section, principle.name).toBeTruthy();
+      expect(section!.querySelector(".feel-principle-promise")?.textContent).toBe(principle.promise);
+      const rows = [...section!.querySelectorAll(".feel-check")].map((row) => [
+        row.querySelector(".apple-lane-name")?.textContent,
+        row.querySelector(".apple-lane-body")?.textContent,
+      ]);
+      expect(rows).toEqual(principle.checks.map((check) => [named(check.name), check.good]));
+    }
+    const band = document.getElementById("principles")?.closest("section");
+    expect(band).toBeTruthy();
+    const prose = [...band!.querySelectorAll("h2, p")].filter((node) => !node.closest(".feel-principles"));
+    expect(prose.length).toBeGreaterThan(0);
+    for (const node of prose) {
+      expect(node.textContent).not.toMatch(/\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|twenty|dozen|handful|several|few)\b/i);
+    }
   });
 
   it("control: gatefold flips between build 19 and the fix", async () => {

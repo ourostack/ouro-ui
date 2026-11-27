@@ -3,7 +3,7 @@ import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 
 /*
- * Ouro Feel's tap-landing genre, to touch: two switches, one with a tap lock like the one Ouro Feel's fixture plants
+ * Ouro Feel's tap-landing check, to touch: two switches, one with a tap lock like the one Ouro Feel's fixture plants
  * as its bug (Examples/OuroFeelFixture in ouro-ui-apple), held about as long as a switch takes to slide so an
  * ordinary human double tap meets it, and one that takes every tap. Double-tap each: a pair that
  * ends where it started had both taps land; one that ends changed lost a tap. That is how Feel reads a rapid pair,

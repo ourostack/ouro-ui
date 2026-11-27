@@ -10,6 +10,9 @@
 //   node scripts/kit-pin.mjs --bump <kit> <from> <to>    offline, but network for each new claim address: moves every statement of
 //                                                        <from> in the kit's pages to <to> and keeps claims-urls.json in step
 //
+//                                                        Apple's bump also copies Feel's check catalog from the new release
+//                                                        into site/src/apple/feel-checks.json, which the Feel page lists
+//
 // The statements moved are the kit's own pages (site/src/<kit>, docs/platforms/<kit>.md) and, on lines that name the kit, the
 // README, the Platforms README and parity page, site/llms.txt and the kit's change fragments. A "since <from>" statement keeps
 // its release: it names the release a feature came in.
@@ -122,12 +125,34 @@ export function pinOf(pinned, latest) {
   return { result: compare(pinned, latest) < 0 ? "behind" : "current", tag: `v${latest}`, from: pinned };
 }
 
+/** The Feel page's copy of Ouro Feel's check catalog (docs/ouro-feel/checks.json in ouro-ui-apple). */
+export const FEEL_CATALOG = "site/src/apple/feel-checks.json";
+
+/** Feel's catalog as the release `version` ships it, or null when that release has none or GitHub won't serve it. */
+export async function feelCatalogAt(version, fetchText = globalThis.fetch) {
+  try {
+    const response = await fetchText(`https://raw.githubusercontent.com/${KITS.apple.repo}/v${version}/docs/ouro-feel/checks.json`);
+    if (!response.ok) return null;
+    const text = await response.text();
+    return Array.isArray(JSON.parse(text).principles) ? text : null;
+  } catch {
+    return null;
+  }
+}
+
 const listing = (dir) => (existsSync(join(root, dir)) ? readdirSync(join(root, dir)) : []);
 
 /** Writes the moved statements and syncs the claim cache for the addresses they cite: a new one is checked, a dropped one leaves. */
 async function bump(kit, from, to) {
   const pages = kitPages(kit, listing).filter((page) => existsSync(join(root, page.path)));
   const changed = [];
+  if (kit === "apple") {
+    const catalog = await feelCatalogAt(to);
+    if (catalog !== null && catalog !== readFileSync(join(root, FEEL_CATALOG), "utf8")) {
+      writeFileSync(join(root, FEEL_CATALOG), catalog);
+      changed.push(FEEL_CATALOG);
+    }
+  }
   const before = new Set();
   const after = new Set();
   for (const page of pages) {
