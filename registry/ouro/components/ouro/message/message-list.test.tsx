@@ -72,6 +72,7 @@ function Chat({
   loadingOlderLabel?: string;
   hasOlder?: boolean;
   windowing?: boolean;
+  ref?: ((node: HTMLDivElement | null) => void) | undefined;
 }) {
   return (
     <MessageList label={label} style={{ height: 300 }} {...rest}>
@@ -781,38 +782,82 @@ describe("MessageList", () => {
     await wheel(scroller, -400);
     const heldAt = await armHeld(scroller, items, rerender);
     await act(async () => {
-      scroller.scrollTop = heldAt + 2;
+      Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!.set!.call(scroller, heldAt - 4);
       scroller.dispatchEvent(new Event("scroll"));
     });
-    // The stray within STRAY_PX of the held place, just after the list held it, is none of the reader's: put back.
     expect(scroller.scrollTop).toBe(heldAt);
     await act(async () => {
-      scroller.scrollTop = heldAt + 2;
+      Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!.set!.call(scroller, heldAt - 4);
       scroller.dispatchEvent(new Event("scroll"));
     });
     // Correcting a stray lets the hold go, as any other move does: a second one so close after is the reader's or the browser's,
     // and stays where it left the list.
-    expect(scroller.scrollTop).toBe(heldAt + 2);
+    expect(scroller.scrollTop).toBe(heldAt - 4);
   });
 
-  it("lets a move far past the held place end the hold too, so a near one right after stays where it left the list", async () => {
+  it.each([2, 50])("lets an explicit scrollTop write of %i px end the hold, so a native move right after stays where it left the list", async (distance) => {
     const items = history(20, 10);
     const { scroller, rerender } = await render(<Chat items={items} />);
-    await wheel(scroller, -400);
+    scroller.scrollTop -= 400;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
     const heldAt = await armHeld(scroller, items, rerender);
     await act(async () => {
-      scroller.scrollTop = heldAt + 50;
+      scroller.scrollTop = heldAt + distance;
       scroller.dispatchEvent(new Event("scroll"));
     });
-    // Far outside STRAY_PX, this is the reader's or the browser's own move, not a stray to put back.
-    expect(scroller.scrollTop).toBe(heldAt + 50);
+    expect(scroller.scrollTop).toBe(heldAt + distance);
     await act(async () => {
-      scroller.scrollTop = heldAt + 2;
+      Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!.set!.call(scroller, heldAt - 4);
       scroller.dispatchEvent(new Event("scroll"));
     });
     // That move, as any other does, let the hold go: a near one measured against the place it held before is none of the hold's
     // business anymore, and stays where it left the list.
+    expect(scroller.scrollTop).toBe(heldAt - 4);
+  });
+
+  it.each(["before", "after"])("chains a scrollTop observer installed %s the list, through holding and unmounting", async (when) => {
+    let setter: ((top: number) => void) | undefined;
+    const writes: number[] = [];
+    const watch = (scroller: HTMLElement) => {
+      const property = Object.getOwnPropertyDescriptor(scroller, "scrollTop") ?? Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+      setter = (top) => {
+        property.set!.call(scroller, top);
+        writes.push(property.get!.call(scroller));
+      };
+      Object.defineProperty(scroller, "scrollTop", { configurable: true, get: () => property.get!.call(scroller), set: setter });
+    };
+    const items = history(20, 10);
+    const { scroller, rerender } = await render(<Chat items={items} ref={when === "before" ? (node) => node && watch(node.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!) : undefined} />);
+    if (when === "after") watch(scroller);
+    scroller.scrollTop -= 400;
+    scroller.dispatchEvent(new Event("scroll"));
+    await settle(scroller);
+    const heldAt = await armHeld(scroller, items, rerender);
+    expect(writes.at(-1)).toBe(heldAt);
+    await act(() => {
+      scroller.scrollTop = heldAt + 2;
+      scroller.dispatchEvent(new Event("scroll"));
+    });
     expect(scroller.scrollTop).toBe(heldAt + 2);
+    await rerender(<div />);
+    expect(Object.getOwnPropertyDescriptor(scroller, "scrollTop")?.set).toBe(setter);
+    scroller.scrollTop = 0;
+    expect(writes.at(-1)).toBe(0);
+  });
+
+  it("restores native scrollTop access after unmount", async () => {
+    const { scroller, rerender } = await render(<Chat items={history(20)} />);
+    expect(Object.hasOwn(scroller, "scrollTop")).toBe(true);
+    await rerender(<div />);
+    expect(Object.hasOwn(scroller, "scrollTop")).toBe(false);
+    const now = vi.spyOn(performance, "now");
+    try {
+      scroller.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+      expect(now).not.toHaveBeenCalled();
+    } finally {
+      now.mockRestore();
+    }
   });
 
   it("lets a stray near the place a message moving to the end held be, once Jump to latest has taken the reader past it", async () => {
