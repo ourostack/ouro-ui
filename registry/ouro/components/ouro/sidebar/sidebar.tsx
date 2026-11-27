@@ -148,15 +148,15 @@ export interface SidebarProps {
 
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 
-// The column: --ouro-sidebar-w, which the app may set on the Sidebar or around it, else 16rem; or a rail (a 44px target,
-// its padding and the border) when collapsed. The width changes at once: layout does not animate.
+// The column: --ouro-sidebar-w, which the app may set on the Sidebar or around it, else 16rem; or a rail when
+// collapsed. The rail keeps its former width, and the width changes at once: layout does not animate.
 const column =
-  "box-border flex h-full w-[var(--ouro-sidebar-w,16rem)] flex-col overflow-hidden border-0 border-e border-solid border-border bg-background text-foreground " +
+  "box-border flex h-full w-[var(--ouro-sidebar-w,16rem)] flex-col overflow-hidden border-0 bg-muted text-foreground " +
+  "forced-colors:border-e forced-colors:border-solid [--ouro-sidebar-badge:var(--background)] [--ouro-sidebar-hover:var(--background)] [--ouro-sidebar-hover-text:var(--foreground)] " +
   "data-collapsed:w-[calc(3.75rem+1px)] max-sm:hidden";
 
-// A count or tag at the row's end. Its muted text is mixed 20% toward the foreground, so it keeps
-// 4.5:1 on the muted tag under shadcn's stock values too (plain text-muted-foreground is 4.34:1).
-const badgeClass = "ms-auto shrink-0 rounded-ouro-sm bg-muted px-1.5 text-xs leading-5 font-medium text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] tabular-nums";
+// A count or tag at the row's end, distinct from the column's muted surface and the drawer's background.
+const badgeClass = "ms-auto shrink-0 rounded-ouro-sm bg-(--ouro-sidebar-badge,var(--muted)) px-1.5 text-xs leading-5 font-medium text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] tabular-nums";
 // A badge given as an element (`badge: <Badge>Idle</Badge>`) brings its own look, so it sits bare at the row's end (the label
 // takes the room before it):
 // the muted tag drawn around it too would be a frame in a frame, its corners off by the inner radius.
@@ -166,9 +166,9 @@ const badgeSlot = (badge: ReactNode) => (isValidElement(badge) ? undefined : bad
 // fine one. A full-width row highlights while pressed instead of scaling.
 const row =
   "relative m-0 box-border flex w-full min-h-ouro-11 pointer-fine:min-h-9 cursor-pointer items-center gap-3 rounded-ouro-md border-0 forced-colors:border forced-colors:border-solid bg-transparent px-3 py-2 " +
-  "text-start font-[inherit] text-base pointer-fine:text-sm leading-5 font-medium text-muted-foreground no-underline select-none touch-manipulation " +
+  "text-start font-[inherit] text-base pointer-fine:text-sm leading-5 font-medium text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] no-underline select-none touch-manipulation " +
   "[-webkit-tap-highlight-color:transparent] transition-colors duration-(--ouro-duration-fast) ease-[ease] " +
-  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground active:bg-accent active:text-accent-foreground " +
+  "pointer-fine:hover:bg-(--ouro-sidebar-hover,var(--accent)) pointer-fine:hover:text-(--ouro-sidebar-hover-text,var(--accent-foreground)) active:bg-(--ouro-sidebar-hover,var(--accent)) active:text-(--ouro-sidebar-hover-text,var(--accent-foreground)) " +
   "aria-[current=page]:font-semibold aria-[current=page]:text-foreground " +
   "aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-2 aria-[current=page]:before:start-0 aria-[current=page]:before:w-ouro-0_5 aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-current aria-[current=page]:before:content-[''] " +
   "forced-colors:aria-[current=page]:before:border-s-2 forced-colors:aria-[current=page]:before:border-solid forced-colors:aria-[current=page]:before:border-current " +
@@ -478,12 +478,12 @@ export function Sidebar(props: SidebarProps): JSX.Element {
       </Button>
       {wide && (
         <nav aria-label={label} data-collapsed={collapsed ? "" : undefined} className={column}>
-          {header !== undefined && <div className="flex min-h-14 shrink-0 items-center overflow-hidden px-3 py-2">{header}</div>}
+          {header !== undefined && <div className="flex min-h-14 shrink-0 items-center overflow-hidden bg-background px-3 py-2">{header}</div>}
           <div data-ouro-sidebar-scroll="" className="grid grid-cols-1 min-h-0 flex-1 content-start gap-6 overflow-y-auto overscroll-contain p-2">
             {renderSections("c", collapsed)}
           </div>
           {collapsible && (
-            <div className="shrink-0 p-2">
+            <div className="shrink-0 bg-background p-2 [--ouro-sidebar-hover:var(--accent)] [--ouro-sidebar-hover-text:var(--accent-foreground)]">
               <button type="button" aria-pressed={collapsed} data-ouro-control="sidebar" data-ouro-part="collapse" onClick={toggle} className={cn(row, collapsed && railRow)}>
                 <span aria-hidden="true" className={iconSlot}>
                   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="rtl:-scale-x-100">
@@ -496,7 +496,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
             </div>
           )}
           {footer !== undefined && (
-            <div className="flex min-h-14 shrink-0 items-center overflow-hidden border-0 border-t border-solid border-border px-3 py-2">{footer}</div>
+            <div className="flex min-h-14 shrink-0 items-center overflow-hidden bg-background px-3 py-2">{footer}</div>
           )}
         </nav>
       )}
