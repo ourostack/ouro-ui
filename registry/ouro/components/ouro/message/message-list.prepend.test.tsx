@@ -1,6 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { commands, server } from "vitest/browser";
+import { commands, server, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { OLDER_CHUNK } from "@/registry/ouro/components/ouro/message/message-list-styles";
@@ -76,6 +76,13 @@ async function settle(scroller: HTMLElement) {
     return same;
   }).toBe(true);
   await expect.poll(() => scroller.querySelector("[data-ouro-settling]")).toBeNull();
+}
+
+/** Waits until the list has settled and the wheel has rested, so nothing it carries is still drawn by a translate. */
+async function settleCarry(scroller: HTMLElement) {
+  await settle(scroller);
+  await expect.poll(() => scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!.style.translate).toBe("");
+  await settle(scroller);
 }
 
 /** Runs `body` with the page's motion preference set, then puts back the one it found. */
@@ -342,6 +349,72 @@ describe("MessageList prepending older history", () => {
       await expect.poll(() => scroller.scrollTop).toBe(at - 400);
     });
   }
+
+  it.each([
+    { when: "as the wheel comes to rest", rested: false },
+    { when: "once the wheel has rested", rested: true },
+  ])("holds the row being read as a page of older messages goes in $when after a wheel flings a windowed list to its top, with the rows above shorter than the space kept for them (#3892)", async ({ rested }) => {
+    // The newest rows are tall (a picture each) and the older ones short, so the space kept for the rows not drawn is too tall.
+    const rows = (from: number, count: number) =>
+      Array.from({ length: count }, (_, offset) => {
+        const id = from + offset;
+        return (
+          <Message key={id} id={`fling-${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"}>
+            {id >= 0 ? <div style={{ height: 420 }} /> : `Message ${id}: ${"step ".repeat(4 + Math.abs(id % 3) * 6)}`}
+          </Message>
+        );
+      });
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    let older = 0;
+    const draw = (loadingOlder: boolean) =>
+      act(async () =>
+        root.render(
+          <MessageList label="Conversation" style={{ height: 740, width: 420 }} hasOlder={older === 0} loadingOlder={loadingOlder}>
+            {rows(-older, older + 12)}
+          </MessageList>,
+        ),
+      );
+    await atMotion(true, async () => {
+      await draw(false);
+      const scroller = host.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+      await settle(scroller);
+      // A trackpad's fling to the top, a step of 1,500px at a time, with the older page asked for on the way, until the wheel's
+      // own scroll has ended there: then the place is the reader's. Chromium animates a step past its event, and a step that
+      // pushes at the top goes on there, so it has ended once Chromium says so at the top; WebKit takes a step whole, and the
+      // list's own write may take it the rest of the way, which brings no scrollend.
+      let restedAtTop = false;
+      scroller.addEventListener("scrollend", () => void (scroller.scrollTop === 0 && (restedAtTop = true)));
+      let steps = 0;
+      // A frame between steps, so each lands before the next, as a trackpad's steps come a frame or more apart on a loaded page.
+      for (; steps < 40 && scroller.scrollTop > 0; steps++) {
+        await userEvent.wheel(scroller, { delta: { y: -1500 } });
+        await frames(1);
+      }
+      await draw(true);
+      const where = () => `${steps} steps, scrollTop ${scroller.scrollTop} of ${scroller.scrollHeight - scroller.clientHeight}, ${scroller.getBoundingClientRect().height}px tall at ${scroller.getBoundingClientRect().top}px in a ${innerHeight}px view`;
+      try {
+        await expect.poll(() => scroller.scrollTop === 0 && (restedAtTop || server.browser !== "chromium")).toBe(true);
+      } catch (error) {
+        throw new Error(`The fling never ended at the top: ${where()}`, { cause: error });
+      }
+      // Paid in a write once it has rested, or held by drawing the content down until it does.
+      if (rested) await settleCarry(scroller);
+      // The premise: the fling reached the top, with older messages to come.
+      expect(scroller.scrollTop).toBe(0);
+      const reading = firstVisible(scroller);
+      // The page goes in above the reader, the last there is.
+      older = 120;
+      await draw(false);
+      await settleCarry(scroller);
+      // The premise: the older page went in above the reader.
+      expect(scroller.scrollTop).toBeGreaterThan(0);
+      expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(ROUNDING);
+    });
+  });
 
   chromiumOnly(`keeps layout still as three pages of older messages go in above a scrolled-up reader, with no layout shift, when every message is drawn`, async () => {
     const pages = await prependPages(false);

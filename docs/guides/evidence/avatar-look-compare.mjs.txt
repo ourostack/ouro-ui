@@ -1,0 +1,23 @@
+// The pixel and colour comparison behind avatar-style-cost.txt: run `node avatar-look-compare.mjs` from the repository root after the look probe.
+import { readFileSync, readdirSync } from "node:fs";
+import { createRequire } from "node:module";
+const require = createRequire(process.cwd() + "/package.json");
+const { PNG } = require(process.cwd() + "/node_modules/.pnpm/pngjs@7.0.0/node_modules/pngjs");
+for (const file of readdirSync(".tmp/look/before")) {
+  if (file.endsWith(".json")) {
+    const a = JSON.parse(readFileSync(`.tmp/look/before/${file}`, "utf8")), b = JSON.parse(readFileSync(`.tmp/look/after/${file}`, "utf8"));
+    for (const key of Object.keys(a)) {
+      // Compare each drawn thing's colours by aria-label and position, ignoring which element carries the ::before.
+      const norm = (rows) => rows.map((r) => r.split(" | ")).flatMap(([l, c, bg, content, pc, box]) => [`${l}|${c}|${bg}|${box}`, ...(content !== "none" ? [`letters ${content} ${pc}`] : [])]);
+      const A = norm(a[key]), B = norm(b[key]);
+      const onlyA = A.filter((x) => !B.includes(x)), onlyB = B.filter((x) => !A.includes(x));
+      console.log(file, key, `before ${A.length} after ${B.length}`, onlyA.length || onlyB.length ? { onlyA: onlyA.slice(0, 6), onlyB: onlyB.slice(0, 6) } : "same");
+    }
+    continue;
+  }
+  const a = PNG.sync.read(readFileSync(`.tmp/look/before/${file}`)), b = PNG.sync.read(readFileSync(`.tmp/look/after/${file}`));
+  let diff = 0;
+  if (a.width !== b.width || a.height !== b.height) { console.log(file, "SIZE", a.width, a.height, b.width, b.height); continue; }
+  for (let i = 0; i < a.data.length; i += 4) if (a.data[i] !== b.data[i] || a.data[i + 1] !== b.data[i + 1] || a.data[i + 2] !== b.data[i + 2] || a.data[i + 3] !== b.data[i + 3]) diff++;
+  console.log(file, `${a.width}x${a.height}`, diff ? `${diff} pixels differ` : "identical");
+}

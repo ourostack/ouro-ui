@@ -1,0 +1,106 @@
+// The look probe behind avatar-style-cost.txt: copy it to test/avatar-look.probe.test.tsx, run it in ouro-chromium and
+// ouro-webkit with VITE_LABEL=before on main and VITE_LABEL=after on the change, and compare .tmp/look/before with .tmp/look/after.
+import type { ReactNode } from "react";
+import { createRoot } from "react-dom/client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { commands, page, server } from "vitest/browser";
+import { Avatar, AvatarGroup } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { Command } from "@/registry/ouro/components/ouro/command/command";
+import { Inspector } from "@/registry/ouro/components/ouro/inspector/inspector";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
+
+// A probe, not a gate: screenshots and computed colours of every avatar variant and of Command's avatar rows,
+// light and dark, with and without X-ray, so a run before a change and one after can be compared pixel for pixel.
+
+const label = import.meta.env["VITE_LABEL"] ?? "run";
+const broken = "data:image/png;base64,AAAA";
+const sizes = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"] as const;
+const presences = ["available", "busy", "away", "do-not-disturb", "offline", "out-of-office"] as const;
+
+function Gallery(): ReactNode {
+  return (
+    <div data-probe="gallery" style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: 8, width: 760, alignItems: "center", background: "var(--background)" }}>
+      {sizes.map((size) => <Avatar key={size} name="Grace Hopper" size={size} />)}
+      {Array.from({ length: 8 }, (_, index) => <Avatar key={`hue${index}`} name={`Person ${index}`} idForColor={`hue-${index * 7}`} size="lg" />)}
+      <Avatar name="Ana Lind" color="brand" size="lg" />
+      <Avatar name="Ana Lind" color="neutral" size="lg" />
+      <Avatar name="Design reviews" shape="square" size="lg" />
+      <Avatar name="Design reviews" shape="square" color="brand" size="lg" />
+      <Avatar name="Halden" shape="agent" size="lg" />
+      <Avatar name="Halden" shape="agent" color="neutral" size="xl" />
+      {presences.map((presence) => <Avatar key={presence} name="Émile Zola" presence={presence} presenceLabel={presence} size="xl" />)}
+      {sizes.map((size) => <Avatar key={`p${size}`} name="Ana Lind" presence="busy" presenceLabel="Busy" size={size} />)}
+      <Avatar name="😀 Smile" size="lg" />
+      <Avatar name="Ana Lind" initials="AnL" size="lg" />
+      <Avatar name="Ana Lind" src={broken} size="lg" />
+      <Avatar name={null} size="lg" />
+      <Avatar name="Crew" members={[{ name: "Ana Lind" }, { name: "Ben Ito" }, { name: "Cy Voss" }]} size="xl" />
+      <Avatar name="Pair" members={[{ name: "Ana Lind" }, { name: "Ben Ito" }]} size="sm" />
+      <AvatarGroup label="Cooks" max={3}>
+        {["Ana Lind", "Ben Ito", "Cy Voss", "Dee Park", "Eli Moss"].map((name) => <Avatar key={name} name={name} />)}
+      </AvatarGroup>
+      <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+        <Avatar name="Ana Lind" alt="" size="sm" />
+        Ana Lind beside text
+      </span>
+    </div>
+  );
+}
+
+const people = ["Ana Lind", "Ben Ito", "Cy Voss", "Dee Park", "Eli Moss", "Fay Wu", "Gus Hale"];
+const items = people.map((name, index) => ({
+  label: name,
+  onSelect: () => {},
+  avatar: <Avatar name={name} alt="" size="xs" idForColor={`id-${index}`} />,
+  ...(index % 2 ? { description: "Last seen today" } : {}),
+  ...(index === 2 ? { shortcut: "mod+2" } : {}),
+}));
+
+async function shoot(name: string, element: Element) {
+  await new Promise((settle) => requestAnimationFrame(() => requestAnimationFrame(settle)));
+  await page.screenshot({ element, path: `../.tmp/look/${label}/${server.browser}-${name}.png`, animations: "disabled", caret: "hide" } as never);
+}
+
+function colours(scope: Element) {
+  return [...scope.querySelectorAll('[data-ouro="avatar"], [data-ouro="avatar"] *')].map((element) => {
+    const style = getComputedStyle(element);
+    const before = getComputedStyle(element, "::before");
+    const box = element.getBoundingClientRect();
+    return [element.getAttribute("aria-label") ?? "", style.color, style.backgroundColor, before.content, before.content === "none" ? "" : `${before.color} ${before.fontSize} ${before.fontWeight}`, `${box.x.toFixed(1)},${box.y.toFixed(1)} ${box.width.toFixed(1)}x${box.height.toFixed(1)}`].join(" | ");
+  });
+}
+
+describe("avatar look probe", () => {
+  beforeEach(() => {
+    for (const method of ["warn", "error", "log"] as const) vi.spyOn(console, method).mockImplementation(() => {});
+  });
+  afterEach(() => vi.restoreAllMocks());
+  it("shoots every avatar and Command's avatar rows, light and dark, with and without X-ray", async () => {
+    await page.viewport(1280, 900);
+    const record: Record<string, string[]> = {};
+    for (const scheme of ["light", "dark"] as const) {
+      document.documentElement.classList.toggle("dark", scheme === "dark");
+      const host = document.createElement("div");
+      host.dataset["testHarness"] = "";
+      document.body.append(host);
+      const root = createRoot(host);
+      await act(async () => root.render(<Gallery />));
+      await expect.poll(() => host.querySelector('[data-image="loading"]')).toBeNull();
+      const gallery = host.querySelector('[data-probe="gallery"]')!;
+      record[`gallery-${scheme}`] = colours(gallery);
+      await shoot(`gallery-${scheme}`, gallery);
+      await act(async () => root.render(<><Gallery /><Inspector open onOpenChange={() => {}} /></>));
+      await shoot(`gallery-xray-${scheme}`, host.querySelector('[data-probe="gallery"]')!);
+      await act(async () => root.render(<Command title="People" open onOpenChange={() => {}} items={items} />));
+      await expect.poll(() => document.querySelectorAll("[data-ouro-command-value]").length).toBe(people.length);
+      const listbox = document.querySelector('[role="listbox"]')!;
+      record[`command-${scheme}`] = colours(listbox);
+      await shoot(`command-${scheme}`, listbox);
+      await act(async () => root.unmount());
+      host.remove();
+    }
+    document.documentElement.classList.remove("dark");
+    await commands.writeFile(`.tmp/look/${label}/${server.browser}-colours.json`, JSON.stringify(record, null, 2));
+    expect(Object.keys(record).length).toBe(4);
+  }, 120_000);
+});

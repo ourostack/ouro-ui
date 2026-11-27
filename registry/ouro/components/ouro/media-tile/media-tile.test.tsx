@@ -369,7 +369,14 @@ describe("MediaTile", () => {
     ] as const) {
       const { host } = await render(<MediaTile name="Theo Okafor" paused avatar={size && { size }} />, tileWidth);
       await expect.poll(() => avatarWidth(host)).toBe(photoWidth);
-      const initials = host.querySelector("[data-ouro-avatar-initials]")!.getBoundingClientRect();
+      // The avatar's surface draws its initials as a ::before in its middle, which has no box of its own to read: its
+      // used size, centred on the surface, is where the letters are.
+      const surface = host.querySelector("[data-ouro-avatar-initials]")!;
+      const around = surface.getBoundingClientRect();
+      const letters = getComputedStyle(surface, "::before");
+      const [width, height] = [parseFloat(letters.width), parseFloat(letters.height)];
+      expect(width * height).toBeGreaterThan(0);
+      const initials = new DOMRect(around.left + (around.width - width) / 2, around.top + (around.height - height) / 2, width, height);
       const photo = host.querySelector('[data-ouro="avatar"]')!.getBoundingClientRect();
       const glyph = host.querySelector("[data-ouro-media-tile-paused]")!.getBoundingClientRect();
       expect(overlap(glyph, initials)).toBe(false);
