@@ -1,0 +1,41 @@
+# Avatar's style cost in a Command palette's rows, before and after Avatar drew its initials from its surface and
+# read its colours from ouro-base's --ouro-avatar-tint-* and --ouro-avatar-ink-* tokens
+#
+# Source: avatar-style-cost.probe.tsx.txt beside this file, copied to test/style-cost.probe.test.tsx and run with
+# `pnpm exec vitest run --project ouro-chromium test/style-cost.probe.test.tsx` (and ouro-webkit) on a MacBook Pro,
+# macOS, Playwright's Chromium and WebKit. A Command palette is open with 600 rows, each a person with an extra-small
+# Avatar of initials (avatar rows) or a plain svg icon (icon rows, the baseline). One timing: the listbox goes to
+# display: none, its style is read, it is shown again, and getComputedStyle on its last row is timed, which styles the
+# listbox's rows again. Each run is the median of 31 timings after 3 to warm up. Each engine ran three rounds, main and
+# this change taking turns, each in light and in dark: six runs a side. WebKit's timer counts whole milliseconds.
+# Safari 16.4 and later support margin-trim, so Tailwind's fallback for engines without @property never applies there;
+# Playwright's WebKit lacks margin-trim and applies it, setting Tailwind's custom properties on every element and
+# ::before. The probe's VITE_NOFALLBACK=1 deletes that @supports block from the page's stylesheets to read what Safari pays.
+
+Chromium
+  main: avatar rows 10.7, 10.6, 10.2, 10.2, 11.3, 11.4 ms (median 10.65 ms); icon rows 6.4, 6.4, 6.1, 6.1, 6.5, 6.5 ms (median 6.4 ms); the avatars own 4.25 ms
+  this change: avatar rows 8.7, 8.9, 9.2, 9, 9.2, 8.9 ms (median 8.95 ms); icon rows 6.2, 6.3, 6.4, 6.3, 6.4, 6.6 ms (median 6.35 ms); the avatars own 2.60 ms
+WebKit, as Safari applies the CSS (Tailwind @property fallback removed)
+  main: avatar rows 29, 29, 29, 30, 30, 30 ms (median 29.5 ms); icon rows 17, 17, 17, 17, 18, 17 ms (median 17 ms); the avatars own 12.50 ms
+  this change: avatar rows 25, 25, 25, 27, 27, 27 ms (median 26 ms); icon rows 16, 15, 16, 17, 17, 17 ms (median 16.5 ms); the avatars own 9.50 ms
+WebKit, as Playwright builds it (Tailwind @property fallback applies)
+  main: avatar rows 38, 38, 38, 37, 37, 37 ms (median 37.5 ms); icon rows 17, 17, 18, 16, 17, 17 ms (median 17 ms); the avatars own 20.50 ms
+  this change: avatar rows 39, 37, 39, 38, 40, 41 ms (median 39 ms); icon rows 18, 16, 17, 16, 17, 18 ms (median 17 ms); the avatars own 22.00 ms
+
+# What an avatar's cost is made of, in Playwright's WebKit, 300 rows, light, one run each (main's Avatar):
+#   main: avatar rows 19 ms, icon rows 9 ms
+#   main with color-mix() swapped for plain colours (bg-(--avatar-n) text-(--foreground)): avatar rows 19 ms
+#   main with the ::before that draws the initials removed: avatar rows 11 ms
+
+# Look: avatar-look.probe.tsx.txt beside this file shot every avatar variant and Command's avatar rows, light and dark,
+# with and without X-ray, in Chromium and WebKit, on main and on this change, and read every avatar element's computed
+# colour, background, box and drawn letters. Compared pixel for pixel:
+#   12 of 12 screenshot pairs identical, 0 pixels differ
+#   computed colours: no element or drawn letter of this change's avatars has a colour, background, box or letters main's lacks
+
+# Per row: a Command row's elements (the row and everything in it) and class names, from
+# registry/ouro/components/ouro/command/command.weight.test.tsx's rows, counted in Chromium on main and on this change
+#   a person's row with their avatar: main 6 elements, 63 class names; this change 5 elements, 57 class names
+#   a person's row with a presence dot: main 9 elements, 78 class names; this change 8 elements, 72 class names
+#   a chat's row with avatar, description, unread mark and shortcut: main 16 elements, 124 class names; this change 15 elements, 118 class names
+#   rows with no avatar (plain, icon, description, shortcut): the same on both
