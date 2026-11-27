@@ -398,8 +398,8 @@
   },
   "ourostack/ouroboros": {
     "components/ouro/": {
-      "commit": "58671659caaf164ad7d42c5e18112d613192bd1e",
-      "at": "2026-11-27T12:23:26.496Z",
+      "commit": "09b93a02b4d29878f66a56a478116b2f2e60cebb",
+      "at": "2026-11-27T13:16:15.116Z",
       "total": 4,
       "paths": [
         "deploy/eval/u/build/kit-config.mjs",
@@ -409,8 +409,8 @@
       ]
     },
     "\"ouro-ui-core\"": {
-      "commit": "58671659caaf164ad7d42c5e18112d613192bd1e",
-      "at": "2026-11-27T12:23:39.039Z",
+      "commit": "09b93a02b4d29878f66a56a478116b2f2e60cebb",
+      "at": "2026-11-27T13:16:21.587Z",
       "total": 5,
       "paths": [
         "docs/bundle-declared-tools.md",
@@ -421,8 +421,8 @@
       ]
     },
     "defineCommand": {
-      "commit": "58671659caaf164ad7d42c5e18112d613192bd1e",
-      "at": "2026-11-27T12:23:45.534Z",
+      "commit": "09b93a02b4d29878f66a56a478116b2f2e60cebb",
+      "at": "2026-11-27T13:16:28.098Z",
       "total": 10,
       "paths": [
         "src/ouro-ax/ax-command.ts",
@@ -440,8 +440,14 @@
   },
   "ourostack/factory": {
     "components/ouro/": {
-      "commit": "82b044510974e552aea63213eaf381e1fa4a5b72",
-      "at": "2026-11-27T12:34:17.474Z",
+      "commit": "181244050c23aed9355378d8f62d01a04aa37c81",
+      "at": "2026-11-27T13:29:18.867Z",
+      "total": 0,
+      "paths": []
+    },
+    "\"ouro-ui-core\"": {
+      "commit": "181244050c23aed9355378d8f62d01a04aa37c81",
+      "at": "2026-11-27T13:29:25.401Z",
       "total": 0,
       "paths": []
     }
