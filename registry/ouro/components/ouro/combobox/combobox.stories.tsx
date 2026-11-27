@@ -214,7 +214,7 @@ async function frameUntil<T>(find: () => T | null | undefined): Promise<T> {
  * alone, so the row is unmistakable against `--accent`'s low contrast in light mode (#3821).
  */
 export const Highlighted: Story = {
-  parameters: { screenshot: { name: "combobox-highlighted", open: true } },
+  parameters: { screenshot: { name: "combobox-highlighted" } },
   render: () => <Combobox label="Herb" name="herb" items={herbs} />,
   play: async ({ canvasElement }) => {
     const input = await frameUntil(() => canvasElement.querySelector("input"));
