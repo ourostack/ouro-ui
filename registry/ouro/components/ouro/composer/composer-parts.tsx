@@ -287,7 +287,75 @@ function $insertWithEmoji(selection: RangeSelection, text: string, catalogue: Em
   }
 }
 
-const transformers: Transformer[] = [keepItemLines(UNORDERED_LIST), keepItemLines(ORDERED_LIST), QUOTE, CODE, BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE, LINK, ITALIC_STAR_MARK, BOLD_UNDERSCORE_MARK];
+type SerializedMentionNode = Spread<{ name: string; id: string }, SerializedLexicalNode>;
+
+// A person named in the Markdown as `@[Name](id)`, as an app's agent writes one: drawn as the person's name, as a sent
+// message draws a mention, never as a link to the id; written back as the same Markdown. Its text is "@Name".
+class MentionNode extends DecoratorNode<null> {
+  __name: string;
+  __id: string;
+  // Stryker disable next-line BlockStatement: Lexical registers the class by its type, and no test reads the name it registers under
+  static override getType(): string {
+    // Stryker disable next-line StringLiteral: the same
+    return "ouro-mention";
+  }
+  // Stryker disable next-line BlockStatement: Lexical clones a node it writes to, and a mention is only ever replaced whole
+  static override clone(node: MentionNode): MentionNode {
+    return new MentionNode(node.__name, node.__id, node.__key);
+  }
+  // Stryker disable next-line BlockStatement: the editor never saves its state as JSON, so nothing reads a mention back from it
+  static override importJSON(json: SerializedMentionNode): MentionNode {
+    return new MentionNode(json.name, json.id);
+  }
+  constructor(name: string, id: string, key?: NodeKey) {
+    super(key);
+    this.__name = name;
+    this.__id = id;
+  }
+  // Stryker disable next-line BlockStatement: nothing saves the editor's state as JSON
+  override exportJSON(): SerializedMentionNode {
+    // Stryker disable next-line ObjectLiteral: the same
+    return { ...super.exportJSON(), name: this.__name, id: this.__id };
+  }
+  override createDOM(): HTMLElement {
+    const person = document.createElement("span");
+    person.dataset.ouroMention = "";
+    person.contentEditable = "false";
+    person.textContent = this.__name;
+    person.className = "font-semibold text-primary";
+    return person;
+  }
+  // Stryker disable next-line BlockStatement: a mention never changes, and a node that is never dirty is never asked
+  override updateDOM(): false {
+    // Stryker disable next-line BooleanLiteral: the same
+    return false;
+  }
+  // Stryker disable next-line BlockStatement: a mention is only ever made in a paragraph's text, where Lexical keeps a decorator in its line either way
+  override isInline(): true {
+    // Stryker disable next-line BooleanLiteral: the same
+    return true;
+  }
+  override getTextContent(): string {
+    return `@${this.__name}`;
+  }
+  // Stryker disable next-line BlockStatement: a decorator must answer, and nothing reads the answer of one drawn by createDOM
+  override decorate(): null {
+    return null;
+  }
+}
+
+// `@[Name](id)` reads in as a mention and writes back as it came; one whose id is a web or mail address stays an "@" and a link.
+const MENTION: TextMatchTransformer = {
+  // Stryker disable next-line ArrayDeclaration: Lexical only checks that the class is registered, which the editor's nodes do
+  dependencies: [MentionNode],
+  export: (node) => (node instanceof MentionNode ? `@[${node.__name}](${node.__id})` : null),
+  importRegExp: /@\[([^\]\n]+)\]\((?!https?:|mailto:)([^()\s]+)\)/,
+  regExp: /(?!)/,
+  replace: (node, match) => void node.replace(new MentionNode(match[1]!, match[2]!)),
+  type: "text-match",
+};
+
+const transformers: Transformer[] = [keepItemLines(UNORDERED_LIST), keepItemLines(ORDERED_LIST), QUOTE, CODE, BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE, MENTION, LINK, ITALIC_STAR_MARK, BOLD_UNDERSCORE_MARK];
 
 const markCommands: Partial<Record<ComposerFormat, TextFormatType>> = { bold: "bold", italic: "italic", underline: "underline", strike: "strikethrough", code: "code" };
 
@@ -452,7 +520,7 @@ function toggleLinkOfSelection(): RangeSelection | null {
 }
 
 // An input method's composition leaves a zero-width character in the text until it ends, which is no part of the message.
-const NODES = [ListNode, ListItemNode, QuoteNode, CodeNode, LinkNode, EmojiNode];
+const NODES = [ListNode, ListItemNode, QuoteNode, CodeNode, LinkNode, EmojiNode, MentionNode];
 const toMarkdown = (editor: LexicalEditor) => separateBlocks(unescapeSafeMarkText(editor.getEditorState().read(() => $convertToMarkdownString(transformers, undefined, true)).replaceAll("\u200b", "")));
 
 // The editor's element answers as a textarea does, over the text without its marks, one line to each block, so Autocomplete finds a trigger at the caret and puts a pick in place of it.
@@ -494,7 +562,7 @@ function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "
     // Stryker disable next-line EqualityOperator: at left === size the next child, or the trailing point, gives the same position
     const fits = left <= size;
     if ($isDecoratorNode(child)) {
-      // An emoji has no text point: the caret goes before it, or after it when the offset is past its token.
+      // An emoji or a mention has no text point: the caret goes before it, or after it when the offset is past its text.
       // Stryker disable next-line EqualityOperator,StringLiteral: at left === size the next child gives the same position, and the point's kind is read only as "text"
       if (left <= size) return [element, left === size ? index + 1 : index, "element"];
     // Stryker disable next-line all: equivalent: a line break child has size 1 and the text branch would give the same offset
