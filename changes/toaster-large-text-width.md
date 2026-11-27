@@ -1,0 +1,1 @@
+- Fixed: the Toaster is clamped to the window width, so at doubled text on a window just over the phone breakpoint it no longer hangs off the screen edge.

@@ -204,4 +204,25 @@ describe("ConversationList hover", () => {
       await commands.emulateMedia({ forcedColors: "none" });
     }
   });
+
+  it("gives the more button and the section grip a hit area of at least 24px to a mouse, the size they draw unchanged", async () => {
+    const host = await render(
+      <ConversationList
+        label="Conversations"
+        items={[{ ...items[0]!, section: "team" }]}
+        sections={[{ id: "team", title: "My team", reorderable: true, menu: [{ label: "Rename" }] }]}
+        onSectionsReorder={() => {}}
+        onSelect={() => {}}
+      />,
+    );
+    const header = host.querySelector<HTMLElement>('[data-ouro-part="section"]')!;
+    const controls = [moreOf(rowOf(host, "Trail crew"))!, header.parentElement!.querySelector<HTMLElement>('[data-ouro-part="more"]')!, host.querySelector<HTMLElement>('[data-ouro-part="section-handle"]')!];
+    for (const control of controls) {
+      const drawn = control.getBoundingClientRect();
+      expect([Math.round(drawn.width), Math.round(drawn.height)]).toEqual([28, 20]);
+      // A 24px square centred on it: every point the browser hit-tests there lands on the control.
+      const [cx, cy] = [drawn.x + drawn.width / 2, drawn.y + drawn.height / 2];
+      for (const dx of [-11.5, 0, 11.5]) for (const dy of [-11.5, 0, 11.5]) expect(document.elementFromPoint(cx + dx, cy + dy)?.closest("[data-ouro-part]")).toBe(control);
+    }
+  });
 });

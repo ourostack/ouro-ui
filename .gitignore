@@ -24,9 +24,12 @@ test/generated/
 /site/public/llms.txt
 /docs/guides/model-reviews.md
 /docs/guides/model-interviews.md
+/docs/guides/accessibility-evidence.md
 /registry/ouro/feel/ouro-feel-probe.js
 /site/src/docs/catalog.json
 /site/src/docs/sources.json
 /site/src/docs/pages.json
 /site/src/docs/page-index.json
 .scratch/
+# The generated page for each export (docs/<Export>.md, docs/parts.md); the README catalog links them.
+/docs/*.md

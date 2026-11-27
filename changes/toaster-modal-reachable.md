@@ -1,0 +1,1 @@
+- Fixed: a toast on screen when a modal Popover or Sheet opens is no longer hidden from a screen reader, so its action button can still be reached.

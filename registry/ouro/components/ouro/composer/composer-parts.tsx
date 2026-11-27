@@ -3,13 +3,13 @@
 import { CodeNode } from "@lexical/code-core";
 import { createEmptyHistoryState, registerHistory } from "@lexical/history";
 import { $createLinkNode, $isLinkNode, $toggleLink, LinkNode } from "@lexical/link";
-import { ListItemNode, ListNode, registerList } from "@lexical/list";
-import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, LINK, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type TextFormatTransformer, type TextMatchTransformer, type Transformer } from "@lexical/markdown";
+import { $isListItemNode, $isListNode, ListItemNode, ListNode, registerList } from "@lexical/list";
+import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, LINK, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type ElementTransformer, type TextFormatTransformer, type TextMatchTransformer, type Transformer } from "@lexical/markdown";
 import { $isQuoteNode, QuoteNode, registerRichText } from "@lexical/rich-text";
 import { $findMatchingParent } from "@lexical/utils";
-import { $getNodeByKey, $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, $getState, $setState, createState, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, KEY_ESCAPE_COMMAND, PASTE_COMMAND, type EditorState, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType, type TextNode, type RangeSelection, type NodeKey, type SerializedLexicalNode, type Spread, CONTROLLED_TEXT_INSERTION_COMMAND, DecoratorNode, $isDecoratorNode } from "lexical";
+import { $getNodeByKey, $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, $getState, $setState, createState, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, SKIP_DOM_SELECTION_TAG, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, KEY_ESCAPE_COMMAND, PASTE_COMMAND, type EditorState, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType, type TextNode, type RangeSelection, type NodeKey, type SerializedLexicalNode, type Spread, CONTROLLED_TEXT_INSERTION_COMMAND, DecoratorNode, $isDecoratorNode, $isParagraphNode } from "lexical";
 import { useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
-import type { FocusEventHandler, HTMLAttributes, FormEventHandler, JSX, KeyboardEvent, Ref, SyntheticEvent } from "react";
+import type { FocusEventHandler, HTMLAttributes, FormEventHandler, JSX, KeyboardEvent, MutableRefObject, Ref, SyntheticEvent } from "react";
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { emojiToken, splitEmojiText, toneOf } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
@@ -62,6 +62,10 @@ interface RichEditorProps {
   "data-slot": string;
   /** Sees keys before the editor does, so Enter can send and a mark's key can format. */
   onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
+  /** Enter sends, so Shift+Enter goes on with the block; otherwise Shift+Enter is a line break, as in a chat app's long-compose box. */
+  enterSends: boolean;
+  /** Set once a composed word lands as a plain insertText with no compositionend (ourostack/ouro-ui#3843), so Composer's keyDown can stop trusting a stale isComposing. */
+  composedRef: MutableRefObject<boolean>;
   /** Focus the editor when it mounts, with the caret at the end: the person was in the plain box it replaces. */
   autoFocus: boolean;
   /** The form field name the Markdown submits under. */
@@ -152,8 +156,38 @@ function $restoreMarkMemory(root: ElementNode) {
 // Reads Markdown into the editor the way every other call site here does, plus the marker pass above and below it, so a star-spelled italic or an underscore-spelled bold survives the round trip.
 function $fromMarkdown(markdown: string, transformersArg: Transformer[], node?: ElementNode, shouldPreserveNewLines?: boolean) {
   $convertFromMarkdownString(markPreservingSyntax(markdown), transformersArg, node, shouldPreserveNewLines);
+  $joinItemLines(node ?? $getRoot());
   $restoreMarkMemory(node ?? $getRoot());
 }
+
+// A line indented under a list item, straight after it, is the item's next line: a line break in it, as `keepItemLines` writes one.
+function $joinItemLines(root: ElementNode) {
+  for (const node of root.getChildren()) {
+    const list = node.getPreviousSibling();
+    if (!$isParagraphNode(node) || !$isListNode(list)) continue;
+    const first = node.getFirstChild();
+    if (!$isTextNode(first) || !/^\s/.test(first.getTextContent())) continue;
+    first.setTextContent(first.getTextContent().trimStart());
+    $findMatchingParent(list.getLastDescendant()!, $isListItemNode)!.append($createLineBreakNode(), ...node.getChildren());
+    node.remove();
+  }
+}
+
+// A line break in a list item goes out as the item's next line, indented under its words, so a reader of Markdown keeps it in the item.
+const keepItemLines = (list: ElementTransformer): ElementTransformer => ({
+  ...list,
+  export: (node, exportChildren, selection) =>
+    list.export(
+      node,
+      (item) => {
+        // Where Lexical writes the item's words: four spaces a level, after its marker.
+        const depth = item.getParents().filter($isListNode).length - 1;
+        const marker = (item.getParent() as ListNode).getListType() === "number" ? `${(item as ListItemNode).getValue()}. ` : "- ";
+        return exportChildren(item).replaceAll("\n", `\n${" ".repeat(depth * 4 + marker.length)}`);
+      },
+      selection,
+    ),
+});
 
 // `*text*` reads as italic like `_text_` does, but writes back out with the star it came in with, never the array's underscore default.
 const ITALIC_STAR_MARK: TextMatchTransformer = {
@@ -253,7 +287,75 @@ function $insertWithEmoji(selection: RangeSelection, text: string, catalogue: Em
   }
 }
 
-const transformers: Transformer[] = [UNORDERED_LIST, ORDERED_LIST, QUOTE, CODE, BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE, LINK, ITALIC_STAR_MARK, BOLD_UNDERSCORE_MARK];
+type SerializedMentionNode = Spread<{ name: string; id: string }, SerializedLexicalNode>;
+
+// A person named in the Markdown as `@[Name](id)`, as an app's agent writes one: drawn as the person's name, as a sent
+// message draws a mention, never as a link to the id; written back as the same Markdown. Its text is "@Name".
+class MentionNode extends DecoratorNode<null> {
+  __name: string;
+  __id: string;
+  // Stryker disable next-line BlockStatement: Lexical registers the class by its type, and no test reads the name it registers under
+  static override getType(): string {
+    // Stryker disable next-line StringLiteral: the same
+    return "ouro-mention";
+  }
+  // Stryker disable next-line BlockStatement: Lexical clones a node it writes to, and a mention is only ever replaced whole
+  static override clone(node: MentionNode): MentionNode {
+    return new MentionNode(node.__name, node.__id, node.__key);
+  }
+  // Stryker disable next-line BlockStatement: the editor never saves its state as JSON, so nothing reads a mention back from it
+  static override importJSON(json: SerializedMentionNode): MentionNode {
+    return new MentionNode(json.name, json.id);
+  }
+  constructor(name: string, id: string, key?: NodeKey) {
+    super(key);
+    this.__name = name;
+    this.__id = id;
+  }
+  // Stryker disable next-line BlockStatement: nothing saves the editor's state as JSON
+  override exportJSON(): SerializedMentionNode {
+    // Stryker disable next-line ObjectLiteral: the same
+    return { ...super.exportJSON(), name: this.__name, id: this.__id };
+  }
+  override createDOM(): HTMLElement {
+    const person = document.createElement("span");
+    person.dataset.ouroMention = "";
+    person.contentEditable = "false";
+    person.textContent = this.__name;
+    person.className = "font-semibold text-primary";
+    return person;
+  }
+  // Stryker disable next-line BlockStatement: a mention never changes, and a node that is never dirty is never asked
+  override updateDOM(): false {
+    // Stryker disable next-line BooleanLiteral: the same
+    return false;
+  }
+  // Stryker disable next-line BlockStatement: a mention is only ever made in a paragraph's text, where Lexical keeps a decorator in its line either way
+  override isInline(): true {
+    // Stryker disable next-line BooleanLiteral: the same
+    return true;
+  }
+  override getTextContent(): string {
+    return `@${this.__name}`;
+  }
+  // Stryker disable next-line BlockStatement: a decorator must answer, and nothing reads the answer of one drawn by createDOM
+  override decorate(): null {
+    return null;
+  }
+}
+
+// `@[Name](id)` reads in as a mention and writes back as it came; one whose id is a web or mail address stays an "@" and a link.
+const MENTION: TextMatchTransformer = {
+  // Stryker disable next-line ArrayDeclaration: Lexical only checks that the class is registered, which the editor's nodes do
+  dependencies: [MentionNode],
+  export: (node) => (node instanceof MentionNode ? `@[${node.__name}](${node.__id})` : null),
+  importRegExp: /@\[([^\]\n]+)\]\((?!https?:|mailto:)([^()\s]+)\)/,
+  regExp: /(?!)/,
+  replace: (node, match) => void node.replace(new MentionNode(match[1]!, match[2]!)),
+  type: "text-match",
+};
+
+const transformers: Transformer[] = [keepItemLines(UNORDERED_LIST), keepItemLines(ORDERED_LIST), QUOTE, CODE, BOLD_STAR, ITALIC_UNDERSCORE, UNDERLINE, STRIKETHROUGH, INLINE_CODE, MENTION, LINK, ITALIC_STAR_MARK, BOLD_UNDERSCORE_MARK];
 
 const markCommands: Partial<Record<ComposerFormat, TextFormatType>> = { bold: "bold", italic: "italic", underline: "underline", strike: "strikethrough", code: "code" };
 
@@ -302,7 +404,8 @@ function separateBlocks(markdown: string): string {
     const line = marked.replaceAll(CARET, "");
     const fence = line.startsWith("```");
     // Stryker disable next-line StringLiteral: a fence line is told apart by `fence`, not by its kind, so the kind's name is never compared.
-    const kind = fence ? "fence" : lineKind(line);
+    // A line indented under a list item is the item's own next line.
+    const kind = fence ? "fence" : before === "list" && /^\s/.test(line) ? "list" : lineKind(line);
     // The line that closes a fence is a fence too; one inside it is the code's.
     if (!fenced && line !== "" && before !== "" && (kind !== before || fence)) out.push("");
     if (fence) fenced = !fenced;
@@ -395,14 +498,21 @@ function $nodesFromHtml(html: string): LexicalNode[][] {
 }
 
 // ⌘K: takes a link off a selection that holds one, makes a selected web address a link to itself, and otherwise gives back
-// the selection, for the editor to ask for the address in its own popover.
+// the selection, for the editor to ask for the address in its own popover; with just the caret, it still asks, and the
+// typed address becomes the new link's own text.
 function toggleLinkOfSelection(): RangeSelection | null {
   const selection = $getSelection();
-  if (!$isRangeSelection(selection) || selection.isCollapsed()) return null;
+  // Stryker disable next-line ConditionalExpression: this only runs from the editor's own ⌘K handler, inside an update
+  // while the editor still has focus, so $getSelection() is always this RangeSelection; the guard only narrows its type.
+  /* istanbul ignore if @preserve -- only the editor's own ⌘K handler calls this, with its RangeSelection in place; the guard only narrows the type */
+  if (!$isRangeSelection(selection)) return null;
   if (selection.getNodes().some((node) => $isLinkNode(node) || $isLinkNode(node.getParent()))) {
     $toggleLink(null);
     return null;
   }
+  // Stryker disable next-line ConditionalExpression: a collapsed selection's getTextContent() is "", so removing this
+  // branch still falls through to the !href return two lines down and clones the same selection either way.
+  if (selection.isCollapsed()) return selection.clone();
   const href = safeHref(selection.getTextContent());
   if (!href) return selection.clone();
   $toggleLink(href);
@@ -410,7 +520,7 @@ function toggleLinkOfSelection(): RangeSelection | null {
 }
 
 // An input method's composition leaves a zero-width character in the text until it ends, which is no part of the message.
-const NODES = [ListNode, ListItemNode, QuoteNode, CodeNode, LinkNode, EmojiNode];
+const NODES = [ListNode, ListItemNode, QuoteNode, CodeNode, LinkNode, EmojiNode, MentionNode];
 const toMarkdown = (editor: LexicalEditor) => separateBlocks(unescapeSafeMarkText(editor.getEditorState().read(() => $convertToMarkdownString(transformers, undefined, true)).replaceAll("\u200b", "")));
 
 // The editor's element answers as a textarea does, over the text without its marks, one line to each block, so Autocomplete finds a trigger at the caret and puts a pick in place of it.
@@ -452,7 +562,7 @@ function $pointAt(element: ElementNode, offset: number): [LexicalNode, number, "
     // Stryker disable next-line EqualityOperator: at left === size the next child, or the trailing point, gives the same position
     const fits = left <= size;
     if ($isDecoratorNode(child)) {
-      // An emoji has no text point: the caret goes before it, or after it when the offset is past its token.
+      // An emoji or a mention has no text point: the caret goes before it, or after it when the offset is past its text.
       // Stryker disable next-line EqualityOperator,StringLiteral: at left === size the next child gives the same position, and the point's kind is read only as "text"
       if (left <= size) return [element, left === size ? index + 1 : index, "element"];
     // Stryker disable next-line all: equivalent: a line break child has size 1 and the text branch would give the same offset
@@ -637,7 +747,7 @@ function definedOnly(props: HTMLAttributes<HTMLDivElement>) {
  *
  * @internal
  */
-function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue, highlights, onHighlightsChange, pasteText, comboboxProps, ownAttrs }: RichEditorProps): JSX.Element {
+function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, enterSends, composedRef, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue, highlights, onHighlightsChange, pasteText, comboboxProps, ownAttrs }: RichEditorProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
   // The Markdown the editor holds, and the callbacks as of the last render, which its listeners read.
@@ -667,14 +777,28 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   // ⌘K over words that aren't an address asks for one in the editor's own popover: the selection it links, and the address typed.
   const [linking, setLinking] = useState<{ selection: RangeSelection; address: string } | null>(null);
   const linkHref = linking ? safeHref(linking.address) : undefined;
-  // Back to the words with the caret where it was, the link added or not.
+  // Back to the words with the caret where it was, the link added or not. With no words to wrap (the caret alone asked),
+  // the typed address becomes the new link's own text instead.
   const endLinking = (href: string | undefined) => {
     const selection = linking!.selection;
+    const collapsed = selection.isCollapsed();
     setLinking(null);
     editorRef.current!.update(() => {
       // Stryker disable next-line CallExpression: a test's popover never moves the real document selection away from the editor, so skipping the restore reads the same selection either way; a person who tabbed to the popover's own field would lose their place without it.
       $setSelection(selection.clone());
-      if (href) $toggleLink(href);
+      if (!href) return;
+      if (!collapsed) {
+        $toggleLink(href);
+        return;
+      }
+      const current = $getSelection();
+      // Stryker disable next-line ConditionalExpression: current is $getSelection() right after $setSelection(selection.clone())
+      // set that very RangeSelection, so it is always one here; the guard only narrows its type for insertNodes below.
+      /* istanbul ignore if @preserve -- current is the RangeSelection $setSelection just set; the guard only narrows the type */
+      if (!$isRangeSelection(current)) return;
+      const link = $createLinkNode(href);
+      link.append($createTextNode(href));
+      current.insertNodes([link]);
     },
     // Stryker disable next-line ObjectLiteral,BooleanLiteral: discrete only forces this update's DOM reconciliation to flush before the function returns; a test that reads the result afterwards, as every one here does, cannot tell a flushed render from a microtask-later one apart.
     { discrete: true });
@@ -696,9 +820,11 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   const emoji = useRef(catalogue);
   const readingRef = useRef<Transformer[]>(transformers);
   const pasting = useRef(pasteText);
+  const sendsOnEnter = useRef(enterSends);
   useEffect(() => {
     emoji.current = catalogue;
     pasting.current = pasteText;
+    sendsOnEnter.current = enterSends;
   });
   // ⌘⇧V was pressed, so the paste that follows takes the clipboard's text alone.
   const plainPaste = useRef(false);
@@ -718,6 +844,22 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       },
     });
     const root = rootRef.current!;
+    // Some sequences never fire compositionend after an input method commits a word (ourostack/ouro-ui#3843): a plain insertText while composition is still open is the only other signal that word landed, so a later Enter's stale isComposing is not trusted past it.
+    let composing = false;
+    const compositionStart = () => {
+      composing = true;
+      composedRef.current = false;
+    };
+    const compositionEnd = () => {
+      composing = false;
+    };
+    const committedWithoutEnd = (event: Event) => {
+      const { inputType } = event as InputEvent;
+      if (composing && (inputType === "insertText" || inputType === "insertReplacementText")) composedRef.current = true;
+    };
+    root.addEventListener("compositionstart", compositionStart);
+    root.addEventListener("compositionend", compositionEnd);
+    root.addEventListener("beforeinput", committedWithoutEnd);
     // What reads Markdown in, which turns a token into the emoji's picture when the catalogue lists it.
     const reading = [emojiTransformer(() => emoji.current), ...transformers];
     readingRef.current = reading;
@@ -727,7 +869,18 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     let scratch: LexicalEditor | undefined;
     // Stryker disable next-line ObjectLiteral,StringLiteral,BlockStatement: the copy only receives the editor's own state and writes a mark into it, so its options, namespace and error handler are never read
     const copy = () => (scratch ??= createEditor({ namespace: "ouro-composer-offsets", nodes: NODES, onError: /* istanbul ignore next @preserve -- the copy only writes text into states that already hold */ (error) => { throw error; } }));
-    const read = () => (inMarkdown.current ? readMarkdownControl(editor, copy()) : readControl(editor));
+    // One editor state and one DOM selection read the same every time, and an app reads value, selectionStart and
+    // selectionEnd one after another, as often as it likes on each key: each pair is read once.
+    let last: { key: unknown[]; read: ReturnType<typeof readControl> } | undefined;
+    const read = () => {
+      // A document with a window always has a selection: getSelection is null only in a frame that has none.
+      const { anchorNode, anchorOffset, focusNode, focusOffset } = window.getSelection()!;
+      const key = [editor.getEditorState(), inMarkdown.current, anchorNode, anchorOffset, focusNode, focusOffset];
+      const prior = last;
+      if (prior && key.every((part, i) => part === prior.key[i])) return prior.read;
+      last = { key, read: inMarkdown.current ? readMarkdownControl(editor, copy()) : readControl(editor) };
+      return last.read;
+    };
     Object.defineProperties(root, {
       value: { configurable: true, get: () => read().value },
       selectionStart: { configurable: true, get: () => read().start },
@@ -790,8 +943,8 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         },
         COMMAND_PRIORITY_HIGH,
       ),
-      // Enter sends, so Shift+Enter is how a block goes on: a list starts its next item, a code block its next line, a plain line a new paragraph, and a quote stays on one line until an empty one leaves it.
-      editor.registerCommand(INSERT_LINE_BREAK_COMMAND, () => leaveOrContinueBlock(editor), COMMAND_PRIORITY_HIGH),
+      // Where Enter sends, Shift+Enter is how a block goes on: a list starts its next item, a code block its next line, a plain line a new paragraph, and a quote stays on one line until an empty one leaves it. Where it doesn't, Enter goes on with the block and Shift+Enter is a line break.
+      editor.registerCommand(INSERT_LINE_BREAK_COMMAND, () => sendsOnEnter.current && leaveOrContinueBlock(editor), COMMAND_PRIORITY_HIGH),
       // Escape is not a request to leave the box: Lexical would blur it, which drops a keyboard person's place.
       editor.registerCommand(KEY_ESCAPE_COMMAND, () => true, COMMAND_PRIORITY_HIGH),
       // A caret is placed only when the box takes focus, so that loading it never moves focus.
@@ -865,6 +1018,9 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
     return () => {
       // Stryker disable next-line BlockStatement,ArrowFunction,CallExpression: the cleanup runs as the box leaves the page, where nothing is left to read.
       stops.forEach((stop) => stop());
+      root.removeEventListener("compositionstart", compositionStart);
+      root.removeEventListener("compositionend", compositionEnd);
+      root.removeEventListener("beforeinput", committedWithoutEnd);
       // Stryker disable next-line CallExpression: the editor is dropped with the box, so the cleared root is never read.
       editor.setRootElement(null);
       editorRef.current = null;
@@ -910,8 +1066,10 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         // Stryker disable next-line ConditionalExpression: the conversion leaves the caret at the end already.
         if (focused) $getRoot().selectEnd();
       },
+      // A box the person isn't in keeps out of the page's selection, which would move focus into it: an app's draft written
+      // while the person is in a dialog or another field leaves them there.
       // Stryker disable next-line ObjectLiteral,ArrayDeclaration,StringLiteral,BooleanLiteral: the held-Markdown guard in the update listener already keeps an app-set value from being reported or undone.
-      { tag: [synced, "history-merge"], discrete: true },
+      { tag: focused ? [synced, "history-merge"] : [synced, "history-merge", SKIP_DOM_SELECTION_TAG], discrete: true },
     );
   }, [value]);
 

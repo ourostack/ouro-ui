@@ -440,6 +440,18 @@ function returnPresses(event: globalThis.KeyboardEvent, root: Element): boolean 
   return !target.matches(takesReturn);
 }
 
+// Whether a node's own children, read without rendering, include a word: a string or number
+// anywhere under an intrinsic element (span, div, ...) or a fragment. A custom component's
+// rendered output isn't known here, so its children aren't looked into: an icon component
+// (Star, a lucide-react svg wrapper) reads as having no text of its own, as an svg's paths do.
+function elementHasText(node: ReactNode): boolean {
+  if (typeof node === "string") return node.trim() !== "";
+  if (typeof node === "number") return true;
+  if (Array.isArray(node)) return node.some(elementHasText);
+  if (isValidElement<{ children?: ReactNode }>(node) && (typeof node.type === "string" || node.type === Fragment)) return elementHasText(node.props.children);
+  return false;
+}
+
 /**
  * A button, or a link styled as one. The obvious name for any action: pressing
  * it gives physical feedback, it has a 44px touch target on phones, and `loading`
@@ -578,6 +590,9 @@ export function Button(props: ButtonProps): JSX.Element {
   // it is tall, so an icon's button is square, as shadcn's icon size is, and a theme whose controls are capsules draws
   // it as a circle. Its width is a floor, so content that is wider than the height keeps its width.
   // A picture whose width and height differ, such as a logo, is not an icon: it keeps the label's padding.
+  // Neither does an element whose own children include words: an aria-live span, a <Trans>, or a styled
+  // span around text is an ordinary label, named more fully by aria-label, not an icon. A custom
+  // component's rendered output isn't known without rendering it, so it still reads as an icon.
   const named = rest as { "aria-label"?: string; "aria-labelledby"?: string };
   const iconOnly =
     size !== "inline" &&
@@ -586,6 +601,7 @@ export function Button(props: ButtonProps): JSX.Element {
     isValidElement<{ width?: unknown; height?: unknown }>(children) &&
     children.type !== Fragment &&
     !(children.type === "img" && children.props.width !== children.props.height) &&
+    !elementHasText(children) &&
     Boolean(named["aria-label"] || named["aria-labelledby"]);
   // Stryker disable next-line ConditionalExpression: the glass height variable is read only by the glass look, so setting it on another variant's small size changes nothing.
   const classes = cn(base, iconChildClass, sizes[size], iconOnly && iconOnlyClass, looks[variant][tone], variant === "glass" && size === "sm" && "[--ouro-glass-h:calc(var(--spacing)*9)]", fullWidth && "w-full", className);

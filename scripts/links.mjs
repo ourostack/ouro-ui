@@ -5,8 +5,8 @@
 //   node scripts/links.mjs            checks the sources
 //   node scripts/links.mjs site/dist  checks the built site too (after pnpm site:build)
 //
-// The sources: README.md, UPGRADING.md, AGENTS.md, site/public/llms.txt, docs/**/*.md, contributing/*.md and
-// every registry item's install message.
+// The sources: README.md, UPGRADING.md, AGENTS.md, site/public/llms.txt, docs/**/*.md, contributing/*.md,
+// changes/*.md (the next release's notes) and every registry item's install message.
 // - A relative link names a tracked file, in the same letter case, and its #fragment a
 //   heading of that file.
 // - A https://ui.ouroboros.bot/ URL names a page the site publishes: a registry
@@ -67,7 +67,8 @@ export function links(text) {
   text.split("\n").forEach((line, index) => {
     if (line.startsWith("```")) inCode = !inCode;
     if (inCode) return;
-    const prose = line.replace(/`[^`]*`/g, (code) => (code.includes(SITE) ? code : ""));
+    // A link with a title is a claim (docs/guides/claims.md), whose source the claims check reads; its title may quote a link.
+    const prose = line.replace(/`[^`]*`/g, (code) => (code.includes(SITE) ? code : "")).replace(/\]\(([^)\s]+) "[^"]*"\)/g, (_, target) => (target.startsWith(SITE) ? `](${target})` : "]"));
     for (const match of prose.matchAll(/\]\(([^)\s]+)\)/g)) out.push({ target: match[1], line: index + 1 });
     for (const match of prose.matchAll(/https:\/\/ui\.ouroboros\.bot\/[^\s)"'`<>,;]*/g)) {
       const target = match[0].replace(/[.:]+$/, "");
@@ -113,7 +114,7 @@ function markdownFiles(root, dir) {
 /** Dead links in the sources, as "file:line: problem". */
 export function sourceProblems(root = repo) {
   const published = publishedPaths(root);
-  const files = ["README.md", "UPGRADING.md", "AGENTS.md", "site/public/llms.txt", ...markdownFiles(root, "docs"), ...markdownFiles(root, "contributing")].filter((file) => existsSync(join(root, file)));
+  const files = ["README.md", "UPGRADING.md", "AGENTS.md", "site/public/llms.txt", ...markdownFiles(root, "docs"), ...markdownFiles(root, "contributing"), ...markdownFiles(root, "changes")].filter((file) => existsSync(join(root, file)));
   const problems = [];
   for (const file of files) {
     const text = readFileSync(join(root, file), "utf8");
@@ -126,7 +127,8 @@ export function sourceProblems(root = repo) {
         continue; // another site
       } else {
         const [path, fragment] = target.split("#");
-        const to = path === "" ? file : normalize(join(dirname(file), path)).split(sep).join("/");
+        // A change fragment's links are written from the repository root, as the release notes read them.
+        const to = path === "" ? file : normalize(join(file.startsWith("changes/") ? "" : dirname(file), path)).split(sep).join("/");
         if (to.startsWith("..")) problems.push(`${at}: ${target} leaves the repository`);
         else if (!existsExactly(root, to)) {
           problems.push(`${at}: ${target} names no file${existsSync(join(root, to)) ? " in that letter case" : ""} (${to})`);

@@ -16,6 +16,7 @@ expectTypeOf<{
   locale: "de-DE";
   now: Date;
   workingHours: { start: 8.5; end: 17 };
+  hourHeight: 5;
   selectedId: null;
   onEventSelect: (event: TimeGridEvent) => void;
   onSlotSelect: (slot: TimeGridSlot) => void;

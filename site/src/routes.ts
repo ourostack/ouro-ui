@@ -1,6 +1,7 @@
 import { claim } from "@/registry/ouro/lib/ouro/claims";
 import { docsItems } from "./docs/items";
 import pageIndex from "./docs/page-index.json";
+import pages from "./docs/pages.json";
 import { VOYAGE_HERO } from "./copy";
 import { latestRelease } from "./latest-release";
 import { normalizePath } from "./paths";
@@ -19,12 +20,18 @@ export interface Route {
 /**
  * Addresses agents guess, sent on to the page they meant. Each docs page also answers at its export's own name
  * (`/docs/A2UISurface/` for `/docs/a2ui-surface/`), except where the two differ only in letter case, which a
- * case-insensitive file system would write over. The aliases are the names agents tried in the model reviews.
+ * case-insensitive file system would write over, and a page from a folder of docs/ at its file's path
+ * (`/docs/guides/claims/` for `/docs/claims/`). The aliases are the names agents tried in the model reviews.
  */
 export const guessedAddresses: Array<{ from: string; to: string; note?: string }> = [
   ...[...docsItems.map(({ name, title }) => ({ name, title })), ...pageIndex.filter((page) => page.kind === "export")]
     .filter(({ name, title }) => /^[A-Za-z][A-Za-z0-9]*$/.test(title) && title.toLowerCase() !== name.toLowerCase())
     .map(({ name, title }) => ({ from: `/docs/${title}/`, to: `/docs/${name}/` })),
+  // A page from a folder of docs/ (docs/guides/claims.md) also answers at its folder's path, the address its file's path suggests.
+  ...pages
+    .map(({ name, markdown }) => ({ name, path: markdown.replace(/^docs\//, "").replace(/\.md$/, "") }))
+    .filter(({ name, path }) => path.includes("/") && path !== name)
+    .map(({ name, path }) => ({ from: `/docs/${path}/`, to: `/docs/${name}/` })),
   { from: "/docs/ouro-ax/", to: "/docs/ax/" },
   { from: "/docs/ax-overview/", to: "/docs/ax/" },
   { from: "/docs/ouro-hx/", to: "/docs/" },
