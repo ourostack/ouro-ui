@@ -60,10 +60,17 @@ export async function scanStoryViolations(id: string, Story: ComponentType): Pro
     for (const finding of findings) violations.push({ phase, rule: finding.undecided ? `undecided ${finding.rule}` : finding.rule, target: finding.target });
   };
   record("closed", await scan());
+  await visitStoryOverlays(id, host, async (phase, passing) => {
+    record(phase, [...(await scan()), ...(passing ? [] : tintsOverLivePage())]);
+  });
+  return { violations, text: found.join("\n\n"), phases };
+}
+
+/** Visits each open overlay a story exposes, including hover- and keyboard-opened popups. */
+export async function visitStoryOverlays(id: string, host: HTMLElement, visit: (phase: string, passing: boolean) => Promise<void>): Promise<void> {
   for (const opener of overlayOpeners(id, host)) {
-    const popup = await openOverlay(opener);
-    void popup;
-    record(`with "${opener.name}" open`, [...(await scan()), ...tintsOverLivePage()]);
+    await openOverlay(opener);
+    await visit(`with "${opener.name}" open`, false);
     await closeOverlay();
   }
   // Found afresh after each one closes: a trigger that mounts only while its row is hovered or focused
@@ -75,14 +82,13 @@ export async function scanStoryViolations(id: string, Story: ComponentType): Pro
       if (!opener.popup()) throw new Error(`${opener.name} opened nothing`);
     }, waitOptions);
     await settle();
-    record(`with ${opener.name} open`, await scan());
+    await visit(`with ${opener.name} open`, true);
     await opener.close();
     await vi.waitFor(() => {
       if (opener.popup()) throw new Error(`${opener.name} did not close`);
     }, waitOptions);
     await settle();
   }
-  return { violations, text: found.join("\n\n"), phases };
 }
 
 /**
