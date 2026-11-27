@@ -2,7 +2,7 @@ import { useState, type ReactNode, type SVGProps } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -90,6 +90,22 @@ describe("Alert", () => {
     expect(new Set(looks).size).toBe(tones.length);
   });
 
+  it("uses a surface instead of a border, and keeps an edge in forced colours", async () => {
+    const tones = ["primary", "secondary", "destructive", "success", "warning"] as const;
+    const { host } = await render(<>{tones.map((tone) => <Alert key={tone} tone={tone} title={tone} />)}</>);
+    const alerts = [...host.querySelectorAll<HTMLElement>('[data-ouro="alert"]')];
+    for (const alert of alerts) expect(getComputedStyle(alert).borderTopWidth).toBe("0px");
+    try {
+      await commands.emulateMedia({ forcedColors: "active" });
+      for (const alert of alerts) {
+        expect(getComputedStyle(alert).outlineStyle).toBe("solid");
+        expect(parseFloat(getComputedStyle(alert).outlineWidth)).toBeGreaterThanOrEqual(1);
+      }
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("renders an action below the description", async () => {
     const retry = vi.fn();
     const { alert } = await render(
@@ -160,8 +176,8 @@ describe("Alert", () => {
     const wrapped = narrow.alert.querySelector("[data-ouro-alert-action] button")!.getBoundingClientRect();
     expect(wrapped.top - narrowTitle.getBoundingClientRect().bottom).toBeCloseTo(12, 0);
     const last = [...narrow.alert.querySelectorAll("[data-ouro-alert-action] button")].at(-1)!.getBoundingClientRect();
-    // 16px of padding and the 1px border under the last button, as without the overhang.
-    expect(narrow.alert.getBoundingClientRect().bottom - last.bottom).toBeCloseTo(17, 0);
+    // The padding under the last button is the same as without the overhang.
+    expect(narrow.alert.getBoundingClientRect().bottom - last.bottom).toBeCloseTo(16, 0);
   });
 
   it("lets an action beside its title shrink, so a row of buttons in it scrolls inside the alert", async () => {
