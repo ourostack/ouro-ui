@@ -27,6 +27,7 @@ import type { MessageActionBar, MessageBarData } from "@/registry/ouro/component
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { RowLayerContext } from "@/registry/ouro/lib/ouro/row-hover";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
@@ -84,7 +85,15 @@ export interface MessageQuote {
   /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ana" src={url} alt="" size="xs" />`. */
   avatar?: ReactElement | undefined;
   /**
-   * Makes the quote a button that shows the quoted message, as by scrolling to it. In a `MessageList`, which may not
+   * Where the whole quote goes. With `onActivate`, an ordinary click or Enter opens it in place;
+   * modifier and middle clicks keep the browser's link navigation. Without `onActivate`, it navigates normally.
+   * @claim "With `onActivate`, an ordinary click or Enter" registry/ouro/components/ouro/message/message.quote-link.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.quote-link.test.tsx::Message quote link > opens the whole quote in place on click and Enter, with its author, custom day and control markers)
+   * @claim "modifier and middle clicks keep" registry/ouro/components/ouro/message/message.quote-link.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.quote-link.test.tsx::Message quote link > leaves modifier and middle clicks to the browser and intercepts only an ordinary click)
+   * @claim "Without `onActivate`, it navigates normally." registry/ouro/components/ouro/message/message.quote-link.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.quote-link.test.tsx::Message quote link > leaves navigation unprevented when href has no callback)
+   */
+  href?: string | undefined;
+  /**
+   * Shows the quoted message, as by scrolling to it. Without `href`, makes the quote a button. In a `MessageList`, which may not
    * have drawn a message far up a long conversation, call its `actionsRef.current.reveal(id, { focus: true })`.
    */
   onActivate?: (() => void) | undefined;
@@ -97,7 +106,8 @@ export interface MessageQuote {
   atText?: string | undefined;
   /**
    * A line above the quote, such as "Replied in thread: " and a `Link` or `Button` with the thread's title. It
-   * is outside the quote, so the link is its own control even when the quote has `onActivate`.
+   * is outside the quote, so the link is its own control even when the quote has `href` or `onActivate`.
+   * @claim "is outside the quote, so the link" registry/ouro/components/ouro/message/message.quote-link.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.quote-link.test.tsx::Message quote link > keeps a linked thread context outside the linked quote and preserves a custom accessible label)
    */
   context?: ReactNode | undefined;
   /** What screen readers hear in place of "Reply to" and the author's name, before the excerpt. @default `Reply to ${author}, ${day}` */
@@ -1270,7 +1280,25 @@ function quoteBox(quote: MessageQuote, primaryBubble: boolean): JSX.Element {
   // With no context line the quote stands alone, so a message with a quote draws no wrapper for it.
   const alone = !quote.context;
   const own = alone ? { className: "mb-2", style: primaryBubble ? onPrimary : undefined } : {};
-  const box = quote.onActivate ? (
+  const box = quote.href !== undefined ? (
+    <RouterLink
+      href={quote.href}
+      data-ouro-control="message"
+      data-ouro-part="quote-link"
+      data-ouro-message-quote=""
+      data-ouro-allow="nested-frame"
+      data-ouro-allow-why={why}
+      onClick={quote.onActivate && ((event) => {
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        quote.onActivate!();
+      })}
+      className={cn(quoteClass, quoteButtonClass, "no-underline pointer-coarse:min-h-ouro-11", own.className)}
+      style={own.style}
+    >
+      {body}
+    </RouterLink>
+  ) : quote.onActivate ? (
     <button type="button" data-ouro-control="message" data-ouro-part="quote" data-ouro-message-quote="" data-ouro-allow="nested-frame" data-ouro-allow-why={why} onClick={quote.onActivate} className={cn(quoteClass, quoteButtonClass, own.className)} style={own.style}>
       {body}
     </button>
@@ -1282,7 +1310,7 @@ function quoteBox(quote: MessageQuote, primaryBubble: boolean): JSX.Element {
   if (alone) return box;
   return (
     <div data-slot="message-quote-group" data-ouro-message-quote-group="" className="mb-2 flex min-w-0 flex-col gap-1" style={primaryBubble ? onPrimary : undefined}>
-      <div data-slot="message-quote-context" data-ouro-message-quote-context="" className="min-w-0 truncate text-xs text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
+      <div data-slot="message-quote-context" data-ouro-message-quote-context="" className="min-w-0 truncate text-xs leading-5 text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
         {quote.context}
       </div>
       {box}

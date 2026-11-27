@@ -1,5 +1,6 @@
 import { type JSX } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
+import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 
 // The live demo at the top of docs/message/: the component as an app would use it, with its props, nothing else.
@@ -13,10 +14,10 @@ export default function MessageDemo(): JSX.Element {
       <Message role="assistant" name="Ouro">
         About an hour, covered, somewhere warm. It is ready when it has doubled.
       </Message>
-      <Message variant="chat" role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="9:41 AM" actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]} menu={[{ label: "Copy text", onClick: () => {} }]}>
+      <Message id="friday-setup" variant="chat" role="assistant" name="Mara Quill" presence="available" presenceLabel="Available" time="9:41 AM" actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]} menu={[{ label: "Copy text", onClick: () => {} }]}>
         The venue confirmed the long table for Friday.
       </Message>
-      <Message variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" continued>
+      <Message id="cord-request" tabIndex={-1} variant="chat" role="assistant" name="Mara Quill" time="9:41 AM" dateTime="2026-11-27T09:41:00Z" continued>
         Can someone bring the extension cord?
       </Message>
       <Message variant="chat" role="assistant" name="Halden" nameTag="AI agent" avatar={<Avatar name="Halden" alt="" size="sm" shape="agent" />} time="9:44 AM">
@@ -27,7 +28,19 @@ export default function MessageDemo(): JSX.Element {
         role="user"
         name="Priya Okafor"
         time="9:45 AM"
-        quote={{ author: "Mara Quill", excerpt: "Can someone bring the extension cord?" }}
+        quote={{
+          author: "Mara Quill",
+          excerpt: "Can someone bring the extension cord?",
+          at: "2026-11-27T09:41:00Z",
+          atText: "Today",
+          href: "#cord-request",
+          onActivate: () => {
+            const target = document.getElementById("cord-request");
+            target?.scrollIntoView({ behavior: "instant", block: "nearest" });
+            target?.focus({ preventScroll: true });
+          },
+          context: <>Replied in thread: <Link href="#friday-setup" inline tone="secondary">Friday setup</Link></>,
+        }}
         footer={<span className="text-xs text-muted-foreground">Seen</span>}
       >
         I will bring it.
