@@ -2065,6 +2065,20 @@ const box = (element: Element) => element.getBoundingClientRect();
 
 
 describe("Message actions", () => {
+  // The bar beside the bubble sits level with its top, so a one-line bubble's row keeps the bar's height (#3617); a
+  // row with no bar keeps no such room.
+  it("keeps a row beside the bubble as tall as its action bar, and a row with no bar as tall as what it holds", async () => {
+    const rowOf = (message: HTMLElement) => message.querySelector<HTMLElement>("[data-ouro-message-body] > .box-border")!;
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" actionsPlacement="beside" actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
+        Hi
+      </Message>,
+    );
+    expect(Number.parseFloat(getComputedStyle(rowOf(message)).minHeight)).toBeGreaterThanOrEqual(36);
+    const { message: bare } = await render(<Message variant="chat" role="assistant" name="Mara Quill" actionsPlacement="beside" attachments={<Attachment name="menu.pdf" />} />);
+    expect(getComputedStyle(rowOf(bare)).minHeight).toMatch(/^(0px|auto)$/);
+  });
+
   it("names each action, runs it, and shows its label in a tooltip", async () => {
     const log: string[] = [];
     const { message } = await render(
