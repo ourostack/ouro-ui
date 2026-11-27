@@ -104,7 +104,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     context.drawImage(image, 0, 0);
     return { width: canvas.width, height: canvas.height, data: context.getImageData(0, 0, canvas.width, canvas.height).data };
   };
-  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[]) => {
+  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean) => {
     const [a, b, c, own] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null]);
     if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height))) {
       throw new Error("squircle-paint screenshots changed size during measurement");
@@ -136,11 +136,13 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const index = (y * a.width + x) * 4;
           const px = clip.x + (x + 0.5) * clip.width / a.width;
           const py = clip.y + (y + 0.5) * clip.height / a.height;
-          const outsideCorner = px < rect.left || px >= rect.right || py < rect.top || py >= rect.bottom;
+          const outsideX = px < rect.left || px >= rect.right;
+          const outsideY = py < rect.top || py >= rect.bottom;
+          const outsideCorner = outsideX || outsideY;
           const delta = difference(a.data, outsideCorner ? c.data : b.data, index);
           const behind = difference(b.data, c.data, index);
           if (delta < 2 || (!outsideCorner && behind > 4)) continue;
-          if (own && difference(a.data, own.data, index) < 2) continue;
+          if (own && (native || (outsideCorner && !(outsideX && outsideY))) && difference(a.data, own.data, index) < 2) continue;
           if (outsideCorner && difference(a.data, b.data, index) > 4) continue;
           if (!outsideCorner) {
             let edge = false;
@@ -185,7 +187,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     const bounds = el.getBoundingClientRect();
     const style = getComputedStyle(el);
     const transform = style.transform;
-    const ownEffects = initial.native && (style.boxShadow !== "none" || style.outlineStyle !== "none");
+    const ownEffects = style.boxShadow !== "none" || style.outlineStyle !== "none";
     const scaleX = bounds.width / initial.width;
     const scaleY = bounds.height / initial.height;
     const siblings = [...el.parentElement!.children].filter((other): other is HTMLElement => {
@@ -264,7 +266,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           }
           let solo: string | null = null;
           if (ownEffects) {
-            // Compare against the native surface alone, so its shaped shadow or outline is not mistaken for another layer's paint.
+            // Compare with the surface alone to separate its own shadow or outline from another layer's paint.
             const attribute = "data-ouro-paint-solo";
             const previous = el.getAttribute(attribute);
             counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
@@ -283,7 +285,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               for (const layer of active.slice(1)) restore(layer.el, "opacity", layer.saved.get("opacity")!);
             }
           }
-          if (await differences(actual, masked, hidden, solo, clip, r, initial.width, initial.height, initial.corners)) { found = true; break; }
+          if (await differences(actual, masked, hidden, solo, clip, r, initial.width, initial.height, initial.corners, initial.native)) { found = true; break; }
         }
         if (found) break;
       }
