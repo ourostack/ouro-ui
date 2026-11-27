@@ -451,6 +451,22 @@ describe("findDesignIssues: cut-off-edge", () => {
     expect(of("cut-off-edge")).toEqual([]);
   });
 
+  it("finds a cut-off edge under an opaque gradient or an opaque mask", () => {
+    render(`
+      <div style="position:relative;width:340px;height:120px;background:#eee">
+        <div id="overlay-list" style="width:320px;height:80px;overflow:auto;background:#eee">
+          <div style="height:60px">First</div><div style="height:60px">Second</div>
+        </div>
+        <div style="position:absolute;top:60px;left:0;width:320px;height:20px;pointer-events:none;background:linear-gradient(#eee,#eee)"></div>
+      </div>
+      <div style="width:340px;height:120px;background:#eee">
+        <div id="masked-list" style="width:320px;height:80px;overflow:auto;background:#eee;mask-image:linear-gradient(#000,#000)">
+          <div style="height:60px">First</div><div style="height:60px">Second</div>
+        </div>
+      </div>`);
+    expect(of("cut-off-edge").map((issue) => issue.element)).toEqual(["div#overlay-list", "div#masked-list"]);
+  });
+
   it("passes an outline or an enclosing border at the clipped edge", () => {
     render(`
       <div style="width:340px;height:120px;background:#eee">
