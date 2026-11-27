@@ -216,6 +216,34 @@ describe("ThreadRail Escape", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it.each(["true", "plaintext-only"])("leaves Escape in a descendant of a %s editor to the editor", async (editable) => {
+    const onClose = vi.fn();
+    const { rail } = await render(
+      <ThreadRail label="Thread" onClose={onClose}>
+        <div contentEditable={editable === "true" ? true : "plaintext-only"} suppressContentEditableWarning>
+          <span tabIndex={0} data-editor-text="">Draft reply</span>
+        </div>
+      </ThreadRail>,
+    );
+    rail.querySelector<HTMLElement>("[data-editor-text]")!.focus();
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("closes from noneditable content inside an editor unless the content handles Escape", async () => {
+    const onClose = vi.fn();
+    const { rail } = await render(
+      <ThreadRail label="Thread" onClose={onClose}>
+        <div contentEditable suppressContentEditableWarning>
+          <span contentEditable={false} tabIndex={0} data-editor-attachment="">Attached sketch</span>
+        </div>
+      </ThreadRail>,
+    );
+    rail.querySelector<HTMLElement>("[data-editor-attachment]")!.focus();
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it("does not close on Escape from a menu drawn in a portal outside the rail", async () => {
     const onClose = vi.fn();
     const { rail } = await render(

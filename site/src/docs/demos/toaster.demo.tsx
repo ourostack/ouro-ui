@@ -6,7 +6,7 @@ import { toast } from "@/registry/ouro/lib/ouro/toast";
 // The live demo at the top of docs/toaster/: the component as an app would use it, with its props, nothing else.
 
 export default function ToasterDemo(): JSX.Element {
-  const [clearance, setClearance] = useState(false);
+  const [top, setTop] = useState(true);
   return (
     <div className="flex flex-wrap items-center justify-center gap-3">
       <Button onClick={() => toast("Recipe saved", { tone: "success", description: "Find it in your cookbook." })}>Save recipe</Button>
@@ -19,15 +19,14 @@ export default function ToasterDemo(): JSX.Element {
       </Button>
       <Button
         variant="soft"
-        aria-pressed={clearance}
+        aria-pressed={top}
         onClick={() => {
-          setClearance(!clearance);
-          toast("Viewport clearance updated", { tone: "success" });
+          setTop(!top);
         }}
       >
-        Extra bottom clearance
+        Hang from the top
       </Button>
-      <Toaster className={clearance ? "bottom-[calc(5rem+max(1rem,env(safe-area-inset-bottom)))]" : undefined} />
+      <Toaster className={top ? "top-20 bottom-auto" : undefined} />
     </div>
   );
 }
