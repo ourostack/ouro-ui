@@ -192,6 +192,27 @@ describe("Popover", () => {
     await expect.poll(() => popup()).toBeNull();
   });
 
+  it("keeps Tab and Shift+Tab inside a modal popover, past its last and first control", async () => {
+    const element = await openUncontrolled();
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Link");
+    for (let press = 0; press < 6; press++) {
+      await pressTab();
+      await expect.poll(() => element.contains(document.activeElement) && !document.activeElement?.hasAttribute("data-type")).toBe(true);
+    }
+    for (let press = 0; press < 6; press++) {
+      await pressTab({ shift: true });
+      await expect.poll(() => element.contains(document.activeElement) && !document.activeElement?.hasAttribute("data-type")).toBe(true);
+    }
+  });
+
+  it("marks a modal popover with data-ouro-modal", async () => {
+    expect((await openUncontrolled()).getAttribute("data-ouro-modal")).toBe("");
+  });
+
+  it("leaves a popover that is not modal without data-ouro-modal", async () => {
+    expect((await openUncontrolled({ modal: false })).hasAttribute("data-ouro-modal")).toBe(false);
+  });
+
   it("labels the close button Close by default", async () => {
     const element = await openUncontrolled();
     expect(element.querySelector("[data-ouro-popover-close]")!.textContent).toBe("Close");

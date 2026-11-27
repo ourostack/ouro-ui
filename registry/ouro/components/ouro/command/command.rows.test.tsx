@@ -83,4 +83,23 @@ describe("Command rows", () => {
       }
     }
   });
+
+  it("ends the list on a whole row in layout terms when an ancestor is scaled, as under a dialog's entrance", async () => {
+    await page.viewport(1280, 800);
+    document.body.style.transform = "scale(0.96)";
+    document.body.style.transformOrigin = "0 0";
+    try {
+      await show(40, false);
+      const box = listbox();
+      await expect.poll(() => box.style.maxHeight).not.toBe("");
+      const scale = box.getBoundingClientRect().height / box.offsetHeight;
+      expect(scale).toBeLessThan(0.99);
+      const end = parseFloat(getComputedStyle(box).paddingBottom);
+      const bottoms = edges().map((edge) => (edge.getBoundingClientRect().bottom - box.getBoundingClientRect().top) / scale + box.scrollTop + end);
+      expect(Math.max(...bottoms.filter((value) => value <= box.clientHeight + 0.5))).toBeCloseTo(box.clientHeight, 0);
+    } finally {
+      document.body.style.transform = "";
+      document.body.style.transformOrigin = "";
+    }
+  });
 });

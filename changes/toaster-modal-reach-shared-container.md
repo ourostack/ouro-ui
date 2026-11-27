@@ -1,0 +1,1 @@
+- Fixed: a toast's Undo is reachable by Tab from a modal Popover even when the app and the popup share one container, and a modal Popover marks itself with `data-ouro-modal`.
