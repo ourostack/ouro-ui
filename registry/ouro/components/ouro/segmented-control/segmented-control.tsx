@@ -142,11 +142,12 @@ function Segment(props: {
     >
       <TouchTarget />
       {item.icon !== undefined && (
-        <span aria-hidden="true" data-slot="segmented-control-icon" className={iconClass}>
+        <span aria-hidden="true" data-slot="segmented-control-icon" className={cn(iconClass, glass && !selected && "me-0")}>
           {item.icon}
         </span>
       )}
-      <span data-slot="segmented-control-label" className={cn("relative min-w-0 truncate", glass && !selected && item.icon !== undefined && "sr-only")}>{item.label}</span>
+      {/* sr-only alone: beside relative, which sets position too, the hidden label could stay in the row and push the icon aside. */}
+      <span data-slot="segmented-control-label" className={glass && !selected && item.icon !== undefined ? "sr-only" : "relative min-w-0 truncate"}>{item.label}</span>
       {item.count !== undefined && (glass ? selected : true) && (
         <span data-slot="segmented-control-count" className={countClass}>
           {item.count}
