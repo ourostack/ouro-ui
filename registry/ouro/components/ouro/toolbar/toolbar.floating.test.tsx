@@ -105,32 +105,28 @@ afterAll(async () => {
 });
 
 describe("Toolbar floating", () => {
-  it("uses item tones for pressed toggles and state-named buttons, in either theme", async () => {
-    const { toolbar, rerender } = await render(<Toolbar label="Call controls" floating items={[]} />);
+  it.each(["light", "dark"])("uses item tones for pressed toggles and state-named buttons, in %s", async (theme) => {
     const root = document.documentElement;
     const wasDark = root.classList.contains("dark");
     try {
-      for (const dark of [false, true]) {
-        root.classList.toggle("dark", dark);
-        const items: ToolbarEntry[] = [
-          { type: "toggle", label: "Mute", tone: "inverse", pressed: true },
-          { type: "toggle", label: "Share", tone: "primary", pressed: true },
-          { label: "Unmute microphone", tone: "inverse" },
-          { type: "separator" },
-          { label: "Leave", tone: "destructive" },
-        ];
-        await rerender(<Toolbar label="Call controls" floating items={items} />);
-        const buttons = toolbar.querySelectorAll("button");
-        for (const [index, background, foreground] of [[0, "--foreground", "--background"], [1, "--primary", "--primary-foreground"], [2, "--foreground", "--background"], [3, "--destructive", "--destructive-foreground"]] as const) {
-          expect(getComputedStyle(buttons[index]!).backgroundColor).toBe(computedBackground(`var(${background})`));
-          expect(getComputedStyle(buttons[index]!).color).toBe(computedBackground(`var(${foreground})`));
-        }
-        expect(buttons[0]!.getAttribute("aria-pressed")).toBe("true");
-        expect(buttons[2]!.hasAttribute("aria-pressed")).toBe(false);
-        expect(buttons[3]!.previousElementSibling?.getAttribute("role")).toBe("separator");
-        await rerender(<Toolbar label="Call controls" floating items={[{ type: "toggle", label: "Mute", tone: "inverse", pressed: false }]} />);
-        expect(getComputedStyle(toolbar.querySelector("button")!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+      root.classList.toggle("dark", theme === "dark");
+      const { toolbar, rerender } = await render(<Toolbar label="Call controls" floating items={[
+        { type: "toggle", label: "Mute", tone: "inverse", pressed: true },
+        { type: "toggle", label: "Share", tone: "primary", pressed: true },
+        { label: "Unmute microphone", tone: "inverse" },
+        { type: "separator" },
+        { label: "Leave", tone: "destructive" },
+      ]} />);
+      const buttons = toolbar.querySelectorAll("button");
+      for (const [index, background, foreground] of [[0, "--foreground", "--background"], [1, "--primary", "--primary-foreground"], [2, "--foreground", "--background"], [3, "--destructive", "--destructive-foreground"]] as const) {
+        expect(getComputedStyle(buttons[index]!).backgroundColor).toBe(computedBackground(`var(${background})`));
+        expect(getComputedStyle(buttons[index]!).color).toBe(computedBackground(`var(${foreground})`));
       }
+      expect(buttons[0]!.getAttribute("aria-pressed")).toBe("true");
+      expect(buttons[2]!.hasAttribute("aria-pressed")).toBe(false);
+      expect(buttons[3]!.previousElementSibling?.getAttribute("role")).toBe("separator");
+      await rerender(<Toolbar label="Call controls" floating items={[{ type: "toggle", label: "Mute", tone: "inverse", pressed: false }]} />);
+      expect(getComputedStyle(toolbar.querySelector("button")!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
     } finally {
       root.classList.toggle("dark", wasDark);
     }

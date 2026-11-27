@@ -35,7 +35,7 @@ interface ToolbarControlEntry {
    * For a toggle, the fill applies only while pressed; keep its label unchanged. For a button
    * whose label names the next action, change its label and tone together instead of adding a pressed state.
    * @default "secondary"
-   * @claim "For a toggle, the fill applies only while pressed" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar floating > uses item tones for pressed toggles and state-named buttons, in either theme)
+   * @claim "For a toggle, the fill applies only while pressed" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar floating > uses item tones for pressed toggles and state-named buttons, in %s)
    */
   tone?: "secondary" | "inverse" | "primary" | "destructive" | (string & { 'brand is "primary"; use "secondary", "inverse", "primary" or "destructive"': never }) | undefined;
   /** Icon before the label, or alone with `hideLabel`. Pass the component: `icon: BoldIcon`. */
