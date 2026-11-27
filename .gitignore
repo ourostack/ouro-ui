@@ -30,3 +30,4 @@ test/generated/
 /site/src/docs/sources.json
 /site/src/docs/pages.json
 /site/src/docs/page-index.json
+.scratch/
