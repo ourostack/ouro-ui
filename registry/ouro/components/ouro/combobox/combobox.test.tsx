@@ -1357,7 +1357,7 @@ describe("Combobox keys", () => {
     const searched = vi.fn();
     const props = { label: "To", multiple: true, autoHighlight: true, onValueChange: changed, onInputChange: searched } as const;
     const { input, host, rerender } = await render(<Combobox {...props} defaultValue={["Basil"]} items={herbs} resultsFor="" />);
-    await userEvent.click(input);
+    await act(async () => input.focus());
     await userEvent.type(input, "thy");
     await userEvent.keyboard("{Enter}{Enter}");
     expect(changed).not.toHaveBeenCalled();
@@ -1381,7 +1381,7 @@ describe("Combobox keys", () => {
       <Combobox label="To" multiple autoHighlight defaultValue={["Basil"]} items={["Basil", "Thyme"]}
         onInputChange={() => {}} resultsFor="thy" onValueChange={changed} />,
     );
-    await userEvent.click(input);
+    await act(async () => input.focus());
     await userEvent.type(input, "thy");
     await expect.poll(options).toEqual(["Thyme"]);
     await userEvent.keyboard("{Enter}");
@@ -1393,7 +1393,7 @@ describe("Combobox keys", () => {
   it("hides stale and incomplete answers even without automatic highlighting", async () => {
     const props = { label: "To", multiple: true, onInputChange: vi.fn() } as const;
     const { input, rerender } = await render(<Combobox {...props} items={["Basil"]} resultsFor="" />);
-    await userEvent.click(input);
+    await act(async () => input.focus());
     await userEvent.type(input, "thy");
     await expect.poll(options).toEqual([]);
     await rerender(<Combobox {...props} items={["Thyme"]} resultsFor="thy" loading />);
