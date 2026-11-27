@@ -17,10 +17,29 @@ test("toolbar item tones separate different looks and keep matching tones compar
       `<button data-ouro="button" data-ouro-control="toolbar" data-ouro-part="button" data-tone="secondary" data-variant="plain"${tone ? ` data-ouro-toolbar-tone="${tone}"` : ""} style="width:40px;height:40px"></button>`
     ).join("")}</main>`;
   });
+
   const { looks } = await page.evaluate(describe, { selector: LOOK_SELECTOR });
   expect(looks).toHaveLength(5);
   expect(looks[0]!.key).toBe(looks[1]!.key);
   expect(new Set(looks.map((look) => look.key)).size).toBe(4);
+});
+
+test("a picture container's appearance excludes icons owned by the component inside it", async ({ page }) => {
+  await page.goto("./docs/");
+  await page.evaluate(() => {
+    document.body.innerHTML = `<main>${[14, 18].map((size) =>
+      `<div data-ouro="snap-pip" data-ouro-control="snap-pip" data-ouro-part="pip" style="width:160px;height:100px"><div data-ouro="media-tile">Person<svg style="width:${size}px;height:${size}px"></svg></div></div>`
+    ).join("")}</main>`;
+  });
+  const { looks } = await page.evaluate(describe, { selector: '[data-ouro="snap-pip"]' });
+  expect(looks).toHaveLength(2);
+  expect(looks[0]!.key).toBe(looks[1]!.key);
+  expect(looks[0]!.sig).toBe(looks[1]!.sig);
+  await page.evaluate(() => {
+    for (const tile of document.querySelectorAll('[data-ouro="media-tile"]')) tile.removeAttribute("data-ouro");
+  });
+  const own = (await page.evaluate(describe, { selector: '[data-ouro="snap-pip"]' })).looks;
+  expect(own[0]!.sig).not.toBe(own[1]!.sig);
 });
 
 test("a control that an island pushes down the document after the inventory keeps its look, hover and picture", async ({ page }) => {

@@ -1,16 +1,15 @@
+import { Suspense } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { cleanupPage, renderFixture } from "../../test/render";
-import ToolbarDemo from "./demos/toolbar.demo";
-import MediaTileDemo from "./demos/media-tile.demo";
-import SnapPiPDemo from "./demos/snap-pip.demo";
+import { pageDemos } from "./demos";
 
 afterEach(cleanupPage);
 
-describe.each([["Toolbar", ToolbarDemo], ["MediaTile", MediaTileDemo], ["SnapPiP", SnapPiPDemo]] as const)("%s call surface", (_name, Demo) => {
+describe.each([["Toolbar", pageDemos.toolbar!], ["MediaTile", pageDemos["media-tile"]!], ["SnapPiP", pageDemos["snap-pip"]!]] as const)("%s call surface", (_name, Demo) => {
   it("uses Ouro parts for the call and operates the camera, microphone and leave action", async () => {
-    const host = await renderFixture(<Demo />);
-    expect(host.querySelectorAll('[data-ouro="media-tile"]').length).toBe(6);
+    const host = await renderFixture(<Suspense fallback={null}><Demo /></Suspense>);
+    await expect.poll(() => host.querySelectorAll('[data-ouro="media-tile"]').length).toBe(6);
     expect(host.querySelector('[data-ouro="snap-pip"]')).not.toBeNull();
     const mute = page.getByRole("button", { name: "Unmute microphone", exact: true });
     await expect.element(mute).not.toHaveAttribute("aria-pressed");
@@ -31,7 +30,8 @@ describe.each([["Toolbar", ToolbarDemo], ["MediaTile", MediaTileDemo], ["SnapPiP
       try {
         for (const width of [390, 1280]) {
           await page.viewport(width, 900);
-          const host = await renderFixture(<Demo />);
+          const host = await renderFixture(<Suspense fallback={null}><Demo /></Suspense>);
+          await expect.poll(() => host.querySelectorAll('[data-ouro="media-tile"]').length).toBe(6);
           const pip = host.querySelector<HTMLElement>('[data-ouro="snap-pip"]')!;
           const safe = [...host.querySelectorAll<HTMLElement>('[data-source="camera"], [data-source="screen"] [data-ouro="text"], [data-ouro="toolbar"]')].filter((element) => !pip.contains(element));
           const clear = () => {

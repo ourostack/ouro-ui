@@ -9,3 +9,7 @@ const modules = import.meta.glob<{ default: () => JSX.Element }>("./demos/*.demo
 export const demos: Record<string, LazyExoticComponent<() => JSX.Element>> = Object.fromEntries(
   Object.entries(modules).map(([path, load]) => [path.replace(/^\.\/demos\/(.+)\.demo\.tsx$/, "$1"), lazy(load)]),
 );
+
+// Keep the index's tiny component pictures independent of the full call's JavaScript and layout.
+const callDemo = lazy(() => import("./call-surface").then(({ CallSurface }) => ({ default: CallSurface })));
+export const pageDemos: typeof demos = { ...demos, toolbar: callDemo, "media-tile": callDemo, "snap-pip": callDemo };
