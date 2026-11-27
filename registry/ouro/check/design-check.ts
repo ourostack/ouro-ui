@@ -427,12 +427,23 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       const inside = Math.min(drawn.right, o.right) - Math.max(drawn.left, o.left) > 1
         && Math.min(drawn.bottom, o.bottom) - Math.max(drawn.top, o.top) > 1;
       let lighter = false;
-      if (!hugs && inside && !inner.matches("button, input, select, textarea, [role=button]") && rgba(getComputedStyle(inner).backgroundColor)[3] > 0) {
+      if (!hugs && inside && !inner.matches("button, input, select, textarea, [role=button], [role=combobox]") && rgba(getComputedStyle(inner).backgroundColor)[3] > 0) {
         const [surface, behind] = [surfaceOf(inner), surfaceOf(inner.parentElement)];
         if (surface && behind && colourDistance(surface, behind) > 12 && hsl(surface).l > hsl(behind).l) {
           const editors = [...inner.querySelectorAll('textarea, select, input:not([type="hidden"]), [role="textbox"], [contenteditable="true"]')].filter((el) => visibleSet.has(el));
-          const editor = editors.length === 1 && !inner.querySelector("h1, h2, h3, h4, h5, h6, [role=heading]") ? editors[0]!.getBoundingClientRect() : null;
-          const fieldFrame = editor !== null && editor.width >= i.width / 2 && editor.height >= i.height * 0.35;
+          const noHeading = !inner.querySelector("h1, h2, h3, h4, h5, h6, [role=heading]");
+          const fillsField = editors.some((el) => {
+            const r = el.getBoundingClientRect();
+            return r.width >= i.width / 2 && r.height >= i.height * 0.35;
+          });
+          const chips = noHeading && editors.some((el) => el.matches('[role="combobox"]')) && getComputedStyle(inner).flexWrap !== "nowrap"
+            ? [...inner.querySelectorAll('button, [role="button"]')].filter((el) => visibleSet.has(el))
+            : [];
+          const boxes = chips.length ? [...editors, ...chips].map((el) => el.getBoundingClientRect()) : [];
+          const fillsChips = boxes.length > 0
+            && Math.max(...boxes.map((r) => r.right)) - Math.min(...boxes.map((r) => r.left)) >= i.width / 2
+            && Math.max(...boxes.map((r) => r.bottom)) - Math.min(...boxes.map((r) => r.top)) >= i.height * 0.35;
+          const fieldFrame = noHeading && (fillsField || fillsChips);
           lighter = !fieldFrame && sideNames.some((side) => visibleEdge(inner, side, surface));
         }
       }
