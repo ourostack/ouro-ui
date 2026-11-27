@@ -258,6 +258,8 @@ module.exports = { chromium: { launch: async (options) => {
     assert.equal(badConfig.code, 2);
     // A press setting JSON leaves unchecked: a string would read as its letters, and 0 presses would turn inp off.
     for (const [config, message] of [
+      [{ windowRadius: -1 }, /"windowRadius" takes the native window corner radius as a non-negative number of CSS pixels/],
+      [{ windowRadius: "32" }, /"windowRadius" takes the native window corner radius as a non-negative number of CSS pixels/],
       [{ press: "button" }, /"press" takes a list of CSS selectors/],
       [{ press: ["[role=tab]", " "] }, /"press" takes a list of CSS selectors/],
       [{ pressRepeat: 0 }, /"pressRepeat" takes a whole number of presses, 1 or more/],

@@ -21,6 +21,7 @@ import { findRepaints, listenForMotion, markWalkables, readMotion, resetMotion, 
 import { findOverlaps } from "./overlap-check.ts";
 import { globToRegExp, listPages, serve } from "./serve.ts";
 import { findSizeIssues, type ImageMeasure, type Measure, type PageIssue } from "./size-check.ts";
+import { findSquirclePaint, type PaintClip } from "./squircle-paint.ts";
 import { findTextIssues } from "./text-check.ts";
 import { findLayoutIssues } from "./layout-check.ts";
 import { findThemeIssues } from "./theme-check.ts";
@@ -278,6 +279,7 @@ const LABELS: Record<string, string> = {
   "cramped-heading": "cramped heading",
   "nested-frame": "frame in a frame",
   "corners-nest": "corners do not nest",
+  "squircle-paint": "paint outside a squircle",
   "doubled-line": "line drawn twice",
   "count-badge": "count badge out of place",
   "off-centre-text": "text off centre",
@@ -350,6 +352,7 @@ const HINTS: Record<string, string> = {
   "cramped-heading": "give the heading room: more space above it than between it and what follows",
   "nested-frame": "draw one frame: drop the inner border, or make the inner radius the outer one less the inset",
   "corners-nest": "make each inner corner a squircle with the outer radius less its inset",
+  "squircle-paint": "clip every painted layer to the squircle's corner curve",
   "doubled-line": "keep one line: drop the inner divider where a frame or another divider already separates, or give the two room apart",
   "off-centre-text": "even the padding above and below the words, or centre the row with align-items: center rather than end, and centre a line on its cap height (text-box: trim-both cap alphabetic) where the font sits it high or low",
   "off-centre-ink": "centre the control's content with flex and align-items: center, give the icon an even box, and draw a more or overflow control as an icon, never a typed \u2026, which rests on the text's baseline",
@@ -1122,7 +1125,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       // The rules that run at every page, size and theme below: overlap, size, image-fades, design, text, layout,
       // theme, interaction, decision, wrap, panel, first-run, dead-zones, dark-art and corners (15), plus the ones
       // that run only sometimes.
-      rulesRun = 15 + (measured ? 1 : 0) + (axe && axeAt.has(`${width}x${height}`) ? 1 : 0) + (inpAt === `${width}x${height} ${theme}` ? 2 : 0);
+      rulesRun = 17 + (measured ? 1 : 0) + (axe && axeAt.has(`${width}x${height}`) ? 1 : 0) + (inpAt === `${width}x${height} ${theme}` ? 2 : 0);
       // The loading measures first, before any rule scrolls: a script's scroll doesn't end largest-contentful-paint as a
       // person's does, so a picture far down that a later rule scrolls to would otherwise read as the first content.
       if (measured) {
@@ -1149,6 +1152,10 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       shown.push(...(await page.evaluate(findImageFades)));
       shown.push(...(await page.evaluate(findDesignIssues, { legacyCorners: false })));
       shown.push(...(await page.evaluate(findCornerIssues, config.windowRadius === undefined ? {} : { windowRadius: config.windowRadius })));
+      await page.exposeBinding("__ouroPaintCapture", async ({ page: current }, clip: PaintClip) =>
+        (await current.screenshot({ clip, scale: "device", animations: "disabled", caret: "initial" })).toString("base64"),
+      );
+      shown.push(...(await page.evaluate(findSquirclePaint)));
       shown.push(...(await page.evaluate(findTextIssues)));
       shown.push(...(await page.evaluate(findLayoutIssues, {})));
       shown.push(...(await page.evaluate(findThemeIssues, {})));

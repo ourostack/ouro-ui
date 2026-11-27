@@ -46,6 +46,16 @@ jq -r '.findings | group_by(.rule + .element)[] | "\(.[0].rule)\t\(.[0].element)
 
 Fix from `rule`, `element` and `detail`. A finding inside an Ouro component is yours to fix in your app's copy ([Changing a component](https://ui.ouroboros.bot/docs/installing/#changing-a-component)). Open the close-up only when those leave you unsure which element it means, and then only that one.
 
+## Make corners nest
+
+For `corners-nest`, make the inner corner a squircle whose radius is the outer radius less its inset. For `squircle-paint`, clip the painted layer to the squircle.[^skill-corners]
+
+When a native window supplies the outer edge, give its radius in CSS pixels in `ouro-check.json`:
+
+```json
+{ "windowRadius": 32 }
+```
+
 ## Let text use its column
 
 Let prose use the width its column gives it. Don't cap it with a reading measure (`max-width: 65ch`, `max-w-prose`, `46rem`) unless the design sets one; if it does, declare it at 40ch or wider, and the check leaves that text alone: read the cap from a custom property whose name begins `measure-`, add `data-ouro-measure` to the text, or set `measure` in `ouro-check.json`. `narrow-text` reports a cap that holds prose under three quarters of a column at least 900px wide, and names the rule that set the cap.[^skill-narrow-text]
@@ -81,6 +91,7 @@ It decides what measurement can decide. Whether a picture is the right picture, 
 [^check-states]: test:scripts/check/check-pages.test.mts::Ouro check > checks a state a page reaches by presses as a page of its own, and fails one whose press finds nothing verify:testExists(scripts/check/check-pages.test.mts::Ouro check > checks a state a page reaches by presses as a page of its own, and fails one whose press finds nothing)
 [^node]: package.json verify:equals(package.json#devEngines.runtime.version)=>=22.18
 [^skill-narrow-text]: test:scripts/check/check-pages.test.mts::Ouro check > flags narrow text held under three quarters of its column at 1440, naming the cap, and passes it under a declared measure; test:test/check-in-page.test.ts::findSizeIssues: narrow-text > flags prose a max-width holds under three quarters of a column at least 900px wide, naming the cap and the rule that set it verify:testExists(scripts/check/check-pages.test.mts::Ouro check > flags narrow text held under three quarters of its column at 1440, naming the cap, and passes it under a declared measure) verify:testExists(test/check-in-page.test.ts::findSizeIssues: narrow-text > flags prose a max-width holds under three quarters of a column at least 900px wide, naming the cap and the rule that set it)
+[^skill-corners]: test:scripts/check/check-corners.test.mts::corners-nest compares a surface with the native window only when its radius is supplied; test:scripts/check/check-corners.test.mts::squircle-paint measures fills, borders, outlines, shadows and pseudo-elements on the actual background verify:testExists(scripts/check/check-corners.test.mts::corners-nest compares a surface with the native window only when its radius is supplied) verify:testExists(scripts/check/check-corners.test.mts::squircle-paint measures fills, borders, outlines, shadows and pseudo-elements on the actual background)
 [^check-exit]: test:scripts/check/check-command.test.mts::Ouro check's command > exits as every Ouro tool does: the Ouro AX kit's 0 ok, 1 error and 2 usage, then 3 for findings verify:testExists(scripts/check/check-command.test.mts::Ouro check's command > exits as every Ouro tool does: the Ouro AX kit's 0 ok, 1 error and 2 usage, then 3 for findings)
 [^report]: registry/ouro/check/run.ts; test:scripts/check/check-pages.test.mts::Ouro check > names an axe finding the same at every size, whatever the other rules marked on the page verify:fileLine(registry/ouro/check/run.ts, /^  element: string;$/) verify:fileLine(registry/ouro/check/run.ts, /^  gated: boolean;$/) verify:fileLine(registry/ouro/check/run.ts, /^  closeUp\?: string;$/) verify:testExists(scripts/check/check-pages.test.mts::Ouro check > names an axe finding the same at every size, whatever the other rules marked on the page)
 [^skill-panels]: test:test/check-panel-in-page.test.ts::findPanelIssues: empty-panel > finds a wide panel with its links in one narrow column, with the share it fills verify:testExists(test/check-panel-in-page.test.ts::findPanelIssues: empty-panel > finds a wide panel with its links in one narrow column, with the share it fills)
