@@ -130,6 +130,25 @@ it("handles filled ancestors, unclipped overlays, pills and very small scaled bo
   expect(findCornerIssues()).toEqual([]);
 });
 
+it("does not mistake a switch's round thumb inside a capsule for nested frames", () => {
+  render('<div style="position:relative;width:36px;height:20px;background:#345;border-radius:9999px"><div style="position:absolute;left:2px;top:2px;width:16px;height:16px;background:white;border-radius:50%"></div></div><div style="position:relative;width:20px;height:36px;background:#345;border-radius:9999px"><div style="position:absolute;left:2px;top:2px;width:16px;height:16px;background:white;border-radius:50%"></div></div>');
+  expect(findCornerIssues()).toEqual([]);
+});
+
+it("does not mistake a fractional edge's antialiasing for paint outside a fallback corner", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render('<div class="rounded-ouro-xl" style="position:relative;width:145.890625px;height:44px;background:#2685c0"></div>');
+    const surface = root.firstElementChild!;
+    expect(getComputedStyle(surface).clipPath).not.toBe("none");
+    expect(await findSquirclePaint()).toEqual([]);
+    surface.innerHTML = '<div style="position:absolute;right:-2px;top:4px;width:4px;height:5px;background:red"></div>';
+    expect(await findSquirclePaint()).toHaveLength(1);
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
 it("passes clipped paint, explained allowances, and a surface hidden by another layer", async () => {
   const root = render('<div id="surface" style="position:relative;width:160px;height:120px;overflow:hidden;background:#fff;border-radius:28px;corner-shape:squircle"><div style="position:absolute;inset:0;background:#f40"></div></div>');
   const surface = root.querySelector<HTMLElement>("#surface")!;

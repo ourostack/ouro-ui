@@ -142,7 +142,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const delta = difference(a.data, outsideCorner ? c.data : b.data, index);
           const behind = difference(b.data, c.data, index);
           if (delta < 2 || (!outsideCorner && behind > 4)) continue;
-          if (own && (native || (outsideCorner && !(outsideX && outsideY))) && difference(a.data, own.data, index) < 2) continue;
+          if (own && (native || outsideCorner) && difference(a.data, own.data, index) < 2) continue;
           if (outsideCorner && difference(a.data, b.data, index) > 4) continue;
           if (!outsideCorner) {
             let edge = false;
@@ -264,8 +264,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             restore(layer.el, "opacity", layer.saved.get("opacity")!);
             restore(layer.el, "clip-path", layer.saved.get("clip-path")!);
           }
-          let solo: string | null = null;
-          if (ownEffects) {
+          const captureSolo = async () => {
             // Compare with the surface alone to separate its own shadow or outline from another layer's paint.
             const attribute = "data-ouro-paint-solo";
             const previous = el.getAttribute(attribute);
@@ -277,15 +276,21 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               el.setAttribute(attribute, marker);
               document.head.append(probe);
               for (const layer of active.slice(1)) layer.el.style.setProperty("opacity", "0", "important");
-              solo = await capture(clip);
+              return await capture(clip);
             } finally {
               probe.remove();
               if (previous === null) el.removeAttribute(attribute);
               else el.setAttribute(attribute, previous);
               for (const layer of active.slice(1)) restore(layer.el, "opacity", layer.saved.get("opacity")!);
             }
+          };
+          let solo = ownEffects ? await captureSolo() : null;
+          let differs = await differences(actual, masked, hidden, solo, clip, r, initial.width, initial.height, initial.corners, initial.native);
+          if (differs && !solo) {
+            solo = await captureSolo();
+            differs = await differences(actual, masked, hidden, solo, clip, r, initial.width, initial.height, initial.corners, initial.native);
           }
-          if (await differences(actual, masked, hidden, solo, clip, r, initial.width, initial.height, initial.corners, initial.native)) { found = true; break; }
+          if (differs) { found = true; break; }
         }
         if (found) break;
       }

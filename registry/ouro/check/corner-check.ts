@@ -126,7 +126,7 @@ function findCornerIssues({ windowRadius }: CornerOptions = {}): PageIssue[] {
       for (const outer of outers) {
         const o = outer.rect;
         const oc = outer.corners[index]!;
-        if (Math.min(oc.x, oc.y) < 6 || (oc.x >= o.width / 2 - 0.5 && oc.y >= o.height / 2 - 0.5)) continue;
+        if (Math.min(oc.x, oc.y) < 6 || oc.x >= o.width / 2 - 0.5 || oc.y >= o.height / 2 - 0.5) continue;
         const left = index === 0 || index === 3;
         const top = index < 2;
         const dx = left ? i.left - o.left : o.right - i.right;
