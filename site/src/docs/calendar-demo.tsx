@@ -6,6 +6,7 @@ import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Moment } from "@/registry/ouro/components/ouro/moment/moment";
 import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
+import { Skeleton } from "@/registry/ouro/components/ouro/skeleton/skeleton";
 import { Select } from "@/registry/ouro/components/ouro/select/select";
 import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
@@ -324,10 +325,18 @@ function Screen(): JSX.Element {
       {stage === "empty" ? (
         <Moment kind="empty" size="hero" art={<SpotArt name="empty-week" />} title="Nothing on this week" description="Press an empty slot, or New event, to add something." />
       ) : null}
+      <span role="status" className="sr-only">{stage === "loading" ? "Loading your week" : ""}</span>
       <div className="h-160 min-h-0 overflow-hidden" style={{ overflowX: "auto" }}>
         {stage === "loading" ? (
-          <div role="group" aria-label={label} aria-busy="true" className="flex h-full items-center justify-center p-4">
-            <Moment kind="loading" announce title="Loading your week" />
+          <div role="group" aria-label={label} aria-busy="true" data-site-week-skeleton="" className="grid h-full content-start gap-3 p-4" style={{ gridTemplateColumns: `repeat(${phone ? 1 : view === "day" ? 1 : view === "week" ? 7 : 5}, minmax(0, 1fr))` }}>
+            {Array.from({ length: phone ? 1 : view === "day" ? 1 : view === "week" ? 7 : 5 }, (_, day) => (
+              <div key={day} className="grid content-start gap-3">
+                <Skeleton shape="text" size="sm" />
+                <Skeleton className="h-16" />
+                <Skeleton className="h-24" />
+                <Skeleton className="h-12" />
+              </div>
+            ))}
           </div>
         ) : (
           <div className="h-full" style={phone ? undefined : { minWidth: "36rem" }}>

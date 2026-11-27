@@ -18,9 +18,33 @@
   {
     "project": "site-latency",
     "file": "site/e2e/site-menu.latency.spec.ts",
-    "title": "interaction latency › the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4× slower CPU",
+    "title": "interaction latency \u203a the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4\u00d7 slower CPU",
     "issue": "https://github.com/ourostack/ouro-ui/issues/3628",
     "owner": "lane-latency-3684",
     "expiry": "2026-11-27T01:50:00Z"
+  },
+  {
+    "project": "voiceover",
+    "file": "registry/ouro/e2e/screen-reader/menu-bar.sr.spec.ts",
+    "title": "MenuBar opens File from the keyboard on its first item, reads the next item, and returns to File on Escape",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/3895",
+    "owner": "lane-components",
+    "expiry": "2026-11-27T11:55:00Z"
+  },
+  {
+    "project": "voiceover",
+    "file": "registry/ouro/e2e/screen-reader/command.sr.spec.ts",
+    "title": "Command reads each command the arrow keys reach from the search, which keeps focus",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/3895",
+    "owner": "lane-components",
+    "expiry": "2026-11-27T11:55:00Z"
+  },
+  {
+    "project": "ouro-webkit",
+    "file": "registry/ouro/components/ouro/navigation-rail/navigation-rail.test.tsx",
+    "title": "NavigationRail fit > lays nothing out when it renders again with only a new count, or with the same items",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/3676",
+    "owner": "drain-redcheck",
+    "expiry": "2026-11-28T01:00:00Z"
   }
 ]

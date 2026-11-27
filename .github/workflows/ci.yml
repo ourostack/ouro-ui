@@ -735,6 +735,17 @@ jobs:
           path: .vitest/attachments/
           if-no-files-found: ignore
           retention-days: 14
+      # The whole files .github/quarantine.json quarantines (title `*`), which every blocking run leaves out
+      # (scripts/quarantined-files.mjs): a hang in one starves the tests beside it, and no test name fails for the
+      # judge to forgive. They run here, last, in one shard, in a step that never fails the job, so their results
+      # keep reporting (#3785) and nothing waits on them. With no live entry it runs nothing.
+      - if: ${{ !cancelled() && matrix.shard == 1 }}
+        name: Quarantined whole-file tests (reported, not required)
+        timeout-minutes: 5
+        continue-on-error: true
+        env:
+          OURO_QUARANTINED_ONLY: "1"
+        run: pnpm exec vitest run
   subsets:
     # An app that installs some components with their tests reaches 100% of what it installed (the
     # button, the dialog, the sheet and the forms set, each alone and together; on a reduced pull
@@ -1684,7 +1695,7 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           mkdir -p scripts .github/workflows
-          for path in .github/workflows/ci.yml scripts/quarantine.mjs scripts/ci-budget.mjs .github/quarantine.json; do
+          for path in .github/workflows/ci.yml scripts/quarantine.mjs scripts/ci-budget.mjs scripts/run-jobs.mjs .github/quarantine.json; do
             gh api -H "Accept: application/vnd.github.raw" "repos/$GH_REPO/contents/$path?ref=$SHA" > "$path"
           done
       - if: steps.parts.outcome == 'failure'
@@ -3211,7 +3222,10 @@ jobs:
     # same image as the same user, and run their share of the shipped tests against it, instead of
     # each repeating the setup.
     needs: [plan]
-    if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.installs != 'skip' }}
+    # It runs on a push to main whose tree already passed as well, because only main saves the prepared app and
+    # the merge queue's runs restore it: without that save the newest app stays the one before the last change to
+    # the theme, and every merge group adds everything from the base. With the app cached it ends after the restore.
+    if: ${{ !cancelled() && needs.plan.outputs.installs != 'skip' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     # In Playwright's image (see the note above jobs:).
@@ -3410,17 +3424,17 @@ jobs:
         variant: [shadcn, ouro]
         # Another shadcn preset than the README's, so its preset wording is verified.
         preset: [nova, vega]
-        # Three shards, not six, for a run that is not a pull request's (the install gate reads the same count).
-        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1,2,3,4,5,6]' || '[1,2,3]') }}
+        # Three shards, not six, for a push (a pull request's run, and the merge queue's, which every merge waits on, use six; the install gate reads the same count).
+        shard: ${{ fromJSON((github.event_name == 'pull_request' || github.event_name == 'merge_group') && '[1,2,3,4,5,6]' || '[1,2,3]') }}
         exclude:
           - variant: ouro
             preset: vega
-    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 6 || 3 }})
+    name: install (${{ matrix.variant }}, ${{ matrix.preset }}, ${{ matrix.shard }}/${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 6 || 3 }})
     env:
       FULL: ${{ needs.plan.outputs.full != 'false' }}
       COMPONENTS: ${{ needs.plan.outputs.components }}
       OURO_PRESET: ${{ matrix.preset }}
-      OURO_SHARD: ${{ matrix.shard }}/${{ github.event_name == 'pull_request' && 6 || 3 }}
+      OURO_SHARD: ${{ matrix.shard }}/${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 6 || 3 }}
       OURO_APP: /tmp/ouro-app
       PASSED: install-passed-${{ matrix.variant }}-${{ matrix.preset }}-${{ matrix.shard }}
     steps:
@@ -3638,7 +3652,7 @@ jobs:
           SHARDS: ${{ needs.install-shard.result }}
           CHECKS: ${{ needs.install-checks.result }}
           INSTALLS: ${{ needs.plan.outputs.installs }}
-          SHARD_COUNT: ${{ github.event_name == 'pull_request' && 6 || 3 }}
+          SHARD_COUNT: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 6 || 3 }}
         run: |
           if [ "$INSTALLS" = skip ]; then
             echo "::notice::Not affected: this pull request changes only files the install test never reads (the plan's installs=skip)."
@@ -3676,7 +3690,7 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           mkdir -p scripts .github/workflows
-          for path in .github/workflows/ci.yml scripts/quarantine.mjs scripts/ci-budget.mjs .github/quarantine.json; do
+          for path in .github/workflows/ci.yml scripts/quarantine.mjs scripts/ci-budget.mjs scripts/run-jobs.mjs .github/quarantine.json; do
             gh api -H "Accept: application/vnd.github.raw" "repos/$GH_REPO/contents/$path?ref=$SHA" > "$path"
           done
       - if: steps.parts.outcome == 'failure'

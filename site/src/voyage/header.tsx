@@ -21,7 +21,7 @@ import { ThemeDots } from "./theme-dots";
 import { PICKER_PRESETS } from "./theme-dots";
 import { ThemePicker as OuroThemePicker } from "@/registry/ouro/components/ouro/theme-picker/theme-picker";
 import { SiteMenu, SiteMenuFrame } from "./site-menu";
-import { DocsPanel, loadDocsPanel, PartsPanel, PlatformsPanel, ProofPanel, sectionOf } from "./site-nav";
+import { DocsPanel, loadDocsPanel, loadNavPanels, PartsPanel, PlatformsPanel, ProofPanel, sectionOf } from "./site-nav";
 import { normalizePath } from "../paths";
 import { setXray, useXray } from "./xray-store";
 
@@ -234,9 +234,18 @@ export function VoyageHeader({
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  // The Docs panel's lists come in when a pointer, a finger or focus first reaches the header, ahead of a hover's open
-  // delay or a press, so the panel has them when it opens; a page nobody navigates from never loads them.
-  const wantDocs = useCallback(() => void loadDocsPanel().catch(() => {}), []);
+  // The bar's panels come in when a pointer, a finger or focus first reaches the header, ahead of a hover's open delay
+  // or a press, so a panel has its lists and marks before it can open; a page nobody navigates from never loads them.
+  const wantPanels = useCallback(() => {
+    void loadDocsPanel().catch(() => {});
+    void loadNavPanels().catch(() => {});
+  }, []);
+  // They also load once the page is idle, so a panel opened at the first touch is already drawn whole, never placed
+  // against its short loading head and then moved.
+  useEffect(() => {
+    const idle = typeof requestIdleCallback === "function" ? requestIdleCallback(wantPanels, { timeout: 1000 }) : window.setTimeout(wantPanels, 200);
+    return () => (typeof requestIdleCallback === "function" ? cancelIdleCallback(idle) : clearTimeout(idle));
+  }, [wantPanels]);
   const current = normalizePath(page);
   const section = sectionOf(current);
   return (
@@ -245,9 +254,9 @@ export function VoyageHeader({
       <div
         data-site-masthead=""
         data-down={down ? "" : undefined}
-        onPointerOver={wantDocs}
-        onPointerDown={wantDocs}
-        onFocus={wantDocs}
+        onPointerOver={wantPanels}
+        onPointerDown={wantPanels}
+        onFocus={wantPanels}
         style={{ ["--site-strip" as string]: `${stripHeight}px` }}
         className={cn(
           // It slides by its sticky top, not a transform: a transform would make it the box the popups' fixed focus guards are
