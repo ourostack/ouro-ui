@@ -55,6 +55,39 @@ afterEach(async () => {
 });
 
 describe("resting caret host contract", () => {
+  it("draws the host's caret width, colour and glyph position on fractional padding", async () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    vi.spyOn(navigator, "vendor", "get").mockReturnValue("Apple Computer, Inc.");
+    const box = await render() as HTMLTextAreaElement;
+    box.style.cssText = "font:20px/28px monospace;letter-spacing:0.13px;width:240px;height:80px;padding:4.5px 8.5px;border:1px solid;box-sizing:border-box;caret-color:rgb(18,52,86)";
+    box.value = "MMMMMMMM";
+    const reference = document.createElement("div");
+    reference.style.cssText = "font:20px/28px monospace;letter-spacing:0.13px";
+    const glyphs = document.createElement("span");
+    glyphs.textContent = box.value;
+    reference.append(glyphs);
+    host.append(reference);
+    const range = document.createRange();
+    range.setStart(glyphs.firstChild!, 0);
+    const field = box.getBoundingClientRect();
+    const sample = [1, 2, 3, 4, 5, 6, 7, 8].map((index) => {
+      range.setEnd(glyphs.firstChild!, index);
+      return { index, edge: field.left + 9.5 + range.getBoundingClientRect().width };
+    }).find(({ edge }) => edge % 1 > 0.76 && edge % 1 < 0.98)!;
+    expect(sample).toBeDefined();
+    box.setSelectionRange(sample.index, sample.index);
+    await rest(box);
+    const steady = caret()!;
+    const before = steady.getBoundingClientRect();
+    expect(before.width).toBe(2);
+    expect(before.height).toBe(Math.round(glyphs.getBoundingClientRect().height));
+    expect(before.left).toBe(Math.round(sample.edge) - 1);
+    expect(getComputedStyle(steady).backgroundColor).toBe("rgb(18, 52, 86)");
+    host.style.marginInlineStart = "24px";
+    window.dispatchEvent(new Event("resize"));
+    expect(steady.getBoundingClientRect().left - before.left).toBe(24);
+  });
+
   it("uses the engine's steady caret when supported and restores the caller's animation", async () => {
     vi.mocked(CSS.supports).mockRestore();
     const native = CSS.supports("caret-animation", "manual");
