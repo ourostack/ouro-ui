@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { describe, LOOK_SELECTOR, loaded, motionTick, picture, quiet, settled, stagePaced } from "./looks";
+import { describe, LOOK_SELECTOR, Looks, loaded, motionTick, picture, quiet, settled, stagePaced } from "./looks";
 import { instability, settleMotion } from "./stable-take";
 import { slowFrames } from "./stage-helpers";
 
@@ -9,6 +9,25 @@ const html = `<main>
   <button data-ouro-control="alpha" data-ouro-part="trigger" style="padding: 4px 30px; font: 14px sans-serif">Alpha</button>
   <button data-ouro-control="beta" data-ouro-part="trigger" style="padding: 12px 8px; font: 14px sans-serif">Beta</button>
 </main>`;
+
+test("typing-indicator avatars have their own context but still compare their shadows across pages", async ({ page }) => {
+  await page.goto("./docs/");
+  await page.evaluate(() => {
+    document.body.innerHTML = `<main>
+      <span data-ouro="avatar" style="display:inline-block;width:24px;height:24px"></span>
+      <span data-ouro="typing-indicator"><span data-ouro="avatar" style="display:inline-block;width:24px;height:24px;box-shadow:0 0 0 2px white"></span></span>
+    </main>`;
+  });
+  const first = (await page.evaluate(describe, { selector: '[data-ouro="avatar"]' })).looks;
+  expect(first).toHaveLength(2);
+  expect(first[0]!.key).not.toBe(first[1]!.key);
+  const looks = new Looks();
+  for (const look of first) looks.add("/first/", look, null);
+  await page.locator('[data-ouro="typing-indicator"] [data-ouro="avatar"]').evaluate((el) => { (el as HTMLElement).style.boxShadow = "none"; });
+  const second = (await page.evaluate(describe, { selector: '[data-ouro="avatar"]' })).looks;
+  for (const look of second) looks.add("/second/", look, null);
+  expect(looks.differences().join("\n")).toContain("shadow");
+});
 
 test("a control that an island pushes down the document after the inventory keeps its look, hover and picture", async ({ page }) => {
   await page.goto("./docs/");

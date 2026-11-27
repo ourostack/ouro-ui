@@ -156,8 +156,10 @@ export function describe(arg: { selector: string; only?: number }): Described {
     const sizeOf = `${px(String(rect.width))}x${px(String(rect.height))}`;
     const labelled = (el.textContent ?? "").trim().length > 0;
     const shapeOf = (labelled ? `h${px(String(rect.height))}` : sizeOf) + (el.querySelector("svg") ? "+icon" : "") + (el.closest("main") ? "" : "+chrome");
+    // TypingIndicator overlaps its avatars with a separating ring; standalone avatars have no ring.
+    const avatarContext = name === "avatar" && el.closest("[data-ouro='typing-indicator']") ? "typing " : "";
     // Size comes from props that leave no attribute, and a preset repaints its subtree, so both belong to the key.
-    const key = `${inGroup ? "grouped " : ""}${name}|${el.dataset["ouroPart"] ?? ""}|${el.tagName.toLowerCase()}|${attrs}|${shapeOf}|${theme}|${labelled ? rgb(cs.color) : ""}`;
+    const key = `${inGroup ? "grouped " : ""}${avatarContext}${name}|${el.dataset["ouroPart"] ?? ""}|${el.tagName.toLowerCase()}|${attrs}|${shapeOf}|${theme}|${labelled ? rgb(cs.color) : ""}`;
     const radii = [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomLeftRadius, cs.borderBottomRightRadius];
     const rounded = radii.some((r) => parseFloat(r) > 0);
     const corner = cs.getPropertyValue("corner-shape");

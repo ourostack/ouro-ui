@@ -926,12 +926,10 @@ function ComboboxControl(props: ControlProps): JSX.Element {
     return true;
   };
   const setTyped = (next: string) => {
-    setPending(null);
     setText(next);
     onInputChange?.(next);
   };
   const finishPending = useEffectEvent(() => {
-    if (pending === null) return;
     if (!open || readOnly || disabled || !queryAware || normalized(currentText) !== pending) {
       setPending(null);
       return;
@@ -948,7 +946,6 @@ function ComboboxControl(props: ControlProps): JSX.Element {
     if (!multiple) setOpen(false);
   });
   useEffect(() => {
-    if (pending === null) return;
     let cancelled = false;
     queueMicrotask(() => { if (!cancelled) finishPending(); });
     return () => { cancelled = true; };
@@ -1092,10 +1089,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
         setPending(null);
         if (details.reason !== "item-press") onInputChange?.(next);
       }}
-      onItemHighlighted={(option: Option | undefined, details) => {
-        setHighlighted(option !== undefined);
-        if (details.reason === "pointer") setPending(null);
-      }}
+      onItemHighlighted={(option: Option | undefined) => setHighlighted(option !== undefined)}
       // Stryker disable next-line ConditionalExpression: the other modes' uncontrolled input shows the same text that onInputValueChange keeps in step.
       inputValue={tokens || (queryAware && multiple) ? currentText : inputValue}
       autoHighlight={autoHighlight}
@@ -1110,7 +1104,6 @@ function ComboboxControl(props: ControlProps): JSX.Element {
       }}
       {...(tokens ? { value: toBase(picked) } : queryAware ? { value: toBase(selected) } : value !== undefined ? { value: toBase(value) } : { defaultValue: toBase(defaultValue) })}
       onValueChange={(next: Option | Option[] | null) => {
-        setPending(null);
         if (tokens) setTokens((next as Option[]).map((option) => option.value));
         else {
           const picked = Array.isArray(next) ? next.map((option) => option.value) : (next?.value ?? (custom ? "" : null));
@@ -1205,7 +1198,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
                   {(picked: Option[]) => (
                     <>
                       {picked.map(renderChip)}
-                      <div className="flex min-w-32 flex-1 items-center">
+                      <div data-slot="combobox-input-row" className="flex min-w-32 flex-1 items-center">
                         {input(chipsInputClass)}
                         <EndButtons clearLabel={clearLabel} readOnly={readOnly} />
                       </div>
