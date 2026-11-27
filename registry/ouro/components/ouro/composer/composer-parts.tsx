@@ -710,8 +710,7 @@ function textRects(range: Range): DOMRect[] {
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
     if (!range.intersectsNode(node)) continue;
     const part = document.createRange();
-    if (node.nodeType === Node.TEXT_NODE) part.selectNodeContents(node);
-    else part.selectNode(node);
+    part.selectNode(node);
     if (node === range.startContainer) part.setStart(node, range.startOffset);
     if (node === range.endContainer) part.setEnd(node, range.endOffset);
     rects.push(...part.getClientRects());
