@@ -1,3 +1,4 @@
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
 import { TimeGrid } from "@/registry/ouro/components/ouro/time-grid/time-grid";
@@ -43,6 +44,31 @@ it("gives a short event a 44px touch target, and the hours more room on a phone"
     [cx, cy + 21],
   ] as const) {
     expect(document.elementFromPoint(x, y)?.closest("[data-ouro-event-key]")).toBe(event);
+  }
+});
+
+it("uses the touch hour for event lines on the first paint", () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  nodes.push(host);
+  root = createRoot(host);
+  const RealResizeObserver = globalThis.ResizeObserver;
+  class SilentResizeObserver implements ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  globalThis.ResizeObserver = SilentResizeObserver;
+  try {
+    flushSync(() =>
+      root!.render(
+        <TimeGrid label="Team calendar" view="day" date="2026-03-12" timeZone="America/New_York" now="2026-03-12T08:00:00-04:00"
+          events={[{ id: "sync", title: "Sync", start: "2026-03-12T09:00:00-04:00", end: "2026-03-12T09:40:00-04:00" }]} />,
+      ),
+    );
+    expect(host.querySelector<HTMLElement>("[data-ouro-event-key] > span > span[style]")?.style.getPropertyValue("--ouro-lines")).toBe("2");
+  } finally {
+    globalThis.ResizeObserver = RealResizeObserver;
   }
 });
 
