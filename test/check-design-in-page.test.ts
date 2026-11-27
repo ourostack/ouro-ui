@@ -538,11 +538,11 @@ describe("findDesignIssues: pane-edge", () => {
   it("finds an outline or ring drawn between otherwise distinct panes", () => {
     render(`
       <div style="display:flex;width:360px;height:180px">
-        <aside id="outline" style="width:170px;background:#eee;outline:1px solid #888">Folders</aside>
+        <aside id="outline" style="position:relative;z-index:1;width:170px;background:#eee;outline:1px solid #888">Folders</aside>
         <main style="width:190px;background:#fff">Notes</main>
       </div>
       <div style="display:flex;width:360px;height:180px;margin-top:20px">
-        <aside id="ring" style="width:170px;background:#eee;box-shadow:0 0 0 1px #888">Folders</aside>
+        <aside id="ring" style="position:relative;z-index:1;width:170px;background:#eee;box-shadow:0 0 0 1px #888">Folders</aside>
         <main style="width:190px;background:#fff">Notes</main>
       </div>`);
     expect(of("pane-edge").map((issue) => issue.element)).toEqual([

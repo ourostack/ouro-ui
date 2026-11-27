@@ -233,12 +233,23 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     return colour.map((channel) => channel + canvas * (1 - alpha)) as [number, number, number];
   };
   const colourDistance = (a: number[], b: number[]) => Math.abs(a[0]! - b[0]!) + Math.abs(a[1]! - b[1]!) + Math.abs(a[2]! - b[2]!);
+  const visibleInk = (colour: string, surface: number[]) => {
+    const ink = rgba(colour);
+    const drawn = surface.map((channel, i) => ink[i]! * ink[3] + channel * (1 - ink[3]));
+    return colourDistance(drawn, surface) > 12;
+  };
   const visibleBorder = (el: Element, side: "top" | "right" | "bottom" | "left", surface: number[]) => {
     const s = getComputedStyle(el);
     if (/none|hidden/.test(s.getPropertyValue(`border-${side}-style`)) || px(s.getPropertyValue(`border-${side}-width`)) < 0.5) return false;
-    const ink = rgba(s.getPropertyValue(`border-${side}-color`));
-    const drawn = surface.map((channel, i) => ink[i]! * ink[3] + channel * (1 - ink[3]));
-    return colourDistance(drawn, surface) > 12;
+    return visibleInk(s.getPropertyValue(`border-${side}-color`), surface);
+  };
+  const sideNames = ["top", "right", "bottom", "left"] as const;
+  const visibleEdge = (el: Element, side: typeof sideNames[number], surface: number[]) => {
+    if (visibleBorder(el, side, surface)) return true;
+    const s = getComputedStyle(el);
+    if (!/none|hidden/.test(s.outlineStyle) && px(s.outlineWidth) >= 0.5 && Math.abs(px(s.outlineOffset)) <= 1 && visibleInk(s.outlineColor, surface)) return true;
+    const ring = /(?:^|,\s*)([a-z]+\([^)]*\))\s+0px 0px 0px ([\d.]+)px/.exec(s.boxShadow);
+    return ring !== null && px(ring[2]!) >= 0.5 && visibleInk(ring[1]!, surface);
   };
   const pictureLike = (el: Element) => el.matches("img, video, canvas, picture, svg, [role=img]") || (getComputedStyle(el).backgroundImage.includes("url(") && !el.textContent!.trim());
   // A page behind a gradient or a picture has no one colour to differ from, so no fill is judged against it.
@@ -403,6 +414,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       const inside = Math.min(drawn.right, o.right) - Math.max(drawn.left, o.left) > 1
         && Math.min(drawn.bottom, o.bottom) - Math.max(drawn.top, o.top) > 1;
       const lighter = inside && own[3] > 0 && surface && behind && colourDistance(surface, behind) > 12 && hsl(surface).l > hsl(behind).l
+        && sideNames.some((side) => visibleEdge(inner, side, surface))
         && !inner.matches("button, input, select, textarea, [role=button]");
       if (hugs || lighter) {
         reported.add(inner);
@@ -563,7 +575,6 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
 
   // cut-off-edge: a scrollable row that crosses the scrollport's edge into an indistinguishable surface. Read the
   // current position without scrolling it, and judge only an edge the viewport and clipping ancestors actually show.
-  const sideNames = ["top", "right", "bottom", "left"] as const;
   for (const el of visible) {
     if (!(el instanceof HTMLElement) || optedOut(el, "cut-off-edge")) continue;
     const s = getComputedStyle(el);
@@ -590,12 +601,24 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       range.selectNode(node);
       return [...range.getClientRects()];
     });
+    const enclosingEdge = (side: typeof sideNames[number], edge: number) => {
+      for (let n = el.parentElement; n; n = n.parentElement) {
+        const r = n.getBoundingClientRect();
+        const sx = r.width / (n.offsetWidth || r.width);
+        const sy = r.height / (n.offsetHeight || r.height);
+        const x = r.left + n.clientLeft * sx;
+        const y = r.top + n.clientTop * sy;
+        const onEdge = side === "top" ? y : side === "bottom" ? y + n.clientHeight * sy : side === "left" ? x : x + n.clientWidth * sx;
+        if (Math.abs(onEdge - edge) <= 1 && visibleEdge(n, side, surfaceOf(n) ?? surface)) return true;
+      }
+      return false;
+    };
     const cut = sideNames.filter((side) => {
       const horizontal = side === "top" || side === "bottom";
       if (horizontal ? !scrollY : !scrollX) return false;
       const edge = side === "top" ? top : side === "right" ? right : side === "bottom" ? bottom : left;
       const limit = horizontal ? innerHeight : innerWidth;
-      if (edge <= 1 || edge >= limit - 1 || visibleBorder(el, side, surface)) return false;
+      if (edge <= 1 || edge >= limit - 1 || visibleEdge(el, side, surface) || enclosingEdge(side, edge)) return false;
       if ((side === "top" && drawn.top > edge + 1) || (side === "bottom" && drawn.bottom < edge - 1)
         || (side === "left" && drawn.left > edge + 1) || (side === "right" && drawn.right < edge - 1)) return false;
       const crosses = (r: DOMRect) => horizontal
@@ -698,7 +721,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
             const r = drawnRect(node)!;
             const onEdge = borderSide === "right" ? r.right : borderSide === "left" ? r.left : borderSide === "bottom" ? r.bottom : r.top;
             const length = across ? Math.min(r.right, to) - Math.max(r.left, from) : Math.min(r.bottom, to) - Math.max(r.top, from);
-            if (Math.abs(onEdge - edge) <= 1 && length >= 160 && visibleBorder(node, borderSide, surface)) return true;
+            if (Math.abs(onEdge - edge) <= 1 && length >= 160 && visibleEdge(node, borderSide, surface)) return true;
             if (node === pane) break;
           }
           return false;
