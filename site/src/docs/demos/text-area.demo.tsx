@@ -27,7 +27,7 @@ export default function TextAreaDemo(): JSX.Element {
         rows={2}
         maxRows={6}
         defaultValue="Leave a little room for a good idea."
-        description="Simulated native host. Rest the caret, then keep writing."
+        description="Rest the caret. Start typing whenever you're ready."
         restingCaret={{ enabled: covered, occluded: covered, subscribeWake, onHeld }}
       />
       <div>
@@ -42,7 +42,7 @@ export default function TextAreaDemo(): JSX.Element {
             setCovered(!held);
           }}
         >
-          {held ? "Resume writing" : "Rest caret"}
+          {held ? "Wake caret" : "Rest caret"}
         </Button>
       </div>
     </div>

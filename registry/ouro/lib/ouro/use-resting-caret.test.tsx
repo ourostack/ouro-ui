@@ -1,5 +1,6 @@
 import { useRef, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useRestingCaret, type RestingCaretOptions } from "@/registry/ouro/lib/ouro/use-resting-caret";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -20,7 +21,7 @@ function Harness({ kind = "textarea", policy: permission, readOnly = false, disa
   const text = empty ? "" : "A good idea deserves a little room.\nAnd a quiet moment.";
   let control: ReactNode;
   if (kind === "none") control = null;
-  else if (kind === "rich") control = <div ref={(node) => { ref.current = node; }} data-test-harness tabIndex={tabIndex ?? undefined} contentEditable={!readOnly && !disabled} suppressContentEditableWarning>{empty ? <p><br /></p> : <p>{text}</p>}</div>;
+  else if (kind === "rich") control = <div ref={(node) => { ref.current = node; }} data-test-harness tabIndex={tabIndex ?? (readOnly && !disabled ? 0 : undefined)} contentEditable={!readOnly && !disabled} suppressContentEditableWarning>{empty ? <p><br /></p> : <p>{text}</p>}</div>;
   else if (kind === "input") control = <input ref={(node) => { ref.current = node; }} data-test-harness type={type} readOnly={readOnly} disabled={disabled} defaultValue={text} />;
   else control = <textarea ref={(node) => { ref.current = node; }} data-test-harness readOnly={readOnly} disabled={disabled} defaultValue={text} />;
   return <div dir={rtl ? "rtl" : "ltr"} style={{ position: "relative", border: "2px solid", padding: 8, width: 240, font: "16px/24px monospace" }}>{control}</div>;
@@ -111,6 +112,27 @@ describe("resting caret host contract", () => {
     expect(box.selectionDirection).toBe("backward");
   });
 
+  it("does not leave a replacement caret when the host wakes synchronously from onHeld", async () => {
+    const box = await render({ policy: { ...policy, onHeld: (held) => { if (held) wake(); } } });
+    await rest(box);
+    expect((box as HTMLTextAreaElement).readOnly).toBe(false);
+    expect(caret()).toBeNull();
+    expect(vi.getTimerCount()).toBe(1);
+  });
+
+  it("does not rearm after a synchronous host revocation during wake", async () => {
+    const permission = { ...policy, onHeld: (held: boolean) => {
+      if (!held) flushSync(() => root.render(<Harness policy={{ ...policy, enabled: false }} />));
+    } };
+    const box = await render({ policy: permission });
+    await rest(box);
+    await act(() => wake());
+    await act(() => vi.advanceTimersByTime(30_000));
+    expect((box as HTMLTextAreaElement).readOnly).toBe(false);
+    expect(caret()).toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("hides the steady caret with the page and lets the engine handle an unfocused window", async () => {
     const box = await render();
     box.focus();
@@ -180,6 +202,10 @@ describe("resting caret host contract", () => {
     wake();
     expect(box.hasAttribute("tabindex")).toBe(false);
     await rest(box);
+    await render({ kind: "rich", tabIndex: null, readOnly: true });
+    expect(box.contentEditable).toBe("false");
+    await render({ kind: "rich", tabIndex: null });
+    await rest(box);
     await render({ kind: "rich", tabIndex: null, disabled: true });
     expect(box.contentEditable).toBe("false");
     expect(box.hasAttribute("tabindex")).toBe(false);
@@ -237,6 +263,19 @@ describe("resting caret host contract", () => {
     document.getSelection()!.collapse(box.firstChild!, 0);
     await rest(box);
     expect(caret()!.getBoundingClientRect().height).toBeGreaterThan(0);
+    document.getSelection()!.collapse(box.firstChild!, 1);
+    document.dispatchEvent(new Event("selectionchange"));
+    expect(caret()!.hidden).toBe(false);
+    const emptyText = document.createTextNode("");
+    box.style.minHeight = "24px";
+    box.replaceChildren(emptyText);
+    document.getSelection()!.collapse(emptyText, 0);
+    document.dispatchEvent(new Event("selectionchange"));
+    expect(caret()!.hidden).toBe(false);
+    box.replaceChildren();
+    document.getSelection()!.collapse(box, 0);
+    document.dispatchEvent(new Event("selectionchange"));
+    expect(caret()!.hidden).toBe(false);
   });
 
   it("follows selection and scrolling without a wake and hides a caret outside the text viewport", async () => {

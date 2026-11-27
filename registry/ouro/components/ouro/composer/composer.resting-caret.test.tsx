@@ -26,6 +26,25 @@ afterEach(async () => {
 });
 
 describe("Composer resting caret", () => {
+  it("places the steady caret on a new empty rich paragraph", async () => {
+    const box = await render("rich");
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    box.focus();
+    const range = document.createRange();
+    range.selectNodeContents(box);
+    range.collapse(false);
+    document.getSelection()!.removeAllRanges();
+    document.getSelection()!.addRange(range);
+    await userEvent.keyboard("{Shift>}{Enter}{/Shift}");
+    const paragraph = box.lastElementChild!;
+    wake();
+    await act(() => vi.advanceTimersByTime(30_000));
+    const steady = host.querySelector<HTMLElement>("[data-ouro-steady-caret]")!;
+    expect(steady.hidden).toBe(false);
+    expect(steady.getBoundingClientRect().top).toBeGreaterThanOrEqual(paragraph.getBoundingClientRect().top);
+    expect(steady.getBoundingClientRect().bottom).toBeLessThanOrEqual(paragraph.getBoundingClientRect().bottom + 1);
+  });
+
   for (const format of ["plain", "rich"] as const) {
     it(`resumes ${format} writing with the first letter intact`, async () => {
       const box = await render(format);
@@ -56,6 +75,7 @@ describe("Composer resting caret", () => {
       await act(() => vi.advanceTimersByTime(30_000));
       await render(format, true);
       expect(box instanceof HTMLTextAreaElement ? box.readOnly : box.contentEditable === "false").toBe(true);
+      if (format === "rich") expect(box.tabIndex).toBe(0);
     });
   }
 });

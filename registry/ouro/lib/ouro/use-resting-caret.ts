@@ -60,7 +60,17 @@ function caretRect(box: Box): { left: number; top: number; height: number } | nu
   if (!textBox(box)) {
     const selection = box.ownerDocument.getSelection();
     if (!selection?.isCollapsed || !selection.rangeCount || !box.contains(selection.anchorNode)) return null;
-    const rect = selection.getRangeAt(0).getClientRects()[0];
+    const range = selection.getRangeAt(0);
+    let rect = range.getClientRects()[0];
+    if (!rect?.height) {
+      const node = range.startContainer;
+      const adjacent = node.nodeType === Node.ELEMENT_NODE ? node.childNodes[range.startOffset] ?? node.childNodes[range.startOffset - 1] : node;
+      if (adjacent) {
+        const line = box.ownerDocument.createRange();
+        line.selectNode(adjacent);
+        rect = line.getClientRects()[0];
+      }
+    }
     if (rect?.height) return rect;
     return {
       left: bounds.left + parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft),
@@ -119,6 +129,7 @@ export function useRestingCaret(ref: RefObject<Box | null>, policy: RestingCaret
     if (textBox(box) && box.selectionStart === null) return;
     const doc = box.ownerDocument;
     const win = doc.defaultView!;
+    const macWebKit = win.navigator.platform.startsWith("Mac") && win.navigator.vendor === "Apple Computer, Inc.";
     let active = true;
     let held = false;
     let composing = false;
@@ -141,12 +152,21 @@ export function useRestingCaret(ref: RefObject<Box | null>, policy: RestingCaret
       const visible = rect && rect.top >= field.top && rect.top + rect.height <= field.bottom + 1
         && rect.left >= field.left && rect.left <= field.right;
       caret.hidden = !visible;
-      if (visible) Object.assign(caret.style, {
-        left: `${rect.left - origin.left - host.clientLeft + host.scrollLeft}px`,
-        top: `${rect.top - origin.top - host.clientTop + host.scrollTop}px`,
-        height: `${rect.height}px`,
-        backgroundColor: style.caretColor,
-      });
+      if (visible) {
+        const x = Math.max(
+          macWebKit ? Math.floor(rect.left - field.left - 0.25) : Math.ceil(rect.left - field.left - 0.01),
+          parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft),
+        );
+        const fraction = (parseFloat(style.paddingTop) + parseFloat(style.borderTopWidth)) % 1;
+        const y = Math.floor(rect.top - field.top - fraction + 0.01) + fraction;
+        const snap = (value: number) => Math.round(value * win.devicePixelRatio) / win.devicePixelRatio;
+        Object.assign(caret.style, {
+          left: `${snap(field.left + x) - origin.left - host.clientLeft + host.scrollLeft}px`,
+          top: `${snap(field.top + y) - origin.top - host.clientTop + host.scrollTop}px`,
+          height: `${Math.round(rect.height)}px`,
+          backgroundColor: style.caretColor,
+        });
+      }
     };
     const lift = () => {
       if (!held) return;
@@ -154,8 +174,9 @@ export function useRestingCaret(ref: RefObject<Box | null>, policy: RestingCaret
       if (textBox(box)) box.readOnly = caller.current.readOnly;
       else {
         box.contentEditable = String(!caller.current.readOnly && !caller.current.disabled);
-        if (tabIndex === null) box.removeAttribute("tabindex");
-        else box.setAttribute("tabindex", tabIndex);
+        if (tabIndex === null) {
+          if (!caller.current.readOnly || caller.current.disabled) box.removeAttribute("tabindex");
+        } else box.setAttribute("tabindex", tabIndex);
       }
       reconsider(box);
       caret?.remove();
@@ -163,6 +184,7 @@ export function useRestingCaret(ref: RefObject<Box | null>, policy: RestingCaret
       onHeld(false);
     };
     const update = () => {
+      if (!active) return;
       clearTimer();
       const focused = doc.activeElement === box;
       const visible = doc.visibilityState !== "hidden";
@@ -187,13 +209,14 @@ export function useRestingCaret(ref: RefObject<Box | null>, policy: RestingCaret
         }
         reconsider(box);
         onHeld(true);
+        if (!held) return;
       }
       if (visible && foreground) {
         if (!caret) {
           caret = doc.createElement("span");
           caret.setAttribute("aria-hidden", "true");
           caret.setAttribute("data-ouro-steady-caret", "");
-          caret.style.cssText = "position:absolute;pointer-events:none;width:1px";
+          caret.style.cssText = `position:absolute;pointer-events:none;width:${macWebKit ? 2 : 1}px`;
           box.parentElement!.append(caret);
         }
         draw();
