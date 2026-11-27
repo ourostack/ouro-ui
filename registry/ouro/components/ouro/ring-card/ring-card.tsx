@@ -110,6 +110,7 @@ export function RingCard({
   ] as const;
   return (
     <div
+      data-slot="ring-card"
       {...rest}
       ref={merged}
       role="region"
@@ -127,33 +128,33 @@ export function RingCard({
         arrival, className,
       )}
     >
-      <div role="alert" aria-live="assertive" aria-atomic="true" className="sr-only">{announcement}</div>
-      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">{failure?.announcement ?? ""}</div>
-      <div className="flex min-w-0 items-center gap-3">
+      <div data-slot="ring-card-announcement" role="alert" aria-live="assertive" aria-atomic="true" className="sr-only">{announcement}</div>
+      <div data-slot="ring-card-status" role="status" aria-live="polite" aria-atomic="true" className="sr-only">{failure?.announcement ?? ""}</div>
+      <div data-slot="ring-card-header" className="flex min-w-0 items-center gap-3">
         <Avatar name={caller} alt="" src={avatar?.src} size="lg" />
         <Card variant="plain" size="sm" title={caller} headingLevel={2} description={kind === "video" ? words.videoCall : words.audioCall} className="min-w-0 flex-1" />
       </div>
-      {note && <Text size="sm" tone="muted" lines={2}>{note}</Text>}
+      {note && <Text data-slot="ring-card-note" size="sm" tone="muted" lines={2}>{note}</Text>}
       {failure ? (
-        <div key="failure" ref={actionsRef} className="flex flex-1 flex-col gap-3" data-slot="failure">
-          <div className="flex flex-col gap-1">
-            <Text size="sm"><strong>{failure.title}</strong></Text>
-            {failure.line && <Text size="sm" tone="muted">{failure.line}</Text>}
+        <div key="failure" ref={actionsRef} className="flex flex-1 flex-col gap-3" data-slot="ring-card-failure">
+          <div data-slot="ring-card-failure-copy" className="flex flex-col gap-1">
+            <Text data-slot="ring-card-failure-title" size="sm"><strong>{failure.title}</strong></Text>
+            {failure.line && <Text data-slot="ring-card-failure-line" size="sm" tone="muted">{failure.line}</Text>}
           </div>
-          <div className="mt-auto grid">{failure.action}</div>
+          <div data-slot="ring-card-recovery" className="mt-auto grid">{failure.action}</div>
         </div>
       ) : pending ? (
-        <div key="pending" className="flex min-h-11 items-center gap-2" data-slot="pending">
+        <div key="pending" className="flex min-h-11 items-center gap-2" data-slot="ring-card-pending">
           {pending.media === "audio" || pending.media === "video" ? (
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="size-4 shrink-0">
+            <svg data-slot="ring-card-pending-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="size-ouro-4 shrink-0">
               {pending.media === "video" ? <path strokeLinejoin="round" d="M4 5h11a2 2 0 0 1 2 2v3l5-3v10l-5-3v3a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" /> : <path strokeLinecap="round" strokeLinejoin="round" d="M7 3H4a1 1 0 0 0-1 1c0 9.4 7.6 17 17 17a1 1 0 0 0 1-1v-3l-5-2-2 2a14 14 0 0 1-7-7l2-2-2-5Z" />}
             </svg>
           ) : null}
-          <Text size="sm" tone="muted">{pending.label}</Text>
+          <Text data-slot="ring-card-pending-label" size="sm" tone="muted">{pending.label}</Text>
         </div>
       ) : (
-        <div key="choices" ref={actionsRef} className="flex flex-col gap-3">
-          <div className="grid grid-cols-3 gap-2">
+        <div data-slot="ring-card-choices" key="choices" ref={actionsRef} className="flex flex-col gap-3">
+          <div data-slot="ring-card-actions" className="grid grid-cols-3 gap-2">
             {choices.map((choice) => {
               const button = (
                 <Button key={choice.part} size="sm" fullWidth tone={choice.tone} variant={choice.variant}
@@ -164,7 +165,7 @@ export function RingCard({
               return keys ? <Tooltip key={choice.part} content={`${choice.hint} (${keys[choice.part]})`}>{button}</Tooltip> : button;
             })}
           </div>
-          {chips != null && <div className="flex flex-wrap gap-2" data-slot="chips">{chips}</div>}
+          {chips != null && <div className="flex flex-wrap gap-2" data-slot="ring-card-chips">{chips}</div>}
         </div>
       )}
     </div>

@@ -48,11 +48,11 @@ function editCheckbox(dir, edit) {
 /** The checkbox's `data-checked` state in a manifest. */
 const checked = (manifest) => manifest.motion.checkbox.states["data-checked"];
 
-test("Checkbox declares today's motion, part by part, and only StackedLayout, Chart, Message, Checklist, Inspector, TabBar, RouteProgress, Celebrate, ChoiceCard, Composer, NavigationRail, LevelMeter, MediaTile, Moment, Hero and Porthole besides it declare any yet", () => {
+test("Checkbox declares today's motion, part by part, and only StackedLayout, Chart, Message, Checklist, Inspector, TabBar, RouteProgress, Celebrate, ChoiceCard, Composer, NavigationRail, LevelMeter, MediaTile, Moment, Hero, Porthole and RingCard besides it declare any yet", () => {
   const motion = readMotion(root);
   assert.deepEqual(
     motion.map((entry) => entry.stem),
-    ["checkbox", "stacked-layout", "chart", "message", "checklist", "inspector", "tab-bar", "route-progress", "celebrate", "choice-card", "composer", "navigation-rail", "level-meter", "media-tile", "moment", "hero", "porthole"],
+    ["checkbox", "stacked-layout", "chart", "message", "checklist", "inspector", "tab-bar", "route-progress", "celebrate", "choice-card", "composer", "navigation-rail", "level-meter", "media-tile", "moment", "hero", "porthole", "ring-card"],
   );
   const { states } = motion[0].motion;
   assert.deepEqual(Object.keys(states), ["data-checked", "data-unchecked", "data-indeterminate", "data-disabled", "data-invalid", "data-readonly"]);
@@ -209,6 +209,7 @@ test("the motion matrix is plain data a browser test can import, one row per ste
       "moment data-open sparkle",
       "hero data-starting-style media",
       "porthole data-open panel",
+      "ring-card data-starting-style root",
     ],
   );
 });

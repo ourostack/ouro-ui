@@ -53,7 +53,7 @@ describe("RingCard", () => {
     const { card } = await render(<RingCard {...base} note="A quick question about the trail." />);
     expect(document.activeElement).toBe(input);
     expect(card.dataset.state).toBe("ringing");
-    expect(card.querySelector('[data-slot="chips"]')).toBeNull();
+    expect(card.querySelector('[data-slot="ring-card-chips"]')).toBeNull();
     await expect.element(page.getByRole("region", { name: "Incoming call from Mara Vale" })).toBeVisible();
     expect(card.querySelector("h2")?.textContent).toBe("Mara Vale");
     expect(card.textContent).toContain("Video call");
@@ -130,7 +130,7 @@ describe("RingCard", () => {
     expect(card.querySelectorAll("button")).toHaveLength(1);
     expect(card.textContent).not.toContain("Connecting...");
     expect(card.textContent).not.toContain("Message instead");
-    expect([...card.querySelectorAll('[data-slot="failure"] [data-ouro="text"]')].map((text) => text.textContent)).toEqual(["Couldn't connect", "Try the call again."]);
+    expect([...card.querySelectorAll('[data-slot="ring-card-failure"] [data-ouro="text"]')].map((text) => text.textContent)).toEqual(["Couldn't connect", "Try the call again."]);
     expect(card.offsetHeight).toBeGreaterThanOrEqual(height);
   });
 
@@ -230,12 +230,20 @@ describe("RingCard", () => {
     for (const media of ["audio", "video", null] as const) {
       await rerender(<RingCard {...props} announcement="" pending={{ label: "Please wait", media }} />);
       expect(document.activeElement).toBe(input);
-      expect(card.querySelector('[data-slot="pending"] svg') !== null).toBe(media !== null);
+      expect(card.querySelector('[data-slot="ring-card-pending"] svg') !== null).toBe(media !== null);
       if (media) expect(getComputedStyle(card.querySelector("svg path")!).strokeLinecap).toBe(media === "audio" ? "round" : "butt");
     }
     await rerender(<RingCard {...props} announcement="" failure={{ title: "Not connected", action: null, announcement: "Not connected" }} />);
     expect(document.activeElement).toBe(input);
-    expect([...card.querySelectorAll('[data-slot="failure"] [data-ouro="text"]')].map((text) => text.textContent)).toEqual(["Not connected"]);
+    expect([...card.querySelectorAll('[data-slot="ring-card-failure"] [data-ouro="text"]')].map((text) => text.textContent)).toEqual(["Not connected"]);
+  });
+
+  it("keeps the pending glyph legible when the app compacts layout spacing", async () => {
+    const { card, host } = await render(<RingCard {...base} pending={{ label: "Connecting...", media: "audio" }} />);
+    const glyph = card.querySelector("svg")!;
+    const width = glyph.getBoundingClientRect().width;
+    host.style.setProperty("--spacing", "0.125rem");
+    expect(glyph.getBoundingClientRect().width).toBeCloseTo(width);
   });
 
   it("names the fix for invalid kinds, missing caller and appearance classes once per instance", async () => {
@@ -298,7 +306,7 @@ describe("RingCard", () => {
     const { card, rerender } = await render(<RingCard {...props} />);
     const rect = card.querySelector("button")!.getBoundingClientRect();
     await rerender(<RingCard {...props} announcement="" pending={{ label: "Connecting audio...", media: "audio" }} />);
-    const line = card.querySelector('[data-slot="pending"] [data-ouro="text"]')!.getBoundingClientRect();
+    const line = card.querySelector('[data-slot="ring-card-pending"] [data-ouro="text"]')!.getBoundingClientRect();
     expect(Math.abs((line.top + line.bottom) / 2 - (rect.top + rect.bottom) / 2)).toBeLessThanOrEqual(4);
   });
 
