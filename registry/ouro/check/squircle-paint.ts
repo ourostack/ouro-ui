@@ -68,25 +68,27 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     return { width, height, corners, native: corners.filter((corner) => corner.squircle).every((corner) => corner.native) };
   };
   // An even-odd path keeps everything outside the box, but cuts its corner slivers to the ideal n=4 curve.
-  const clipPath = (width: number, height: number, corners: Corner[]) => {
+  const clipPath = (width: number, height: number, corners: Corner[], offsetX: number, offsetY: number) => {
     const [tl, tr, br, bl] = corners as [Corner, Corner, Corner, Corner];
     const n = (value: number) => Number(value.toFixed(4));
+    const x = (value: number) => n(value + offsetX);
+    const y = (value: number) => n(value + offsetY);
     const [w, h] = [width, height];
     const path = [
       `M -10000 -10000 H ${w + 10000} V ${h + 10000} H -10000 Z`,
-      `M 0 0 H ${w} V ${h} H 0 Z`,
-      `M 0 ${n(tl.y)}`,
-      `C 0 ${n(0.613 * tl.y)} ${n(-0.0092 * tl.x)} ${n(0.3274 * tl.y)} ${n(0.1591 * tl.x)} ${n(0.1591 * tl.y)}`,
-      `C ${n(0.3274 * tl.x)} ${n(-0.0092 * tl.y)} ${n(0.613 * tl.x)} 0 ${n(tl.x)} 0`,
-      `H ${n(w - tr.x)}`,
-      `C ${n(w - 0.613 * tr.x)} 0 ${n(w - 0.3274 * tr.x)} ${n(-0.0092 * tr.y)} ${n(w - 0.1591 * tr.x)} ${n(0.1591 * tr.y)}`,
-      `C ${n(w + 0.0092 * tr.x)} ${n(0.3274 * tr.y)} ${w} ${n(0.613 * tr.y)} ${w} ${n(tr.y)}`,
-      `V ${n(h - br.y)}`,
-      `C ${w} ${n(h - 0.613 * br.y)} ${n(w + 0.0092 * br.x)} ${n(h - 0.3274 * br.y)} ${n(w - 0.1591 * br.x)} ${n(h - 0.1591 * br.y)}`,
-      `C ${n(w - 0.3274 * br.x)} ${n(h + 0.0092 * br.y)} ${n(w - 0.613 * br.x)} ${h} ${n(w - br.x)} ${h}`,
-      `H ${n(bl.x)}`,
-      `C ${n(0.613 * bl.x)} ${h} ${n(0.3274 * bl.x)} ${n(h + 0.0092 * bl.y)} ${n(0.1591 * bl.x)} ${n(h - 0.1591 * bl.y)}`,
-      `C ${n(-0.0092 * bl.x)} ${n(h - 0.3274 * bl.y)} 0 ${n(h - 0.613 * bl.y)} 0 ${n(h - bl.y)}`,
+      `M ${x(0)} ${y(0)} H ${x(w)} V ${y(h)} H ${x(0)} Z`,
+      `M ${x(0)} ${y(tl.y)}`,
+      `C ${x(0)} ${y(0.613 * tl.y)} ${x(-0.0092 * tl.x)} ${y(0.3274 * tl.y)} ${x(0.1591 * tl.x)} ${y(0.1591 * tl.y)}`,
+      `C ${x(0.3274 * tl.x)} ${y(-0.0092 * tl.y)} ${x(0.613 * tl.x)} ${y(0)} ${x(tl.x)} ${y(0)}`,
+      `H ${x(w - tr.x)}`,
+      `C ${x(w - 0.613 * tr.x)} ${y(0)} ${x(w - 0.3274 * tr.x)} ${y(-0.0092 * tr.y)} ${x(w - 0.1591 * tr.x)} ${y(0.1591 * tr.y)}`,
+      `C ${x(w + 0.0092 * tr.x)} ${y(0.3274 * tr.y)} ${x(w)} ${y(0.613 * tr.y)} ${x(w)} ${y(tr.y)}`,
+      `V ${y(h - br.y)}`,
+      `C ${x(w)} ${y(h - 0.613 * br.y)} ${x(w + 0.0092 * br.x)} ${y(h - 0.3274 * br.y)} ${x(w - 0.1591 * br.x)} ${y(h - 0.1591 * br.y)}`,
+      `C ${x(w - 0.3274 * br.x)} ${y(h + 0.0092 * br.y)} ${x(w - 0.613 * br.x)} ${y(h)} ${x(w - br.x)} ${y(h)}`,
+      `H ${x(bl.x)}`,
+      `C ${x(0.613 * bl.x)} ${y(h)} ${x(0.3274 * bl.x)} ${y(h + 0.0092 * bl.y)} ${x(0.1591 * bl.x)} ${y(h - 0.1591 * bl.y)}`,
+      `C ${x(-0.0092 * bl.x)} ${y(h - 0.3274 * bl.y)} ${x(0)} ${y(h - 0.613 * bl.y)} ${x(0)} ${y(h - bl.y)}`,
       "Z",
     ].join(" ");
     return `path(evenodd, "${path}")`;
@@ -102,9 +104,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     context.drawImage(image, 0, 0);
     return { width: canvas.width, height: canvas.height, data: context.getImageData(0, 0, canvas.width, canvas.height).data };
   };
-  const differences = async (actual: string, masked: string, hidden: string, clip: PaintClip, rect: DOMRect) => {
-    const [a, b, c] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden)]);
-    if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height) {
+  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[]) => {
+    const [a, b, c, own] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null]);
+    if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height))) {
       throw new Error("squircle-paint screenshots changed size during measurement");
     }
     let previous = new Uint8Array(a.width);
@@ -124,10 +126,15 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
         const index = (y * a.width + x) * 4;
         const px = clip.x + (x + 0.5) * clip.width / a.width;
         const py = clip.y + (y + 0.5) * clip.height / a.height;
-        const outsideCorner = (px < rect.left || px >= rect.right) && (py < rect.top || py >= rect.bottom);
+        const outsideCorner = px < rect.left || px >= rect.right || py < rect.top || py >= rect.bottom;
+        if (outsideCorner && !corners.some((corner, index) => corner.squircle &&
+          (index === 0 || index === 3 ? px < rect.left + corner.x * rect.width / width : px >= rect.right - corner.x * rect.width / width) &&
+          (index < 2 ? py < rect.top + corner.y * rect.height / height : py >= rect.bottom - corner.y * rect.height / height))) continue;
         const delta = difference(a.data, outsideCorner ? c.data : b.data, index);
         const behind = difference(b.data, c.data, index);
-        if (outsideCorner ? delta < 64 : delta < 20 || behind > 4) continue;
+        if (delta < 8 || (!outsideCorner && behind > 4)) continue;
+        if (own && difference(a.data, own.data, index) < 8) continue;
+        if (outsideCorner && difference(a.data, b.data, index) > 4) continue;
         if (!outsideCorner) {
           let edge = false;
           for (let dy = -guardY; dy <= guardY && !edge; dy++) {
@@ -162,20 +169,38 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
   for (const el of targets) {
     const initial = geometry(el);
     if (!initial) continue;
+    const bounds = el.getBoundingClientRect();
+    const style = getComputedStyle(el);
+    const transform = style.transform;
+    const ownEffects = initial.native && (style.boxShadow !== "none" || style.outlineStyle !== "none");
+    const scaleX = bounds.width / initial.width;
+    const scaleY = bounds.height / initial.height;
+    const siblings = [...(el.parentElement?.children ?? [])].filter((other): other is HTMLElement => {
+      if (!(other instanceof HTMLElement) || other === el || !visible(other)) return false;
+      const rect = other.getBoundingClientRect();
+      if (!other.offsetWidth || !other.offsetHeight || getComputedStyle(other).transform !== transform ||
+        Math.abs(rect.width / other.offsetWidth - scaleX) > 0.01 || Math.abs(rect.height / other.offsetHeight - scaleY) > 0.01) return false;
+      if ([rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5)) return true;
+      if (rect.width > bounds.width + 0.5 || rect.height > bounds.height + 0.5) return false;
+      return initial.corners.some((corner, index) => {
+        if (!corner.squircle) return false;
+        const left = index === 0 || index === 3 ? bounds.left : bounds.right - corner.x * scaleX;
+        const top = index < 2 ? bounds.top : bounds.bottom - corner.y * scaleY;
+        return rect.left < left + corner.x * scaleX && rect.right > left && rect.top < top + corner.y * scaleY && rect.bottom > top;
+      });
+    });
+    const layers = [el, ...siblings].map((layer) => ({
+      el: layer,
+      originalStyle: layer.getAttribute("style"),
+      normalizedStyle: layer.style.cssText,
+      saved: new Map(["clip-path", "opacity", "box-shadow", "outline", "transition"].map((property) => [property, save(layer, property)])),
+    }));
     const scroll = [...function* () { for (let n = el.parentElement; n; n = n.parentElement) yield n; }()]
       .map((node) => ({ node, left: node.scrollLeft, top: node.scrollTop }));
     const windowScroll = { x: scrollX, y: scrollY };
-    const originalStyle = el.getAttribute("style");
-    const normalizedStyle = el.style.cssText;
-    const saved = new Map(["clip-path", "opacity", "box-shadow", "outline", "transition"].map((property) => [property, save(el, property)]));
     let found = false;
     try {
-      el.style.setProperty("transition", "none", "important");
-      // Native shadows and focus outlines follow the native squircle; they are outside it by design.
-      if (initial.native) {
-        el.style.setProperty("box-shadow", "none", "important");
-        el.style.setProperty("outline", "none", "important");
-      }
+      for (const layer of layers) layer.el.style.setProperty("transition", "none", "important");
       const blocks: ScrollLogicalPosition[] = el.getBoundingClientRect().height > innerHeight ? ["start", "end"] : ["nearest"];
       const inlines: ScrollLogicalPosition[] = el.getBoundingClientRect().width > innerWidth ? ["start", "end"] : ["nearest"];
       for (const block of blocks) {
@@ -189,25 +214,55 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const clip = { x, y, width: Math.min(r.right + margin, innerWidth) - x, height: Math.min(r.bottom + margin, innerHeight) - y };
           if (clip.width < 1 || clip.height < 1) continue;
           const actual = await capture(clip);
-          el.style.setProperty("clip-path", clipPath(initial.width, initial.height, initial.corners), "important");
+          for (const layer of layers) {
+            const layerRect = layer.el.getBoundingClientRect();
+            const offsetX = (r.left - layerRect.left) / scaleX;
+            const offsetY = (r.top - layerRect.top) / scaleY;
+            layer.el.style.setProperty("clip-path", clipPath(initial.width, initial.height, initial.corners, offsetX, offsetY), "important");
+          }
           const masked = await capture(clip);
-          el.style.setProperty("opacity", "0", "important");
+          for (const layer of layers) layer.el.style.setProperty("opacity", "0", "important");
           const hidden = await capture(clip);
-          restore(el, "opacity", saved.get("opacity")!);
-          restore(el, "clip-path", saved.get("clip-path")!);
-          if (await differences(actual, masked, hidden, clip, r)) { found = true; break; }
+          for (const layer of layers) {
+            restore(layer.el, "opacity", layer.saved.get("opacity")!);
+            restore(layer.el, "clip-path", layer.saved.get("clip-path")!);
+          }
+          let solo: string | null = null;
+          if (ownEffects) {
+            // Compare against the native surface alone, so its shaped shadow or outline is not mistaken for another layer's paint.
+            const attribute = "data-ouro-paint-solo";
+            const previous = el.getAttribute(attribute);
+            counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
+            const marker = `p${counter.__ouroCheckRef}`;
+            const probe = document.createElement("style");
+            probe.textContent = `[${attribute}="${marker}"] *, [${attribute}="${marker}"]::before, [${attribute}="${marker}"]::after { visibility: hidden !important; }`;
+            try {
+              el.setAttribute(attribute, marker);
+              document.head.append(probe);
+              for (const layer of layers.slice(1)) layer.el.style.setProperty("opacity", "0", "important");
+              solo = await capture(clip);
+            } finally {
+              probe.remove();
+              if (previous === null) el.removeAttribute(attribute);
+              else el.setAttribute(attribute, previous);
+              for (const layer of layers.slice(1)) restore(layer.el, "opacity", layer.saved.get("opacity")!);
+            }
+          }
+          if (await differences(actual, masked, hidden, solo, clip, r, initial.width, initial.height, initial.corners)) { found = true; break; }
         }
         if (found) break;
       }
     } finally {
-      for (const [property, value] of saved) restore(el, property, value);
+      for (const layer of layers) for (const [property, value] of layer.saved) restore(layer.el, property, value);
       for (const position of scroll) position.node.scrollTo({ left: position.left, top: position.top, behavior: "instant" });
       window.scrollTo({ left: windowScroll.x, top: windowScroll.y, behavior: "instant" });
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      const currentStyle = el.getAttribute("style");
-      if (currentStyle !== originalStyle && el.style.cssText === normalizedStyle) {
-        if (originalStyle === null) el.removeAttribute("style");
-        else el.setAttribute("style", originalStyle);
+      for (const layer of layers) {
+        const currentStyle = layer.el.getAttribute("style");
+        if (currentStyle !== layer.originalStyle && layer.el.style.cssText === layer.normalizedStyle) {
+          if (layer.originalStyle === null) layer.el.removeAttribute("style");
+          else layer.el.setAttribute("style", layer.originalStyle);
+        }
       }
     }
     if (found) issues.push({ ref: ref(el), rule: "squircle-paint", element: describe(el), detail: "paint shows outside the squircle's corner curve" });

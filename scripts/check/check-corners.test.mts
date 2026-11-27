@@ -111,6 +111,10 @@ test("corners-nest reads all four corners, geometric siblings, clipping, and bot
     assert.match(round[0]!.detail, /both corners must be squircles/);
     await tab.setContent(`<style>${css}</style><div class="area"><div id="shell" class="shell"></div><div id="panel" class="panel"></div></div>`);
     assert.deepEqual(await tab.evaluate(findCornerIssues, {}), []);
+    await tab.setContent(`<style>${css}</style><div class="area"><div id="shell" class="shell"></div><div id="panel" class="panel" style="border-radius:0;border:1px solid #224466"></div></div>`);
+    const square = await tab.evaluate(findCornerIssues, {});
+    assert.equal(square.length, 1, "a square bordered card near a pane's corners");
+    assert.match(square[0]!.detail, /0px, expected 28px/);
     await tab.setContent(`<style>${css}</style><div class="area"><div id="shell" class="shell"><div class="paint"></div></div></div>`);
     assert.deepEqual(await tab.evaluate(findCornerIssues, {}), [], "a fill clipped to the outer surface is not a second corner");
     await tab.setContent(`<style>${css} body { position: fixed; inset: 4px; border-radius: 8px; background: #557799; corner-shape: squircle; }</style><body></body>`);
@@ -173,6 +177,94 @@ test("squircle-paint passes a clipped surface at fractional layout coordinates",
   try {
     await tab.setContent(readFileSync(join(fixtures, "squircle-paint-pass.html"), "utf8"));
     assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("squircle-paint finds a square sibling exposed when the fallback clips a corner-covering shadow", async () => {
+  const generated = await styles(`
+    body { margin: 0; background: #edf2f6; }
+    .stage { position: absolute; left: 60px; top: 60px; width: 200px; height: 140px; }
+    .stage.sound { overflow: hidden; border-radius: 20px; }
+    .content { position: absolute; inset: 0; background: #b44939; }
+    .overlay { position: absolute; inset: 0; border-radius: 20px; box-shadow: 0 0 0 6px #edf2f6; }
+  `);
+  const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-check-native-shape: squircle)");
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: 390, height: 300 }, deviceScaleFactor: 2 });
+  const tab = await context.newPage();
+  await bindCapture(tab);
+  try {
+    for (const sound of [false, true]) {
+      await tab.setContent(`<style>${css}</style><div class="stage${sound ? " sound" : ""}"><div class="content"></div><div class="overlay"></div></div>`);
+      const style = await tab.locator(".overlay").evaluate((el) => ({ radius: getComputedStyle(el).getPropertyValue("--sq-tl").trim(), clip: getComputedStyle(el).clipPath }));
+      assert.equal(style.radius, "20px");
+      assert.notEqual(style.clip, "none");
+      const found = await tab.evaluate(findSquirclePaint);
+      assert.equal(found.length, sound ? 0 : 1, sound ? "the stage clips the square fill" : "the square fill is exposed");
+    }
+  } finally {
+    await browser.close();
+  }
+});
+
+test("squircle-paint finds a sibling control protruding from a rounded pane's corner", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+  await bindCapture(tab);
+  try {
+    for (const leaking of [false, true]) {
+      await tab.setContent(`<style>
+        body { margin: 0; background: white; }
+        .stage { position: absolute; left: 60px; top: 60px; width: 200px; height: 140px; }
+        .surface { position: absolute; inset: 0; border-radius: 32px; corner-shape: squircle; background: #dce5ef; }
+        .control { position: absolute; width: 24px; height: 24px; background: #b44939; box-shadow: 0 0 4px #b44939; }
+      </style><div class="stage"><div class="surface"></div><div class="control" style="${leaking ? "top:-6px;right:-6px" : "top:24px;right:24px"}"></div></div>`);
+      const found = await tab.evaluate(findSquirclePaint);
+      assert.equal(found.length, leaking ? 1 : 0, leaking ? "control protrudes" : "control is inset");
+    }
+  } finally {
+    await browser.close();
+  }
+});
+
+test("squircle-paint does not attribute changing background pixels to a surface", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+  try {
+    await tab.setContent('<div style="position:absolute;left:60px;top:60px;width:160px;height:120px;background:white;border-radius:28px;corner-shape:squircle"></div>');
+    const captures = await tab.evaluate(() => ["red", "blue", "green"].map((color) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 32;
+      const context = canvas.getContext("2d")!;
+      context.fillStyle = color;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL("image/png");
+    }));
+    await tab.exposeBinding("__ouroPaintCapture", () => captures.shift()!);
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("squircle-paint finds an external descendant beside a native surface's intentional shadow", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const tab = await browser.newPage({ viewport: { width: 390, height: 300 }, deviceScaleFactor: 2 });
+  await bindCapture(tab);
+  try {
+    for (const leaking of [false, true]) {
+      await tab.setContent(`<style>
+        body { margin: 0; background: white; }
+        .stage { position: absolute; left: 60px; top: 60px; width: 200px; height: 140px; }
+        .under, .surface { position: absolute; inset: 0; }
+        .surface { background: white; border-radius: 20px; corner-shape: squircle; box-shadow: 0 4px 12px #0008; }
+        .square { position: absolute; left: -12px; top: -12px; width: 8px; height: 8px; background: #d11; }
+      </style><div class="stage"><div class="under"></div><div class="surface">${leaking ? '<div class="square"></div>' : ""}</div></div>`);
+      const found = await tab.evaluate(findSquirclePaint);
+      assert.equal(found.length, leaking ? 1 : 0, leaking ? "external descendant" : "native shadow");
+    }
   } finally {
     await browser.close();
   }
