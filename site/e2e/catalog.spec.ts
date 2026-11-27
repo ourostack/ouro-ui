@@ -456,6 +456,11 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
       // The header's panels load once the page is idle (header.tsx), so a first open draws them whole: no part of the ceiling.
       ...lazyFiles(manifest, "src/voyage/nav-panels.tsx", expected),
       ...lazyFiles(manifest, "src/voyage/docs-panel.tsx", expected),
+      // MessageList asks for its action bar and menu layer as its own code loads, so a first list draws the layer on its
+      // first frame (message-list.tsx): fetched beside the closure, not part of it.
+      ...(expected.some((file) => (moduleMap[file] ?? []).includes("registry/ouro/components/ouro/message/message-list.tsx"))
+        ? lazyFiles(manifest, "../registry/ouro/components/ouro/message/message-parts.tsx", expected)
+        : []),
     ]);
     // The index's previews load the demos they draw, and the components those use, once it is live: within their own
     // budget. Only the frames that drew count, so any other chunk the page fetches still fails the closure check below.
