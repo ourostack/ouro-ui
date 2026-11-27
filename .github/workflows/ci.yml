@@ -1186,6 +1186,9 @@ jobs:
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
     outputs:
       reduced: ${{ steps.tests.outputs.reduced }}
       stems: ${{ steps.tests.outputs.stems }}
@@ -1275,11 +1278,12 @@ jobs:
         continue-on-error: true
       - *pnpm-install-stalled
       - *pnpm-install-retry
+      # One artifact per shard, the newest: a rerun of the run uploads each shard's again under the same name,
+      # and download-artifact failed on the stale copy's 404 (#3933).
       - if: env.BROWSER_RUN == 'true'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: coverage-browser-*
-          path: ${{ runner.temp }}/coverage
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/download-newest-artifacts.mjs coverage-browser- "$RUNNER_TEMP/coverage"
       - id: tests
         if: env.BROWSER_RUN == 'true'
         name: Browser test coverage
@@ -1293,10 +1297,9 @@ jobs:
       # Unless the full suite decides in the fallback shards (the motion-coverage job then reads theirs),
       # the motion maps are held here, beside the merged coverage, so no job waits after this one for them.
       - if: env.BROWSER_RUN == 'true' && steps.tests.outputs.fallback != 'true'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: motion-browser-*
-          path: ${{ runner.temp }}/motion
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/download-newest-artifacts.mjs motion-browser- "$RUNNER_TEMP/motion"
       - if: env.BROWSER_RUN == 'true' && steps.tests.outputs.fallback != 'true'
         name: Motion coverage
         env:
@@ -1778,10 +1781,9 @@ jobs:
       - *pnpm-install-stalled
       - *pnpm-install-retry
       - if: env.FALLBACK == 'true'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: coverage-fallback-*
-          path: ${{ runner.temp }}/coverage
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/download-newest-artifacts.mjs coverage-fallback- "$RUNNER_TEMP/coverage"
       - if: env.FALLBACK == 'true'
         name: Full suite coverage
         run: |
@@ -1803,6 +1805,9 @@ jobs:
     if: ${{ !cancelled() && needs.coverage.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.browser.result) && contains(fromJSON('["success","skipped"]'), needs.browser-fallback.result) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
     env:
       MOTION_PARTITIONS: ouro-chromium:11,ouro-webkit:11,ouro-touch:11,site:11
       FULL_SUITE_PARTITIONS: ouro-chromium:28,ouro-webkit:28,ouro-touch:28,site:28
@@ -1857,10 +1862,10 @@ jobs:
           cache: ""
       # Each browser test job's artifact lands in a folder of its own, so no partition overwrites another.
       - if: env.BROWSER_RUN == 'true'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: ${{ needs.coverage.outputs.fallback == 'true' && 'motion-fallback-*' || 'motion-browser-*' }}
-          path: ${{ runner.temp }}/motion
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREFIX: ${{ needs.coverage.outputs.fallback == 'true' && 'motion-fallback-' || 'motion-browser-' }}
+        run: node scripts/download-newest-artifacts.mjs "$PREFIX" "$RUNNER_TEMP/motion"
       - if: env.BROWSER_RUN == 'true'
         name: Motion coverage
         run: |
