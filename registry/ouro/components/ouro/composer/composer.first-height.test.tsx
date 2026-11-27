@@ -36,16 +36,28 @@ describe("Composer first height", () => {
     const root = createRoot(host);
     const frames: FrameRequestCallback[] = [];
     const raf = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => frames.push(callback));
+    const moving = vi.fn();
+    host.addEventListener("ouro-composer-move", moving);
+    const getHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight")!.get!;
+    let reads = 0;
+    const height = vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (this: HTMLElement) {
+      if (this.hasAttribute("data-ouro-composer-frame")) reads++;
+      return getHeight.call(this) as number;
+    });
     try {
       flushSync(() => root.render(<Composer label="Reply" expanded={false} onSend={() => {}} />));
       flushSync(() => root.render(<Composer label="Reply" expanded onSend={() => {}} />));
       const frame = host.querySelector<HTMLElement>("[data-ouro-composer-frame]")!;
       expect(frame.hasAttribute("data-ouro-moving")).toBe(false);
+      expect(moving).not.toHaveBeenCalled();
+      const before = reads;
       await act(async () => frames.splice(0).forEach((callback) => callback(performance.now())));
+      expect(reads).toBe(before);
       expect(frame.hasAttribute("data-ouro-moving")).toBe(false);
       expect(frame.style.minHeight).toBe("");
     } finally {
       raf.mockRestore();
+      height.mockRestore();
       await act(async () => root.unmount());
       host.remove();
     }

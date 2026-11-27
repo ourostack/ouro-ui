@@ -596,8 +596,8 @@ export function Composer(props: ComposerProps): JSX.Element {
     expandable: expandableHint,
     ...rest
   } = props;
-  const [initialQuote, setInitialQuote] = useState(quote !== undefined);
-  if (initialQuote && quote === undefined) setInitialQuote(false);
+  const [initialQuote, setInitialQuote] = useState(quote);
+  if (initialQuote && quote === undefined) setInitialQuote(undefined);
   const [ownExpanded, setOwnExpanded] = useState(defaultExpanded ?? false);
   const expandable = expandedProp !== undefined || defaultExpanded !== undefined || onExpandedChange !== undefined;
   // The person can expand and collapse it: the composer holds the state, or the app listens.
@@ -682,7 +682,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     if (rich !== undefined) return;
     // An app that turns rich on with the editor already loaded gets it at once, focus and all (its own change, not the load's).
     if (richModule) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- the format the app just chose, drawn in this same pass
+       
       setRich({ Editor: richModule.RichEditor, focus: textareaRef.current === document.activeElement });
       return () => setRich(undefined);
     }
