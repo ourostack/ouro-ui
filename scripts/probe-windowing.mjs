@@ -17,7 +17,7 @@ function runOnce() {
     const child = spawn(
       "timeout",
       ["-k", "10", String(perRunSeconds), "pnpm", "exec", "vitest", "run", "--project", "ouro-chromium", "--retry=0", file],
-      { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, CI: "true" } },
+      { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, CI: "true", OURO_QUARANTINED_ONLY: "1" } },
     );
     let out = "";
     child.stdout.on("data", (chunk) => void (out += chunk));
