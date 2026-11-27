@@ -1218,6 +1218,48 @@ describe("useRowHover", () => {
     expect(probe.hover.via).toBe("pointer");
   });
 
+  it("a press on a row drawn under a pointer that has not moved is the person's, even on a control in it that keeps the press to itself", async () => {
+    const layer = createRowLayer<string>();
+    function Swapped({ id, ready }: { id: string; ready: boolean }) {
+      const ref = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => {
+        const el = ref.current!;
+        layer.set(el, id);
+        return () => layer.delete(el);
+      }, [id]);
+      return (
+        <div>
+          <div ref={ref} key={id} id={id} style={{ height: 40 }}>
+            <button type="button" style={{ width: "100%", height: "100%" }} onPointerDown={(event) => event.stopPropagation()}>
+              Row {id}
+            </button>
+          </div>
+          {ready ? <Layer id={id} /> : null}
+        </div>
+      );
+    }
+    function Layer({ id }: { id: string }) {
+      const ref = useRef<HTMLElement | null>(null);
+      useLayoutEffect(() => {
+        ref.current = document.getElementById(id)!.parentElement;
+      });
+      const hover = useRowHover(ref, layer);
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      return null;
+    }
+    const swapped = await render(<Swapped id="r0" ready={false} />);
+    await userEvent.hover(row("r0"));
+    await swapped.rerender(<Swapped id="r1" ready={false} />);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    // Pressed where the pointer already was: the row's control stops the press before it bubbles to the page.
+    await userEvent.click(row("r1").querySelector("button")!);
+    await swapped.rerender(<Swapped id="r1" ready />);
+    expect(probe.hover.row).toBe(row("r1"));
+    expect(probe.hover.via).toBe("pointer");
+  });
+
   it("forgets where the pointer was once it leaves the page, and only then: a layer arriving later shows on no row under that spot", async () => {
     const layer = createRowLayer<string>();
     function Left({ ready }: { ready: boolean }) {
@@ -1259,6 +1301,59 @@ describe("useRowHover", () => {
     await left.rerender(<Left ready />);
     expect(probe.hover.row).toBeNull();
     expect(probe.hover.via).toBeNull();
+  });
+
+  it("takes a pointer that comes back into the page where it left as the person's move: the row it comes back onto shows at once", async () => {
+    await render(<List count={2} />);
+    const text = row("r0").querySelector("[data-text]")!;
+    await userEvent.hover(text);
+    expect(layerIn("r0")).not.toBeNull();
+    await userEvent.hover(document.documentElement, { position: { x: -8, y: -8 }, force: true });
+    expect(layers()).toHaveLength(0);
+    // Back to the very spot it left from: the same place, but the person moved there.
+    await userEvent.hover(text);
+    expect(layerIn("r0")).not.toBeNull();
+    expect(probe.hover.via).toBe("pointer");
+  });
+
+  it("a last-seen pointer spot on a row the pointer moved onto, then left with no event the page could see, shows on no row there", async () => {
+    const layer = createRowLayer<string>();
+    function Stale({ ready }: { ready: boolean }) {
+      const ref = useRef<HTMLDivElement>(null);
+      useLayoutEffect(() => {
+        layer.set(ref.current!, "r0");
+      }, []);
+      return (
+        <div>
+          <div ref={ref} id="r0" style={{ height: 40 }}>
+            Row
+          </div>
+          <div id="away" style={{ height: 40 }}>
+            Away
+          </div>
+          {ready ? <Layer /> : null}
+        </div>
+      );
+    }
+    function Layer() {
+      const ref = useRef<HTMLElement | null>(null);
+      useLayoutEffect(() => {
+        ref.current = document.getElementById("r0")!.parentElement;
+      });
+      const hover = useRowHover(ref, layer);
+      useLayoutEffect(() => {
+        probe.hover = hover;
+      });
+      return null;
+    }
+    const stale = await render(<Stale ready={false} />);
+    await userEvent.hover(document.getElementById("away")!);
+    // The last move the page saw was onto the row, but the pointer is elsewhere now (a tab or window switch took it
+    // away unseen): the page's own :hover says so.
+    const box = row("r0").getBoundingClientRect();
+    row("r0").dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerType: "mouse", clientX: box.x + 4, clientY: box.y + 4 }));
+    await stale.rerender(<Stale ready />);
+    expect(probe.hover.row).toBeNull();
   });
 
   it("a stale last-seen pointer spot that no longer matches the page's own hover state shows on no row there (ourostack/ouro-ui#3617)", async () => {
