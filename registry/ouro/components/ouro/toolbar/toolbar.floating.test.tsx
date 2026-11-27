@@ -140,10 +140,12 @@ describe("Toolbar floating", () => {
     const leave = vi.fn();
     const { toolbar } = await render(<Toolbar label="Call controls" className="w-40" items={[
       { label: "Unmute microphone", tone: "inverse" },
+      { label: "Share screen", tone: "primary" },
       { type: "separator" },
       { label: "Leave", tone: "destructive", onClick: leave },
     ]} />);
     await userEvent.click(toolbar.querySelector("[data-ouro-toolbar-more]")!);
+    await expect.element(page.getByRole("menuitem", { name: "Share screen", exact: true })).not.toHaveAttribute("data-tone");
     const item = page.getByRole("menuitem", { name: "Leave", exact: true });
     await expect.element(item).toHaveAttribute("data-tone", "destructive");
     await item.click();

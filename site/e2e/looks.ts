@@ -49,7 +49,7 @@ export interface Described {
 // Runs in the page, so it refers to nothing outside itself.
 export function describe(arg: { selector: string; only?: number }): Described {
   // An avatar showing its picture (data-image=loaded) is another state from one showing initials, as the crew's faces on /nautilus/ are.
-  const stateAttr = /^data-(checked|unchecked|disabled|invalid|variant|tone|size|orientation|open|pressed|selected|shape|highlighted|layout|image)$/;
+  const stateAttr = /^data-(checked|unchecked|disabled|invalid|variant|tone|ouro-toolbar-tone|size|orientation|open|pressed|selected|shape|highlighted|layout|image)$/;
   const ariaState = /^aria-(checked|pressed|selected|expanded|disabled|invalid|current)$/;
   const all = [...document.querySelectorAll<HTMLElement>(arg.selector)];
   const looks: Look[] = [];
