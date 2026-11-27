@@ -127,6 +127,31 @@ async function settled() {
 }
 
 describe("Sidebar", () => {
+  it("uses a surface step, not a line, beside the page and at its scrolling edges", async () => {
+    const { nav } = await render(<Sidebar label="Main" sections={[{ items: [{ label: "Inbox", href: "/inbox", badge: 12 }] }]} header="Search" footer="Account" />);
+    const sample = document.createElement("span");
+    nav!.append(sample);
+    sample.style.backgroundColor = "var(--muted)";
+    expect(getComputedStyle(nav!).backgroundColor).toBe(getComputedStyle(sample).backgroundColor);
+    expect(getComputedStyle(nav!).borderInlineEndWidth).toBe("0px");
+    sample.style.backgroundColor = "var(--background)";
+    const pageSurface = getComputedStyle(sample).backgroundColor;
+    sample.remove();
+    const scroller = nav!.querySelector<HTMLElement>("[data-ouro-sidebar-scroll]")!;
+    expect(getComputedStyle(scroller.previousElementSibling!).backgroundColor).toBe(pageSurface);
+    expect(getComputedStyle(scroller.nextElementSibling!).backgroundColor).toBe(pageSurface);
+    const link = page.getByRole("link", { name: "Inbox 12" }).element();
+    expect(getComputedStyle(link.querySelector("[data-ouro-sidebar-badge]")!).backgroundColor).toBe(pageSurface);
+    await userEvent.hover(link);
+    await expect.poll(() => getComputedStyle(link).backgroundColor).toBe(pageSurface);
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      expect(parseFloat(getComputedStyle(nav!).borderInlineEndWidth)).toBeGreaterThan(0);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("keeps its fixed sizes at a compact --spacing: the current bar, a group's chevron and the collapse button's icon", async () => {
     const { host } = await render(
       <Sidebar label="Main" sections={[{ items: [{ label: "Recipes", href: "/recipes" }, { label: "Library", items: [{ label: "Cookbooks", href: "/cookbooks" }] }] }]} currentPath="/recipes" />,
