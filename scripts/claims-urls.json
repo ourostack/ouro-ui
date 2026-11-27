@@ -1258,5 +1258,9 @@
   "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/decisions/2026-11-27-ouro-feel-principles.md": {
     "status": 200,
     "checked": "2026-11-27"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/ouro-feel/checks.json": {
+    "status": 200,
+    "checked": "2026-11-27"
   }
 }

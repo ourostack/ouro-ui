@@ -247,13 +247,25 @@ describe("Ouro UI for Apple", () => {
   });
 
   it("lists every promise and every check in Feel's catalog, with no count written by hand", async () => {
+    const named = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
     await renderPage("/apple/feel/");
-    await expect.element(page.getByRole("heading", { level: 3, name: "Your intent is the unit" })).toBeInTheDocument();
     for (const principle of feelCatalog.principles) {
+      await expect.element(page.getByRole("heading", { level: 3, name: named(principle.name) })).toBeInTheDocument();
       const section = document.getElementById(`feel-principle-${principle.id}`)?.closest("section");
       expect(section, principle.name).toBeTruthy();
-      const names = [...section!.querySelectorAll(".feel-check .apple-lane-name")].map((name) => name.textContent?.toLowerCase());
-      expect(names).toEqual(principle.checks.map((check) => check.name));
+      expect(section!.querySelector(".feel-principle-promise")?.textContent).toBe(principle.promise);
+      const rows = [...section!.querySelectorAll(".feel-check")].map((row) => [
+        row.querySelector(".apple-lane-name")?.textContent,
+        row.querySelector(".apple-lane-body")?.textContent,
+      ]);
+      expect(rows).toEqual(principle.checks.map((check) => [named(check.name), check.good]));
+    }
+    const band = document.getElementById("principles")?.closest("section");
+    expect(band).toBeTruthy();
+    const prose = [...band!.querySelectorAll("h2, p")].filter((node) => !node.closest(".feel-principles"));
+    expect(prose.length).toBeGreaterThan(0);
+    for (const node of prose) {
+      expect(node.textContent).not.toMatch(/\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|twenty|dozen|handful|several|few)\b/i);
     }
   });
 
