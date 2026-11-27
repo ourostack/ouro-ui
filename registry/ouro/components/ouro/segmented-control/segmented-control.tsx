@@ -142,7 +142,7 @@ function Segment(props: {
     >
       <TouchTarget />
       {item.icon !== undefined && (
-        <span aria-hidden="true" data-slot="segmented-control-icon" className={iconClass}>
+        <span aria-hidden="true" data-slot="segmented-control-icon" className={cn(iconClass, glass && !selected && "me-0")}>
           {item.icon}
         </span>
       )}

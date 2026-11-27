@@ -84,6 +84,17 @@ describe("SegmentedControl glass", () => {
     expect(group.querySelectorAll('[role="radio"][aria-checked="true"]')).toHaveLength(1);
   });
 
+  it("keeps an unchecked segment's lone icon in its middle, and spaces the checked one's icon from its label", async () => {
+    const { segments } = await mount();
+    const [places, people] = segments as [HTMLElement, HTMLElement];
+    const iconOf = (segment: HTMLElement) => segment.querySelector<HTMLElement>('[data-slot="segmented-control-icon"]')!;
+    expect(parseFloat(getComputedStyle(iconOf(places)).marginInlineEnd)).toBe(6);
+    expect(parseFloat(getComputedStyle(iconOf(people)).marginInlineEnd)).toBe(0);
+    const box = people.getBoundingClientRect();
+    const ink = iconOf(people).getBoundingClientRect();
+    expect(Math.abs((ink.left + ink.right) / 2 - (box.left + box.right) / 2)).toBeLessThanOrEqual(0.5);
+  });
+
   it("draws the count as a 14px pill inside the segment", async () => {
     const { segments } = await mount();
     const segment = segments[0]!;
