@@ -244,6 +244,27 @@ describe("MessageList prepending older history", () => {
     expect(Math.abs(firstVisible(scroller).top - reading.top)).toBeLessThanOrEqual(2);
   });
 
+  it("does not reclaim a scroll at the end of the reader's input grace period after a new layout hold", async () => {
+    const list = await mountScrolledUp(false);
+    const before = list.scroller.scrollTop;
+    const now = vi.spyOn(performance, "now").mockReturnValue(10_000);
+    try {
+      list.scroller.dispatchEvent(new Event("keydown", { bubbles: true }));
+      now.mockReturnValue(11_000);
+      const scrolled = new Promise((resolve) => list.scroller.addEventListener("scroll", resolve, { once: true }));
+      vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame"] });
+      await list.grow();
+      await scrolled;
+      const at = list.scroller.scrollTop;
+      expect(at).not.toBe(before);
+      Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!.set!.call(list.scroller, at - 4);
+      await act(() => list.scroller.dispatchEvent(new Event("scroll")));
+      expect(list.scroller.scrollTop).toBe(at - 4);
+    } finally {
+      now.mockRestore();
+    }
+  });
+
   it("does not undo a layout correction the browser applied later", async () => {
     const list = await mountScrolledUp(false);
     const property = Object.getOwnPropertyDescriptor(list.scroller, "scrollTop")!;
