@@ -56,6 +56,7 @@
   "number-field",
   "otp-field",
   "pagination",
+  "permission-prompt",
   "popover",
   "porthole",
   "preview-bar",
