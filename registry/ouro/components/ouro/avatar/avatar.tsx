@@ -234,13 +234,25 @@ export type AvatarGroupProps = Omit<HTMLAttributes<HTMLDivElement>, keyof Avatar
 // Each size sets the box and the initials' type size together. The box reads the fixed-size tokens, so a
 // density that changes --spacing leaves the avatar its size.
 const sizes = {
-  xs: "size-ouro-6 [--ouro-edge:0.105rem] text-[0.625rem]",
-  sm: "size-ouro-8 [--ouro-edge:0.14rem] text-xs",
-  md: "size-ouro-10 [--ouro-edge:0.175rem] text-sm",
-  lg: "size-ouro-12 [--ouro-edge:0.21rem] text-base",
-  xl: "size-ouro-16 [--ouro-edge:0.28rem] text-xl",
-  "2xl": "size-ouro-18 [--ouro-edge:0.315rem] text-2xl",
-  "3xl": "size-ouro-28 [--ouro-edge:0.49rem] text-4xl",
+  xs: "size-ouro-6 text-[0.625rem]",
+  sm: "size-ouro-8 text-xs",
+  md: "size-ouro-10 text-sm",
+  lg: "size-ouro-12 text-base",
+  xl: "size-ouro-16 text-xl",
+  "2xl": "size-ouro-18 text-2xl",
+  "3xl": "size-ouro-28 text-4xl",
+} as const;
+
+// The width of a team's second edge and of the hole between a group's slices, by size: only a square or a group
+// draws them, so no other avatar carries the class.
+const edges = {
+  xs: "[--ouro-edge:0.105rem]",
+  sm: "[--ouro-edge:0.14rem]",
+  md: "[--ouro-edge:0.175rem]",
+  lg: "[--ouro-edge:0.21rem]",
+  xl: "[--ouro-edge:0.28rem]",
+  "2xl": "[--ouro-edge:0.315rem]",
+  "3xl": "[--ouro-edge:0.49rem]",
 } as const;
 
 // How far each avatar after the first slides under the one before, by the group's size: 4px for 24 to 47px,
@@ -294,21 +306,24 @@ const biteSizes = {
 // Below 40px a glyph cannot be read, so the dot is a plain colour; from 40px up it carries its glyph.
 const plainSizes: readonly AvatarSize[] = ["xs", "sm"];
 
-// Each hue tints the surface and colors the initials, mixed toward the theme's background and
-// foreground so the pair keeps at least 4.5:1 in light and dark.
-// A tint is its surface classes (with the dark scheme's own step) and its ink.
+// Each hue tints the surface and colors the initials: ouro-base mixes each hue toward the theme's
+// background (--ouro-avatar-tint-*) and foreground (--ouro-avatar-ink-*) once, on the root and on .dark,
+// so the pair keeps at least 4.5:1 in light and dark and no avatar evaluates a color-mix() of its own. An app whose
+// ouro-base predates those tokens gets the light scheme's mix in their place, so its avatars keep their tint until
+// it adds ouro-base again.
+// A tint is its surface class and its ink.
 type Tint = readonly [fill: string, ink: string];
 const hues: readonly Tint[] = [
-  ["bg-[color-mix(in_oklab,var(--avatar-1)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-1)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-1)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--avatar-1)_18%,var(--foreground))]"],
-  ["bg-[color-mix(in_oklab,var(--avatar-2)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-2)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-2)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--avatar-2)_18%,var(--foreground))]"],
-  ["bg-[color-mix(in_oklab,var(--avatar-3)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-3)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-3)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--avatar-3)_18%,var(--foreground))]"],
-  ["bg-[color-mix(in_oklab,var(--avatar-4)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-4)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-4)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--avatar-4)_18%,var(--foreground))]"],
-  ["bg-[color-mix(in_oklab,var(--avatar-5)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-5)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-5)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--avatar-5)_18%,var(--foreground))]"],
-  ["bg-[color-mix(in_oklab,var(--avatar-6)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-6)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-6)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--avatar-6)_18%,var(--foreground))]"],
-  ["bg-[color-mix(in_oklab,var(--avatar-7)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-7)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-7)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--avatar-7)_18%,var(--foreground))]"],
-  ["bg-[color-mix(in_oklab,var(--avatar-8)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--avatar-8)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--avatar-8)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--avatar-8)_18%,var(--foreground))]"],
+  ["bg-[color:var(--ouro-avatar-tint-1,color-mix(in_oklab,var(--avatar-1)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-1,color-mix(in_oklab,var(--avatar-1)_70%,var(--foreground)))]"],
+  ["bg-[color:var(--ouro-avatar-tint-2,color-mix(in_oklab,var(--avatar-2)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-2,color-mix(in_oklab,var(--avatar-2)_70%,var(--foreground)))]"],
+  ["bg-[color:var(--ouro-avatar-tint-3,color-mix(in_oklab,var(--avatar-3)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-3,color-mix(in_oklab,var(--avatar-3)_70%,var(--foreground)))]"],
+  ["bg-[color:var(--ouro-avatar-tint-4,color-mix(in_oklab,var(--avatar-4)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-4,color-mix(in_oklab,var(--avatar-4)_70%,var(--foreground)))]"],
+  ["bg-[color:var(--ouro-avatar-tint-5,color-mix(in_oklab,var(--avatar-5)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-5,color-mix(in_oklab,var(--avatar-5)_70%,var(--foreground)))]"],
+  ["bg-[color:var(--ouro-avatar-tint-6,color-mix(in_oklab,var(--avatar-6)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-6,color-mix(in_oklab,var(--avatar-6)_70%,var(--foreground)))]"],
+  ["bg-[color:var(--ouro-avatar-tint-7,color-mix(in_oklab,var(--avatar-7)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-7,color-mix(in_oklab,var(--avatar-7)_70%,var(--foreground)))]"],
+  ["bg-[color:var(--ouro-avatar-tint-8,color-mix(in_oklab,var(--avatar-8)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-8,color-mix(in_oklab,var(--avatar-8)_70%,var(--foreground)))]"],
 ] as const;
-const brand: Tint = ["bg-[color-mix(in_oklab,var(--primary)_18%,var(--background))] dark:bg-[color-mix(in_oklab,var(--primary)_46%,var(--background))]", "text-[color-mix(in_oklab,var(--primary)_70%,var(--foreground))] dark:text-[color-mix(in_oklab,var(--primary)_18%,var(--foreground))]"];
+const brand: Tint = ["bg-[color:var(--ouro-avatar-tint-brand,color-mix(in_oklab,var(--primary)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-brand,color-mix(in_oklab,var(--primary)_70%,var(--foreground)))]"];
 const neutral: Tint = ["bg-secondary", "text-secondary-foreground"];
 
 const shapes = ["circle", "square", "agent"] as const;
@@ -663,6 +678,7 @@ export function Avatar(props: AvatarProps): JSX.Element {
   const iconShown = glyph !== undefined;
   const tint = color === "neutral" ? neutral : color === "brand" ? brand : hueOf(idForColor ?? name);
   const [fill, ink] = tint;
+  const letters = image === "loaded" || group || nameLoading || iconShown ? undefined : (initials ?? initialsOf(name));
   return (
     <span
       {...rest}
@@ -673,7 +689,8 @@ export function Avatar(props: AvatarProps): JSX.Element {
       data-presence={presence}
       data-name-loading={nameLoading ? "" : undefined}
       className={cn(
-        "relative box-border inline-flex shrink-0 items-center justify-center align-middle",
+        // Its surface and dot are placed by their own offsets, so the root aligns nothing: no alignment classes to style.
+        "relative box-border inline-flex shrink-0 align-middle",
         "font-medium leading-none select-none",
         // Where the engine draws corner-shape, the box is the surface's own squircle, so the edge and ring follow it. Elsewhere its corner
         // is a circle at 0.543 of that radius, the largest circle that encloses the squircle, so a shadow follows it.
@@ -684,12 +701,17 @@ export function Avatar(props: AvatarProps): JSX.Element {
         !nameLoading && !group && ink,
         drawn && biteSizes[size],
         sizes[size],
+        (shape === "square" || group) && edges[size],
         className,
       )}
     >
       <span
         data-ouro-avatar-surface=""
         data-ouro-bite={drawn ? "" : undefined}
+        // The initials are drawn by the surface's own ::before, from this attribute, not written as text, so a
+        // control that wraps the avatar has no visible text its name must contain (WCAG 2.5.3); the avatar's name
+        // is its aria-label. One element, not two: a list of people pays for every element an avatar draws.
+        data-ouro-avatar-initials={letters}
         className={cn(
           "absolute inset-0",
           shape === "circle" ? "rounded-[44%]" : "rounded-[24%]",
@@ -700,6 +722,9 @@ export function Avatar(props: AvatarProps): JSX.Element {
           group && image !== "loaded" && slices.length > 1 && "grid-cols-2",
           image !== "loaded" && iconShown && !nameLoading && !group && "*:size-[55%]",
           nameLoading && "overflow-hidden",
+          // Trimmed to the letters' cap height and baseline, so the letters themselves sit in the middle, not their
+          // line with its room for accents and descenders.
+          letters !== undefined && "whitespace-nowrap before:content-[attr(data-ouro-avatar-initials)] before:[text-box:trim-both_cap_alphabetic]",
         )}
       >
         {image === "loaded" ? (
@@ -711,17 +736,8 @@ export function Avatar(props: AvatarProps): JSX.Element {
         ) : nameLoading ? (
           // The avatar's own box and corners, so it is the avatar's exact shape; the presence dot stays whole outside it.
           <Skeleton className="size-full [border-radius:inherit]" />
-        ) : iconShown ? (
-          glyph
         ) : (
-          // Drawn from the attribute, not written as text, so a control that wraps the avatar has no
-          // visible text its name must contain (WCAG 2.5.3); the avatar's name is its aria-label.
-          // Trimmed to the letters' cap height and baseline, so the letters themselves sit in the
-          // middle, not their line with its room for accents and descenders.
-          <span
-            data-ouro-avatar-initials={initials ?? initialsOf(name)}
-            className="block whitespace-nowrap [text-box:trim-both_cap_alphabetic] before:content-[attr(data-ouro-avatar-initials)]"
-          />
+          iconShown && glyph
         )}
       </span>
       {presence && (
