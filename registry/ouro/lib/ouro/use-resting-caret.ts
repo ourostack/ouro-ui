@@ -77,7 +77,7 @@ function caretRect(box: Box): { left: number; top: number; height: number } | nu
     }
     if (rect?.height) return rect;
     return {
-      left: bounds.left + parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft),
+      left: bounds.left,
       top: bounds.top + parseFloat(style.borderTopWidth) + parseFloat(style.paddingTop),
       height: parseFloat(style.fontSize),
     };
@@ -87,8 +87,8 @@ function caretRect(box: Box): { left: number; top: number; height: number } | nu
   // Copy the app's typography, direction, alignment and wrapping, not a second set of tokens.
   for (const property of style) mirror.style.setProperty(property, style.getPropertyValue(property));
   Object.assign(mirror.style, {
-    position: "fixed", left: "0", top: "0", margin: "0", visibility: "hidden",
-    display: "block", transform: "none", transition: "none", animation: "none",
+    position: "fixed", visibility: "hidden",
+    transform: "none", transition: "none", animation: "none",
     whiteSpace: box instanceof HTMLTextAreaElement ? "pre-wrap" : "pre",
     overflowWrap: "break-word", pointerEvents: "none",
   });
@@ -127,12 +127,13 @@ function caretRect(box: Box): { left: number; top: number; height: number } | nu
 export function useRestingCaret(box: Box | null, policy: RestingCaretOptions | undefined, readOnly: boolean, disabled: boolean, inputType?: string) {
   const current = useRef<{ cover: (covered: boolean) => void; refresh: () => void } | null>(null);
   const enabled = policy?.enabled === true && !readOnly && !disabled;
+  const occluded = policy?.occluded;
   const subscribeWake = policy?.subscribeWake;
   const onHeld = policy?.onHeld;
-  const caller = useRef({ readOnly, disabled });
+  const caller = useRef<{ readOnly: boolean; disabled: boolean; occluded: boolean | undefined } | undefined>(undefined);
   // Layout cleanups run after React writes the new readOnly prop. Publish the committed
   // ownership first, so lifting our hold cannot overwrite that new caller-owned state.
-  useInsertionEffect(() => { caller.current = { readOnly, disabled }; }, [readOnly, disabled]);
+  useInsertionEffect(() => { caller.current = { readOnly, disabled, occluded }; }, [readOnly, disabled, occluded]);
   useLayoutEffect(() => {
     if (!enabled || !box || !box.isConnected || !subscribeWake || !onHeld) return;
     // Date, email and other native editors expose no selection to preserve.
@@ -140,13 +141,13 @@ export function useRestingCaret(box: Box | null, policy: RestingCaretOptions | u
     const doc = box.ownerDocument;
     const win = doc.defaultView!;
     const nativeCaret = win.CSS.supports("caret-animation", "manual");
-    let animation = "";
-    let animationPriority = "";
+    let animation: string;
+    let animationPriority: string;
     const macWebKit = win.navigator.platform.startsWith("Mac") && win.navigator.vendor === "Apple Computer, Inc.";
     let active = true;
     let held = false;
     let composing = false;
-    let covered = false;
+    let covered = caller.current!.occluded;
     let lastInput = Date.now();
     let timer: ReturnType<typeof setTimeout> | undefined;
     let caret: HTMLSpanElement | undefined;
@@ -172,8 +173,8 @@ export function useRestingCaret(box: Box | null, policy: RestingCaretOptions | u
           macWebKit ? Math.floor(rect.left - field.left - 0.25) : Math.ceil(rect.left - field.left - 0.01),
           parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft),
         );
-        const fraction = (parseFloat(style.paddingTop) + parseFloat(style.borderTopWidth)) % 1;
-        const y = Math.floor(rect.top - field.top - fraction + 0.01) + fraction;
+        const inset = parseFloat(style.paddingTop) + parseFloat(style.borderTopWidth);
+        const y = Math.floor(rect.top - field.top - inset + 0.01) + inset;
         const snap = (value: number) => Math.round(value * win.devicePixelRatio) / win.devicePixelRatio;
         Object.assign(caret.style, {
           left: `${snap(field.left + x) - origin.left}px`,
@@ -188,15 +189,14 @@ export function useRestingCaret(box: Box | null, policy: RestingCaretOptions | u
       held = false;
       if (nativeCaret) {
         if (box.style.getPropertyValue("caret-animation") === "manual") {
-          if (animation) box.style.setProperty("caret-animation", animation, animationPriority);
-          else box.style.removeProperty("caret-animation");
+          box.style.setProperty("caret-animation", animation, animationPriority);
         }
       } else {
-        if (textBox(box)) box.readOnly = caller.current.readOnly;
+        if (textBox(box)) box.readOnly = caller.current!.readOnly;
         else {
-          box.contentEditable = String(!caller.current.readOnly && !caller.current.disabled);
+          box.contentEditable = String(!caller.current!.readOnly && !caller.current!.disabled);
           if (tabIndex === null) {
-            if (!caller.current.readOnly || caller.current.disabled) box.removeAttribute("tabindex");
+            if (!caller.current!.readOnly || caller.current!.disabled) box.removeAttribute("tabindex");
           } else box.setAttribute("tabindex", tabIndex);
         }
         reconsider(box);
@@ -308,6 +308,6 @@ export function useRestingCaret(box: Box | null, policy: RestingCaretOptions | u
       delete box.dataset.caretRest;
     };
   }, [box, enabled, subscribeWake, onHeld, inputType]);
-  useLayoutEffect(() => current.current?.cover(policy?.occluded === true), [box, enabled, policy?.occluded]);
+  useLayoutEffect(() => current.current?.cover(occluded === true), [box, enabled, occluded]);
   useLayoutEffect(() => current.current?.refresh());
 }
