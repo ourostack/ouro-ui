@@ -70,3 +70,10 @@ it("keeps the row and the remove button 44px to a finger at a compact --spacing"
   attachment.style.setProperty("--spacing", "0.2rem");
   expect(measure()).toEqual([44, 44, 44]);
 });
+
+it("keeps the overlaid remove button on a picture preview a full 44px target", async () => {
+  const attachment = await render(<Attachment name="crumb.jpg" preview="/crumb-thumb.jpg" onRemove={() => {}} />);
+  const remove = attachment.querySelector<HTMLElement>('[data-ouro-part="remove"]')!;
+  expect(hasTouchTarget(remove)).toBe(true);
+  expect(remove.getBoundingClientRect().width).toBeGreaterThanOrEqual(44);
+});

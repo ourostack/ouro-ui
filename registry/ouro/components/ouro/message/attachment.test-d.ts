@@ -19,6 +19,9 @@ expectTypeOf<{
   icon: null;
   onOpen: (event: MouseEvent<HTMLElement>) => void;
 }>().toExtend<AttachmentProps>();
+// preview takes a picture address or any node already sized to the square.
+expectTypeOf<{ name: "crumb.jpg"; preview: "/crumb.jpg" }>().toExtend<AttachmentProps>();
+expectTypeOf<{ name: "crumb.jpg"; preview: null }>().toExtend<AttachmentProps>();
 expectTypeOf<AttachmentKind>().toEqualTypeOf<"doc" | "sheet" | "slides" | "pdf" | "image" | "video" | "audio" | "zip" | "code" | "file">();
 // A kind from another kit names the kinds.
 expectTypeOf<{ name: "a"; kind: "excel" }>().not.toExtend<AttachmentProps>();
@@ -29,6 +32,8 @@ expectTypeOf<{ href: "/menu.pdf" }>().not.toExtend<AttachmentProps>();
 expectTypeOf<{ name: "a"; fileName: "menu.pdf" }>().not.toExtend<AttachmentProps>();
 expectTypeOf<{ name: "a"; url: "/menu.pdf" }>().not.toExtend<AttachmentProps>();
 expectTypeOf<{ name: "a"; onDelete: () => void }>().not.toExtend<AttachmentProps>();
+// The picture is preview, not thumbnail.
+expectTypeOf<{ name: "a"; thumbnail: "/crumb.jpg" }>().not.toExtend<AttachmentProps>();
 
 // @ts-expect-error name is required.
 createElement(Attachment, { href: "/menu.pdf" });

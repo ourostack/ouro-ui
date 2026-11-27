@@ -1,5 +1,5 @@
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { commands, page } from "vitest/browser";
 import { ConversationList } from "@/registry/ouro/components/ouro/conversation-list/conversation-list";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -150,4 +150,45 @@ it("opens a section header's menu as a sheet from its more button, a 44px target
   await commands.tap('[data-ouro-part="more"]');
   await expect.poll(() => document.querySelector("[data-ouro-presentation]")?.getAttribute("data-ouro-presentation")).toBe("sheet");
   expect(header.getAttribute("aria-expanded")).toBe("true");
+});
+
+it("reorders a section by a finger dragging its handle, shows the handle with no hover, and reports the move", async () => {
+  const onSectionsReorder = vi.fn();
+  const host = document.createElement("div");
+  document.body.append(host);
+  nodes.push(host);
+  root = createRoot(host);
+  await act(async () =>
+    root!.render(
+      <ConversationList
+        label="Conversations"
+        items={[
+          { id: "a", title: "Trail crew", section: "one" },
+          { id: "b", title: "Ana Lind", section: "two" },
+        ]}
+        sections={[
+          { id: "one", title: "First", reorderable: true },
+          { id: "two", title: "Second", reorderable: true },
+        ]}
+        onSectionsReorder={onSectionsReorder}
+        onSelect={() => {}}
+      />,
+    ),
+  );
+  const grip = host.querySelector<HTMLElement>('[data-ouro-part="section-handle"][data-ouro-reorder="one"]')!;
+  expect(getComputedStyle(grip).opacity).toBe("1");
+  const box = grip.getBoundingClientRect();
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  const second = host.querySelector<HTMLElement>('[data-ouro-part="section"][data-ouro-reorder="two"]')!.getBoundingClientRect();
+  const end = second.y + second.height * 0.9;
+  await commands.touchStep({ type: "touchStart", x, y });
+  try {
+    for (let step = 1; step <= 8; step++) await commands.touchStep({ type: "touchMove", x, y: y + ((end - y) * step) / 8 });
+  } finally {
+    await commands.touchStep({ type: "touchEnd" });
+  }
+  await expect.poll(() => onSectionsReorder.mock.calls.length).toBe(1);
+  expect(onSectionsReorder).toHaveBeenCalledWith(["two", "one"], { id: "one", from: 0, to: 1 });
+  expect([...host.querySelectorAll('[data-ouro-part="section"]')].map((header) => header.textContent)).toEqual(["Second", "First"]);
 });

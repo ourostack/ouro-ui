@@ -30,7 +30,14 @@ export const agentCases: AgentCase[] = [
     dev: '<Attachment name="notes" kind="doc" />',
     names: ["tsc", "dev"],
   },
+  {
+    id: "attachment05",
+    habit: "thumbnail for the picture",
+    tsc: [hint("string", 'Use <Attachment name="crumb.jpg" preview={file.url} />')],
+    dev: '<Attachment name="crumb.jpg" preview={file.url} />',
+    names: ["tsc", "dev"],
+  },
 ];
 
 /** Valid attachment snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["attachmentOk01", "attachmentOk02"];
+export const validSnippets: string[] = ["attachmentOk01", "attachmentOk02", "attachmentOk03"];

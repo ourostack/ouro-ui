@@ -10,7 +10,7 @@ import { runInNewContext } from "node:vm";
 import { assemble, releasedAt } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
 import { KITS } from "./kit-pin.mjs";
-import { entryProblems, expiredWarning, failedTests, isExpired, judgeOwnRun, names, quarantineFile, record, retryPlan, staleWarning, stepBlock } from "./quarantine.mjs";
+import { entryProblems, expiredWarning, failedTests, hungTests, isExpired, judgeOwnRun, names, quarantineFile, record, retryPlan, staleWarning, stepBlock } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { GH_REFUSED, sandboxEnv } from "./sandbox.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
@@ -1606,12 +1606,12 @@ test("a push to main whose tree already passed runs only install-github", () => 
   assert.match(jobs.plan, /^ {4}permissions:\n {6}actions: read\n {6}contents: read\n {6}pull-requests: read/m);
   // A proven push installs nothing for the plan either.
   assert.match(readFileSync(join(dir, "ci.yml"), "utf8").split("\n  checks:\n")[0], /^ {6}- if: steps\.tested\.outputs\.tested != 'true'\n {8}id: install\n/m);
-  // Every job but the plan, the GitHub install, the release-only install, fail-fast and fresh-main (pull
+  // Every job but the plan, the GitHub install, the release-only install, install prep (which saves the prepared app), fail-fast and fresh-main (pull
   // requests only) and tree-proof skips on it, gates included; motion-coverage waits on ci and browser-fallback on
   // the coverage job. Nothing else reads it.
   const condition = (block) => block.match(/^ {4}if: (.+)$/m)?.[1];
   const skipping = Object.keys(jobs).filter((id) => [untested, queuedInstalls, browserRuns, mutationRuns, heavyRuns, designRuns, laneRuns].includes(condition(jobs[id])));
-  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "motion-coverage", "browser-fallback", "fail-fast", "fresh-main", "tree-proof", "yield"].includes(id)).sort());
+  assert.deepEqual(skipping.sort(), Object.keys(jobs).filter((id) => !["plan", "install-github", "install-latest", "install-prep", "motion-coverage", "browser-fallback", "fail-fast", "fresh-main", "tree-proof", "yield"].includes(id)).sort());
   assert.match(jobs["motion-coverage"], /^ {4}needs: \[plan, browser, coverage, browser-fallback\]$/m);
   assert.match(jobs["browser-fallback"], /^ {4}needs: \[plan, coverage\]$/m);
   assert.doesNotMatch(jobs["install-github"], /tested/);
@@ -1695,6 +1695,7 @@ function checkNames(block, id) {
 const untested = "${{ !cancelled() && needs.plan.outputs.tested != 'true' }}";
 
 /** The install test's jobs (not its gates): they also skip on a pull request that changes nothing the install test reads (the plan's `installs`). */
+const preppedInstalls = "${{ !cancelled() && needs.plan.outputs.installs != 'skip' }}";
 const queuedInstalls = "${{ !cancelled() && needs.plan.outputs.tested != 'true' && needs.plan.outputs.installs != 'skip' }}";
 
 /** The browser shards': they also skip on a pull request that changes nothing they read (the plan's `browser`). */
@@ -1733,7 +1734,7 @@ test("every required check is still a job that reports, under the name the rules
     // motion-coverage runs beside ci once the coverage job and the shards it reads passed or were skipped.
     if (id === "motion-coverage") assert.equal(condition, "${{ !cancelled() && needs.coverage.result == 'success' && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser.result) && contains(fromJSON('[\"success\",\"skipped\"]'), needs.browser-fallback.result) }}");
     // browser is no required check either: the ci check holds it, and passes its skip only when the plan asked for it.
-    else if (!["fail-fast", "install-github", "install-latest", "plan", "yield", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-shard" || id === "install-prep" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" || id === "subsets" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
+    else if (!["fail-fast", "install-github", "install-latest", "plan", "yield", "browser-fallback", "fresh-main", "tree-proof"].includes(id)) assert.ok(!condition || condition === (id === "install-prep" ? preppedInstalls : id === "install-shard" || id === "install-checks" || id === "install-upgrade" || id === "install-current" ? queuedInstalls : id === "browser" || id === "subsets" ? browserRuns : id === "design" ? designRuns : id === "mutation-shard" ? mutationRuns : id === "sr-yield" || id === "screen-reader" ? laneRuns : [...heavyJobs.filter((job) => job !== "themes"), "latency-shard", "e2e-shard", "sweep-shard", "sweeps-compare"].includes(id) ? heavyRuns : untested), `${id} has if: ${condition}`);
   }
   // The heavy tier: every check its jobs report is required. On a pull request that leaves them to
   // the merge queue, a job without a matrix reports skipped under its own name, which a required
@@ -2931,6 +2932,7 @@ test("the workflows beside CI cancel only a pull request's superseded run: never
     "incumbent.yml": "  group: incumbent-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "first-run-sso.yml": "  group: first-run-sso-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
     "chromium-floor-smoke.yml": "  group: chromium-floor-smoke-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
+    "lcd-text-windows.yml": "  group: lcd-text-windows-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}",
   };
   for (const { file, text } of workflows) {
     const on = text.split(/^on:\n/m)[1].split(/\n(?=\S)/)[0];
@@ -3144,7 +3146,7 @@ test("every quarantined test names its test (project, file and title), an issue 
   assert.deepEqual(entryProblems(entries), []);
   for (const entry of entries) {
     assert.ok(existsSync(join(root, entry.file)), `${entry.file} does not exist`);
-    assert.ok(hasQuarantinedTitle(entry.file, entry.title), `${entry.file} has no test "${entry.title}"`);
+    if (entry.title !== "*") assert.ok(hasQuarantinedTitle(entry.file, entry.title), `${entry.file} has no test "${entry.title}"`);
   }
   // Each part is required.
   const whole = { project: "ouro-webkit", file: "registry/ouro/components/ouro/calendar/calendar.test.tsx", title: "Calendar > range > previews", issue: "https://github.com/ourostack/ouro-ui/issues/1", owner: "someone", expiry: "2099-01-01T00:00:00Z" };
@@ -3174,7 +3176,7 @@ const calendarLog = logLines("install (shadcn@latest, nova)", [
   "##[error]Process completed with exit code 1.",
 ]);
 const diveTitle = "pressing Dive > ends early on a click, which reaches nothing under the water, or on the button under it";
-const diveLog = logLines("browser (5/22)", [
+const diveLog = logLines("browser (5/11)", [
   ` FAIL   site (chromium)  site/src/voyage/dive/dive.test.tsx > ${diveTitle}`,
   " Test Files  1 failed | 75 passed (76)",
   "      Tests  1 failed | 3284 passed | 4 skipped (3289)",
@@ -3202,7 +3204,7 @@ test("the quarantine reads a job's failed Vitest tests from its log, and anythin
 });
 
 const latencyTitle = "interaction latency › the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4× slower CPU";
-const latencyLog = logLines("browser (5/22)", [
+const latencyLog = logLines("browser (5/11)", [
   `  ✘  1 [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › ${latencyTitle} (1.2s)`,
   "  1) [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › interaction latency › the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4× slower CPU",
   "    Error: expected p95 to be below 100ms, measured 142ms",
@@ -3236,10 +3238,10 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   const latestStep = 'Run SHADCN_VERSION=latest scripts/install-test.sh shadcn "$RUNNER_TEMP/latest" b478a3226bf42656ed903307714b9f1d4280e26a';
   const contexts = ["ci", "motion-coverage", "install (shadcn, nova)", "install (shadcn@latest, nova)"];
   const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: [], ...extra });
-  const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, "browser (5/22)", "success"), job(5, "motion-coverage", "success")];
+  const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, "browser (5/11)", "success"), job(5, "motion-coverage", "success")];
   const runWith = (jobs, attempt = 1) => [{ id: "5", attempt, workflow: ciYml, jobs: green.filter((base) => !jobs.some((other) => other.name === base.name)).concat(jobs) }];
   const calendar = job(3, "install (shadcn@latest, nova)", "failure", { failedSteps: [latestStep], log: calendarLog });
-  const dive = [job(4, "browser (5/22)", "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "motion-coverage", "skipped")];
+  const dive = [job(4, "browser (5/11)", "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "motion-coverage", "skipped")];
 
   // Tonight's Calendar failure, quarantined: retried once, recorded with its issue and owner.
   const plan = retryPlan({ runs: runWith([calendar]), contexts, entries: [calendarEntry] });
@@ -3273,9 +3275,9 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   assert.match(setup.problems.join("\n"), /failed in "Run pnpm i --frozen-lockfile", which is not a step that runs the tests/);
   assert.equal(retryPlan({ runs: runWith([{ ...dive[0], failedSteps: ["Browser tests", "Coverage of installed subsets"] }, dive[1], dive[2]]), contexts, entries: [diveEntry] }).retry, false);
   // A gate that read a skipped job failed on that, which no test explains.
-  const skippedShard = retryPlan({ runs: runWith([...dive, job(6, "browser (6/22)", "skipped")]), contexts, entries: [diveEntry] });
+  const skippedShard = retryPlan({ runs: runWith([...dive, job(6, "browser (6/11)", "skipped")]), contexts, entries: [diveEntry] });
   assert.equal(skippedShard.retry, false);
-  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/22\), which was skipped/);
+  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/11\), which was skipped/);
   // A quarantined failure beside any other failure: not retried.
   assert.equal(retryPlan({ runs: runWith([calendar, ...dive]), contexts, entries: [calendarEntry] }).retry, false);
   const build = job(2, "install (shadcn, nova)", "failure", { failedSteps: ["Every shard passed"], log: "" });
@@ -3316,7 +3318,7 @@ test("judgeOwnRun explains ci.yml's own failing jobs, by their id, from inside o
 
   // Two failing ids: a gate (browser, read by nothing here) and install, both quarantined, still
   // forgiven together; judgeOwnRun collects every reason across every id it is asked to judge.
-  const dive = job(4, "browser (5/22)", "failure", { failedSteps: ["Browser tests"], log: diveLog });
+  const dive = job(4, "browser (5/11)", "failure", { failedSteps: ["Browser tests"], log: diveLog });
   const both = judgeOwnRun({ run: runWith([calendar, dive]), ids: ["install", "browser"], entries: [calendarEntry, diveEntry] });
   assert.equal(both.explained, true, both.problems.join("; "));
   assert.equal(both.retried.length, 2);
@@ -3335,6 +3337,51 @@ test("judgeOwnRun explains ci.yml's own failing jobs, by their id, from inside o
   const unknown = judgeOwnRun({ run: runWith([calendar]), ids: ["not-a-real-job"], entries: [calendarEntry] });
   assert.equal(unknown.explained, false);
   assert.match(unknown.problems.join("\n"), /not-a-real-job is not a job id in this run's workflow/);
+});
+
+test("a file quarantined whole (title \"*\") forgives its tests and a job the hang watchdog failed with only that file's tests in flight, and nothing else", () => {
+  const file = "registry/ouro/components/ouro/message/message-list.windowing.test.tsx";
+  const whole = { project: "ouro-chromium", file, title: "*", issue: "https://github.com/ourostack/ouro-ui/issues/3785", owner: "someone", expiry: "2099-01-01T00:00:00Z", open: true, expired: false };
+  assert.deepEqual(entryProblems([whole]), []);
+  assert.equal(names(whole, { project: "ouro-chromium", file: `src/components/ouro/message/message-list.windowing.test.tsx`, title: "any > title" }), true);
+  assert.equal(names(whole, { project: "ouro-webkit", file, title: "any" }), false);
+  assert.equal(names(whole, { project: "ouro-chromium", file: "registry/ouro/components/ouro/message/message.test.tsx", title: "any" }), false);
+
+  const ciYml = workflow("ci.yml");
+  const installStep = 'Run scripts/install-test.sh namespace "$RUNNER_TEMP/app" abc';
+  const flying = (name) => `ouro-chromium (chromium) src/components/ouro/message/message-list.windowing.test.tsx > MessageList windowing > ${name}`;
+  const hang = (inFlight) => logLines("install (namespace, nova)", [
+    `[ouro-ui] Vitest has had no test finish for 2 min. In flight: ${inFlight}. Not started: ouro-chromium (chromium) src/lib/ouro/claims.test.ts`,
+    "[ouro-ui] Vitest page ouro-chromium (chromium): the page did not pause in 2 s either, so it is hung",
+    "[ouro-ui] Vitest: a page did not answer at the warn check, so failing now instead of waiting the rest of 5 min",
+  ]);
+  const run = (log, failedSteps = [installStep]) => ({ id: "5", workflow: ciYml, jobs: [{ id: 3, name: "install (namespace, nova)", conclusion: "failure", url: "https://github.com/o/r/actions/runs/5/job/3", failedSteps, log }] });
+  const judge = (log, entries = [whole], failedSteps) => judgeOwnRun({ run: run(log, failedSteps), ids: ["install"], entries });
+
+  assert.deepEqual(hungTests(hang(`${flying("opens, and more (running 2m 0s)")}`.replace(" (running 2m 0s)", "") + " (running 2m 0s)")).map((t) => t.file), ["src/components/ouro/message/message-list.windowing.test.tsx"]);
+  assert.equal(hungTests("no watchdog here"), undefined);
+
+  const forgiven = judge(hang(`${flying("opens a conversation (running 2m 0s)")}`));
+  assert.equal(forgiven.explained, true, forgiven.problems.join("; "));
+  assert.equal(forgiven.retried.length, 1);
+  // Two in flight, both in the file: forgiven. One outside it, or none named, or the entry gone, closed or expired: not.
+  assert.equal(judge(hang(`${flying("a (running 2m 0s)")}; ${flying("b (running 1m 0s)")}`)).explained, true);
+  assert.equal(judge(hang(`${flying("a (running 2m 0s)")}; ouro-chromium (chromium) src/components/ouro/dialog/dialog.test.tsx > Dialog > opens (running 1m 0s)`)).explained, false);
+  assert.equal(judge(hang(`ouro-chromium (chromium) src/components/ouro/dialog/dialog.test.tsx > Dialog > opens (running 2m 0s)`)).explained, false);
+  assert.equal(judge(hang(`${flying("a (running 2m 0s)")}; something else`)).explained, false);
+  assert.equal(judge(logLines("install (namespace, nova)", ["[ouro-ui] Vitest: a page did not answer at the warn check, so failing now"])).explained, false);
+  assert.equal(judge(hang(flying("a (running 2m 0s)")), []).explained, false);
+  assert.equal(judge(hang(flying("a (running 2m 0s)")), [{ ...whole, open: false }]).explained, false);
+  assert.equal(judge(hang(flying("a (running 2m 0s)")), [{ ...whole, expired: true }]).explained, false);
+  // An entry for one test's title does not forgive a hang, nor does a hang with another failed step or a failed test beside it.
+  assert.equal(judge(hang(flying("a (running 2m 0s)")), [{ ...whole, title: "MessageList windowing > a" }]).explained, false);
+  assert.equal(judge(hang(flying("a (running 2m 0s)")), [whole], ["Checkout", installStep]).explained, false);
+  const beside = `${hang(flying("a (running 2m 0s)"))}\n${logLines("install (namespace, nova)", [" FAIL   ouro-chromium (chromium)  src/components/ouro/dialog/dialog.test.tsx > Dialog > opens", "      Tests  1 failed | 3 passed (4)"])}`;
+  assert.equal(judge(beside).explained, false);
+  // An install shard (install-gate's install-shard id, its "Install test" step) is judged too, the installed src/ path mapped to the registry/ entry.
+  const shard = { id: 3, name: "install (ouro, nova, 1/3)", conclusion: "failure", url: "https://github.com/o/r/actions/runs/5/job/3", failedSteps: ["Install test"], log: hang(flying("a (running 2m 0s)")) };
+  const shardJudged = judgeOwnRun({ run: { id: "5", workflow: ciYml, jobs: [shard] }, ids: ["install-shard"], entries: [whole] });
+  assert.equal(shardJudged.explained, true, shardJudged.problems.join("; "));
 });
 
 test("quarantine.mjs retry records each retry in the step summary, the log and the issue, then reruns the run's failed jobs once", () => {
@@ -3951,6 +3998,12 @@ test("install prep caches a base keyed on the runtime files, then adds the shipp
   assert.ok(script.includes("OURO_BASE_ONLY") && script.includes("OURO_DELTA"));
 });
 
+test("install prep runs on a push to main whose tree passed, so main saves the prepared app the merge queue restores", () => {
+  const block = ciJobs()["install-prep"];
+  assert.doesNotMatch(block.match(/^ {4}if: (.+)$/m)[1], /tested/);
+  assert.match(block, /github\.ref == 'refs\/heads\/main' && github\.event_name != 'pull_request'/);
+});
+
 test("fresh-main starts with the run, waits on nothing but the plan, and runs on pull requests only", () => {
   const block = ciJobs()["fresh-main"];
   assert.match(block, /^ {4}needs: \[plan\]$/m);
@@ -4052,4 +4105,32 @@ test("rerun-guard.yml starts on CI going in_progress (requested never fires for 
   assert.match(guard, /RUN_ATTEMPT: \$\{\{ github\.event\.workflow_run\.run_attempt \}\}/);
   assert.match(guard, /RUN_URL: \$\{\{ github\.event\.workflow_run\.html_url \}\}/);
   assert.match(guard, /RUN_ACTOR: \$\{\{ github\.event\.workflow_run\.triggering_actor\.login \}\}/);
+});
+
+test("the LCD-text job runs the scrollers' surface tests on Windows Chromium with LCD text on at scale 1, report-only and outside the required ci check", () => {
+  const text = readFileSync(join(root, ".github/workflows/lcd-text-windows.yml"), "utf8");
+  assert.match(text, /^ {4}runs-on: windows-latest$/m);
+  assert.match(text, /^ {4}continue-on-error: true$/m);
+  assert.match(text, /vitest run --config scripts\/lcd-text\/vitest\.config\.ts/);
+  const required = JSON.parse(readFileSync(join(root, ".github/required-checks.json"), "utf8"));
+  assert.ok(!JSON.stringify(required).includes("LCD text on Windows"));
+  const config = readFileSync(join(root, "scripts/lcd-text/vitest.config.ts"), "utf8");
+  assert.match(config, /"--enable-lcd-text", "--force-device-scale-factor=1"/);
+  assert.match(config, /\{scroll-area,message\}\/\*\.surface\.test\.tsx/);
+  for (const file of ["scroll-area/scroll-area", "message/message-list"]) {
+    assert.match(readFileSync(join(root, `registry/ouro/components/ouro/${file}.surface.test.tsx`), "utf8"), /commands\.compositedLayers\(\)/);
+  }
+});
+
+test("each judge step fetches every script quarantine.mjs imports, directly or through another, since it has no checkout to find them in", () => {
+  const imports = (file, seen = new Set()) => {
+    if (seen.has(file)) return seen;
+    seen.add(file);
+    for (const [, path] of readFileSync(join(root, file), "utf8").matchAll(/^import [^;]*? from "\.\/([^"]+)";$/gm)) imports(`scripts/${path}`, seen);
+    return seen;
+  };
+  const needed = [...imports("scripts/quarantine.mjs")].sort();
+  const lists = [...workflow("ci.yml").matchAll(/- id: fetch-quarantine\n[\s\S]*?for path in ([^;]+); do/g)].map(([, paths]) => paths.split(" "));
+  assert.equal(lists.length, 2);
+  for (const list of lists) assert.deepEqual(needed.filter((file) => !list.includes(file)), []);
 });
