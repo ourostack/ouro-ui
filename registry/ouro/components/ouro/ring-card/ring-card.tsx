@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type HTMLAttributes, type JSX, type MouseEventHandler, type ReactNode, type Ref } from "react";
+import { useLayoutEffect, useRef, type HTMLAttributes, type JSX, type MouseEventHandler, type ReactNode, type Ref } from "react";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
@@ -81,7 +81,6 @@ export function RingCard({
   };
   const box = useRef<HTMLDivElement>(null);
   const tallest = useRef(0);
-  const [arriving, setArriving] = useState(false);
   const merged = useMergedRef(useMergedRef(ref, box), useFocusHandoff<HTMLDivElement>());
   const actionsRef = useFocusHandoff<HTMLDivElement>();
   useLayoutEffect(() => {
@@ -91,16 +90,14 @@ export function RingCard({
       element.style.minHeight = `${tallest.current}px`;
     };
     retainHeight();
+    if (element.getAnimations().length) element.setAttribute("data-starting-style", "");
     const observer = new ResizeObserver(retainHeight);
     observer.observe(element);
     return () => observer.disconnect();
   });
-  useLayoutEffect(() => {
-    if (box.current!.getAnimations().length) setArriving(true);
-  }, []);
   useAppearanceClassNameCheck("RingCard", className, process.env.NODE_ENV !== "production"
     ? "remove the appearance class; RingCard owns its surface"
-    : /* istanbul ignore next @preserve -- production only */ "");
+    : /* istanbul ignore next @preserve -- production only */ String);
   useDevWarnings("RingCard", process.env.NODE_ENV !== "production" ? () => [
     !caller && ["caller is missing", '<RingCard caller="Mara Vale" kind="audio" announcement="Mara Vale is calling." onDecline={decline} onAudio={answerAudio} onVideo={answerVideo} />'],
     kindProp !== "audio" && kindProp !== "video" && ['kind must be "audio" or "video"', '<RingCard kind="audio" />'],
@@ -121,9 +118,8 @@ export function RingCard({
       data-ouro-part="root"
       data-kind={kind}
       data-state={failure ? "failed" : pending ? "pending" : "ringing"}
-      data-starting-style={arriving ? "" : undefined}
       onTransitionEnd={(event) => {
-        if (event.target === event.currentTarget) setArriving(false);
+        if (event.target === event.currentTarget) event.currentTarget.removeAttribute("data-starting-style");
         rest.onTransitionEnd?.(event);
       }}
       className={cn(

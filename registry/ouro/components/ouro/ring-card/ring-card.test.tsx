@@ -52,6 +52,8 @@ describe("RingCard", () => {
     input.focus();
     const { card } = await render(<RingCard {...base} note="A quick question about the trail." />);
     expect(document.activeElement).toBe(input);
+    expect(card.dataset.state).toBe("ringing");
+    expect(card.querySelector('[data-slot="chips"]')).toBeNull();
     await expect.element(page.getByRole("region", { name: "Incoming call from Mara Vale" })).toBeVisible();
     expect(card.querySelector("h2")?.textContent).toBe("Mara Vale");
     expect(card.textContent).toContain("Video call");
@@ -68,9 +70,10 @@ describe("RingCard", () => {
     expect(buttons.map((button) => button.textContent)).toEqual(["Decline", "Audio", "Video"]);
     const widths = buttons.map((button) => button.getBoundingClientRect().width);
     expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(1);
-    await userEvent.hover(buttons[0]!);
-    await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe("Decline (Esc)");
-    for (const button of buttons) {
+    const hints = ["Decline (Esc)", "Answer with audio (Shift+A)", "Answer with video (Shift+V)"];
+    for (const [index, button] of buttons.entries()) {
+      await userEvent.hover(button);
+      await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe(hints[index]);
       expect(button.getAttribute("data-ouro-control")).toBe("ring-card");
       await userEvent.click(button);
     }
@@ -127,6 +130,7 @@ describe("RingCard", () => {
     expect(card.querySelectorAll("button")).toHaveLength(1);
     expect(card.textContent).not.toContain("Connecting...");
     expect(card.textContent).not.toContain("Message instead");
+    expect([...card.querySelectorAll('[data-slot="failure"] [data-ouro="text"]')].map((text) => text.textContent)).toEqual(["Couldn't connect", "Try the call again."]);
     expect(card.offsetHeight).toBeGreaterThanOrEqual(height);
   });
 
@@ -136,6 +140,7 @@ describe("RingCard", () => {
     const entries = bindAx(ringCardAx, { refuseAs: { answer: "app call answer", decline: "app call decline" } });
     expect(entries).toHaveLength(2);
     expect(ringCardAx.actions.every((action) => "personOnly" in action && !("agent" in action))).toBe(true);
+    for (const action of ringCardAx.actions) expect(action.summary.toLowerCase()).toContain(action.id);
     expect(card.querySelectorAll('[data-ax-action="answer"]')).toHaveLength(2);
     expect([...card.querySelectorAll("button")].every((button) => button.matches('[data-ouro-control="ring-card"][data-ouro-part]'))).toBe(true);
   });
@@ -153,6 +158,16 @@ describe("RingCard", () => {
     expect(card.offsetHeight).toBeGreaterThanOrEqual(narrowHeight);
   });
 
+  it("releases its size observer when the card is removed", async () => {
+    const observe = vi.spyOn(ResizeObserver.prototype, "observe");
+    const disconnect = vi.spyOn(ResizeObserver.prototype, "disconnect");
+    const { card, rerender } = await render(<RingCard {...base} />);
+    const index = observe.mock.calls.findIndex(([element]) => element === card);
+    expect(index).toBeGreaterThanOrEqual(0);
+    await rerender(null);
+    expect(disconnect.mock.contexts).toContain(observe.mock.contexts[index]);
+  });
+
   it("slides down twelve pixels on arrival and only fades under reduced motion", async () => {
     for (const reduced of [false, true]) {
       await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
@@ -164,6 +179,9 @@ describe("RingCard", () => {
       roots.push(root);
       flushSync(() => root.render(<RingCard {...base} />));
       const card = host.querySelector<HTMLElement>('[data-ouro="ring-card"]')!;
+      expect(card.getAttribute("data-starting-style")).toBe("");
+      flushSync(() => card.querySelector("button")!.dispatchEvent(new TransitionEvent("transitionend", { bubbles: true })));
+      expect(card.getAttribute("data-starting-style")).toBe("");
       const duration = parseDuration(getComputedStyle(document.documentElement).getPropertyValue(reduced ? "--ouro-duration-fast" : "--ouro-duration-base"));
       if (!reduced) {
         const transform = card.getAnimations().find((animation) => animation instanceof CSSTransition && animation.transitionProperty === "transform");
@@ -171,6 +189,7 @@ describe("RingCard", () => {
         expect(new DOMMatrix(String(from)).m42).toBe(-12);
       }
       await expectMotion(card, { stem: "ring-card", state: "data-starting-style", properties: reduced ? { opacity: duration } : { opacity: duration, transform: duration }, reduced });
+      await expect.poll(() => card.hasAttribute("data-starting-style")).toBe(false);
     }
   });
 
@@ -212,9 +231,11 @@ describe("RingCard", () => {
       await rerender(<RingCard {...props} announcement="" pending={{ label: "Please wait", media }} />);
       expect(document.activeElement).toBe(input);
       expect(card.querySelector('[data-slot="pending"] svg') !== null).toBe(media !== null);
+      if (media) expect(getComputedStyle(card.querySelector("svg path")!).strokeLinecap).toBe(media === "audio" ? "round" : "butt");
     }
     await rerender(<RingCard {...props} announcement="" failure={{ title: "Not connected", action: null, announcement: "Not connected" }} />);
     expect(document.activeElement).toBe(input);
+    expect([...card.querySelectorAll('[data-slot="failure"] [data-ouro="text"]')].map((text) => text.textContent)).toEqual(["Not connected"]);
   });
 
   it("names the fix for invalid kinds, missing caller and appearance classes once per instance", async () => {
@@ -222,10 +243,16 @@ describe("RingCard", () => {
     const invalid = { ...base, caller: "", kind: "phone", pending: { label: "Waiting", media: "screen" } } as unknown as RingCardProps;
     const { card, rerender } = await render(<RingCard {...invalid} className="bg-red-500" />);
     expect(card.dataset.kind).toBe("audio");
+    expect(card.textContent).toContain("Audio call");
     expect(warn.mock.calls.flat().join("\n")).toContain('Fix: <RingCard kind="audio" />.');
     expect(warn.mock.calls.flat().join("\n")).toContain("caller is missing");
     expect(warn.mock.calls.flat().join("\n")).toContain('pending.media must be "audio", "video" or null');
     expect(warn.mock.calls.flat().join("\n")).toContain("className is for layout only");
+    expect(warn.mock.calls.flat().join("\n")).toContain("remove the appearance class; RingCard owns its surface");
+    expect(warn.mock.calls.flat().join("\n")).toContain('[ouro-ui] RingCard: "bg-red-500" sets appearance, and className is for layout only.');
+    expect(warn.mock.calls.flat().join("\n")).toContain('[ouro-ui] RingCard: caller is missing. Fix: <RingCard caller="Mara Vale" kind="audio" announcement="Mara Vale is calling." onDecline={decline} onAudio={answerAudio} onVideo={answerVideo} />.');
+    expect(warn.mock.calls.flat().join("\n")).toContain('[ouro-ui] RingCard: kind must be "audio" or "video". Fix: <RingCard kind="audio" />.');
+    expect(warn.mock.calls.flat().join("\n")).toContain('[ouro-ui] RingCard: pending.media must be "audio", "video" or null. Fix: <RingCard pending={{ label: "Connecting...", media: null }} />.');
     const count = warn.mock.calls.length;
     await rerender(<RingCard {...invalid} className="bg-red-500" />);
     expect(warn).toHaveBeenCalledTimes(count);
@@ -239,6 +266,7 @@ describe("RingCard", () => {
     const root = createRoot(host);
     roots.push(root);
     await act(async () => root.render(<RingCard {...base} />));
+    expect(host.querySelector('[data-ouro="ring-card"]')!.hasAttribute("data-starting-style")).toBe(false);
     host.hidden = false;
     await expect.element(page.getByRole("button", { name: "Video", exact: true })).toBeVisible();
   });
