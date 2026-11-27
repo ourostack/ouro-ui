@@ -1014,6 +1014,23 @@ const expandButton = () => document.querySelector<HTMLButtonElement>('[data-ouro
 const formatting = <Button variant="plain" aria-label="Bold">B</Button>;
 
 describe("Composer expanded", () => {
+  it.each(["macOS", "Windows"] as const)("names the send key below the expanded box on %s and removes it when collapsed", async (platform) => {
+    onPlatform(platform);
+    const view = await render(<Composer label="Message" defaultExpanded defaultValue="Keep this draft" onSend={() => {}} />);
+    const hint = view.host.querySelector<HTMLElement>("[data-ouro-composer-send-hint]")!;
+    expect(hint).not.toBeNull();
+    const keys = hint.querySelector('[data-ouro="kbd"]')!;
+    expect(keys.textContent).toContain(platform === "macOS" ? "Command" : "Ctrl");
+    expect(keys.textContent).toContain(platform === "macOS" ? "Return" : "Enter");
+    expect(hint.textContent).toContain("to send");
+    expect(descriptions(view.textarea)).toContain(hint.textContent);
+    expect(view.frame.contains(hint)).toBe(false);
+    await userEvent.click(view.host.querySelector<HTMLButtonElement>('[data-ouro-part="expand"]')!);
+    expect(view.host.querySelector("[data-ouro-composer-send-hint]")).toBeNull();
+    expect(view.textarea.value).toBe("Keep this draft");
+    expect(descriptions(view.textarea)).toEqual([]);
+  });
+
   it("shows the expand button first among the actions, pressed while expanded, with the toolbar only while expanded", async () => {
     const onExpandedChange = vi.fn();
     const { root, textarea } = await render(

@@ -268,8 +268,8 @@ const $emojiNode = (found: Exclude<EmojiTextPart, string>) => new EmojiNode(foun
 const emojiTransformer = (catalogue: () => EmojiCatalogue | undefined): TextMatchTransformer => ({
   // Stryker disable next-line ArrayDeclaration: Lexical only checks that the class is registered, which the editor's nodes do
   dependencies: [EmojiNode],
-  importRegExp: /:[^\s:]+:/,
-  regExp: /:[^\s:]+:$/,
+  importRegExp: /:[^\s:/()[\]]+:/,
+  regExp: /:[^\s:/()[\]]+:$/,
   trigger: ":",
   replace: (node, match) => {
     // Stryker disable next-line ArrayDeclaration: with no catalogue the parts are not one emoji whatever they hold, so nothing is replaced
@@ -322,7 +322,7 @@ class MentionNode extends DecoratorNode<null> {
     person.dataset.ouroMention = "";
     person.contentEditable = "false";
     person.textContent = this.__name;
-    person.className = "font-semibold text-primary";
+    person.className = "rounded-ouro-sm bg-primary/10 px-1 py-0.5 font-medium text-[color-mix(in_oklab,var(--primary)_80%,var(--foreground))]";
     return person;
   }
   // Stryker disable next-line BlockStatement: a mention never changes, and a node that is never dirty is never asked
@@ -836,7 +836,11 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       namespace: "ouro-composer",
       nodes: NODES,
       // Lexical writes underline and strikethrough as classes only; bold, italic and code are elements.
-      theme: { text: { underline: "underline", strikethrough: "line-through", underlineStrikethrough: "underline line-through" } },
+      theme: {
+        text: { underline: "underline", strikethrough: "line-through", underlineStrikethrough: "underline line-through" },
+        link: "text-primary underline underline-offset-2",
+        list: { ul: "list-disc ps-5", ol: "list-decimal ps-5" },
+      },
       // Stryker disable next-line BlockStatement: Lexical reports an error only for a state it cannot reach from the commands under test.
       onError: /* istanbul ignore next @preserve -- Lexical reports an error only for a state the commands under test cannot reach. */ (error) => {
         throw error;
