@@ -32,7 +32,6 @@ function Card({ name }: { name: string }) {
         placeItems: "center",
         height: 160,
         borderRadius: "var(--radius)",
-        border: "1px solid var(--border)",
         background: "var(--muted)",
         color: "var(--foreground)",
         fontSize: 18,
