@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: Calendar takes a `today` prop, an ISO date from the app's own clock, so the month marks the day the app shows as today and moves past midnight with it; without it, today is the browser's, read once.
