@@ -260,12 +260,15 @@ type SerializedMentionNode = Spread<{ name: string; id: string }, SerializedLexi
 class MentionNode extends DecoratorNode<null> {
   __name: string;
   __id: string;
+  // Stryker disable next-line BlockStatement,StringLiteral: Lexical registers the class by its type, and no test reads the name it registers under
   static override getType(): string {
     return "ouro-mention";
   }
+  // Stryker disable next-line BlockStatement: Lexical clones a node it writes to, and a mention is only ever replaced whole
   static override clone(node: MentionNode): MentionNode {
     return new MentionNode(node.__name, node.__id, node.__key);
   }
+  // Stryker disable next-line BlockStatement: the editor never saves its state as JSON, so nothing reads a mention back from it
   static override importJSON(json: SerializedMentionNode): MentionNode {
     return new MentionNode(json.name, json.id);
   }
@@ -274,6 +277,7 @@ class MentionNode extends DecoratorNode<null> {
     this.__name = name;
     this.__id = id;
   }
+  // Stryker disable next-line BlockStatement,ObjectLiteral: the same: nothing saves the editor's state as JSON
   override exportJSON(): SerializedMentionNode {
     return { ...super.exportJSON(), name: this.__name, id: this.__id };
   }

@@ -1061,7 +1061,11 @@ describe("Composer rich mode mentions", () => {
     const { editor } = await render(rich({ defaultValue: written, offsets: "markdown", onValueChange }));
     const person = editor.querySelector<HTMLElement>("[data-ouro-mention]");
     expect(person?.textContent).toBe("Avery Kim");
+    expect(person?.getAttribute("data-ouro-mention")).toBe("");
     expect(person?.isContentEditable).toBe(false);
+    // Drawn as a sent message draws a mention, in its line's paragraph with the words around it.
+    expect(getComputedStyle(person!).fontWeight).toBe("600");
+    expect(person?.parentElement?.tagName).toBe("P");
     expect(editor.querySelector("a")).toBeNull();
     expect(value(editor)).toBe(written);
     editor.focus();
@@ -1069,11 +1073,18 @@ describe("Composer rich mode mentions", () => {
     await expect.poll(() => onValueChange.mock.lastCall?.[0]).toBe(`${written}!`);
   });
 
+  it("reads as @Name in the box's words where offsets are the words'", async () => {
+    const { editor } = await render(rich({ defaultValue: `@[Avery Kim](${id}) hi` }));
+    expect(value(editor)).toBe("@Avery Kim hi");
+  });
+
   it("keeps an @ before a link to a web address an @ and a link", async () => {
-    const { editor } = await render(rich({ defaultValue: "@[the docs](https://example.com/docs)", offsets: "markdown" }));
-    expect(editor.querySelector("[data-ouro-mention]")).toBeNull();
-    expect(editor.querySelector("a")?.getAttribute("href")).toBe("https://example.com/docs");
-    expect(value(editor)).toBe("@[the docs](https://example.com/docs)");
+    for (const address of ["https://example.com/docs", "http://example.com/docs", "mailto:docs@example.com"]) {
+      const { editor } = await render(rich({ defaultValue: `@[the docs](${address})`, offsets: "markdown" }));
+      expect(editor.querySelector("[data-ouro-mention]")).toBeNull();
+      expect(editor.querySelector("a")?.getAttribute("href")).toBe(address);
+      expect(value(editor)).toBe(`@[the docs](${address})`);
+    }
   });
 });
 
