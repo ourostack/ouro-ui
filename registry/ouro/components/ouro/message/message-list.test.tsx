@@ -1,11 +1,11 @@
-import { createElement, useLayoutEffect, useState, type ComponentType, type ReactNode } from "react";
+import { createElement, createRef, useLayoutEffect, useState, type ComponentType, type ReactNode } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commands, page, server, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
-import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
+import { MessageList, type MessageListActions } from "@/registry/ouro/components/ouro/message/message-list";
 import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -1055,6 +1055,39 @@ describe("MessageList", () => {
     content.style.paddingBottom = "0px";
     await settle(scroller);
     expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+  });
+
+  it("holds the reader's place synchronously when its host changes the room below", async () => {
+    const actions = createRef<MessageListActions>();
+    const { scroller } = await render(
+      <MessageList label="Conversation" style={{ height: 300 }} actionsRef={actions}>
+        {history(30).map((item) => <Message key={item.id} role={item.role} name="Ana">{item.text}</Message>)}
+      </MessageList>,
+    );
+    await settle(scroller);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    await act(async () => {
+      content.style.paddingBottom = "190px";
+      actions.current!.holdPlace();
+      expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    });
+    await act(async () => void (scroller.scrollTop -= 150));
+    await settle(scroller);
+    const top = scroller.scrollTop;
+    const reading = firstVisible(scroller);
+    await act(async () => {
+      content.style.paddingBottom = "240px";
+      actions.current!.holdPlace();
+      expect(scroller.scrollTop).toBe(top);
+      expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
+    });
+    await act(async () => actions.current!.jumpToNewest());
+    await settle(scroller);
+    await act(async () => {
+      content.style.paddingBottom = "0px";
+      actions.current!.holdPlace();
+      expect(distanceFromBottom(scroller)).toBeLessThanOrEqual(1);
+    });
   });
 
   it("keeps the message it opened at in place when older messages load before the browser reports the scroll", async () => {
