@@ -12,6 +12,9 @@ const propsOf = <P>(value: P): P => value;
 
 const Icon = () => null;
 const items: ToolbarEntry[] = [
+  { type: "toggle", label: "Mute", tone: "inverse", pressed: true },
+  { label: "Unmute microphone", tone: "inverse" },
+  { label: "Leave", tone: "destructive" },
   { type: "toggle", label: "Bold", icon: Icon, hideLabel: true, shortcut: ["mod", "b"], pressed: true, onPressedChange: (pressed: boolean) => void pressed },
   { type: "toggle", label: "Italic", defaultPressed: true, disabled: true },
   { type: "separator" },
@@ -86,3 +89,11 @@ void unreasoned;
 // @ts-expect-error disabledReason is text, not a flag.
 const flagged: ToolbarEntry = { label: "Paste", disabledReason: true };
 void flagged;
+
+// @ts-expect-error a brand fill uses the primary theme token.
+const brand: ToolbarEntry = { label: "Share", tone: "brand" };
+// @ts-expect-error separators have no tone.
+const tintedSeparator: ToolbarEntry = { type: "separator", tone: "destructive" };
+// @ts-expect-error a group's controls, not the group, take tones.
+const tintedGroup: ToolbarEntry = { type: "group", label: "Call", items: [], tone: "primary" };
+void [brand, tintedSeparator, tintedGroup];
