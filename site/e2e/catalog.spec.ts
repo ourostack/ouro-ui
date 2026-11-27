@@ -258,7 +258,10 @@ const CEILINGS = { voyage: MEASURED.voyage + MARGIN, docs: MEASURED.docs + MARGI
 // (#3534): the panels, the platform marks and the phone menu's switch in every page's header, beside the slim family strip.
 // Raised docs a KiB (57,461 bytes measured in CI run 46055014798, merged with main at 82e7ea664, 372 more than its base's
 // 57,089 and 117 over) for CodeBlock in a chat bubble (#3593): the in-bubble fill, floating copy button and padding classes.
-const CSS_CEILINGS = { voyage: 55 * 1024, docs: 57 * 1024, docsShell: 28 * 1024, docsPage: 38 * 1024 } as const;
+// Raised voyage a KiB (home 56,345 bytes measured by scripts/size-budget.mjs in CI run 46056028777, merged with main at
+// 4c348f7b1, 90 more than its base's 56,255 and 25 over) for Composer's registered inset (@property --ouro-composer-inset in
+// ouro-base), which paints its expand and collapse under a backdrop-filter on the home page's chat too.
+const CSS_CEILINGS = { voyage: 56 * 1024, docs: 57 * 1024, docsShell: 28 * 1024, docsPage: 38 * 1024 } as const;
 /**
  * How much one pull request may add to a page's CSS before its ceiling is raised: judged the same way as a page's
  * JavaScript closure (MARGIN above), by growth over the pull request's own base, so a ceiling main is already over,
