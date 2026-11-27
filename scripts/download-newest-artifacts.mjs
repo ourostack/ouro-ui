@@ -8,6 +8,7 @@
 //
 // Reads GH_TOKEN, GITHUB_REPOSITORY and GITHUB_RUN_ID. Each artifact is unzipped into <dir>/<name>/,
 // as actions/download-artifact does with merge-multiple off. Needs `actions: read`.
+import { Buffer } from "node:buffer";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -32,7 +33,7 @@ export function newestPerName(artifacts, prefix) {
 }
 
 const api = (path, token) =>
-  fetch(`https://api.github.com/${path}`, { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } });
+  globalThis.fetch(`https://api.github.com/${path}`, { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } });
 
 /** Every artifact of a run, following the pages. */
 export async function listArtifacts(repo, run, token) {
