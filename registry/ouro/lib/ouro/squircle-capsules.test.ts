@@ -178,6 +178,37 @@ describe("capsule measure", () => {
     plain.remove();
   });
 
+  it("measures a capsule whose class arrives later, or whose rule is nested, and writes a control's squircle radius", async () => {
+    vi.spyOn(CSS, "supports").mockImplementation((prop: string) => prop === "clip-path");
+    const style = document.createElement("style");
+    style.textContent = ".host .bar.on { --sq-tl: var(--sq-half); width: 100px; height: 30px; display: block }";
+    style.textContent += ".wrap { & .inner { --sq-tr: var(--sq-half); width: 60px; height: 20px; display: block } }";
+    document.head.append(style);
+    const host = document.createElement("div");
+    host.className = "host";
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    bar.setAttribute("data-ouro-squircle", "");
+    host.append(bar);
+    const wrap = document.createElement("div");
+    wrap.className = "wrap";
+    const inner = document.createElement("div");
+    inner.className = "inner";
+    wrap.append(inner);
+    document.body.append(host, wrap);
+    const stop = installSquircleCapsules(document);
+    await expect.poll(() => inner.style.getPropertyValue("--sq-half")).toBe("10px");
+    expect(wrap.style.getPropertyValue("--sq-half")).toBe("");
+    expect(bar.style.getPropertyValue("--sq-half")).toBe("");
+    bar.classList.add("on");
+    await expect.poll(() => bar.style.getPropertyValue("--sq-half")).toBe("15px");
+    expect(bar.style.getPropertyValue("--ouro-sq-r")).toBe("15px");
+    stop();
+    style.remove();
+    host.remove();
+    wrap.remove();
+  });
+
   describe("cost", () => {
     const force = () => vi.spyOn(CSS, "supports").mockImplementation((prop: string) => prop === "clip-path");
     const settle = async () => {

@@ -1,0 +1,1 @@
+- Fixed: the squircle capsule watcher draws a capsule whose class arrives after it is added (a bar shown on hover), reads a capsule rule nested inside another, and gives a control's own squircle its capsule radius. It reads only the element whose class changed, so it never rescans the page.
