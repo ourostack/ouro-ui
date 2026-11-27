@@ -1016,16 +1016,13 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           <span className="line-clamp-(--ouro-lines) font-medium [unicode-bidi:isolate] @max-[6rem]/event:block @max-[6rem]/event:truncate" style={{ "--ouro-lines": lines } as CSSProperties}>
             {event.title}
           </span>{" "}
-          {/* lineCount counts an event's padding but not the pixel it is drawn short or a free or unanswered event's
-              border: the lines after the title count 3px less, so a line the count promised still shows, at most its
-              foot's leading clipped, rather than stepping out of the event. */}
-          <span dir="ltr" data-slot="time-grid-event-time" className={`${mutedLineClass} -mb-[3px] [unicode-bidi:isolate] rtl:text-end`}>
+          <span dir="ltr" data-slot="time-grid-event-time" className={`${mutedLineClass} [unicode-bidi:isolate] rtl:text-end`}>
             {startAndRest(rangeText(formats.time, start!, end!))}
           </span>
           {lines >= 3 && event.description ? (
             <>
               {" "}
-              <span dir="auto" className={`${mutedLineClass} -mb-[3px]`}>
+              <span dir="auto" className={mutedLineClass}>
                 {event.description}
               </span>
             </>
@@ -1062,8 +1059,10 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           <span aria-hidden="true" data-ouro-time-grid-bar="" className={cn(backgroundBarFillClass, status === "away" ? awaySwatchClass : toneSwatchClass[tone], barStatusClass[status])} />
         ) : (
           // The title takes the lines it needs first; the time and the description wrap out of the event where no line is
-          // left for them, never cut, and its name still says them.
-          <span className="@container/text flex min-h-0 min-w-0 flex-1 flex-col flex-wrap content-start overflow-hidden *:w-full *:shrink-0 @max-[2rem]/text:*:invisible">{content}</span>
+          // left for them, never cut, and its name still says them. lineCount counts the event's padding but not the pixel
+          // it is drawn short or a free or unanswered event's border, so the lines reach 3px into its foot: a line the
+          // count promised still shows, at most its foot's leading clipped, rather than stepping out.
+          <span className="@container/text -mb-[3px] flex min-h-0 min-w-0 flex-1 flex-col flex-wrap content-start overflow-hidden *:w-full *:shrink-0 @max-[2rem]/text:*:invisible">{content}</span>
         )}
       </>
     );

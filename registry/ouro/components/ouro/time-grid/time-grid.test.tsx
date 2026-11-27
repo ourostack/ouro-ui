@@ -1034,7 +1034,7 @@ describe("TimeGrid", () => {
     for (const title of ["Sync", "Check-in"]) {
       const short = parts(title);
       expect(short.time.left).toBeLessThan(short.text.right);
-      expect(short.time.bottom).toBeLessThanOrEqual(short.text.bottom + 3);
+      expect(short.time.bottom).toBeLessThanOrEqual(short.text.bottom + 1);
     }
     expect(plain(titled("Architecture retrospective").getAttribute("aria-label"))).toBe("Architecture retrospective, 1:00 – 2:00 PM, Thursday");
   });
