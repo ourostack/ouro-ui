@@ -1,5 +1,6 @@
 import { useState, type JSX } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
 import { toast } from "@/registry/ouro/lib/ouro/toast";
 
@@ -17,15 +18,7 @@ export default function ToasterDemo(): JSX.Element {
       >
         Delete recipe
       </Button>
-      <Button
-        variant="soft"
-        aria-pressed={top}
-        onClick={() => {
-          setTop(!top);
-        }}
-      >
-        Hang from the top
-      </Button>
+      <Switch label="Hang from the top" checked={top} onCheckedChange={setTop} />
       <Toaster className={top ? "top-20 bottom-auto" : undefined} />
     </div>
   );
