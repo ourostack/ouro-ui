@@ -1632,8 +1632,9 @@ export function MessageList(props: MessageListProps): JSX.Element {
       if (previousTop) Object.defineProperty(scroller, "scrollTop", previousTop);
       else Reflect.deleteProperty(scroller, "scrollTop");
     };
-    // Stryker disable next-line ArrayDeclaration: a dependency list holding one constant has the same mount/unmount lifetime as an empty one.
-  }, []);
+  },
+  // Stryker disable next-line ArrayDeclaration: a dependency list holding one constant has the same mount/unmount lifetime as an empty one.
+  []);
 
   // Open at the newest message (or at `initialAnchor`), then follow growth (new messages, streaming text, images
   // loading, the keyboard resizing the list) only while pinned. Layout effect and resize
