@@ -1,0 +1,1 @@
+- Fix: a controlled TextArea shows its `value` again after a change its owner refuses, as a native controlled textarea does (#3911).

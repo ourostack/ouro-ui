@@ -161,6 +161,38 @@ describe("TextArea", () => {
     expect(mutations.filter((record) => record.type === "childList")).toHaveLength(0);
   });
 
+  it("shows its value again after a change its owner refuses, as React's own controlled textarea does (#3911)", async () => {
+    const onValueChange = vi.fn();
+    const { textarea } = await render(<TextArea label="Notes" value="stored" onValueChange={onValueChange} />);
+    // A script's input: the native value setter and an input event, as an untrusted page script would write it.
+    const setValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!;
+    await act(async () => {
+      setValue.call(textarea, "forged");
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(onValueChange).toHaveBeenLastCalledWith("forged", expect.anything());
+    expect(textarea.value).toBe("stored");
+    textarea.focus();
+    textarea.setSelectionRange(6, 6);
+    await userEvent.keyboard("!");
+    expect(textarea.value).toBe("stored");
+  });
+
+  it("shows the value its owner keeps when the owner takes only part of a change (#3911)", async () => {
+    function Capped() {
+      const [value, setValue] = useState("abc");
+      return <TextArea label="Notes" value={value} onValueChange={(next) => setValue(next.slice(0, 4))} />;
+    }
+    const { textarea } = await render(<Capped />);
+    textarea.focus();
+    textarea.setSelectionRange(3, 3);
+    await userEvent.keyboard("d");
+    expect(textarea.value).toBe("abcd");
+    // Already at the cap: the owner's value doesn't change, so nothing re-renders with a new value.
+    await userEvent.keyboard("e");
+    expect(textarea.value).toBe("abcd");
+  });
+
   it("writes nothing to the native textarea when a parent re-renders it with the same props", async () => {
     // A new ref and handler each render, as an inline one is: TextArea hands the textarea stable stand-ins for them.
     const field = () => <TextArea label="Notes" defaultValue="Salt" ref={() => {}} onFocus={() => {}} />;
