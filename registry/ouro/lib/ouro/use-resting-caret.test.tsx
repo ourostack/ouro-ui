@@ -688,6 +688,28 @@ describe("resting caret geometry fixtures", () => {
         wake();
       }
     });
+
+    it("places the caret with the next word when that word wraps beyond the preceding space", async () => {
+      const box = await editor();
+      box.style.width = "80px";
+      box.value = "A BBBB";
+      box.setSelectionRange(2, 2);
+      const reference = document.createElement("div");
+      const style = getComputedStyle(box);
+      reference.style.cssText = "white-space:pre-wrap;overflow-wrap:break-word";
+      for (const property of ["font", "width", "padding", "border", "box-sizing"]) reference.style.setProperty(property, style.getPropertyValue(property));
+      reference.textContent = box.value;
+      host.append(reference);
+      const range = document.createRange();
+      range.setStart(reference.firstChild!, 2);
+      range.setEnd(reference.firstChild!, 3);
+      const glyph = range.getBoundingClientRect();
+      const referenceBox = reference.getBoundingClientRect();
+      const caret = (await hold(box)).getBoundingClientRect();
+      const field = box.getBoundingClientRect();
+      expect(Math.abs(caret.top - field.top - glyph.top + referenceBox.top)).toBeLessThanOrEqual(1);
+      expect(Math.abs(caret.left - field.left - glyph.left + referenceBox.left)).toBeLessThanOrEqual(1);
+    });
   });
 });
 
