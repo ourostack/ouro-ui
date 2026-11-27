@@ -215,12 +215,18 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
   };
   // The actual solid surface, with translucent fills and group opacity composited over their ancestors. A picture,
   // gradient or filter that affects the result cannot be represented by one colour, so an edge over it is not guessed.
+  const surfaces = new WeakMap<Element, [number, number, number] | null>();
   const surfaceOf = (el: Element | null): [number, number, number] | null => {
+    const known = el ? surfaces.get(el) : undefined;
+    if (known !== undefined) return known;
     const colour: [number, number, number] = [0, 0, 0];
     let alpha = 0;
     for (let n = el; n; n = n.parentElement) {
       const s = getComputedStyle(n);
-      if ((s.backgroundImage !== "none" && alpha < 0.999) || s.filter !== "none" || (s.backdropFilter && s.backdropFilter !== "none") || s.mixBlendMode !== "normal") return null;
+      if ((s.backgroundImage !== "none" && alpha < 0.999) || s.filter !== "none" || (s.backdropFilter && s.backdropFilter !== "none") || s.mixBlendMode !== "normal") {
+        if (el) surfaces.set(el, null);
+        return null;
+      }
       const fill = rgba(s.backgroundColor);
       const weight = (1 - alpha) * fill[3];
       for (let i = 0; i < 3; i++) colour[i]! += fill[i]! * weight;
@@ -230,7 +236,9 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       alpha *= opacity;
     }
     const canvas = matchMedia("(prefers-color-scheme: dark)").matches && /dark/.test(getComputedStyle(document.documentElement).colorScheme) ? 18 : 255;
-    return colour.map((channel) => channel + canvas * (1 - alpha)) as [number, number, number];
+    const result = colour.map((channel) => channel + canvas * (1 - alpha)) as [number, number, number];
+    if (el) surfaces.set(el, result);
+    return result;
   };
   const colourDistance = (a: number[], b: number[]) => Math.abs(a[0]! - b[0]!) + Math.abs(a[1]! - b[1]!) + Math.abs(a[2]! - b[2]!);
   const visibleInk = (colour: string, surface: number[]) => {
@@ -416,16 +424,18 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       if (i.width < 48 || i.height < 32 || drawn.width < 2 || drawn.height < 2) continue;
       const insets = [i.top - o.top, o.right - i.right, o.bottom - i.bottom, i.left - o.left];
       const hugs = insets.every((d) => d >= -1 && d <= hugPx);
-      const own = rgba(getComputedStyle(inner).backgroundColor);
-      const [surface, behind] = [surfaceOf(inner), surfaceOf(inner.parentElement)];
       const inside = Math.min(drawn.right, o.right) - Math.max(drawn.left, o.left) > 1
         && Math.min(drawn.bottom, o.bottom) - Math.max(drawn.top, o.top) > 1;
-      const editors = [...inner.querySelectorAll('textarea, select, input:not([type="hidden"]), [role="textbox"], [contenteditable="true"]')].filter((el) => visibleSet.has(el));
-      const editor = editors.length === 1 && !inner.querySelector("h1, h2, h3, h4, h5, h6, [role=heading]") ? editors[0]!.getBoundingClientRect() : null;
-      const fieldFrame = editor !== null && editor.width >= i.width / 2 && editor.height >= i.height * 0.35;
-      const lighter = inside && own[3] > 0 && surface && behind && colourDistance(surface, behind) > 12 && hsl(surface).l > hsl(behind).l
-        && sideNames.some((side) => visibleEdge(inner, side, surface))
-        && !fieldFrame && !inner.matches("button, input, select, textarea, [role=button]");
+      let lighter = false;
+      if (!hugs && inside && !inner.matches("button, input, select, textarea, [role=button]") && rgba(getComputedStyle(inner).backgroundColor)[3] > 0) {
+        const [surface, behind] = [surfaceOf(inner), surfaceOf(inner.parentElement)];
+        if (surface && behind && colourDistance(surface, behind) > 12 && hsl(surface).l > hsl(behind).l) {
+          const editors = [...inner.querySelectorAll('textarea, select, input:not([type="hidden"]), [role="textbox"], [contenteditable="true"]')].filter((el) => visibleSet.has(el));
+          const editor = editors.length === 1 && !inner.querySelector("h1, h2, h3, h4, h5, h6, [role=heading]") ? editors[0]!.getBoundingClientRect() : null;
+          const fieldFrame = editor !== null && editor.width >= i.width / 2 && editor.height >= i.height * 0.35;
+          lighter = !fieldFrame && sideNames.some((side) => visibleEdge(inner, side, surface));
+        }
+      }
       if (hugs || lighter) {
         reported.add(inner);
         const detail = hugs
@@ -687,14 +697,13 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const ps = getComputedStyle(parent);
     const children = [...parent.children].filter((el) => visibleSet.has(el) && !isLayer(el));
     if (!/flex|grid/.test(ps.display) && !children.some((el) => el.matches("aside, main, nav, [role=main], [role=complementary], [role=navigation]"))) continue;
-    const panes = children.filter((el) => {
+    const panes = children.flatMap((el) => {
       const r = drawnRect(el)!;
-      return r.width >= 80 && r.height >= 80 && !el.matches("button, input, select, textarea, [role=button]");
+      return r.width >= 80 && r.height >= 80 && !el.matches("button, input, select, textarea, [role=button]") ? [{ el, r }] : [];
     });
-    for (const [index, a] of panes.entries()) {
-      for (const b of panes.slice(index + 1)) {
+    for (const [index, { el: a, r: ar }] of panes.entries()) {
+      for (const { el: b, r: br } of panes.slice(index + 1)) {
         if (optedOut(a, "pane-edge") || optedOut(b, "pane-edge")) continue;
-        const [ar, br] = [drawnRect(a)!, drawnRect(b)!];
         const directions = [
           { first: a, second: b, f: ar, s: br, side: "right" as const, other: "left" as const, across: false },
           { first: b, second: a, f: br, s: ar, side: "right" as const, other: "left" as const, across: false },
