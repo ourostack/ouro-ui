@@ -94,3 +94,36 @@ test("the real harness: the four hand-written CLIs are doors and the ouro entry 
   ok(!doors.some((d) => d.id.includes("ouro-entry") || d.id.includes("ouro-bot-entry")));
   ok(!doors.some((d) => d.file.includes("__tests__")));
 });
+
+test("a skipped folder's entry points are another product's doors: left out, and reported as excluded", async () => {
+  const at = join(here, "fixtures", "entries-vendored");
+  const walkAt = (skip?: string[]) => walkArgvEntries({ product: "harness", module: "dist", source: "src", root: at, ...(skip ? { skip } : {}) });
+  const all = await walkAt();
+  deepEqual(all.doors.map((d) => d.id), ["cli:node dist/own-entry.js", "cli:node dist/vendor/kit/kit-entry.js", "cli:node dist/vendor/own/own-tool.js"]);
+  const skipped = await walkAt(["src/vendor/kit/", "src/vendor/kit"]);
+  deepEqual(skipped.errors, []);
+  deepEqual(skipped.doors.map((d) => d.id), ["cli:node dist/own-entry.js", "cli:node dist/vendor/own/own-tool.js"]);
+  deepEqual(skipped.excluded, [{ hit: "src/vendor/kit", category: "vendored" }]);
+});
+
+test("a skip proves itself: a folder holding a file the lock doesn't pin at its sha256 stays counted", async () => {
+  const unpinned = (folder: string, file: string) => `argv-entries: skip ${folder} holds ${file}, which upstream-sources.lock.json doesn't pin at its current sha256. Fix: vendor the folder through upstream-sources.lock.json, or drop the skip so its doors count.`;
+  const vendored = join(here, "fixtures", "entries-vendored");
+  for (const folder of ["src/vendor/own", "src/vendor"]) {
+    const { errors, excluded, doors } = await walkArgvEntries({ product: "harness", module: "dist", source: "src", root: vendored, skip: [folder] });
+    deepEqual(errors, [unpinned(folder, "src/vendor/own/own-tool.ts")]);
+    deepEqual(excluded, []);
+    equal(doors.length, 3);
+  }
+  const unlocked = await walkArgvEntries({ product: "harness", module: "dist", source: "src", root: join(here, "fixtures", "entries-unlocked"), skip: ["src/kit"] });
+  deepEqual(unlocked.errors, [unpinned("src/kit", "src/kit/k.ts")]);
+});
+
+test("a skip that names no folder under the source is an error that says how to fix the config", async () => {
+  const at = join(here, "fixtures", "entries-vendored");
+  for (const folder of ["src/no-such", "src", "elsewhere", "src/own-entry.ts"]) {
+    const { errors, excluded } = await walkArgvEntries({ product: "harness", module: "dist", source: "src", root: at, skip: [folder] });
+    deepEqual(errors, [`argv-entries: skip ${folder} isn't a folder under src. Fix: remove it from the config, or name the folder the vendored code is in.`]);
+    deepEqual(excluded, []);
+  }
+});

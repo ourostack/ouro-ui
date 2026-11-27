@@ -684,6 +684,26 @@ describe("Navbar at tablet widths and with groups", () => {
   });
 });
 
+describe("Navbar panels", () => {
+  it("opens a panel clear of the bar's bottom edge, an even gap below the hairline, not measured from the shorter trigger", async () => {
+    await page.viewport(1280, 800);
+    const { bar } = await render(
+      <Navbar
+        label="Main"
+        className="min-h-20"
+        items={[{ label: "Recipes", links: [{ label: "Drafts", href: "/drafts" }] }]}
+      />,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Recipes" }));
+    await expect
+      .poll(() => {
+        const panel = document.querySelector<HTMLElement>('[data-ouro="navigation-menu-popup"]')!;
+        return Math.round(panel.getBoundingClientRect().top - bar.getBoundingClientRect().bottom);
+      })
+      .toBe(8);
+  });
+});
+
 describe("willOverflow", () => {
   it("unfolds exactly when room clears what is needed by the margin, not merely matches it (ourostack/ouro-ui#3168)", () => {
     // Folded, with the room a touch under 8px short of what's needed: still over, so it stays folded.

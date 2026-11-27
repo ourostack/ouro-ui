@@ -1,5 +1,5 @@
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { commands, server, userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
@@ -22,6 +22,7 @@ const roots: Root[] = [];
 let mounted: Element[] = [];
 
 afterEach(async () => {
+  vi.useRealTimers();
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
   mounted = [];
@@ -233,21 +234,65 @@ describe("MessageList prepending older history", () => {
     const before = list.scroller.scrollTop;
     // The scroll event of the list's own write, at once: a poll could take past the time a stray is put back in on a slow runner.
     const scrolled = new Promise((resolve) => list.scroller.addEventListener("scroll", resolve, { once: true }));
+    vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame"] });
     await list.grow();
     await scrolled;
     expect(list.scroller.scrollTop).not.toBe(before);
     return { ...list, at: list.scroller.scrollTop };
   }
 
-  // Chromium sometimes moves the scroll position a pixel or two by itself, in the frame after the list held the reader's place.
   it("puts back a scroll of a few pixels at rest that neither the reader nor the list made, just after the list held the reader's place", async () => {
     // The stray comes after the scroll event the list's own write brings, in the frame after it.
     const { scroller, at } = await held();
     const reading = firstVisible(scroller);
-    scroller.scrollTop = at - 2;
-    await frames(2);
+    Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!.set!.call(scroller, at - 4);
+    await act(() => scroller.dispatchEvent(new Event("scroll")));
     expect(scroller.scrollTop).toBe(at);
     expect(Math.abs(firstVisible(scroller).top - reading.top)).toBeLessThanOrEqual(2);
+  });
+
+  it("does not reclaim a scroll at the end of the reader's input grace period after a new layout hold", async () => {
+    const list = await mountScrolledUp(false);
+    const before = list.scroller.scrollTop;
+    const now = vi.spyOn(performance, "now").mockReturnValue(10_000);
+    try {
+      list.scroller.dispatchEvent(new Event("keydown", { bubbles: true }));
+      now.mockReturnValue(11_000);
+      const scrolled = new Promise((resolve) => list.scroller.addEventListener("scroll", resolve, { once: true }));
+      vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame"] });
+      await list.grow();
+      await scrolled;
+      const at = list.scroller.scrollTop;
+      expect(at).not.toBe(before);
+      Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!.set!.call(list.scroller, at - 4);
+      await act(() => list.scroller.dispatchEvent(new Event("scroll")));
+      expect(list.scroller.scrollTop).toBe(at - 4);
+    } finally {
+      now.mockRestore();
+    }
+  });
+
+  it("does not undo a layout correction the browser applied later", async () => {
+    const list = await mountScrolledUp(false);
+    const property = Object.getOwnPropertyDescriptor(list.scroller, "scrollTop")!;
+    let requested: number | undefined;
+    let deferred = true;
+    Object.defineProperty(list.scroller, "scrollTop", {
+      configurable: true,
+      get: () => property.get!.call(list.scroller),
+      set: (top: number) => {
+        if (deferred) requested = top;
+        else property.set!.call(list.scroller, top);
+      },
+    });
+    vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame"] });
+    await list.grow();
+    await expect.poll(() => requested).toBeDefined();
+    deferred = false;
+    Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!.set!.call(list.scroller, requested);
+    const at = list.scroller.scrollTop;
+    await act(() => list.scroller.dispatchEvent(new Event("scroll")));
+    expect(list.scroller.scrollTop).toBe(at);
   });
 
   const inputs: [string, (scroller: HTMLElement) => void][] = [
@@ -258,26 +303,33 @@ describe("MessageList prepending older history", () => {
       message.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     }],
     ["a key", (scroller) => scroller.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }))],
+    ["focus moving", (scroller) => {
+      const message = firstVisible(scroller).message as HTMLElement;
+      message.addEventListener("focusin", (event) => event.stopPropagation(), { once: true });
+      message.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+    }],
     // The touch event the list reads, in any browser (WebKit on a desktop makes no TouchEvent).
     ["a touch", (scroller) => scroller.dispatchEvent(Object.assign(new Event("touchstart", { bubbles: true }), { touches: [{ clientY: 100 }] }))],
   ];
-  for (const [name, act] of inputs) {
+  for (const [name, input] of inputs) {
     it(`keeps a scroll of a few pixels that comes after ${name}`, async () => {
       const { scroller, at } = await held();
-      act(scroller);
-      scroller.scrollTop = at - 2;
-      await frames(2);
+      input(scroller);
+      Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!.set!.call(scroller, at - 2);
+      await act(() => scroller.dispatchEvent(new Event("scroll")));
       expect(scroller.scrollTop).toBe(at - 2);
     });
   }
 
   it("keeps a scroll of a few pixels frames after the list's own write, or after a larger move", async () => {
     const later = await held();
+    vi.useRealTimers();
     await frames(2);
     later.scroller.scrollTop = later.at - 2;
     await frames(2);
     expect(later.scroller.scrollTop).toBe(later.at - 2);
     const moved = await held();
+    vi.useRealTimers();
     const scrolled = new Promise((resolve) => moved.scroller.addEventListener("scroll", resolve, { once: true }));
     moved.scroller.scrollTop = moved.at - 10;
     await scrolled;
@@ -291,6 +343,7 @@ describe("MessageList prepending older history", () => {
   for (const name of ["scrollTo", "scrollBy"] as const) {
     it(`lets a smooth ${name} code asks for just after the list held the reader's place go all the way`, async () => {
       const { scroller, at } = await held();
+      vi.useRealTimers();
       if (name === "scrollTo") scroller.scrollTo({ top: at - 400, behavior: "smooth" });
       else scroller.scrollBy({ top: -400, behavior: "smooth" });
       await expect.poll(() => scroller.scrollTop).toBe(at - 400);
