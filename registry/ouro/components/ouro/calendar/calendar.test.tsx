@@ -559,6 +559,35 @@ describe("Calendar", () => {
     expect(error).not.toHaveBeenCalled();
   });
 
+  describe("today from the app", () => {
+    it("marks the app's today, not the browser's", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date(2026, 10, 13, 13, 30));
+      await render(<Calendar label="Go to a day" today="2026-11-12" />);
+      expect(day("2026-11-12").getAttribute("aria-current")).toBe("date");
+      expect(day("2026-11-13").hasAttribute("aria-current")).toBe(false);
+      expect(stop().dataset.ouroDay).toBe("2026-11-12");
+    });
+
+    it("moves its mark when the app's day moves", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date(2026, 10, 12, 23, 59));
+      const { rerender } = await render(<Calendar label="Go to a day" today="2026-11-12" />);
+      expect(day("2026-11-12").getAttribute("aria-current")).toBe("date");
+      // The app's clock passes midnight; the mark follows it, whatever the browser's clock says.
+      await rerender(<Calendar label="Go to a day" today="2026-11-13" />);
+      expect(day("2026-11-13").getAttribute("aria-current")).toBe("date");
+      expect(day("2026-11-12").hasAttribute("aria-current")).toBe(false);
+    });
+
+    it("falls back to the browser's today when the app's isn't an ISO date", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date(2026, 10, 13, 13, 30));
+      await render(<Calendar label="Go to a day" today="Thursday" />);
+      expect(day("2026-11-13").getAttribute("aria-current")).toBe("date");
+    });
+  });
+
   describe("today across hydration", () => {
     /** Renders on the "server" at one time and hydrates at another, as a server in another zone would. */
     async function hydrateAcross(node: ReactNode, server: Date, client: Date) {

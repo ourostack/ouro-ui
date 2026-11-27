@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { Buffer } from "node:buffer";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
-import { build, censusAtZero, configPath, createContext, gaveBack, hxFull, isCurrent, measureActions, measureCensus, measureBenchmark, measureModelReviews, measurePrevious, mergedPrs, measureGiveBack, measurePins, measureXray, mustPasses, parseSteps } from "./ledger.mjs";
+import { build, censusAtZero, configPath, createContext, gaveBack, hxFull, isCurrent, measureActions, measureCensus, measureBenchmark, measureModelReviews, measurePrevious, mergedPrs, measureGiveBack, measurePins, measurePublished, measureXray, mustPasses, parseSteps } from "./ledger.mjs";
 import { execFileSync } from "node:child_process";
 import { rmSync, writeFileSync } from "node:fs";
 import { scratchDir } from "../scratch.mjs";
@@ -977,6 +977,81 @@ test("a claim set can't be checked when Ouro UI's latest release can't be read o
     assert.deepEqual(unread.value.claimSetProblems, ["Ouro UI's latest release couldn't be read (boom), so ax-xray mcp's claim set can't be checked"]);
     const old = measureXray(context, mcpOnly, { web: { repo: "ourostack/ouro-ui", tag: "v1.3.315" } });
     assert.deepEqual(old.value.claimSetProblems, ["Ouro UI v1.3.315 publishes no claim sets (scripts/ax-claim-sets.json), so ax-xray mcp's claim set can't be checked"]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ---- A private product's published evidence ------------------------------------------------------------------
+
+const privateApp = { id: "desk", name: "A private app", kind: "desktop app", privateRepo: true, published: { repo: "org/evidence", path: "desk.json" }, pins: [{ label: "Ouro HX", latest: "web", from: "published" }], hx: { kind: "published" }, ax: { kind: "none", reason: "x" }, giveBackTerms: [], xraySurfaces: ["cli"], xray: [] };
+const evidence = (extra = {}) => ({
+  schema: 1, product: "desk", publishedAt: "2026-11-13T21:00:00Z", commit: "abc", pins: { "Ouro HX": "v1.3.452" },
+  hx: { installed: 68, used: 41, otherControls: 0, statesRead: 15 },
+  xray: { reports: [{ tool: "ax-xray", at: "2026-11-13T20:30:00Z", checker: "1.8.0", claimSet: { version: SET_19.version, hash: SET_19.hash }, surfaces: ["cli"], summary: { claims: 37, holding: 26, must: 14, mustHolding: 14, checks: { pass: 30, fail: 7, skip: 0 } } }] },
+  ...extra,
+});
+/** A gh with the given file at org/evidence/desk.json (an Error: none there), beside Ouro UI's releases and claim sets. */
+const evidenceGh = (dir, data, base = claimSetGh(dir, [])) => (args, options) => {
+  if (!args.join(" ").includes("repos/org/evidence/contents/desk.json")) return base(args, options);
+  if (data instanceof Error) throw data;
+  return b64(data);
+};
+const publishedOf = (data) => {
+  const dir = scratchDir("ledger-published-");
+  try {
+    return measurePublished(createContext({ gh: evidenceGh(dir, data), now: () => NOW, sleep: () => {}, searchGapMs: 0 }), privateApp, uiLatest);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+};
+
+test("a private product's pin, HX and X-ray are read from the evidence its own CI publishes", () => {
+  const { pins, hx, xray } = publishedOf(evidence());
+  assert.equal(pins.value[0].tag, "v1.3.452");
+  assert.equal(isCurrent(pins), true);
+  assert.equal(pins.source, "https://github.com/org/evidence/blob/HEAD/desk.json");
+  assert.equal(hx.value, "full");
+  assert.equal(hxFull(hx), true);
+  assert.match(hx.note, /^41 Ouro components in use across the 15 screens its X-ray read, of 68 installed; 0 other controls\. Published by its own CI at 2026-11-13T21:00:00Z; its repository is private\.$/);
+  assert.equal(mustPasses(xray), true);
+  assert.deepEqual([xray.value.surfaces, xray.value.claimSet, xray.value.run], [["cli"], "1.9.0", "https://github.com/org/evidence/blob/HEAD/desk.json"]);
+  assert.match(xray.note, /Published by its own CI/);
+  assert.equal(publishedOf(evidence({ hx: { installed: 68, used: 41, otherControls: 1, statesRead: 15 } })).hx.value, "partial", "one control that isn't Ouro HX leaves a hand-built screen");
+  const branch = publishedOf(evidence({ xray: { reports: [{ ...evidence().xray.reports[0], claimSet: { version: "1.9.0", hash: H("b") } }] } })).xray;
+  assert.equal(mustPasses(branch), false, "a claim set no Ouro UI release published doesn't count");
+});
+
+test("a private product's evidence counts only when it's schema 1, its own, under a week old and in whole numbers", () => {
+  const not = (data, pattern) => {
+    const cells = publishedOf(data);
+    for (const value of Object.values(cells)) {
+      assert.equal(value.value, null);
+      assert.match(value.note, pattern);
+    }
+  };
+  not(new Error("gh api: Not Found"), /^not measured: the repository is private, and its published evidence can't be read: gh api: Not Found/);
+  not(evidence({ product: "other" }), /isn't schema 1 evidence for desk/);
+  not(evidence({ schema: 2 }), /isn't schema 1 evidence for desk/);
+  not(evidence({ publishedAt: "2026-11-05T21:00:00Z" }), /was published 2026-11-05, more than 7 days ago/);
+  not(evidence({ publishedAt: "2026-11-14T21:00:00Z" }), /has no publishedAt in the past/);
+  not(evidence({ hx: { installed: 68, used: 41.5, otherControls: 0, statesRead: 15 } }), /has a count that isn't a whole number/);
+  not(evidence({ hx: { installed: 68, used: 41, statesRead: 15 } }), /has a count that isn't a whole number/);
+  not(evidence({ xray: { reports: [{ tool: "ax-xray" }] } }), /has an X-ray report with no tool, date or summary/);
+});
+
+test("the ledger reads a private product's published evidence, and leaves one with none unmeasured", () => {
+  const dir = scratchDir("ledger-published-build-");
+  try {
+    const gh = evidenceGh(dir, evidence({ pins: { "Ouro HX": "v1.3.15" } }), fakeGh());
+    const ledger = build(createContext({ gh, now: () => NOW, sleep: () => {}, searchGapMs: 0 }), { ...config, surfaces: [privateApp, config.surfaces[3]] });
+    const [desk, secret] = ledger.surfaces;
+    assert.deepEqual([desk.repo, desk.url], [null, null], "a private product's repository is never named");
+    assert.equal(desk.conditions.current.met, true);
+    assert.equal(desk.conditions.hx.met, true);
+    assert.equal(desk.cells.ax.value, null);
+    assert.equal(secret.cells.pins.value, null);
+    assert.match(secret.cells.pins.note, /^not measured: the repository is private, so a public run cannot read it/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

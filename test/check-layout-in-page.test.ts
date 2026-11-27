@@ -279,6 +279,18 @@ describe("findLayoutIssues: near-miss", () => {
     expect(found()).toEqual([["div#bubble2 and div#jump2", "4px"]]);
   });
 
+  it("passes a pill that floats because its header does, paired with content that scrolls under it", () => {
+    render(`
+      <div id="scroller" style="position:fixed;left:10px;top:10px;width:200px;height:200px;overflow-y:auto;box-sizing:border-box;background:#eee">
+        <div style="height:300px"></div>
+        <div id="bubble" style="width:60px;height:30px;background:#cde"></div>
+        <div style="height:300px"></div>
+      </div>
+      <div id="header" style="position:fixed;left:10px;top:170px;width:200px;height:30px"><div id="pill" style="width:60px;height:30px;background:#cde"></div></div>`);
+    host.querySelector("#scroller")!.scrollTop = 174;
+    expect(found()).toEqual([]);
+  });
+
   it("passes the parts of one control group, and finds two groups, or a group and a surface outside it, that nearly touch", () => {
     const part = (id: string, left: number) => `<div id="${id}" style="position:absolute;left:${left}px;top:0;width:60px;height:30px;background:#cde"></div>`;
     const group = (attrs: string, top: number, ...parts: string[]) => `<div ${attrs} style="position:fixed;left:10px;top:${top}px;width:300px;height:30px">${parts.join("")}</div>`;

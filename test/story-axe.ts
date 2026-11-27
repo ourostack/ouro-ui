@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import { vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { commands, userEvent } from "vitest/browser";
 import { audit, axeExclude, describeFindings, type GateFinding } from "@/registry/ouro/lib/ouro/testing/axe";
 import { otherPopups } from "@/registry/ouro/lib/ouro/testing/popups";
 import { accessibleName, closeOverlay, isVisible, openOverlay, overlayOpeners, renderStoryPage, settle } from "./stories.tsx";
@@ -117,10 +117,13 @@ export function tintsOverLivePage(): GateFinding[] {
 /**
  * Moves the real mouse off the test's page, so a story is scanned at rest. Otherwise the mouse
  * stays where the last story's overlay trigger left it, and WebKit sends a mouse move to whatever
- * mounts under it: TimeGrid's slot preview then shows in the "closed" scan.
+ * mounts under it: TimeGrid's slot preview then shows in the "closed" scan. Uses the test kit's
+ * own `commands.parkPointer`, which moves the real mouse with Playwright, because `userEvent.hover`
+ * with an out-of-viewport position dispatches no event a page can see at this scale, leaving the
+ * last tracked spot stale for whatever renders next in its place (ourostack/ouro-ui#3617).
  */
 export async function parkPointer(): Promise<void> {
-  await userEvent.hover(document.documentElement, { position: { x: -8, y: -8 }, force: true });
+  await commands.parkPointer();
 }
 
 /** How long a popup may take to open or close on a loaded CI runner. */

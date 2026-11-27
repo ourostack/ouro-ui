@@ -175,8 +175,11 @@ function initialFiles(manifest: Record<string, BuildEntry>, kind: "voyage" | "do
  * phone menu's two ways in, and the real Apple, Windows and Android marks Ari asked for ("yeah, lets use real platform
  * marks"), about 1,700 of it. The Docs panel's lists, which read the docs' generated index, load on their own when a
  * pointer or focus first reaches the header (site/src/voyage/docs-panel.tsx), so no page pays for them up front.
+ * The voyage's set again for the phone menu's open (#3628): 303,774 bytes, 124 over main's 303,650 in this pull request's
+ * e2e run, for the first-callback height in Crossfade and for mounting the pane it is not showing after the first paint,
+ * which together keep the open inside its 100 ms budget on a slow CPU.
  */
-const MEASURED = { voyage: 303_169, docs: 202_898 } as const;
+const MEASURED = { voyage: 303_774, docs: 202_898 } as const;
 /**
  * How far a page may grow past what CI measured before its ceiling is raised, and how much one pull request may add to
  * it: on a pull request the check judges that pull request's growth over its base, so a ceiling main has nearly reached
@@ -442,13 +445,16 @@ test("each page loads only its own JavaScript closure, within its ceiling, and n
     if (kind === "docs") expect(modules.filter((module) => /^(?:docs\/.*\.md|UPGRADING\.md)\?raw$/.test(module)), `${kind} loads the docs' Markdown first`).toEqual([]);
     // The Nautilus's page asks for Chapter I's island as soon as it is live, the chapter being near the top.
     // The docs sidebar and the docs' header are islands too: they may load after the docs' closure, and they are not part of the ceiling.
-    const island = new Set(
-      name === "nautilus"
+    const island = new Set([
+      ...(name === "nautilus"
         ? islandFiles(manifest).filter((file) => !expected.includes(file))
         : kind === "docs"
           ? [...lazyFiles(manifest, "src/components/docs-sidebar.tsx", expected), ...lazyFiles(manifest, "src/components/docs-header.tsx", expected)]
-          : [],
-    );
+          : []),
+      // The header's panels load once the page is idle (header.tsx), so a first open draws them whole: no part of the ceiling.
+      ...lazyFiles(manifest, "src/voyage/nav-panels.tsx", expected),
+      ...lazyFiles(manifest, "src/voyage/docs-panel.tsx", expected),
+    ]);
     // The index's previews load the demos they draw, and the components those use, once it is live: within their own
     // budget. Only the frames that drew count, so any other chunk the page fetches still fails the closure check below.
     const drew = kind === "docs" ? await page.locator("[data-site-preview-drawn]").evaluateAll((frames) => frames.map((frame) => frame.getAttribute("data-site-preview")!)) : [];

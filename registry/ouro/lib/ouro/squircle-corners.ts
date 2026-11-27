@@ -1,4 +1,5 @@
 export { squircleCorners };
+export { squircleCornersDedupe };
 export default squircleCorners;
 
 interface Node {
@@ -94,6 +95,145 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
       root.prepend({ name: "layer", params: "squircle-corners" });
     },
   };
+}
+
+interface CssAsset { type: string; fileName: string; source: string | Uint8Array }
+
+/**
+ * A Vite plugin that collapses duplicate `squircleCorners()` output within a built CSS file.
+ * Vite's PostCSS pipeline runs `squircleCorners()` once per source CSS file, so a chunk that bundles several source
+ * files ends up with a `@layer squircle-corners` carrying a separately-computed copy of the shared boilerplate per
+ * source file. The copies are identical (`clipPath()` reads just custom properties), so this merges them into one
+ * pair of rules per chunk, after Vite has decided chunking, since an earlier merge could not see the final chunks.
+ *
+ * @example
+ * // vite.config.ts: plugins: [squircleCornersDedupe()], css: { postcss: { plugins: [squircleCorners()] } }
+ *
+ * Add it beside `squircleCorners()` in a Vite build (not Storybook's dev server, which emits no bundle to dedupe).
+ */
+function squircleCornersDedupe(): { name: string; apply: "build"; generateBundle(options: unknown, bundle: Record<string, CssAsset>): void } {
+  return {
+    name: "ouro-squircle-corners-dedupe",
+    apply: "build",
+    generateBundle(_options, bundle) {
+      for (const file of Object.values(bundle)) {
+        if (file.type !== "asset" || !file.fileName.endsWith(".css") || typeof file.source !== "string") continue;
+        file.source = dedupeSquircleCss(file.source);
+      }
+    },
+  };
+}
+
+// Finds the index of the character that closes the `open` at `openIndex`, honoring backslash escapes, or -1.
+function matchingClose(css: string, openIndex: number, open: string, close: string): number {
+  let depth = 0;
+  for (let i = openIndex; i < css.length; i++) {
+    const ch = css[i];
+    if (ch === "\\") { i++; continue; }
+    if (ch === open) depth++;
+    else if (ch === close) { depth--; if (depth === 0) return i; }
+  }
+  return -1;
+}
+
+// Splits a selector list on its top-level commas, skipping escaped characters and the commas inside :is(), [] and similar.
+function splitSelectors(list: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < list.length; i++) {
+    const ch = list[i];
+    if (ch === "\\") { i++; continue; }
+    if (ch === "(" || ch === "[") depth++;
+    else if (ch === ")" || ch === "]") depth--;
+    else if (ch === "," && depth === 0) { out.push(list.slice(start, i)); start = i + 1; }
+  }
+  out.push(list.slice(start));
+  return out.map((s) => s.trim()).filter(Boolean);
+}
+
+// Merges adjacent `selectors{declBody}` rules that share one exact declBody, within one already-bundled span.
+function dedupeStyleRules(body: string): string {
+  const order: string[] = [];
+  const bySelectors = new Map<string, string[]>();
+  let i = 0;
+  while (i < body.length) {
+    const open = body.indexOf("{", i);
+    if (open === -1) break;
+    const close = matchingClose(body, open, "{", "}");
+    if (close === -1) break;
+    const selectorText = body.slice(i, open);
+    const declBody = body.slice(open + 1, close);
+    let selectors = bySelectors.get(declBody);
+    if (!selectors) { bySelectors.set(declBody, (selectors = [])); order.push(declBody); }
+    selectors.push(...splitSelectors(selectorText));
+    i = close + 1;
+  }
+  return order.map((declBody) => {
+    const seen = new Set<string>();
+    const merged = bySelectors.get(declBody)!.filter((s) => (seen.has(s) ? false : (seen.add(s), true)));
+    return `${merged.join(",")}{${declBody}}`;
+  }).join("");
+}
+
+// Merges adjacent `@supports(params){...}` blocks that share one exact, whitespace-normalized params string, within
+// one already-bundled span, and dedupes the style rules inside each merged group.
+function dedupeSupportsGroups(layerBody: string): string {
+  const order: string[] = [];
+  const byParams = new Map<string, { raw: string; body: string }>();
+  let i = 0;
+  const marker = "@supports";
+  while (i < layerBody.length) {
+    const at = layerBody.indexOf(marker, i);
+    if (at === -1) break;
+    const open = layerBody.indexOf("{", at);
+    if (open === -1) break;
+    const raw = layerBody.slice(at + marker.length, open).trim();
+    const close = matchingClose(layerBody, open, "{", "}");
+    if (close === -1) break;
+    const body = layerBody.slice(open + 1, close);
+    const key = raw.replace(/\s+/g, " ");
+    let group = byParams.get(key);
+    if (!group) { byParams.set(key, (group = { raw, body: "" })); order.push(key); }
+    group.body += body;
+    i = close + 1;
+  }
+  return order.map((key) => {
+    const group = byParams.get(key)!;
+    return `@supports ${group.raw}{${dedupeStyleRules(group.body)}}`;
+  }).join("");
+}
+
+/**
+ * Merges `squircleCorners()`'s repeated boilerplate within one CSS string, working inside its own
+ * `@layer squircle-corners` blocks, which hold rules from this plugin alone, so the cascade order of the rest of
+ * the file stays as it was. A named CSS layer's content accumulates across its `@layer <name>{...}` blocks
+ * wherever they sit, so folding the later blocks into the first one's spot keeps the same cascade.
+ */
+function dedupeSquircleCss(css: string): string {
+  const marker = "@layer squircle-corners{";
+  const spans: { start: number; end: number; body: string }[] = [];
+  let i = 0;
+  while (true) {
+    const at = css.indexOf(marker, i);
+    if (at === -1) break;
+    const open = at + marker.length - 1;
+    const close = matchingClose(css, open, "{", "}");
+    if (close === -1) break;
+    spans.push({ start: at, end: close + 1, body: css.slice(open + 1, close) });
+    i = close + 1;
+  }
+  if (spans.length === 0) return css;
+  const merged = dedupeSupportsGroups(spans.map((s) => s.body).join(""));
+  let out = "";
+  let cursor = 0;
+  spans.forEach((span, index) => {
+    out += css.slice(cursor, span.start);
+    out += index === 0 ? `${marker}${merged}}` : "";
+    cursor = span.end;
+  });
+  out += css.slice(cursor);
+  return out;
 }
 
 function skipped(rule: Node): boolean {

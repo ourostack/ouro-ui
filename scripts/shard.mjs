@@ -18,6 +18,7 @@
 //                                                    timing reports under <dir> (any depth)
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
+import { quarantinedFilesNow } from "./quarantined-files.mjs";
 import { fileURLToPath } from "node:url";
 import { scriptTestFiles } from "./script-tests.mjs";
 import { treeFiles } from "./tree.mjs";
@@ -223,11 +224,12 @@ export function filesWithin(files, paths) {
  * folder, named *.test.ts or *.test.tsx (as ouroTestProjects includes them), visual tests left out.
  * Paths are relative to the app.
  */
-export function installFiles(app) {
+export function installFiles(app, quarantined = quarantinedFilesNow()) {
   if (!existsSync(join(app, "src"))) return [];
+  const apart = quarantined.map((file) => file.replace(/^registry\/ouro\//, "src/"));
   return filesUnder(join(app, "src"))
     .map((file) => relative(app, file).split("\\").join("/"))
-    .filter((file) => /(^|\/)ouro\/.*\.test\.tsx?$/.test(file) && !/\.visual\.test\.tsx?$/.test(file))
+    .filter((file) => /(^|\/)ouro\/.*\.test\.tsx?$/.test(file) && !/\.visual\.test\.tsx?$/.test(file) && !apart.includes(file))
     .sort();
 }
 

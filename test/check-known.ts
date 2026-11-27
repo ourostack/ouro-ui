@@ -193,13 +193,6 @@ export const knownFindings: KnownFinding[] = [
     sometimes: true,
   },
   {
-    story: "MessageList/LoadingOlder",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
     story: "TabBar/InContext",
     rule: "near-miss",
     issue: 3286,
@@ -296,6 +289,14 @@ export const knownFindings: KnownFinding[] = [
   },
   {
     story: "Attachment/Removable",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "Attachment/Preview",
     rule: "near-miss",
     issue: 3286,
     theme: "nova",

@@ -167,15 +167,15 @@ describe("the chat app page", () => {
     expect(violations, describeViolations(violations)).toEqual([]);
   }, pageScanTimeout);
 
-  it("drops the list pane's own divider under forced colours, so it does not double ConversationList's frame edge", async () => {
+  it("keeps the list pane's divider under forced colours, as ConversationList draws no frame of its own", async () => {
     await commands.emulateMedia({ forcedColors: "active" });
     try {
       await page.viewport(1280, 800);
       await renderPage("/docs/chat-demo/");
       const list = document.querySelector<HTMLElement>('[data-ouro="conversation-list"]')!;
-      expect(parseFloat(getComputedStyle(list).borderInlineEndWidth)).toBeGreaterThan(0);
+      expect(parseFloat(getComputedStyle(list).borderInlineEndWidth)).toBe(0);
       const pane = list.parentElement!;
-      expect(parseFloat(getComputedStyle(pane).borderInlineEndWidth)).toBe(0);
+      expect(parseFloat(getComputedStyle(pane).borderInlineEndWidth)).toBeGreaterThan(0);
     } finally {
       await commands.emulateMedia({ forcedColors: "none" });
       await page.viewport(390, 844);

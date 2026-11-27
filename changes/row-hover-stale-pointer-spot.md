@@ -1,0 +1,1 @@
+- Fixed: a list with a shared row bar (Message, for one) no longer shows the bar on a row that now sits under a stale last-seen pointer spot, when the page's own hover state no longer agrees.
