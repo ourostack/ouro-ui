@@ -576,7 +576,7 @@ describe("Avatar colors", () => {
     }
   });
 
-  it("takes each hue's mix from ouro-base in light and dark, and the light mix where an older ouro-base lacks it", async () => {
+  it("takes each hue's mix from ouro-base in light and dark, and a .dark element's own mix for what is in it", async () => {
     const { host } = await render(
       <>
         {names.map((name) => (
@@ -587,15 +587,15 @@ describe("Avatar colors", () => {
     );
     const avatars = [...host.querySelectorAll<HTMLElement>('[data-ouro="avatar"]')];
     const drawn = () => new Set(avatars.map((avatar) => `${getComputedStyle(surface(avatar)).backgroundColor} on ${getComputedStyle(avatar).color}`));
-    // The mix each avatar would compute for itself, for the eight hues and the brand.
-    const mixes = (tint: number, ink: number) =>
+    // The mix each avatar would compute for itself, for the eight hues and the brand, in the scheme of `where`.
+    const mixes = (tint: number, ink: number, where: HTMLElement = document.body) =>
       new Set(
         [1, 2, 3, 4, 5, 6, 7, 8, "brand"].map((hue) => {
           const color = hue === "brand" ? "var(--primary)" : `var(--avatar-${hue})`;
           const probe = document.createElement("i");
           probe.style.backgroundColor = `color-mix(in oklab, ${color} ${tint}%, var(--background))`;
           probe.style.color = `color-mix(in oklab, ${color} ${ink}%, var(--foreground))`;
-          document.body.append(probe);
+          where.append(probe);
           const want = `${getComputedStyle(probe).backgroundColor} on ${getComputedStyle(probe).color}`;
           probe.remove();
           return want;
@@ -604,12 +604,11 @@ describe("Avatar colors", () => {
     expect(drawn()).toEqual(mixes(18, 70));
     document.documentElement.classList.add("dark");
     expect(drawn()).toEqual(mixes(46, 18));
-    // An ouro-base added before the tokens existed: each avatar mixes the light scheme's tint for itself.
-    for (const hue of [1, 2, 3, 4, 5, 6, 7, 8, "brand"]) {
-      host.style.setProperty(`--ouro-avatar-tint-${hue}`, "initial");
-      host.style.setProperty(`--ouro-avatar-ink-${hue}`, "initial");
-    }
-    expect(drawn()).toEqual(mixes(18, 70));
+    // A page in light with one dark region: the avatars in it mix the dark scheme's colours, as the probes beside them do.
+    document.documentElement.classList.remove("dark");
+    host.classList.add("dark");
+    expect(drawn()).toEqual(mixes(46, 18, host));
+    expect(drawn()).not.toEqual(mixes(46, 18));
   });
 
   it("spreads ids that differ only in their last character across the hues", async () => {

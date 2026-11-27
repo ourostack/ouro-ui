@@ -308,22 +308,20 @@ const plainSizes: readonly AvatarSize[] = ["xs", "sm"];
 
 // Each hue tints the surface and colors the initials: ouro-base mixes each hue toward the theme's
 // background (--ouro-avatar-tint-*) and foreground (--ouro-avatar-ink-*) once, on the root and on .dark,
-// so the pair keeps at least 4.5:1 in light and dark and no avatar evaluates a color-mix() of its own. An app whose
-// ouro-base predates those tokens gets the light scheme's mix in their place, so its avatars keep their tint until
-// it adds ouro-base again.
+// so the pair keeps at least 4.5:1 in light and dark and no avatar evaluates a color-mix() of its own.
 // A tint is its surface class and its ink.
 type Tint = readonly [fill: string, ink: string];
 const hues: readonly Tint[] = [
-  ["bg-[color:var(--ouro-avatar-tint-1,color-mix(in_oklab,var(--avatar-1)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-1,color-mix(in_oklab,var(--avatar-1)_70%,var(--foreground)))]"],
-  ["bg-[color:var(--ouro-avatar-tint-2,color-mix(in_oklab,var(--avatar-2)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-2,color-mix(in_oklab,var(--avatar-2)_70%,var(--foreground)))]"],
-  ["bg-[color:var(--ouro-avatar-tint-3,color-mix(in_oklab,var(--avatar-3)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-3,color-mix(in_oklab,var(--avatar-3)_70%,var(--foreground)))]"],
-  ["bg-[color:var(--ouro-avatar-tint-4,color-mix(in_oklab,var(--avatar-4)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-4,color-mix(in_oklab,var(--avatar-4)_70%,var(--foreground)))]"],
-  ["bg-[color:var(--ouro-avatar-tint-5,color-mix(in_oklab,var(--avatar-5)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-5,color-mix(in_oklab,var(--avatar-5)_70%,var(--foreground)))]"],
-  ["bg-[color:var(--ouro-avatar-tint-6,color-mix(in_oklab,var(--avatar-6)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-6,color-mix(in_oklab,var(--avatar-6)_70%,var(--foreground)))]"],
-  ["bg-[color:var(--ouro-avatar-tint-7,color-mix(in_oklab,var(--avatar-7)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-7,color-mix(in_oklab,var(--avatar-7)_70%,var(--foreground)))]"],
-  ["bg-[color:var(--ouro-avatar-tint-8,color-mix(in_oklab,var(--avatar-8)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-8,color-mix(in_oklab,var(--avatar-8)_70%,var(--foreground)))]"],
+  ["bg-(--ouro-avatar-tint-1)", "text-(--ouro-avatar-ink-1)"],
+  ["bg-(--ouro-avatar-tint-2)", "text-(--ouro-avatar-ink-2)"],
+  ["bg-(--ouro-avatar-tint-3)", "text-(--ouro-avatar-ink-3)"],
+  ["bg-(--ouro-avatar-tint-4)", "text-(--ouro-avatar-ink-4)"],
+  ["bg-(--ouro-avatar-tint-5)", "text-(--ouro-avatar-ink-5)"],
+  ["bg-(--ouro-avatar-tint-6)", "text-(--ouro-avatar-ink-6)"],
+  ["bg-(--ouro-avatar-tint-7)", "text-(--ouro-avatar-ink-7)"],
+  ["bg-(--ouro-avatar-tint-8)", "text-(--ouro-avatar-ink-8)"],
 ] as const;
-const brand: Tint = ["bg-[color:var(--ouro-avatar-tint-brand,color-mix(in_oklab,var(--primary)_18%,var(--background)))]", "text-[color:var(--ouro-avatar-ink-brand,color-mix(in_oklab,var(--primary)_70%,var(--foreground)))]"];
+const brand: Tint = ["bg-(--ouro-avatar-tint-brand)", "text-(--ouro-avatar-ink-brand)"];
 const neutral: Tint = ["bg-secondary", "text-secondary-foreground"];
 
 const shapes = ["circle", "square", "agent"] as const;
