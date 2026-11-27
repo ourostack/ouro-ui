@@ -1,7 +1,7 @@
 "use client";
 
 import "@/registry/ouro/lib/ouro/last-input";
-import { memo, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { ChangeEvent, JSX, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Field } from "@/registry/ouro/components/ouro/field/field";
 import { FieldControl, type FieldControlProps } from "@/registry/ouro/components/ouro/field/field-parts";
@@ -370,12 +370,17 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   // the element's dirty-value flag is set (which this effect's first run does), setting `.value`
   // never touches the child text node the way `.defaultValue` does, so this never forces the
   // `:has()`-invalidating mutation `updateTextarea` would otherwise make on every commit (ouro-ui#3759).
-  // Runs before the fit-height effect below, which measures this same `.value`.
+  // Runs before the fit-height effect below, which measures this same `.value`. It also runs after
+  // every change event (`changes`), as React's own controlled textarea restores after one: a change
+  // the owner refuses leaves `value` as it was, so without this the person's or a script's text
+  // would stay on screen beside a `value` that never took it (ouro-ui#3911).
+  // Stryker disable next-line ArithmeticOperator: equivalent; any step changes the count, and only a change reruns the effect.
+  const [changes, countChange] = useReducer((count: number) => count + 1, 0);
   useLayoutEffect(() => {
     const textarea = textareaRef.current!;
     // Stryker disable next-line ConditionalExpression: equivalent; the HTML value setter leaves the text and the caret as they are when the new value equals the old one.
     if (controlled && textarea.value !== String(rest.value)) textarea.value = String(rest.value);
-  }, [controlled, rest.value]);
+  }, [controlled, rest.value, changes]);
   useLayoutEffect(() => {
     const textarea = textareaRef.current!;
     if (autoGrow && !native) {
@@ -427,6 +432,8 @@ export function TextArea(props: TextAreaProps): JSX.Element {
       if (moved) onHighlightsChange?.(moved);
     }
     onChange?.(event);
+    // Stryker disable next-line ConditionalExpression: equivalent; the sync it reruns writes nothing to an uncontrolled field.
+    if (controlled) countChange();
   };
   // The text rewraps when the width changes (a rotated phone, a resized window). The refit
   // runs in the next frame, never inside the observer's callback: a height set there is a new
