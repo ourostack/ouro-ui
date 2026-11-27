@@ -700,6 +700,17 @@ describe("MessageList", () => {
     expect(firstVisible(scroller).message).toBe(before.message);
   });
 
+  it("leaves no room below the last message where an app turned the browser's anchoring on and the conversation then got shorter (#3892)", async () => {
+    const { scroller, rerender } = await render(<Chat items={history(30)} />);
+    await settle(scroller);
+    // The list marked where the content ended before the app turned the browser's own scroll anchoring on.
+    scroller.style.overflowAnchor = "auto";
+    await rerender(<Chat items={history(5)} />);
+    await settle(scroller);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    expect(scroller.scrollHeight).toBe(Math.max(scroller.clientHeight, content.offsetTop + content.offsetHeight));
+  });
+
   it("keeps the reader's place when a message above them moves to the end and the list keeps its height", async () => {
     const items = history(20, 10);
     // The messages sit in a group, as under a day's heading, so the move happens inside it.
