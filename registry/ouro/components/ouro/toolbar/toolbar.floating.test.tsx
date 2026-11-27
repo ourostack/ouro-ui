@@ -150,6 +150,29 @@ describe("Toolbar floating", () => {
     expect(leave).toHaveBeenCalledOnce();
   });
 
+  it("keeps system colours for a toned pressed toggle under forced colours", async () => {
+    const { toolbar } = await render(<Toolbar label="Call controls" floating items={[{ type: "toggle", label: "Mute", tone: "inverse", pressed: true }]} />);
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const style = getComputedStyle(toolbar.querySelector("button")!);
+      expect(style.backgroundColor).toBe(computedBackground("Highlight"));
+      expect(style.color).toBe(computedBackground("HighlightText"));
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it("names the valid item tones for an unknown tone and keeps the quiet default", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // @ts-expect-error a brand fill uses the primary theme token.
+    const items: ToolbarEntry[] = [{ label: "Share", tone: "brand" }];
+    const { toolbar } = await render(<Toolbar label="Call controls" items={items} />);
+    expect(warn.mock.calls.map((call) => String(call[0]))).toEqual([
+      '[ouro-ui] Toolbar: "Share" has tone="brand", which is not a tone. Fix: { tone: "secondary" }; use "inverse", "primary" or "destructive" for a filled state.',
+    ]);
+    expect(getComputedStyle(toolbar.querySelector("button")!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+  });
+
   it("is translucent glass from the theme, with a blur, a hairline, a shadow and rounded corners, and stays in the flow", async () => {
     const { toolbar } = await render(<Toolbar label="Call controls" floating items={controls} />);
     const style = getComputedStyle(toolbar);
