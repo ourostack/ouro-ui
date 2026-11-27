@@ -279,6 +279,20 @@ describe("findLayoutIssues: near-miss", () => {
     expect(found()).toEqual([["div#bubble2 and div#jump2", "4px"]]);
   });
 
+  it("finds content that scrolls a few pixels short of a bar that sits in the page after the scroller, since that bar does not float", () => {
+    render(`
+      <div id="pane" style="position:fixed;left:10px;top:10px;width:200px">
+        <div id="scroller" style="height:200px;overflow-y:auto;background:#eee">
+          <div style="height:300px"></div>
+          <div id="bubble" style="width:60px;height:30px;background:#cde"></div>
+          <div style="height:300px"></div>
+        </div>
+        <div id="bar" style="width:60px;height:30px;background:#cde"></div>
+      </div>`);
+    host.querySelector("#scroller")!.scrollTop = 134;
+    expect(found()).toContainEqual(["div#bubble and div#bar", "4px"]);
+  });
+
   it("passes a pill that floats because its header does, paired with content that scrolls under it", () => {
     render(`
       <div id="scroller" style="position:fixed;left:10px;top:10px;width:200px;height:200px;overflow-y:auto;box-sizing:border-box;background:#eee">
