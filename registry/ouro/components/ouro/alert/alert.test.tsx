@@ -111,6 +111,59 @@ describe("Alert", () => {
     expect(action.getBoundingClientRect().top).toBeGreaterThanOrEqual(description.getBoundingClientRect().bottom);
   });
 
+  it("keeps a title alone, or a title with a description and an action, in a column", async () => {
+    const alone = await render(<Alert title="Saved" />);
+    const body = alone.alert.querySelector("[data-slot='alert-body']")!.getBoundingClientRect();
+    // The body is the title's line and no more: no foot kept for an action that overhangs.
+    expect(body.height).toBeCloseTo(alone.alert.querySelector("[data-ouro-alert-title]")!.getBoundingClientRect().height, 0);
+    const full = await render(
+      <div style={{ width: "900px" }}>
+        <Alert title="Not saved" description="Check your connection." action={<Button size="sm">Try again</Button>} />
+      </div>,
+    );
+    const title = full.alert.querySelector("[data-ouro-alert-title]")!.getBoundingClientRect();
+    const description = full.alert.querySelector("[data-ouro-alert-description]")!.getBoundingClientRect();
+    const action = full.alert.querySelector("[data-ouro-alert-action]")!.getBoundingClientRect();
+    expect(description.top).toBeGreaterThanOrEqual(title.bottom);
+    expect(action.top).toBeGreaterThanOrEqual(description.bottom);
+  });
+
+  it("puts an action beside a title with no description where they fit, and under it where they don't", async () => {
+    const band = (width: string) => (
+      <div style={{ width }}>
+        <Alert
+          tone="warning"
+          title="2 need your answer"
+          action={
+            <>
+              <Button size="sm">Design review</Button>
+              <Button size="sm">Planning</Button>
+            </>
+          }
+        />
+      </div>
+    );
+    const wide = await render(band("900px"));
+    const title = () => wide.alert.querySelector("[data-ouro-alert-title]")!.getBoundingClientRect();
+    const action = () => wide.alert.querySelector("[data-ouro-alert-action]")!.getBoundingClientRect();
+    expect(action().left).toBeGreaterThanOrEqual(title().right);
+    // On one line, level: the title, its buttons and the icon share a middle.
+    const middle = (box: DOMRect) => box.top + box.height / 2;
+    const button = wide.alert.querySelector("[data-ouro-alert-action] button")!.getBoundingClientRect();
+    const icon = wide.alert.querySelector("[data-ouro-alert-icon]")!.getBoundingClientRect();
+    expect(Math.abs(middle(button) - middle(title()))).toBeLessThanOrEqual(1);
+    expect(Math.abs(middle(icon) - middle(title()))).toBeLessThanOrEqual(1);
+    const narrow = await render(band("260px"));
+    const narrowTitle = narrow.alert.querySelector("[data-ouro-alert-title]")!;
+    // The title keeps its whole line, unbroken, and the action goes under it.
+    expect(narrowTitle.getBoundingClientRect().height).toBeLessThan(30);
+    const wrapped = narrow.alert.querySelector("[data-ouro-alert-action] button")!.getBoundingClientRect();
+    expect(wrapped.top - narrowTitle.getBoundingClientRect().bottom).toBeCloseTo(12, 0);
+    const last = [...narrow.alert.querySelectorAll("[data-ouro-alert-action] button")].at(-1)!.getBoundingClientRect();
+    // 16px of padding and the 1px border under the last button, as without the overhang.
+    expect(narrow.alert.getBoundingClientRect().bottom - last.bottom).toBeCloseTo(17, 0);
+  });
+
   it("shows a dismiss button with onDismiss, named by dismissLabel", async () => {
     const onDismiss = vi.fn();
     await render(<Alert title="Saved" onDismiss={onDismiss} />);

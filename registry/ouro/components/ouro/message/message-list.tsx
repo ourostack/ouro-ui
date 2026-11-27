@@ -591,8 +591,6 @@ const STRETCH = 0.25;
 const ARMED = 250;
 /** How long, in ms, after a wheel turn the list leaves the reader's place unwritten, and past the frame it turned in: a scroll position set meanwhile stops the wheel's own scroll. */
 const WHEEL_REST = 80;
-/** At most how far, in px, a scroll at rest that neither the reader nor the list made is put back (onScroll's stray). */
-const STRAY_PX = 3;
 /** How long after the reader's last press, key or touch, or a scroll code asked for, a scroll at rest may still be theirs, in ms. */
 const INPUT_MS = 1000;
 /** A gap between a wheel's events shorter than this is the same turn of the wheel, its events waiting behind long frames; a longer one is a new turn. */
@@ -1610,6 +1608,34 @@ export function MessageList(props: MessageListProps): JSX.Element {
     setShowJump(false);
   };
 
+  const inputAt = useRef(Number.NEGATIVE_INFINITY);
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current!;
+    // Code choosing a new place ends a hold, even when it chooses a nearby pixel. Native scroll feedback does not
+    // pass through the setter, so it is told apart by ownership, never by how many pixels it moved.
+    const previousTop = Object.getOwnPropertyDescriptor(scroller, "scrollTop");
+    const topProperty = previousTop ?? Object.getOwnPropertyDescriptor(Element.prototype, "scrollTop")!;
+    const setTop = (top: number) => {
+      held.current = false;
+      topProperty.set!.call(scroller, top);
+    };
+    Object.defineProperty(scroller, "scrollTop", {
+      configurable: true,
+      get: () => topProperty.get!.call(scroller),
+      set: setTop,
+    });
+    const onFocus = () => void (inputAt.current = performance.now());
+    scroller.addEventListener("focusin", onFocus, true);
+    return () => {
+      scroller.removeEventListener("focusin", onFocus, true);
+      if (Object.getOwnPropertyDescriptor(scroller, "scrollTop")?.set !== setTop) return;
+      if (previousTop) Object.defineProperty(scroller, "scrollTop", previousTop);
+      else Reflect.deleteProperty(scroller, "scrollTop");
+    };
+  },
+  // Stryker disable next-line ArrayDeclaration: a dependency list holding one constant has the same mount/unmount lifetime as an empty one.
+  []);
+
   // Open at the newest message (or at `initialAnchor`), then follow growth (new messages, streaming text, images
   // loading, the keyboard resizing the list) only while pinned. Layout effect and resize
   // observer callbacks run before paint, so the view never flashes off the bottom.
@@ -1969,8 +1995,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     scroller.addEventListener("wheel", onWheel, { passive: true });
     // When the reader last did something that may scroll the list, besides the wheel (turning), or code asked the list to scroll
     // (scrollTo, scrollBy: a find's smooth scroll to its match, an app's own), which may take frames to get there.
-    let inputAt = Number.NEGATIVE_INFINITY;
-    const onInput = () => void (inputAt = performance.now());
+    const onInput = () => void (inputAt.current = performance.now());
     // Stryker disable next-line BooleanLiteral: passive only tells the browser these listeners never cancel the event; onInput never calls preventDefault, so no test can observe it.
     for (const type of ["pointerdown", "keydown", "touchstart"]) scroller.addEventListener(type, onInput, { capture: true, passive: true });
     const asked = (name: "scrollTo" | "scrollBy") => {
@@ -1982,8 +2007,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     asked("scrollBy");
     // hold()'s write is put back to only until the frame after next: a stray comes in the frame after it, and a scroll later is another's.
     let disarm = 0;
-    const armHeld = () => {
-      held.current = true;
+    const armHeld = (applied: number) => {
+      held.current = applied !== 0;
       // Stryker disable next-line CallExpression: hold() writes again within two frames only in the frame it wrote, whose disarm comes in the same frame either way.
       cancelAnimationFrame(disarm);
       disarm = requestAnimationFrame(() => (disarm = requestAnimationFrame(() => (held.current = false))));
@@ -2048,8 +2073,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
           const before = scroller.scrollTop;
           scroller.scrollTop += moved;
           ownTop.current = heldTop.current = scroller.scrollTop;
-          armHeld();
           const applied = scroller.scrollTop - before;
+          armHeld(applied);
           springsRef.current?.moved(applied);
           // What rounding left over, carried: under a pixel. A move the browser did not apply in full (the list's end or start stopped it, smooth scrolling or snapping took it) is not a debt a later write can pay.
           owed = Math.abs(moved - applied) < 1 ? moved - applied : 0;
@@ -2103,14 +2128,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
     });
     moves.observe(content, { childList: true, subtree: true });
     const onScroll = (event: Event) => {
-      // Just after hold() kept the reader's place, with nothing from the reader since (a wheel, a touch, a key, a press, the scrollbar's
-      // too), a scroll of a few pixels the list didn't write is none of the reader's: Chromium sometimes moves the scroll position a
-      // pixel or two by itself in the frame after hold() wrote it through rows measured above the view, which moves what the reader is
-      // reading. The list puts hold()'s position back. It stays the place to put back to through the scroll event its write brings, as
-      // the stray move comes a frame later.
+      // Just after hold() kept the place, a native scroll with no input is feedback from that layout, not a new place
+      // chosen by the reader or code. Chromium can coalesce several pixels of it into one event. The hold lasts through
+      // its own scroll event, until the frame after next; input, focus and explicit writes always end it first.
       const stray = scroller.scrollTop - heldTop.current;
-      // Stryker disable next-line EqualityOperator: a stray of exactly STRAY_PX is put back or kept, a pixel either way.
-      if (stray !== 0 && Math.abs(stray) <= STRAY_PX && held.current && !turning() && performance.now() - inputAt > INPUT_MS) {
+      if (stray !== 0 && held.current && !turning() && performance.now() - inputAt.current > INPUT_MS) {
         scrollOwn(-stray);
         return;
       }

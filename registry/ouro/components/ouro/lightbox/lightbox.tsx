@@ -9,6 +9,7 @@ import { useMountedOpen } from "@/registry/ouro/lib/ouro/use-mounted-open";
 import { useOuro } from "@/registry/ouro/lib/ouro/use-ouro";
 import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { ButtonGroup } from "@/registry/ouro/components/ouro/button-group/button-group";
 import { Carousel } from "@/registry/ouro/components/ouro/carousel/carousel";
 import { fillTemplate } from "@/registry/ouro/components/ouro/carousel/carousel-styles";
 import {
@@ -25,8 +26,12 @@ import {
   counterClass,
   figureClass,
   fitClass,
+  fitCounterClass,
   fitFrom,
+  fitHeaderClass,
+  fitImageClass,
   fitQuietTitleClass,
+  fitStageClass,
   gridClass,
   headerClass,
   imageClass,
@@ -136,12 +141,18 @@ export interface LightboxBaseProps {
   fullScreen?: boolean | undefined;
 
   /**
-   * The viewer shows the picture alone: centred and fitted with a margin,
-   * over the scrim, without a panel behind it. A press anywhere but on the image, its caption or a button dismisses it. It
-   * zooms from the thumbnail by scaling from the thumbnail's size rather than from 0.9, and its
-   * caption and buttons are quiet. Use it where the picture is all that should show, as in a
-   * chat's photos. With `fullScreen` too, `fit` wins.
+   * The viewer shows the picture alone, as a picture viewer does: as large as fits with a margin,
+   * larger than its own size too, with large squircle corners, over the scrim, without a panel
+   * behind it. Its controls are one glass group on the picture's top-end corner: Previous, the
+   * position and Next, then Close. Its name is kept for screen readers. A press anywhere but on
+   * the image, its caption or its controls dismisses it. It zooms from the thumbnail by scaling from
+   * the thumbnail's size rather than from 0.9. Use it where the picture is all that should show, as
+   * in a chat's photos. With `fullScreen` too, `fit` wins.
    *
+   * @claim "as large as fits with a margin," registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx::Lightbox fit > draws a picture smaller than the screen as large as fits, at its own shape, with its caption under it)
+   * @claim "Its controls are one glass group" registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx::Lightbox fit > keeps the controls on the shown picture's top-end corner, set in from it, after the picture changes)
+   * @claim "Previous, the position and Next" registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx::Lightbox fit > groups Previous, the position, Next and Close as one glass control, and hides the carousel's own)
+   * @claim "with large squircle corners" registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx::Lightbox fit > rounds the picture with the large squircle, not the thumbnail's small one)
    * @claim "A press anywhere but on the image," registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx::Lightbox fit > draws no panel, and a press beside the image dismisses it, but not one on the image, the caption or a button)
    * @claim "It zooms from the thumbnail by scaling" registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx verify:testExists(registry/ouro/components/ouro/lightbox/lightbox.fit.test.tsx::Lightbox fit > grows from the thumbnail's size, not from 0.9, and only fades with reduced motion)
    */
@@ -259,6 +270,14 @@ function ZoomIcon({ out }: { out: boolean }): JSX.Element {
   );
 }
 
+function ChevronIcon({ back }: { back?: boolean }): JSX.Element {
+  return (
+    <svg aria-hidden="true" data-slot="lightbox-chevron" viewBox="0 0 16 16" fill="none" className={cn("size-ouro-4 rtl:-scale-x-100", back && "-scale-x-100 rtl:scale-x-100")}>
+      <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function CloseIcon(): JSX.Element {
   return (
     <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className="size-ouro-4">
@@ -342,6 +361,55 @@ interface FigureProps {
   zoomLabel: string;
   /** How soon its image is fetched: `high` for the image shown, `low` for those more than one step away. */
   priority: "high" | "low" | undefined;
+  /** Whether the image is drawn as large as the figure holds, even past its own size. */
+  fit: boolean;
+}
+
+/** A picture's drawn size. */
+interface Size {
+  width: number;
+  height: number;
+}
+
+/**
+ * With `fit`, the size that draws the picture as large as its figure holds under its caption,
+ * larger than its own size too, as a picture viewer fills the screen with a small photo. Measured
+ * as the figure changes size and as the picture loads; until its shape is known, nothing is set.
+ */
+function useFillSize(fit: boolean, figure: RefObject<HTMLElement | null>, picture: RefObject<HTMLImageElement | null>, image: LightboxImage): Size | undefined {
+  const [size, setSize] = useState<Size | undefined>(undefined);
+  useLayoutEffect(() => {
+    if (!fit) return;
+    const box = figure.current!;
+    const img = picture.current!;
+    const measure = () => {
+      const w = img.naturalWidth || image.width || 0;
+      const h = img.naturalHeight || image.height || 0;
+      const caption = box.querySelector("figcaption");
+      const room = {
+        width: box.clientWidth,
+        height: box.clientHeight - (caption ? caption.offsetHeight + Number.parseFloat(getComputedStyle(box).rowGap) : 0),
+      };
+      const scale = Math.min(room.width / w, room.height / h);
+      const next = { width: Math.floor(w * scale), height: Math.floor(h * scale) };
+      // An unknown shape (0 / 0) or no room draws nothing to fit.
+      if (next.width > 0 && next.height > 0) setSize(next);
+    };
+    // Now, before the browser draws the picture at its own size: the observer's first call would size it a frame later.
+    // Stryker disable next-line CallExpression: the observer's first call sizes it too, and a test cannot catch the frame between.
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    img.addEventListener("load", measure);
+    // Stryker disable next-line BlockStatement: the effect runs again only for `fit` or the given shape changing while open, and the picture's own shape, once loaded, wins over the given one.
+    return () => {
+      // Stryker disable next-line CallExpression: observers are called in the order they were made, so the current one measures last.
+      observer.disconnect();
+      // Stryker disable next-line CallExpression,StringLiteral: once the picture has loaded, every measure reads its own shape.
+      img.removeEventListener("load", measure);
+    };
+  }, [fit, figure, picture, image.width, image.height]);
+  return size;
 }
 
 /** The image's fitted size, and its own width. */
@@ -470,10 +538,11 @@ function useDoubleTap(onDoubleTap: (x: number, y: number) => void): Pick<HTMLAtt
  * finger, a trackpad or the arrow keys move around it, and a swipe there pans instead of turning
  * the page. A double-tap zooms to the image's own size at the tap and back; a pinch zooms it too.
  */
-function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel, priority }: FigureProps): JSX.Element {
+function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel, priority, fit }: FigureProps): JSX.Element {
   const figure = useRef<HTMLElement>(null);
   const picture = useRef<HTMLImageElement>(null);
   const view = useRef<HTMLDivElement>(null);
+  const fill = useFillSize(fit, figure, picture, image);
   const fitted = useFittedSize(picture);
   // Never larger than the image's own size: a small image does not zoom at all.
   // Stryker disable next-line ConditionalExpression,EqualityOperator: unmeasured, 0 / 0 makes max NaN, which zooms nothing, as 1 does.
@@ -531,10 +600,10 @@ function LightboxFigure({ image, scale, onScale, onMaxScale, zoomLabel, priority
       className={figureClass}
       {...taps}
     >
-      <img ref={picture} src={image.src} alt={image.alt} decoding="async" fetchPriority={priority} data-ouro-lightbox-image="" className={cn(imageClass, zoomed && "invisible")} />
+      <img ref={picture} src={image.src} alt={image.alt} decoding="async" fetchPriority={priority} data-ouro-lightbox-image="" className={cn(imageClass, fit && fitImageClass, zoomed && "invisible")} style={fill} />
       {/* Zoomed, the image covers the caption, so the caption steps aside until it is fitted again. */}
       {(image.title !== undefined || image.caption !== undefined) && (
-        <figcaption className={cn(captionClass, zoomed && "invisible")}>
+        <figcaption className={cn(captionClass, fit && "text-foreground", zoomed && "invisible")}>
           {image.title !== undefined && <span className="font-medium text-foreground">{image.title}</span>}
           {image.caption !== undefined && <span>{image.caption}</span>}
         </figcaption>
@@ -584,7 +653,43 @@ const TAP_SLOP = 10;
 
 /** Whether a press landed beside the picture, its caption and the buttons: on the empty viewer, which a fitted viewer dismisses. */
 function beside(target: EventTarget): boolean {
-  return !(target as Element).closest("img, figcaption, button, a, input, [data-ouro-lightbox-zoom-view], [data-ouro-lightbox-position], [data-ouro-dialog-title]");
+  return !(target as Element).closest("img, figcaption, button, a, input, [data-ouro-lightbox-zoom-view], [data-ouro-lightbox-header], [data-ouro-dialog-title]");
+}
+
+/** Presses the carousel's own Previous or Next, which a fitted viewer hides behind its own on the picture's corner. */
+function pressCarousel(header: HTMLElement, part: "previous" | "next"): void {
+  header.parentElement!.querySelector<HTMLButtonElement>(`[data-ouro-control="carousel"][data-ouro-part="${part}"]`)!.click();
+}
+
+/** How far the fitted viewer's buttons sit in from the picture's corner, in pixels. */
+const cornerInset = 12;
+
+/**
+ * With `fit`, keeps the buttons on the top-end corner of the picture shown: placed in the popup's
+ * own (unscaled) pixels, so the viewer growing from its thumbnail moves them with it, and again as
+ * the picture is drawn at its size, the popup changes size or another picture is shown. Returns
+ * what stops it following.
+ */
+function followPictureCorner(head: HTMLElement, shown: number): () => void {
+  const popup = head.parentElement!;
+  const img = popup.querySelectorAll<HTMLImageElement>("[data-ouro-lightbox-figure] > img")[shown];
+  if (!img) return () => {};
+  const place = () => {
+    const box = popup.getBoundingClientRect();
+    const pic = img.getBoundingClientRect();
+    // The popup's scale as it grows from the thumbnail.
+    const unit = box.width / popup.offsetWidth;
+    head.style.top = `${Math.round((pic.top - box.top) / unit + cornerInset)}px`;
+    // The picture is centred, so it is as far from the popup's end as from its start, in either direction.
+    head.style.insetInlineEnd = `${Math.round((box.right - pic.right) / unit + cornerInset)}px`;
+  };
+  // Stryker disable next-line CallExpression: the observer's first call places them too, and a test cannot catch the frame between.
+  place();
+  const observer = new ResizeObserver(place);
+  observer.observe(popup);
+  observer.observe(img);
+  // Stryker disable next-line ArrowFunction: observers are called in the order they were made, so one left from the picture shown before places first and the current one after it.
+  return () => observer.disconnect();
 }
 
 /**
@@ -645,9 +750,62 @@ function LightboxViewer({
   const scale = zoom?.index === shown ? zoom.scale : 1;
   // Stryker disable next-line EqualityOperator: no layout draws an image at exactly minZoom of its fitted size, so > and >= agree.
   const zoomable = (maxima[shown] ?? 1) > minZoom;
+  useLayoutEffect(() => (fit ? followPictureCorner(header.current!, shown) : undefined), [fit, shown]);
+  // As on the carousel's own, focus never falls to the page: Previous or Next disabled under focus at an end hands it on.
+  useLayoutEffect(() => {
+    const had = document.activeElement as HTMLButtonElement;
+    if (had.disabled && header.current!.contains(had)) header.current!.querySelector<HTMLElement>("button:enabled")!.focus();
+  }, [chosen]);
+  const variant = fit ? "plain" : "outline";
+  const position = (
+    <span data-slot="lightbox-position" data-ouro-lightbox-position="" data-pending={chosen !== shown ? "" : undefined} className={cn(counterClass, fit && fitCounterClass)}>
+      {fillTemplate(positionLabel, chosen + 1, total)}
+    </span>
+  );
+  const buttons = (
+    <>
+      {href !== undefined && (
+        <Button
+          href={href}
+          target="_blank"
+          reloadDocument
+          variant={variant}
+          tone="secondary"
+          size="sm"
+          data-ouro-control="lightbox"
+          data-ouro-part="original"
+          startIcon={ExternalIcon}
+        >
+          {/* Below 640px only the icon shows; the text still names the link. */}
+          <span className="max-sm:sr-only">{originalLabel}</span>
+        </Button>
+      )}
+      {zoomable && (
+        <Button
+          variant={variant}
+          tone="secondary"
+          size="sm"
+          aria-label={zoomLabel}
+          aria-pressed={scale > 1}
+          data-ouro-control="lightbox"
+          data-ouro-part="zoom"
+          onClick={() => setZoom({ index: shown, scale: scale > 1 ? 1 : maxima[shown]! })}
+        >
+          <ZoomIcon out={scale > 1} />
+        </Button>
+      )}
+      <DialogClose
+        render={
+          <Button variant={variant} tone="secondary" size="sm" aria-label={closeLabel} data-ouro-control="lightbox" data-ouro-part="close">
+            <CloseIcon />
+          </Button>
+        }
+      />
+    </>
+  );
   return (
     <>
-      <div ref={header} data-ouro-lightbox-header="" className={headerClass}>
+      <div ref={header} data-ouro-lightbox-header="" className={fit ? fitHeaderClass : headerClass}>
         <div className={cn(titleClass, fit && fitQuietTitleClass)}>
           <DialogTitle>{label}</DialogTitle>
           {/* The viewer's name: the label and the position, which the header shows apart. One image
@@ -656,55 +814,44 @@ function LightboxViewer({
             {total > 1 ? `${label}, ${fillTemplate(positionLabel, chosen + 1, total)}` : label}
           </span>
         </div>
-        {total > 1 && (
-          <span data-ouro-lightbox-position="" data-pending={chosen !== shown ? "" : undefined} className={counterClass}>
-            {fillTemplate(positionLabel, chosen + 1, total)}
-          </span>
+        {total > 1 && !fit && position}
+        {fit ? (
+          // Every control in one glass group on the picture's corner; Previous and Next press the carousel's own.
+          <ButtonGroup label={label} glass="sm">
+            {total > 1 && (
+              <>
+                <Button
+                  variant="plain"
+                  tone="secondary"
+                  size="sm"
+                  aria-label={previousLabel}
+                  data-ouro-control="lightbox"
+                  data-ouro-part="previous"
+                  disabled={!loop && chosen === 0}
+                  onClick={() => pressCarousel(header.current!, "previous")}
+                >
+                  <ChevronIcon back />
+                </Button>
+                {position}
+                <Button
+                  variant="plain"
+                  tone="secondary"
+                  size="sm"
+                  aria-label={nextLabel}
+                  data-ouro-control="lightbox"
+                  data-ouro-part="next"
+                  disabled={!loop && chosen === total - 1}
+                  onClick={() => pressCarousel(header.current!, "next")}
+                >
+                  <ChevronIcon />
+                </Button>
+              </>
+            )}
+            {buttons}
+          </ButtonGroup>
+        ) : (
+          buttons
         )}
-        {href !== undefined && (
-          <Button
-            href={href}
-            target="_blank"
-            reloadDocument
-            variant={fit ? "plain" : "outline"}
-            tone="secondary"
-            size="sm"
-            data-ouro-control="lightbox"
-            data-ouro-part="original"
-            startIcon={ExternalIcon}
-          >
-            {/* Below 640px only the icon shows; the text still names the link. */}
-            <span className="max-sm:sr-only">{originalLabel}</span>
-          </Button>
-        )}
-        {zoomable && (
-          <Button
-            variant={fit ? "plain" : "outline"}
-            tone="secondary"
-            size="sm"
-            aria-label={zoomLabel}
-            aria-pressed={scale > 1}
-            data-ouro-control="lightbox"
-            data-ouro-part="zoom"
-            onClick={() => setZoom({ index: shown, scale: scale > 1 ? 1 : maxima[shown]! })}
-          >
-            <ZoomIcon out={scale > 1} />
-          </Button>
-        )}
-        <DialogClose
-          render={
-            <Button
-              variant={fit ? "plain" : "outline"}
-              tone="secondary"
-              size="sm"
-              aria-label={closeLabel}
-              data-ouro-control="lightbox"
-              data-ouro-part="close"
-            >
-              <CloseIcon />
-            </Button>
-          }
-        />
       </div>
       <Carousel
         key={run}
@@ -720,7 +867,7 @@ function LightboxViewer({
         previousLabel={previousLabel}
         nextLabel={nextLabel}
         slideLabel={positionLabel}
-        className={stageClass}
+        className={cn(stageClass, fit && fitStageClass)}
       >
         {images.map((image, position) => (
           <LightboxFigure
@@ -731,6 +878,7 @@ function LightboxViewer({
             onMaxScale={(max) => setMaxima((list) => ({ ...list, [position]: max }))}
             zoomLabel={zoomLabel}
             priority={priorityOf(position, shown, total, loop)}
+            fit={fit}
           />
         ))}
       </Carousel>

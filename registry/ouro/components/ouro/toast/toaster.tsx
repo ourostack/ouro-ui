@@ -207,11 +207,11 @@ export function Toaster(props: ToasterProps): JSX.Element | null {
           <PortalScope>
             <Toast.Viewport
               aria-label={label}
-              // Not a live region: the announcer inside speaks each toast, so the buttons in the
-              // toasts are never read out as they arrive and need not be hidden to stay quiet.
-              aria-live={undefined}
-              aria-atomic={undefined}
-              aria-relevant={undefined}
+              // Not announced: the announcer inside speaks each toast, so the buttons in the toasts are
+              // never read out as they arrive. "off" rather than no attribute, because a modal's hiding of
+              // the page (Base UI's markOthers) leaves out whatever carries aria-live, and so keeps the
+              // toasts' buttons in the accessibility tree while it is open.
+              aria-live="off"
               data-ouro="toaster"
               ref={edgeRef}
               className={cn(viewportClass, className)}
@@ -284,6 +284,8 @@ function Connect({ onActive }: { onActive: (active: boolean) => void }): null {
   const state = useRef({ shown: new Set<string>(), queue: [] as ToastRecord[] });
   const key = useRef({});
   useEffect(() => {
+    // The Tab hand-over for a modal loads at the first focus change, keeping it out of a page's first load.
+    addEventListener("focusin", () => import("@/registry/ouro/components/ouro/toast/toaster-parts"));
     const { shown } = state.current;
     const next = () => {
       while (shown.size < VISIBLE && state.current.queue.length > 0) {
@@ -300,11 +302,9 @@ function Connect({ onActive }: { onActive: (active: boolean) => void }): null {
         description: record.description,
         type: record.tone,
         timeout: record.timeout,
-        // Never Base UI's "high": it hides such a toast, buttons and all, from screen readers until
-        // focused, and speaks it from an alert of its own. ToastAnnouncer speaks a destructive toast
-        // assertively instead, and the toast stays reachable.
-        // Stryker disable next-line StringLiteral: Base UI treats every priority but "high" as "low".
-        priority: "low",
+        // No priority, which Base UI takes as "low", never "high": it hides such a toast, buttons and all, from
+        // screen readers until focused, and speaks it from an alert of its own. ToastAnnouncer speaks a
+        // destructive toast assertively instead, and the toast stays reachable.
         onRemove: () => {
           shown.delete(record.id);
           // Base UI removes the toast by its index after this call returns, so adding the
@@ -518,10 +518,7 @@ const visuallyHidden = {
   width: "1px",
   height: "1px",
   margin: "-1px",
-  padding: "0",
-  border: "0",
   overflow: "hidden",
-  clip: "rect(0 0 0 0)",
   clipPath: "inset(50%)",
   whiteSpace: "nowrap",
 } as const;
@@ -566,10 +563,10 @@ function ToastAnnouncer(): JSX.Element {
   const current = useUnexpired(spoken);
   return (
     <div ref={anchor} data-ouro-toast-announcer="" style={visuallyHidden}>
-      <div aria-live="polite" aria-relevant="additions text">
+      <div aria-live="polite">
         <SpokenWords entries={current.filter((entry) => !entry.destructive)} />
       </div>
-      <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions text">
+      <div role="alert" aria-live="assertive" aria-atomic="false">
         <SpokenWords entries={current.filter((entry) => entry.destructive)} />
       </div>
     </div>
