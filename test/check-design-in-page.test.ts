@@ -238,7 +238,8 @@ describe("findDesignIssues: cramped-heading", () => {
   });
 });
 
-describe("findDesignIssues: nested-frame", () => {  it("finds a frame hugging a frame, drawn by a border, an outline or a ring, once each", () => {
+describe("findDesignIssues: nested-frame", () => {
+  it("finds a frame hugging a frame, drawn by a border, an outline or a ring, once each", () => {
     render(`
       <div id="outer" style="border:1px solid #888;padding:4px"><div id="inner" class="a b c d" style="border:1px solid #888;height:40px">Twice framed</div></div>
       <div id="a" style="border:1px solid #888;padding:2px;margin-top:20px"><div id="b" style="border:1px solid #888;padding:2px"><div id="c" style="border:1px solid #888;height:40px"></div></div></div>
@@ -279,6 +280,14 @@ describe("findDesignIssues: nested-frame", () => {  it("finds a frame hugging a 
       "div#near in div#shell",
       "div#far in div#shell",
     ]);
+  });
+
+  it("does not mistake a framed surface positioned outside its ancestor for a frame inside it", () => {
+    render(`
+      <div style="position:relative;width:200px;height:120px;border:1px solid #888;background:#ddd">
+        <div style="position:absolute;top:150px;width:120px;height:60px;border:1px solid #888;background:#fff">Outside</div>
+      </div>`);
+    expect(of("nested-frame")).toEqual([]);
   });
 
   it("finds a filled box in a rounded corner whose radius isn't the corner's less the inset", () => {
