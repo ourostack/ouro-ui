@@ -14,8 +14,9 @@ import type { PageIssue } from "./size-check.ts";
 //                      size (a quarter, for its own item's picture, as a card's title under the card's picture): no room
 //                      to breathe between a title and the art before it. What follows a heading belongs to it, so the
 //                      space below isn't judged
-//   nested-frame       a frame drawn inside a frame: a framed box hugging another within a few pixels on every side (a
-//                      double border), or a rounded, filled or framed box whose child, with an edge of its own (a fill,
+//   nested-frame       a frame drawn inside a frame: a framed box hugging another within a few pixels on every side, or
+//                      a lighter framed surface inside it, or a rounded, filled or framed box whose child has an edge
+//                      of its own (a fill,
 //                      a frame, or a picture that runs to its corner, not an icon or a clear logo), sits in its corner
 //                      (under half the radius in) with a radius that isn't the outer radius less the inset, so the
 //                      corners don't nest
@@ -413,8 +414,8 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     }
   }
 
-  // nested-frame: a frame hugging a frame, or corners that don't nest. An Ouro surface layer is its parent's own paint
-  // (where the engine has no corner-shape it draws the parent's fill and border), never a frame inside it.
+  // nested-frame: a frame hugging a frame, a lighter framed surface inside one, or corners that don't nest. An Ouro
+  // surface layer is its parent's own paint, never a frame inside it.
   const isLayer = (el: Element) => el.hasAttribute("data-ouro-surface") || el.hasAttribute("data-ouro-avatar-surface");
   const framed = visible.filter((el) => frameOf(el) !== null);
   const reported = new Set<Element>();
@@ -422,12 +423,49 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     if (optedOut(outer, "nested-frame")) continue;
     const o = outer.getBoundingClientRect();
     for (const inner of framed) {
-      if (inner === outer || !outer.contains(inner) || reported.has(inner) || isLayer(inner)) continue;
+      if (inner === outer || !outer.contains(inner) || reported.has(inner) || isLayer(inner) || optedOut(inner, "nested-frame")) continue;
       const i = inner.getBoundingClientRect();
+      const drawn = drawnRect(inner)!;
+      if (i.width < 48 || i.height < 32 || drawn.width < 2 || drawn.height < 2) continue;
       const insets = [i.top - o.top, o.right - i.right, o.bottom - i.bottom, i.left - o.left];
-      if (i.width >= 48 && i.height >= 32 && insets.every((d) => d >= -1 && d <= hugPx)) {
+      const hugs = insets.every((d) => d >= -1 && d <= hugPx);
+      const inside = Math.min(drawn.right, o.right) - Math.max(drawn.left, o.left) > 1
+        && Math.min(drawn.bottom, o.bottom) - Math.max(drawn.top, o.top) > 1;
+      let lighter = false;
+      if (!hugs && inside && !inner.matches("button, input, select, textarea, [role=button], [role=combobox]") && rgba(getComputedStyle(inner).backgroundColor)[3] > 0) {
+        const [surface, behind] = [surfaceOf(inner), surfaceOf(inner.parentElement)];
+        if (surface && behind && colourDistance(surface, behind) > 12 && hsl(surface).l > hsl(behind).l) {
+          const editors = [...inner.querySelectorAll('textarea, select, input:not([type="hidden"]), [role="textbox"], [contenteditable="true"]')].filter((el) => visibleSet.has(el));
+          const noHeading = !inner.querySelector("h1, h2, h3, h4, h5, h6, [role=heading]");
+          const fillsField = editors.some((el) => {
+            const r = el.getBoundingClientRect();
+            return r.width >= i.width / 2 && r.height >= i.height * 0.35;
+          });
+          const flexItems = (parent: Element): Element[] => [...parent.children].flatMap((el) =>
+            getComputedStyle(el).display === "contents" ? flexItems(el) : visibleSet.has(el) ? [el] : []);
+          const style = getComputedStyle(inner);
+          const items = noHeading && editors.some((el) => el.matches('[role="combobox"]')) && /flex/.test(style.display) && style.flexWrap !== "nowrap"
+            ? flexItems(inner) : [];
+          const holdsEditor = (el: Element) => editors.some((editor) => el === editor || el.contains(editor));
+          const isChip = (el: Element) => !holdsEditor(el)
+            && (rgba(getComputedStyle(el).backgroundColor)[3] > 0 || frameOf(el) !== null || el.querySelector('button, [role="button"]') !== null);
+          const chipLayout = items.some(isChip)
+            && items.every((el) => holdsEditor(el) || isChip(el) || el.matches('button, [role="button"]')
+              || (!el.textContent?.trim() && el.querySelector("svg") !== null));
+          const boxes = chipLayout ? items.map((el) => el.getBoundingClientRect()) : [];
+          const fillsChips = boxes.length > 0
+            && Math.max(...boxes.map((r) => r.right)) - Math.min(...boxes.map((r) => r.left)) >= i.width / 2
+            && Math.max(...boxes.map((r) => r.bottom)) - Math.min(...boxes.map((r) => r.top)) >= i.height * 0.35;
+          const fieldFrame = noHeading && (fillsField || fillsChips);
+          lighter = !fieldFrame && sideNames.some((side) => visibleEdge(inner, side, surface));
+        }
+      }
+      if (hugs || lighter) {
         reported.add(inner);
-        issues.push({ ref: ref(inner), rule: "nested-frame", element: `${describe(inner)} in ${describe(outer)}`, detail: `a frame drawn ${Math.round(Math.max(...insets))}px inside another: a double border` });
+        const detail = hugs
+          ? `a frame drawn ${Math.round(Math.max(...insets))}px inside another: a double border`
+          : "a lighter framed surface inside another frame: remove its border and use a step between theme surface tokens";
+        issues.push({ ref: ref(inner), rule: "nested-frame", element: `${describe(inner)} in ${describe(outer)}`, detail });
       }
     }
   }

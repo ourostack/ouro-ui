@@ -1,0 +1,1 @@
+- Alert: [uses a surface instead of a border in every tone, and keeps an edge in forced colours](registry/ouro/components/ouro/alert/alert.test.tsx "verify:testExists(registry/ouro/components/ouro/alert/alert.test.tsx::Alert > uses a surface instead of a border, and keeps an edge in forced colours)").
