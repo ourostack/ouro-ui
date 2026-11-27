@@ -545,7 +545,7 @@ test("browser-deps.sh installs the cached system packages with dpkg, and otherwi
   const broken = run(cached, { DPKG: "1" });
   assert.equal(broken.status, 0, broken.stderr);
   assert.match(broken.stdout, /did not install/);
-  assert.match(broken.calls, /^dpkg -i .*\ndpkg --configure -a\napt-get -f install -y\n(?:.*\n)*pnpm exec playwright install-deps chromium webkit$/m);
+  assert.match(broken.calls, /^dpkg -i .*\ndpkg --configure -a\napt-get -f install -y --no-remove\n(?:.*\n)*pnpm exec playwright install-deps chromium webkit$/m);
   assert.deepEqual(readdirSync(cached).filter((name) => name.endsWith(".deb")), []);
   // A miss: apt keeps the .deb files it downloads in the folder, for the cache to save.
   const empty = join(scratch, "empty");
