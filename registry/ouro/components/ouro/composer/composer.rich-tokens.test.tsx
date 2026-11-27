@@ -63,6 +63,21 @@ function Controlled({ onSend, onPick, defaultValue = "" }: { onSend?: (text: str
 }
 
 describe("Composer rich mentions and emoji", () => {
+  it("draws an imported mention as an inset pill without changing its Markdown", async () => {
+    const markdown = "Ask @[Avery Kim](avery) about Friday.";
+    const onSend = vi.fn();
+    const { editor } = await render(<Composer label="Message" format="rich" defaultValue={markdown} onSend={onSend} />);
+    const mention = editor.querySelector<HTMLElement>("[data-ouro-mention]")!;
+    const style = getComputedStyle(mention);
+    expect(mention.textContent).toBe("Avery Kim");
+    expect(style.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    expect(parseFloat(style.paddingInlineStart)).toBeGreaterThan(0);
+    expect(parseFloat(style.borderTopLeftRadius)).toBeGreaterThan(0);
+    editor.focus();
+    await userEvent.keyboard("{Enter}");
+    expect(onSend).toHaveBeenCalledWith(markdown, expect.anything());
+  });
+
   it("imports a link followed by a colon as a link rather than part of an emoji token", async () => {
     const markdown = "Read [the guide](https://example.test/guide): then reply.";
     const onSend = vi.fn();
