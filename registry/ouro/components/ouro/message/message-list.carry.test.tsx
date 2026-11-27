@@ -1,9 +1,11 @@
 import { createRef, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList, type MessageListActions } from "@/registry/ouro/components/ouro/message/message-list";
+import { holdFrames } from "@/registry/ouro/lib/ouro/testing/frames";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 
 const roots: Root[] = [];
@@ -30,6 +32,20 @@ function Chat({ items, actionsRef, windowing, springy }: { items: Item[]; action
       {items.map((item) => (
         <Message key={item.id} id={`m${item.id}`} role={item.id % 2 ? "assistant" : "user"} name={item.id % 2 ? "Ouro" : "Ana"}>
           {item.tall === undefined ? item.text : <div style={{ height: item.tall }} />}
+        </Message>
+      ))}
+    </MessageList>
+  );
+}
+
+const span = (from: number, count: number) => Array.from({ length: count }, (_, at) => from + at);
+
+function ShortRows({ ids }: { ids: number[] }) {
+  return (
+    <MessageList label="Conversation" style={{ height: 400, width: 360 }}>
+      {ids.map((id) => (
+        <Message key={String(id)} id={`m${id}`} role={id % 2 ? "assistant" : "user"} name={id % 2 ? "Ouro" : "Ana"} style={{ height: 8 + ((((id * 37) % 9) + 9) % 9), boxSizing: "border-box" }}>
+          {`Message ${id}`}
         </Message>
       ))}
     </MessageList>
@@ -295,5 +311,125 @@ describe("MessageList carry and reach", () => {
     await expect.poll(() => document.activeElement?.id).toBe("m989");
     await userEvent.keyboard("{ArrowDown}");
     await expect.poll(() => document.activeElement?.id).toBe("m990");
+  });
+
+  it("reveals a child by the key it was given, escaped as React writes it, and starts at an anchor named by one; an id nothing has says no", async () => {
+    const actions = createRef<MessageListActions>();
+    const rows = (anchor?: string) => (
+      <MessageList label="Conversation" style={{ height: 400, width: 360 }} actionsRef={actions} initialAnchor={anchor}>
+        {[<p key="older=1">Older messages load above.</p>, ...conversation(300).map((item) => <Message key={`m:${item.id}`} id={`row-${item.id}`} role="user" name="Ana">{item.text}</Message>)]}
+      </MessageList>
+    );
+    const { scroller } = await render(rows("m:150"));
+    expect(document.getElementById("row-150")).not.toBeNull();
+    let found = Promise.resolve(false);
+    await act(async () => void (found = actions.current!.reveal("m:250", { focus: true })));
+    expect(await found).toBe(true);
+    await settle(scroller);
+    expect(document.activeElement?.id).toBe("row-250");
+    await act(async () => void (found = actions.current!.reveal("row-251", { block: "start" })));
+    expect(await found).toBe(true);
+    await act(async () => void (found = actions.current!.reveal("older=1", { block: "start" })));
+    expect(await found).toBe(true);
+    await act(async () => void (found = actions.current!.reveal("nothing-here")));
+    expect(await found).toBe(false);
+  });
+
+  it("draws a conversation that comes with another heightCache from that map, not from the heights measured for the one before", async () => {
+    const list = (name: string, cache: Map<string, number>) => (
+      <MessageList conversation={name} label="Conversation" style={{ height: 400, width: 360 }} heightCache={cache}>
+        {Array.from({ length: 60 }, (_, id) => (
+          <Message key={`${name}${id}`} id={`m${name}${id}`} role="user" name="Ana" style={{ height: name === "b" ? 100 : 40, boxSizing: "border-box" }}>
+            {`Message ${id}`}
+          </Message>
+        ))}
+      </MessageList>
+    );
+    const cacheA = new Map<string, number>();
+    const cacheB = new Map<string, number>();
+    const { scroller, rerender } = await render(list("a", cacheA));
+    await rerender(list("b", cacheB));
+    expect(document.getElementById("mb59")).not.toBeNull();
+    expect([...cacheA.keys()].filter((key) => key.startsWith("b"))).toEqual([]);
+    expect(scroller.scrollHeight).toBeGreaterThan(400);
+  });
+
+  it("pays what it carries when the wheel pushes at the top again, as no scroll event says the reader got there", async () => {
+    let from = 100;
+    const chat = () => <Chat items={conversation(300 - from, from)} windowing={false} />;
+    const { scroller, rerender } = await render(chat());
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    let now = 1_000_000;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    await scrollTo(scroller, 300);
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+    from -= 20;
+    await rerender(chat());
+    const held = content.style.translate;
+    expect(held).not.toBe("");
+    // The reader is at the top by the time the next wheel event comes, with no scroll event between.
+    Object.defineProperty(scroller, "scrollTop", { configurable: true, get: () => 0, set: () => {} });
+    onTestFinished(() => void delete (scroller as { scrollTop?: number }).scrollTop);
+    now += 10;
+    await act(async () => void scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 })));
+    await expect.poll(() => content.style.translate).not.toBe(held);
+  });
+
+  it("leaves focus where it is when a page key has no further message to go to", async () => {
+    const { scroller } = await render(<Chat items={conversation(3)} windowing={false} />);
+    await act(async () => document.getElementById("m2")!.focus());
+    await userEvent.keyboard("{PageDown}");
+    expect(document.activeElement?.id).toBe("m2");
+    expect(scroller.contains(document.activeElement)).toBe(true);
+  });
+
+  it("opens in a list that measures no height, drawing what it can", async () => {
+    const { host } = await render(
+      <MessageList label="Conversation" style={{ height: 0, width: 360 }}>
+        {conversation(40).map((item) => (
+          <Message key={item.id} id={`m${item.id}`} role="user" name="Ana">
+            {item.text}
+          </Message>
+        ))}
+      </MessageList>,
+    );
+    expect(host.querySelector('[data-ouro="message"]')).not.toBeNull();
+  });
+
+  it("reveals a message once it goes in, and gives up on one deleted before it shows", async () => {
+    const actions = createRef<MessageListActions>();
+    let items = conversation(40, 100);
+    const { scroller } = await render(<Chat items={items} actionsRef={actions} windowing={false} />);
+    let gone = Promise.resolve(true);
+    await act(async () => {
+      gone = actions.current!.reveal("m110");
+      roots.at(-1)!.render(<Chat items={items.filter((item) => item.id !== 110)} actionsRef={actions} windowing={false} />);
+    });
+    expect(await gone).toBe(false);
+    await settle(scroller);
+    items = [...conversation(100), ...items];
+    const frames = holdFrames();
+    await act(async () => roots.at(-1)!.render(<Chat items={items} actionsRef={actions} windowing={false} />));
+    expect(document.getElementById("m0")).toBeNull();
+    await act(async () => void actions.current!.reveal("m0", { focus: true }));
+    expect(document.getElementById("m0")).toBeNull();
+    frames.step();
+    frames.step();
+    frames.release();
+    await expect.poll(() => document.activeElement?.id).toBe("m0");
+    await settle(scroller);
+  });
+
+  it("does not spend a second chunk on rows the first has not drawn, when a frame runs before React commits it", async () => {
+    const { root, scroller } = await render(<ShortRows ids={span(0, 200)} />);
+    await scrollTo(scroller, 0);
+    const older = () => ids(scroller).filter((id) => id < 0);
+    const frames = holdFrames();
+    flushSync(() => root.render(<ShortRows ids={span(-200, 400)} />));
+    frames.step();
+    frames.step();
+    await expect.poll(() => older().length).toBeGreaterThan(0);
+    frames.release();
+    await settle(scroller);
   });
 });
