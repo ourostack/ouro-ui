@@ -1401,6 +1401,8 @@ export async function main(argv, { root: defaultRoot = process.cwd(), hooks = {}
         }
       }
       failures.push(...readMarkdown(title.replace(/^#+\s*/, ""), { file: "pull request title", verbs }).findings);
+      // The Copilot app's self-reported scores sit between these markers; they are not the pull request's claims.
+      body = body.replace(/<!-- copilot-assessment:v1 -->[\s\S]*?<!-- \/copilot-assessment -->\n?/, "");
       const result = readMarkdown(body, { file: "pull request body", verbs });
       claims.push(...result.claims);
       failures.push(...result.findings);

@@ -140,6 +140,10 @@ test("the lint command takes a pull request's title and body as options, and rea
   const title = lint(["--title", "Every test passes now.", "--body-file", "body.md"]);
   assert.equal(title.status, 1);
   assert.match(title.stderr, /^pull request title:1: "Every test passes now\." makes a universal claim/m);
+  writeFileSync(join(root, "assessed.md"), "<!-- copilot-assessment:v1 -->\n| Change confidence | 8/10 | Every test passes. |\n<!-- /copilot-assessment -->\n\nMoves focus back to the trigger.\n");
+  assert.equal(lint(["--title", "Fix the dialog's focus", "--body-file", "assessed.md"]).status, 0);
+  writeFileSync(join(root, "outside.md"), "<!-- copilot-assessment:v1 -->\nx\n<!-- /copilot-assessment -->\n\nEvery test passes now.\n");
+  assert.equal(lint(["--title", "Fix the dialog's focus", "--body-file", "outside.md"]).status, 1);
   const missing = lint(["--title", "Fix the dialog's focus", "--body-file", "gone.md"]);
   assert.equal(missing.status, 2);
   assert.match(missing.stderr, /--body-file: .*gone\.md/);
