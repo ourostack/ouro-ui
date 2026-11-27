@@ -366,22 +366,31 @@ test("squircle-paint finds a fallback surface's own square outline and hard shad
     .broken { clip-path: none !important; }
     .outline { outline: 6px solid #cc6655; }
     .shadow { box-shadow: 0 0 0 6px #cc6655; }
+    .control { position: absolute; width: 8px; height: 8px; background: #149b55; }
   `);
   const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-check-native-shape: squircle)");
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ viewport: { width: 390, height: 300 }, deviceScaleFactor: 2 });
-  const tab = await context.newPage();
-  await bindCapture(tab);
-  try {
-    for (const effect of ["outline", "shadow"]) {
-      for (const broken of [true, false]) {
-        await tab.setContent(`<style>${css}</style><div id="surface" class="surface ${effect}${broken ? " broken" : ""}"></div>`);
-        const found = await tab.evaluate(findSquirclePaint);
-        assert.equal(found.length, broken ? 1 : 0, `${effect}: ${broken ? "unclipped" : "clipped"}`);
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const context = await browser.newContext({ viewport: { width: 390, height: 300 }, deviceScaleFactor: 2 });
+    const tab = await context.newPage();
+    await bindCapture(tab);
+    try {
+      for (const effect of ["outline", "shadow"]) {
+        for (const broken of [true, false]) {
+          await tab.setContent(`<style>${css}</style><div id="surface" class="surface ${effect}${broken ? " broken" : ""}"></div>`);
+          const found = await tab.evaluate(findSquirclePaint);
+          assert.equal(found.length, broken ? 1 : 0, `${engine.name()} ${effect}: ${broken ? "unclipped" : "clipped"}`);
+        }
+        for (const leaking of [false, true]) {
+          const position = leaking ? "left:73px;top:54px" : "left:100px;top:80px";
+          await tab.setContent(`<style>${css}</style><div id="surface" class="surface ${effect}"></div><div class="control" style="${position}"></div>`);
+          const found = await tab.evaluate(findSquirclePaint);
+          assert.equal(found.length, leaking ? 1 : 0, `${engine.name()} ${effect}: ${leaking ? "protruding" : "inset"} sibling`);
+        }
       }
+    } finally {
+      await browser.close();
     }
-  } finally {
-    await browser.close();
   }
 });
 
