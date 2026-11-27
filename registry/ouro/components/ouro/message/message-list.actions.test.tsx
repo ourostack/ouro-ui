@@ -139,7 +139,7 @@ describe("MessageList actions", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     await render(
       <MessageList label="Launch channel" style={{ height: 360 }}>
-        <Message id="solo" variant="chat" role="assistant" menu={[{ label: "Copy link", onClick: () => {} }]}>
+        <Message id="solo" variant="chat" role="user" name="" menu={[{ label: "Copy link", onClick: () => {} }]}>
           Hello
         </Message>
       </MessageList>,

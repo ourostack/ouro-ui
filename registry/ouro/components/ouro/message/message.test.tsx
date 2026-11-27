@@ -868,6 +868,15 @@ describe("Message quote", () => {
     expect(onActivate).not.toHaveBeenCalled();
   });
 
+  it("reads a quote's context on the primary bubble's own colours", async () => {
+    const { message } = await render(
+      <Message role="user" name="Mara Quill" quote={{ author: "Ana Lind", excerpt: "Lunch?", context: "Replied in thread" }}>
+        Hi
+      </Message>,
+    );
+    expect(message.querySelector<HTMLElement>("[data-ouro-message-quote-group]")!.style.cssText).not.toBe("");
+  });
+
   it("shows no quote without one", async () => {
     const { message } = await render(
       <Message variant="chat" role="assistant" name="Mara Quill">
