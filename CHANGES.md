@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fixed: [Command keeps the highlight at its held row position when the highlighted command leaves streamed-in results, instead of jumping to the first command](registry/ouro/components/ouro/command/command.test.tsx "verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command results that stream in > keeps the highlight in its place when the highlighted command leaves the results, not on the first command (#3838))").
