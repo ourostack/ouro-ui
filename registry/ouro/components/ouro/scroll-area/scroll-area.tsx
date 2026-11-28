@@ -237,7 +237,11 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
         aria-label={label}
         // While focused, isolate keeps the content's own stacking (a sticky header's z-index) inside the viewport, under the
         // focus ring. Only then: at rest the content stacks with the page, as it always has.
-        className={cn("peer min-h-0 bg-[color:var(--ouro-scroller-surface,var(--muted))] focus-visible:isolate flex-1 rounded-[inherit] outline-none", viewports[orientation], scrollbar, contain && "overscroll-contain")}
+        className={cn(
+          "peer min-h-0 bg-[color:var(--ouro-scroller-surface,var(--muted))] focus-visible:isolate flex-1 rounded-[inherit] outline-none",
+          "[&_[data-ouro=button][data-tone=primary][data-variant=plain]]:text-[color-mix(in_oklab,var(--primary)_80%,var(--foreground))]",
+          viewports[orientation], scrollbar, contain && "overscroll-contain",
+        )}
       >
         <div className={orientation === "vertical" ? "min-w-0" : "min-w-fit"}>{children}</div>
       </div>

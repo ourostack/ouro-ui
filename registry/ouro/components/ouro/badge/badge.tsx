@@ -174,7 +174,8 @@ const countOverlayClass = "absolute end-(--ouro-count-x,-6px) top-(--ouro-count-
 // below, so Button (which shares the same two formulas byte for byte) and every tone here
 // collapse onto one pair of generated rules instead of one pair per tone.
 const softToneClass =
-  "[--ouro-bd:transparent] [--ouro-bg:color-mix(in_oklab,var(--ouro-tone)_10%,transparent)] text-[color-mix(in_oklab,var(--ouro-tone)_80%,var(--foreground))] contrast-more:[--ouro-bd:currentColor]";
+  "[--ouro-bd:transparent] [--ouro-bg:color-mix(in_oklab,var(--ouro-tone)_10%,transparent)] text-[color-mix(in_oklab,var(--ouro-tone)_80%,var(--foreground))] " +
+  "[:is([data-scroll-viewport],[data-ouro-message-list-scroller])_&]:text-[color-mix(in_oklab,var(--ouro-tone)_70%,var(--foreground))] contrast-more:[--ouro-bd:currentColor]";
 const outlineToneClass = "[--ouro-bd:color-mix(in_oklab,var(--ouro-tone)_45%,transparent)] [--ouro-bg:transparent]";
 const looks = {
   solid: {

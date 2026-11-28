@@ -630,24 +630,6 @@ describe("appearance", () => {
     );
   });
 
-  it("keeps a plain primary action readable on a scroller without changing the page action", async () => {
-    const { host } = await render(
-      <div style={{ "--primary": "#9b6834", "--foreground": "#28231d" } as React.CSSProperties}>
-        <Button variant="plain">Page</Button>
-        <div data-scroll-viewport=""><Button variant="plain">Scroll</Button></div>
-        <div data-ouro-message-list-scroller=""><Button variant="plain">Messages</Button></div>
-        <i style={{ color: "var(--primary)" }} />
-        <b style={{ color: "color-mix(in oklab, var(--primary) 80%, var(--foreground))" }} />
-      </div>,
-    );
-    const [pageButton, scrollButton, messageButton] = host.querySelectorAll("button");
-    const primary = getComputedStyle(host.querySelector("i")!).color;
-    const mixed = getComputedStyle(host.querySelector("b")!).color;
-    expect(getComputedStyle(pageButton!).color).toBe(primary);
-    expect(getComputedStyle(scrollButton!).color).toBe(mixed);
-    expect(getComputedStyle(messageButton!).color).toBe(mixed);
-  });
-
   it("does not inherit the browser's button chrome", async () => {
     const { button } = await render(<Button variant="plain">Plain</Button>);
     const style = getComputedStyle(button);

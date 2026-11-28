@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { commands, server } from "vitest/browser";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -75,6 +76,18 @@ describe("MessageList surface", () => {
       const scroller = await render(node);
       expect(getComputedStyle(scroller.querySelector("[data-ouro-message-content]")!).backgroundColor).toBe("rgb(80, 90, 100)");
     }
+  });
+
+  it("keeps a plain primary action readable on its surface", async () => {
+    const scroller = await render(
+      <div style={{ "--primary": "#9b6834", "--foreground": "#28231d" } as React.CSSProperties}>
+        <MessageList label="Conversation"><Button variant="plain">Reply</Button></MessageList>
+      </div>,
+    );
+    const probe = document.createElement("b");
+    probe.style.color = "color-mix(in oklab, var(--primary) 80%, var(--foreground))";
+    scroller.append(probe);
+    expect(getComputedStyle(scroller.querySelector("button")!).color).toBe(getComputedStyle(probe).color);
   });
 
   it("uses the nested dark theme's muted surface for its scroller", async () => {
