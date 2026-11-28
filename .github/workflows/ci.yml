@@ -972,9 +972,7 @@ jobs:
       - *pnpm-install-retry
       # The newest release tag, which the release-notes test measures new changes against, as a release does.
       - name: Fetch the newest release tag
-        run: |
-          last=$(git ls-remote --tags --refs origin 'refs/tags/v*' | sed 's#.*refs/tags/##' | sort -V | tail -1)
-          git fetch --quiet --no-tags --depth=1 origin "refs/tags/$last:refs/tags/$last"
+        run: bash scripts/fetch-newest-release.sh
       # Never fails: it takes the nearest report on main within 20 commits of the base, and with none the sizes are judged by their ceilings, and the step says why.
       - name: The base commit's pattern sizes
         if: env.SIZE_GATE == 'pull'

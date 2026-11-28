@@ -76,7 +76,7 @@ Ouro UI has a kit for the web (this repository) and one for Apple ([ourostack/ou
 | Agents (Ouro AX) | [the kit and X-ray](#ouro-ax) for command lines, HTTP APIs and MCP servers | typed outcomes, an X-ray for an app's App Intents, and Ouro Reins to drive its screens[^apple-box] |
 | Both, from one declaration | a command line, MCP and WebMCP tools and a web control | an App Intent, a SwiftUI button and a Reins action[^actions] |
 
-[Web and Apple parity](https://ui.ouroboros.bot/apple/#parity) is a table built from ouro-ui-core's claim files, and it marks the gaps. The Apple kit is at [1.10](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.10.1).[^apple-1] The one action model is in [ouro-ui-core](https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md): declare an action once, and its generator writes the surfaces above, with a check that fails your CI when a generated file drifts from the declaration.[^actions] Windows and Android each have a [first kit](docs/platforms/README.md).[^windows-first][^android-first]
+[Web and Apple parity](https://ui.ouroboros.bot/apple/#parity) is a table built from ouro-ui-core's claim files, and it marks the gaps. The Apple kit is at [1.12](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.12.0).[^apple-1] The one action model is in [ouro-ui-core](https://github.com/ourostack/ouro-ui-core/blob/main/docs/guides/actions.md): declare an action once, and its generator writes the surfaces above, with a check that fails your CI when a generated file drifts from the declaration.[^actions] Windows and Android each have a [first kit](docs/platforms/README.md).[^windows-first][^android-first]
 
 ```sh
 # In an app set up with shadcn init (see Quick start):
@@ -556,6 +556,8 @@ Components:
 `toaster`,
 `toggle`,
 `toggle-group`,
+`tool-call`,
+`tool-call-group`,
 `toolbar`,
 `tooltip`,
 `typing-indicator`,
@@ -656,6 +658,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-spring`,
 `lib-squircle-capsules`,
 `lib-squircle-corners`,
+`lib-squircle-curve`,
 `lib-stretched-link`,
 `lib-theme-preset`,
 `lib-theme-preset-script`,
@@ -681,6 +684,7 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-use-platform`,
 `lib-use-prefetch-intent`,
 `lib-use-reduced-motion`,
+`lib-use-resize`,
 `lib-use-sheet-presentation`,
 `lib-use-timer`,
 `lib-use-until-found`,
@@ -925,6 +929,8 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **ReadReceipt** — Who has seen a message, as small faces under it: the first three readers, overlapping, then "+N" for the rest. [Docs](docs/ReadReceipt.md)
 - **ThreadRail** — A thread beside its conversation: a labelled landmark with a header and a close button. [Docs](docs/ThreadRail.md)
 - **ThreadSummary** — The line under a post that leads to its thread: who replied, "N replies" (a button that opens the thread) and when the last reply came. [Docs](docs/ThreadSummary.md)
+- **ToolCall** — One call an agent made to a tool, as a row in its conversation: a status icon, what it did, a summary of the arguments and how long it took. [Docs](docs/ToolCall.md)
+- **ToolCallGroup** — Several tool calls an agent made in a row, under one line: "Ran 3 tools", with how many failed. [Docs](docs/ToolCallGroup.md)
 - **TypingIndicator** — The line under a chat that says who is writing: their faces, pulsing dots and "Ned Land is writing…". [Docs](docs/TypingIndicator.md)
 - **usePerson** — One person from a cache made with `createPeopleCache`, for a component that shows them, such as an avatar or a message's author: their entry, read while the component shows it and again whenever it runs out. [Docs](docs/usePerson.md)
 - **webStorage** — Storage for `createPeopleCache` in `localStorage`, or another `Storage`, under one key. [Docs](docs/webStorage.md)
@@ -1035,7 +1041,7 @@ MIT
 [^xray]: test:registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing; https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#whats-in-the-box verify:testExists(registry/ouro/ax/xray.test.mts::the kit's example tool conforms, and the X-ray acts on nothing) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/d096f5f2ac6ada9fcb5fafcd531f287401880d2e/README.md#whats-in-the-box)
 [^android-first]: https://github.com/ourostack/ouro-ui-android/releases/latest; scripts/parity-data/versions.json verify:urlOk(https://github.com/ourostack/ouro-ui-android/releases/latest) verify:fileLine(scripts/parity-data/versions.json, /"android": \{/)
 [^windows-first]: https://github.com/ourostack/ouro-ui-windows/releases/latest; scripts/parity-data/versions.json verify:urlOk(https://github.com/ourostack/ouro-ui-windows/releases/latest) verify:fileLine(scripts/parity-data/versions.json, /"windows": \{/)
-[^apple-1]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.10.1 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.10.1) verify:equals(site/src/apple/kit.json#release)=1.10.1
+[^apple-1]: https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.12.0 verify:urlOk(https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.12.0) verify:equals(site/src/apple/kit.json#release)=1.12.0
 [^ouro-current]: test:scripts/current/current.test.mjs::one pull request per repository: opened once, left alone when nothing changed, and updated in place verify:testExists(scripts/current/current.test.mjs::one pull request per repository: opened once, left alone when nothing changed, and updated in place)
 [^composed]: docs/guides/composed-ui.md; test:registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > draws a tree built in code, which core's validator accepts, with HX components; https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/test/composed.test.mts#L34-L66 verify:testExists(registry/ouro/components/ouro/composed-surface/composed-surface.test.tsx::ComposedSurface > draws a tree built in code, which core's validator accepts, with HX components) verify:urlOk(https://github.com/ourostack/ouro-ui-core/blob/a8d6c3076a342bfcede72d874de9354dcaa4e2fa/test/composed.test.mts#L34-L66) verify:fileLine(docs/guides/composed-ui.md, /Every kit draws the tree natively/)
 [^composed-update]: test:registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > applies an update in structuredContent.ouro to the tree it shows, keeping what the person typed where the update left it; https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/README.md; https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/README.md; https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md verify:testExists(registry/ouro/components/ouro/mcp-app/ouro-mcp-app.test.tsx::OuroMcpApp > applies an update in structuredContent.ouro to the tree it shows, keeping what the person typed where the update left it) verify:urlOk(https://github.com/ourostack/ouro-ui-windows/blob/2138b3d29b89e335857da610ae05eab99511faa1/README.md) verify:urlOk(https://github.com/ourostack/ouro-ui-android/blob/8ba5196a9e9062e495dde8c23f136913094cbdf4/README.md) verify:urlOk(https://github.com/ourostack/ouro-ui-apple/blob/dfdcc158b659e6448beec6a290fa161911e04d93/README.md)

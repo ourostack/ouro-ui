@@ -11,6 +11,7 @@
       {"part": "action", "role": "button", "portal": false},
       {"part": "menu", "role": "button", "portal": false},
       {"part": "quote", "role": "button", "portal": false},
+      {"part": "quote-link", "role": "link", "portal": false},
       {"part": "retry", "role": "button", "portal": false},
       {"part": "delete", "role": "button", "portal": false}
     ],
@@ -26,6 +27,15 @@
   "motion": {
     "message": {
       "states": {
+        "data-starting-style": {
+          "kind": "motion",
+          "parts": {
+            "bubble": {"properties": ["opacity", "transform"], "reduced": ["opacity"]}
+          },
+          "tests": [
+            "registry/ouro/components/ouro/message/message-list.arrival.test.tsx::MessageList arrival > grows a new message's bubble in from its tail's corner on the bounce tokens, and with reduced motion only fades it"
+          ]
+        },
         "data-ending-style": {
           "kind": "motion",
           "parts": {
