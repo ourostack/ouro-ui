@@ -3413,11 +3413,11 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
     `#!/usr/bin/env bash\nprintf '%s\\n' "$*" >> "${calls}"\ncase "$*" in\n  *"/rules/branches/main "*) printf '%s\\n' ci ;;\n  "api repos/o/r/actions/runs/5 --jq [.run_attempt, .path] | @tsv") printf '1\\t.github/workflows/ci.yml\\n' ;;\n  "api repos/o/r/actions/runs/5 --jq .run_attempt") cat "${attempts}" ;;\n  *"/actions/runs/5/jobs"*) printf '%s\\n' '{"id":1,"name":"ci","conclusion":"success","url":"u1","failedSteps":[]}' '{"id":3,"name":"install (shadcn@latest, nova)","conclusion":"failure","url":"https://github.com/o/r/actions/runs/5/job/3","failedSteps":["Run SHADCN_VERSION=latest scripts/install-test.sh shadcn \\"$RUNNER_TEMP/latest\\" abc"]}' ;;\n  "run view --repo o/r --job 3 --log") cat "${join(bin, "calendar.log")}" ;;\n  "issue view "*) echo "$STATE" ;;\n  "issue comment "*) ;;\n  "run rerun 5 --repo o/r --failed") [ -z "$REFUSE" ] || exit 1; echo 2 > "${attempts}" ;;\n  *) exit 99 ;;\nesac\n`,
   );
   chmodSync(join(bin, "gh"), 0o755);
-  const retry = (state, refuse = "") => {
+  const retry = (state, refuse = "", flags = []) => {
     writeFileSync(calls, "");
     writeFileSync(summary, "");
     writeFileSync(attempts, "1");
-    return spawnSync(process.execPath, [join(root, "scripts/quarantine.mjs"), "retry", "--also", "install (shadcn@latest, nova)", "5"], {
+    return spawnSync(process.execPath, [join(root, "scripts/quarantine.mjs"), "retry", ...flags, "--also", "install (shadcn@latest, nova)", "5"], {
       cwd: root,
       encoding: "utf8",
       env: sandboxEnv({ GITHUB_REPOSITORY: "o/r", GITHUB_SERVER_URL: "https://github.com", GITHUB_RUN_ID: "9", GITHUB_STEP_SUMMARY: summary, POLL_SECONDS: "0", STATE: state, REFUSE: refuse, OURO_QUARANTINE_FILE: list }, [bin]),
@@ -3447,6 +3447,14 @@ test("quarantine.mjs retry records each retry in the step summary, the log and t
   assert.ok(closed.stdout.includes(staleWarning(calendarEntry)));
   assert.equal(readFileSync(summary, "utf8"), "");
   assert.ok(!readFileSync(calls, "utf8").includes("run rerun"));
+  // quarantine-retry.yml passes --notice: not retrying is a right answer, so the step exits 0 and the
+  // notice links the run whose failure it is; the release's call, without it, still fails.
+  const noticed = retry("CLOSED", "", ["--notice"]);
+  assert.equal(noticed.status, 0, noticed.stdout + noticed.stderr);
+  assert.match(noticed.stdout, /^::notice::Not retried, so the failure stays with the run itself \(https:\/\/github\.com\/o\/r\/actions\/runs\/5\): .*its issue is not open/m);
+  assert.ok(!readFileSync(calls, "utf8").includes("run rerun"));
+  assert.match(readFileSync(join(root, ".github/workflows/quarantine-retry.yml"), "utf8"), /quarantine\.mjs retry --notice "\$RUN_ID"/);
+  assert.doesNotMatch(readFileSync(join(root, ".github/workflows/release.yml"), "utf8"), /quarantine\.mjs retry --notice/);
 });
 
 test("quarantine.mjs judge forgives a run's own failing job from inside it, with no retry and no issue comment, the way ci.yml's merge-queue-shaped new step calls it before CI reports", () => {
