@@ -7,6 +7,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
 import { Composer, type ComposerEditor, type ComposerMove, type ComposerProps, type ComposerQuote } from "@/registry/ouro/components/ouro/composer/composer";
 import { clearComposerDrafts, composerDrafts, composerShortcuts, formatEdit, isApple, pressed, preloadRichEditor } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
@@ -1052,14 +1053,14 @@ describe("Composer expanded", () => {
     expect(descriptions(view.textarea)).toEqual([]);
   });
 
-  it("keeps the pressed expand control clearly inset from the frame's lower edge", async () => {
+  it("keeps the mode toggle clear of the frame's lower edge", async () => {
     const { frame } = await render(<Composer label="Reply" defaultExpanded onSend={() => {}} />);
     const button = expandButton()!;
-    const inset = frame.getBoundingClientRect().bottom - button.getBoundingClientRect().bottom - parseFloat(getComputedStyle(frame).borderBottomWidth);
-    expect(inset).toBeGreaterThanOrEqual(parseFloat(getComputedStyle(document.documentElement).fontSize) / 2);
+    const gap = button.getBoundingClientRect().top - frame.getBoundingClientRect().bottom;
+    expect(gap).toBeGreaterThanOrEqual(parseFloat(getComputedStyle(document.documentElement).fontSize) / 2);
   });
 
-  it("shows the expand button first among the actions, pressed while expanded, with the toolbar only while expanded", async () => {
+  it("shows the expand toggle below the writing, pressed while expanded, with the toolbar only while expanded", async () => {
     const onExpandedChange = vi.fn();
     const { root, textarea } = await render(
       <Composer label="Reply" defaultExpanded={false} onExpandedChange={onExpandedChange} toolbar={formatting} actions={<Button variant="plain" aria-label="Emoji">:)</Button>} onSend={() => {}} />,
@@ -1087,12 +1088,12 @@ describe("Composer expanded", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("keeps the expand action quiet in either mode, marks its mode by tone, and preserves text focus on a press", async () => {
+  it("uses Toggle's selected state and preserves text focus on a press", async () => {
     const { host } = await render(
       <>
         <Composer label="Reply" defaultExpanded={false} onSend={() => {}} />
-        <Button variant="plain" tone="secondary" aria-label="Plain" data-test-harness="plain">p</Button>
-        <Button variant="soft" tone="secondary" aria-label="Selected" data-test-harness="selected">s</Button>
+        <Toggle label="Plain" size="xs" data-test-harness="plain" />
+        <Toggle label="Selected" size="xs" defaultPressed data-test-harness="selected" />
       </>,
     );
     const look = (element: Element) => ["border-top-color", "color", "background-color"].map((property) => getComputedStyle(element).getPropertyValue(property));
@@ -1248,6 +1249,7 @@ describe("Composer expanded", () => {
     await userEvent.click(expandButton()!);
     expect(document.activeElement).toBe(textarea);
     expect([textarea.value, textarea.selectionStart, textarea.selectionEnd]).toEqual(["Hello world", 5, 5]);
+    await pressTab();
     await pressTab();
     expect(document.activeElement).toBe(expandButton());
     await userEvent.keyboard("{Enter}");
@@ -1780,6 +1782,7 @@ describe("Composer formatting", () => {
     const button = expandButton()!;
     expect(button.getAttribute("aria-keyshortcuts")).toContain("Shift+X");
     await pressTab();
+    await pressTab();
     expect(document.activeElement).toBe(button);
     const tooltip = () => document.querySelector('[data-ouro="tooltip"]');
     await expect.poll(() => tooltip()?.textContent?.startsWith("Expand")).toBe(true);
@@ -2145,12 +2148,13 @@ describe("Composer text at rest", () => {
     expect(Math.abs(middle(view.send) - middle(view.frame))).toBeLessThanOrEqual(0.75);
   });
 
-  it("names the long-compose mode visibly and gives Send the stronger tone", async () => {
+  it("keeps the visible long-compose toggle outside the writing row", async () => {
     const view = await render(<Composer label="Reply" defaultExpanded expandLabel="Long compose" onSend={() => {}} />);
     const mode = view.host.querySelector<HTMLButtonElement>('[data-ouro-part="expand"]')!;
     expect(mode.textContent).toBe("Long compose");
     expect(mode.getAttribute("aria-pressed")).toBe("true");
-    expect(mode.getAttribute("data-tone")).toBe("secondary");
+    expect(mode.getAttribute("data-ouro")).toBe("toggle");
+    expect(view.frame.contains(mode)).toBe(false);
   });
 
   it("makes a plain draft's selected words a link and selects its address for editing", async () => {

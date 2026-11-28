@@ -12,7 +12,7 @@ import { announce } from "@/registry/ouro/lib/ouro/announce";
 
 const preview = import("./composer-preview");
 const Preview = lazy(() => preview);
-const draft = "@[Noor](noor), let's make Friday a little special.\n\nFor the table:\n\n- Warm bread and something sparkling\n- Your favourite cake\n\nOur evening:\n\n1. Meet in the garden at six.\n2. Stay for [sunset](https://www.timeanddate.com/sun/).\n\n**I'll bring the lanterns.**";
+const draft = "@[Noor](noor), **Friday at six?**\n\n1. Bring bread.\n2. Catch the [sunset](https://www.timeanddate.com/sun/).";
 const people: AutocompleteItem[] = [
   { value: "noor", label: "Noor", insert: "" },
   { value: "avery", label: "Avery", insert: "" },
@@ -38,7 +38,7 @@ export default function ComposerDemo(): JSX.Element {
   const editor = useRef<ComposerEditor>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState(draft);
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [height, setHeight] = useState<number | null>(null);
   const [sent, setSent] = useState<string>();
   const [receiptOpen, setReceiptOpen] = useState(false);
@@ -74,10 +74,10 @@ export default function ComposerDemo(): JSX.Element {
           expanded={expanded}
           onExpandedChange={setExpanded}
           expandLabel="Long compose"
-          description="Make Friday yours. Type @ for people."
-          expandedRows={8}
+          description="Type @ for people. Nothing is sent."
+          expandedRows={6}
           expandedMaxRows={16}
-          maxRows={6}
+          maxRows={4}
           resizable
           resizeLabel="Resize your draft"
           tallest={() => Math.min(480, Math.floor((window.visualViewport?.height ?? window.innerHeight) * 0.6))}
@@ -117,7 +117,7 @@ export default function ComposerDemo(): JSX.Element {
                 setSent(undefined);
                 setReceiptOpen(false);
                 setHeight(null);
-                setExpanded(true);
+                setExpanded(false);
                 announce("Example restored");
               }}
             >
@@ -129,7 +129,7 @@ export default function ComposerDemo(): JSX.Element {
           <Suspense fallback={<Text role="status">Preparing your invitation...</Text>}>
             <Preview text={sent} />
           </Suspense>
-          <Button ref={keepEditing} variant="plain" tone="secondary" onClick={() => setSent(undefined)}>Keep editing</Button>
+          <Button ref={keepEditing} variant="plain" tone="secondary" onClick={() => setSent(undefined)}>Back to draft</Button>
           <Collapsible title="View sent Markdown" open={receiptOpen} onOpenChange={setReceiptOpen}>
             <CodeBlock code={sent} wrap />
           </Collapsible>

@@ -26,9 +26,11 @@ describe("ComposerDemo", () => {
     await render("320px");
     const editor = host.querySelector<HTMLElement>("[data-ouro-composer-editor]")!;
     const frame = host.querySelector<HTMLElement>("[data-ouro-composer-frame]")!;
-    await userEvent.click(host.querySelector<HTMLElement>('[data-ouro-part="expand"]')!);
     await expect.poll(() => host.querySelector("[data-ouro-moving]")).toBeNull();
-    await userEvent.fill(editor, "");
+    await userEvent.click(editor);
+    const mod = /Mac|iPhone|iPad|iPod/.test(navigator.platform) ? "Meta" : "Control";
+    await userEvent.keyboard(`{${mod}>}a{/${mod}}{Backspace}`);
+    await expect.poll(() => host.querySelector("[data-ouro-composer-placeholder]")).not.toBeNull();
     const placeholder = host.querySelector<HTMLElement>("[data-ouro-composer-placeholder]")!;
     const words = document.createRange();
     words.selectNodeContents(placeholder);
@@ -39,7 +41,7 @@ describe("ComposerDemo", () => {
     await userEvent.keyboard("{End}");
     await expect.poll(() => frame.getBoundingClientRect().height).toBeGreaterThan(compact);
     await userEvent.click(editor);
-    await userEvent.fill(editor, "");
+    await userEvent.keyboard(`{${mod}>}a{/${mod}}{Backspace}`);
     await expect.poll(() => editor.textContent).toBe("");
     await expect.poll(() => frame.getBoundingClientRect().height).toBe(compact);
   });
@@ -51,12 +53,12 @@ describe("ComposerDemo", () => {
     await userEvent.click(page.getByRole("button", { name: "Send", exact: true }));
     await expect.poll(() => host.querySelector('[data-ouro="message"]')).not.toBeNull();
     const message = host.querySelector<HTMLElement>('[data-ouro="message"]')!;
-    expect(message.querySelector("strong")?.textContent).toBe("I'll bring the lanterns.");
-    expect(message.querySelector("ul li")?.textContent).toBe("Warm bread and something sparkling");
+    expect(message.querySelector("strong")?.textContent).toBe("Friday at six?");
+    expect(message.querySelector("ol li")?.textContent).toBe("Bring bread.");
     expect(message.querySelector('a[href="https://www.timeanddate.com/sun/"]')).not.toBeNull();
     expect(message.querySelector('[data-ouro="badge"]')?.textContent).toBe("Noor");
     expect((await axe.run(message, { runOnly: ["color-contrast"] })).violations).toEqual([]);
-    await userEvent.click(page.getByRole("button", { name: "Keep editing", exact: true }));
+    await userEvent.click(page.getByRole("button", { name: "Back to draft", exact: true }));
     expect(editor.checkVisibility()).toBe(true);
     expect(editor.textContent).toBe(before);
     expect(document.activeElement).toBe(editor);

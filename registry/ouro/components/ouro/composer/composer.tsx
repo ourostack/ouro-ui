@@ -12,6 +12,7 @@ import { emojiTextToTokens } from "@/registry/ouro/components/ouro/emoji/emoji-s
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { TextArea, type TextAreaHighlight } from "@/registry/ouro/components/ouro/text-field/text-area";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
+import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
@@ -248,8 +249,8 @@ export interface ComposerOwnProps {
   defaultExpanded?: boolean | undefined;
   /**
    * Called when the person expands or collapses it: the expand button, or Escape. With it, or with
-   * `defaultExpanded`, the expand button shows first among the actions.
-   * @claim "With it, or with `defaultExpanded`, the" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > shows the expand button first among the actions, pressed while expanded, with the toolbar only while expanded)
+   * `defaultExpanded`, the expand toggle shows below the writing.
+   * @claim "With it, or with `defaultExpanded`, the" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > shows the expand toggle below the writing, pressed while expanded, with the toolbar only while expanded)
    */
   onExpandedChange?: ((expanded: boolean) => void) | undefined;
   /** The expand button's name, which its tooltip shows too. @default "Expand" */
@@ -1177,32 +1178,6 @@ export function Composer(props: ComposerProps): JSX.Element {
               if (!richOn) textareaRef.current!.setSelectionRange(text.length, text.length);
             }}
           >
-            {canExpand && (
-              <Tooltip
-                content={
-                  <span className="inline-flex items-center gap-2">
-                    {expandLabel}
-                    <Kbd keys={composerShortcuts.expand} />
-                  </span>
-                }
-              >
-                <Button
-                  data-ouro-control="composer"
-                  data-ouro-part="expand"
-                  variant={expanded ? "soft" : "plain"}
-                  tone="secondary"
-                  aria-label={expandLabel}
-                  aria-pressed={expanded}
-                  aria-keyshortcuts={ariaKeyShortcuts(composerShortcuts.expand, platform)}
-                  disabled={disabled}
-                  // A press keeps focus, and the caret, in the text.
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={toggleExpanded}
-                >
-                  {expandLabel}
-                </Button>
-              </Tooltip>
-            )}
             {actions}
             <Tooltip content={sendLabel}>
               <Button
@@ -1246,10 +1221,29 @@ export function Composer(props: ComposerProps): JSX.Element {
           {sendDisabledReason}
         </span>
       )}
-      {expanded && (
-        <div id={sendHintId} data-slot="composer-send-hint" data-ouro-composer-send-hint="" className="flex items-center justify-end gap-1 px-1 text-xs text-muted-foreground">
-          <Kbd keys={["mod", "enter"]} />
-          <span>to send</span>
+      {(canExpand || expanded) && (
+        <div className="flex items-center justify-between gap-2 px-1">
+          {canExpand && (
+            <Tooltip content={<span className="inline-flex items-center gap-2">{expandLabel}<Kbd keys={composerShortcuts.expand} /></span>}>
+              <Toggle
+                data-ouro-control="composer"
+                data-ouro-part="expand"
+                label={expandLabel}
+                size="xs"
+                pressed={expanded}
+                aria-keyshortcuts={ariaKeyShortcuts(composerShortcuts.expand, platform)}
+                disabled={disabled}
+                onMouseDown={(event) => event.preventDefault()}
+                onPressedChange={toggleExpanded}
+              />
+            </Tooltip>
+          )}
+          {expanded && (
+            <div id={sendHintId} data-slot="composer-send-hint" data-ouro-composer-send-hint="" className="ms-auto flex items-center gap-1 text-xs text-muted-foreground">
+              <Kbd keys={["mod", "enter"]} />
+              <span>to send</span>
+            </div>
+          )}
         </div>
       )}
     </div>
