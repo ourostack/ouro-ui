@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { bumpLine, bumpText, kitPages, KITS, pinOf, urlsIn } from "./kit-pin.mjs";
+import { bumpLine, bumpText, FEEL_CATALOG, feelCatalogAt, kitPages, KITS, pinOf, urlsIn } from "./kit-pin.mjs";
 
 const APPLE = "https://github.com/ourostack/ouro-ui-apple/releases/tag/";
 const WINDOWS = "https://github.com/ourostack/ouro-ui-windows/releases/tag/";
@@ -119,4 +119,23 @@ test("the kits are the three sibling repositories, each named by its own word", 
   assert.equal(KITS.android.repo, "ourostack/ouro-ui-android");
   assert.equal(KITS.windows.word.test("Windows v0.10.0"), true);
   assert.equal(KITS.windows.word.test("Android v0.11.0"), false);
+});
+
+test("an Apple pin copies Feel's catalog from the new release, so the Feel page lists the checks that release ships", async () => {
+  const asked = [];
+  const catalog = `{\n  "principles" : [\n\n  ]\n}\n`;
+  const text = await feelCatalogAt("1.12.0", async (url) => {
+    asked.push(url);
+    return { ok: true, status: 200, text: async () => catalog };
+  });
+  assert.deepEqual(asked, ["https://raw.githubusercontent.com/ourostack/ouro-ui-apple/v1.12.0/docs/ouro-feel/checks.json"]);
+  assert.equal(text, catalog);
+  assert.equal(FEEL_CATALOG, "site/src/apple/feel-checks.json");
+});
+
+test("a release without Feel's catalog, or one GitHub won't serve, leaves the page's copy as it is", async () => {
+  assert.equal(await feelCatalogAt("1.12.0", async () => ({ ok: false, status: 404, text: async () => "Not Found" })), null);
+  assert.equal(await feelCatalogAt("1.12.0", async () => ({ ok: true, status: 200, text: async () => "<html>" })), null);
+  assert.equal(await feelCatalogAt("1.12.0", async () => ({ ok: true, status: 200, text: async () => `{"checks": []}` })), null);
+  assert.equal(await feelCatalogAt("1.12.0", async () => { throw new Error("offline"); }), null);
 });

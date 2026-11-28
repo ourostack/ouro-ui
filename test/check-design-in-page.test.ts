@@ -1062,3 +1062,33 @@ describe("findDesignIssues: off-centre-text", () => {
     expect(of("off-centre-text")).toHaveLength(1);
   });
 });
+
+describe("findDesignIssues: off-centre-ink", () => {
+  const BOX = "width:32px;height:32px;padding:0;border:0;background:#eee;display:inline-flex;align-items:center;justify-content:center;font:16px/16px system-ui, sans-serif";
+  const DOTS = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>`;
+
+  it("finds a typed \"…\" on its baseline, low in a square button, and an icon pushed off its middle", () => {
+    // A Latin monospace face, whose "…" rests on the baseline: Linux's generic monospace is a CJK face
+    // (WenQuanYi Zen Hei Mono in Playwright's image), whose full-width "…" sits mid-height, as it should.
+    render(`<p><button id="typed" aria-label="More" style="${BOX};font-family:'Liberation Mono', Menlo, monospace">…</button></p>
+<p><button id="pushed" aria-label="More" style="${BOX};padding:8px 0 0 6px;box-sizing:border-box">${DOTS}</button></p>
+<p><button id="lifted" aria-label="More" style="${BOX};padding:0 6px 8px 0;box-sizing:border-box">${DOTS}</button></p>`);
+    const issues = of("off-centre-ink");
+    expect(issues.map(({ element }) => element)).toEqual(['button#typed "More"', 'button#pushed "More"', 'button#lifted "More"']);
+    expect(issues[0]!.detail).toMatch(/^its ink sits [\d.]+px low of its middle: centre what it draws, not its box, and draw a more or overflow control as an icon, never a typed "…"/);
+    expect(issues[1]!.detail).toMatch(/^its ink sits [\d.]+px low and [\d.]+px to the right of its middle/);
+    expect(issues[2]!.detail).toMatch(/^its ink sits [\d.]+px high and [\d.]+px to the left of its middle/);
+  });
+
+  it("passes a centred icon, a count laid over it, words, emoji, an empty icon and the opted out", () => {
+    render(`<p><button aria-label="More" style="${BOX}">${DOTS}</button></p>
+<p><button aria-label="Chat" style="${BOX};position:relative">${DOTS}<span style="position:absolute;top:-4px;right:-6px;font:10px/12px system-ui;background:#c00;color:#fff;padding:0 3px">3</span></button></p>
+<p><button style="${BOX};width:auto;padding:0 12px">Save</button></p>
+<p><button style="${BOX}">👍</button></p>
+<p><button aria-label="Close" style="${BOX}"><svg width="16" height="16" aria-hidden="true"></svg></button></p>
+<p><button aria-label="Expand" style="${BOX}"><svg width="8" height="16" viewBox="0 0 8 16" aria-hidden="true"><rect width="8" height="16"/></svg><svg width="8" height="16" viewBox="0 0 8 16" aria-hidden="true"><rect width="8" height="16"/></svg></button></p>
+<p><button aria-label="Profile" style="${BOX}">${DOTS}<img alt="" style="display:none" src="data:image/gif;base64,R0lGODlhAQABAAAAACw="></button></p>
+<p><button aria-label="More" style="${BOX}" data-ouro-allow="off-centre-ink" data-ouro-allow-why="a deliberate baseline mark">…</button></p>`);
+    expect(of("off-centre-ink")).toEqual([]);
+  });
+});
