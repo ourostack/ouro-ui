@@ -70,3 +70,8 @@ test("comments are posted with COMMENT_TOKEN when it is set, since the pushing a
   assert.equal(commentEnv({ GH_TOKEN: "app", COMMENT_TOKEN: "actions" }).GH_TOKEN, "actions");
   assert.equal(commentEnv({ GH_TOKEN: "app" }).GH_TOKEN, "app");
 });
+
+test("the fix never updates a pull request's branch, whose merge commit would take the app's identity", () => {
+  const source = readFileSync(new URL("./queue-unmergeable.mjs", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /update-branch["`]?\s*,|\/update-branch`/);
+});

@@ -51,6 +51,18 @@ describe("transition rules", () => {
     expect(faults.map((f) => `${f.rule} ${f.element}`)).toEqual(["sibling-reflow p#t-next"]);
   });
 
+  it("still judges a transition that a stalled frame ran to its end before the trace stepped it", async () => {
+    const press = () => {
+      document.getElementById("t-box")!.animate([{ height: "40px" }, { height: "120px" }], { duration: 300, fill: "forwards" });
+      requestAnimationFrame(() => {
+        const until = performance.now() + 400;
+        while (performance.now() < until);
+      });
+    };
+    const { faults } = await trace(`<div id="t-box" style="position:static"></div><p id="t-next" style="position:static">Below</p>`, press);
+    expect(faults.map((f) => `${f.rule} ${f.element}`)).toEqual(["sibling-reflow p#t-next"]);
+  });
+
   it("finds text that changes its number of lines, and a box that appears in one frame", async () => {
     const press = () => {
       document.getElementById("t-text")!.animate([{ width: "200px" }, { width: "40px" }], { duration: 300, fill: "forwards" });
@@ -107,14 +119,14 @@ describe("transition rules", () => {
     host2.remove();
   });
 
-  it("ignores an animation that finished before the trace steps it, even though its fill still holds its end state", async () => {
+  it("ignores an animation that finished before the press, even though its fill still holds its end state", async () => {
     host = document.createElement("div");
     host.style.cssText = "position:fixed;top:0;left:0;width:400px;overflow:hidden";
     host.innerHTML = '<style>#t-box{position:absolute;top:0;left:0;width:40px;height:40px;background:#cde}</style><div id="t-box"></div>';
     document.body.append(host);
-    beginTrace();
     const anim = document.getElementById("t-box")!.animate([{ transform: "translateX(0)" }, { transform: "translateX(200px)" }], { duration: 480, easing: "steps(1, end)", fill: "forwards" });
     anim.finish();
+    beginTrace();
     const result = await stepTrace();
     expect(result.frames).toEqual([]);
     expect(findTransitionFaults(result)).toEqual([]);
