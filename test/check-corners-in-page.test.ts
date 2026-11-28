@@ -53,6 +53,25 @@ it("does not treat a table row's dividing line as a painted corner", () => {
   expect(findCornerIssues().map((issue) => issue.element)).toContain("tr in div");
 });
 
+it("judges a one-sided border only at its adjacent corners", () => {
+  const root = render('<div id="outer" style="position:relative;width:160px;height:120px;background:#eef4fa;border-radius:24px;corner-shape:squircle"><div id="inner" style="position:absolute;inset:4px;border-radius:8px;corner-shape:squircle"></div></div>');
+  const inner = root.querySelector<HTMLElement>("#inner")!;
+  for (const [side, expected] of [
+    ["top", ["top left", "top right"]],
+    ["right", ["top right", "bottom right"]],
+    ["bottom", ["bottom right", "bottom left"]],
+    ["left", ["bottom left", "top left"]],
+  ] as const) {
+    inner.style.setProperty(`border-${side}`, "1px solid #789");
+    const detail = findCornerIssues().find((issue) => issue.element === "div#inner in div#outer")?.detail ?? "";
+    const expectedCorners: readonly string[] = expected;
+    for (const corner of ["top left", "top right", "bottom right", "bottom left"]) {
+      expect(detail.includes(corner)).toBe(expectedCorners.includes(corner));
+    }
+    inner.style.removeProperty(`border-${side}`);
+  }
+});
+
 it("compares painted corners against the actual browser pixels", async () => {
   render('<div id="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"><div style="position:absolute;inset:0;background:#f40"></div></div>');
   const issues = await findSquirclePaint();
@@ -622,7 +641,7 @@ it("detects a low-contrast square and a descendant outline beyond the surface", 
 }, paintTimeout);
 
 it("detects alpha-only paint against a transparent background", async () => {
-  render('<div style="width:160px;height:120px;border-radius:28px;corner-shape:squircle"></div>');
+  render('<div style="position:relative;width:160px;height:120px;border-radius:28px;corner-shape:squircle"><div style="position:absolute;inset:0;background:#000"></div></div>');
   const image = (painted: boolean, clip: PaintClip) => {
     const canvas = document.createElement("canvas");
     canvas.width = clip.width;
@@ -630,7 +649,7 @@ it("detects alpha-only paint against a transparent background", async () => {
     if (painted) canvas.getContext("2d")!.fillRect(0, 0, canvas.width, canvas.height);
     return canvas.toDataURL("image/png");
   };
-  const captures = [true, false, false];
+  const captures = [true, false, false, false, true];
   state.__ouroPaintCapture = async (clip) => image(captures.shift()!, clip);
   try {
     expect(await findSquirclePaint()).toHaveLength(1);
@@ -1175,10 +1194,63 @@ it("does not attribute changing background pixels outside the box to a surface",
     context.fillRect(0, 0, canvas.width, canvas.height);
     return canvas.toDataURL("image/png");
   };
-  const captures = ["red", "blue", "green"];
+  const captures = ["red", "blue", "green", "purple", "orange", "red", "blue", "green", "purple", "orange"];
   state.__ouroPaintCapture = async (clip) => image(captures.shift()!, clip);
   try {
     expect(await findSquirclePaint()).toEqual([]);
+  } finally {
+    state.__ouroPaintCapture = (clip) => commands.squircleCapture(clip);
+  }
+});
+
+it("ignores an unpainted rounded focus wrapper around a smaller control", async () => {
+  const root = render(`<div class="wrapper" style="position:relative;width:160px;height:120px;border-radius:28px;corner-shape:squircle;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px">
+    <div style="position:absolute;right:0;bottom:0;width:24px;height:24px;background:#d11"></div>
+  </div>`);
+  const wrapper = root.querySelector<HTMLElement>(".wrapper")!;
+  const child = wrapper.firstElementChild as HTMLElement;
+  expect(await findSquirclePaint()).toEqual([]);
+  child.style.cssText = "position:absolute;inset:0;background:#d11";
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.wrapper");
+  child.style.cssText = "position:absolute;right:0;bottom:0;width:24px;height:24px;background:#d11";
+  wrapper.style.background = "#fff";
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.wrapper");
+}, paintTimeout);
+
+it("ignores a bottom corner when only the opposite border is painted", async () => {
+  const root = render(`<div class="wrapper" style="position:relative;width:160px;height:120px;border-top:2px solid #444;border-radius:0 0 28px 28px;corner-shape:squircle;--sq-br:28px;--sq-bl:28px">
+    <div style="position:absolute;left:0;bottom:0;width:24px;height:24px;background:#d11"></div>
+  </div>`);
+  const wrapper = root.querySelector<HTMLElement>(".wrapper")!;
+  expect(await findSquirclePaint()).toEqual([]);
+  wrapper.style.background = "#fff";
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.wrapper");
+}, paintTimeout);
+
+it("rejects a changed screenshot size after restoring the painted surface", async () => {
+  const root = render('<div style="width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"></div>');
+  const surface = root.firstElementChild!;
+  const original = surface.getAttribute("style");
+  const captures = [
+    { color: "red", extra: 0 },
+    { color: "blue", extra: 0 },
+    { color: "green", extra: 0 },
+    { color: "purple", extra: 0 },
+    { color: "orange", extra: 2 },
+  ];
+  state.__ouroPaintCapture = async (clip) => {
+    const { color, extra } = captures.shift()!;
+    const canvas = document.createElement("canvas");
+    canvas.width = clip.width + extra;
+    canvas.height = clip.height;
+    const context = canvas.getContext("2d")!;
+    context.fillStyle = color;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/png");
+  };
+  try {
+    await expect(findSquirclePaint()).rejects.toThrow("screenshots changed size");
+    expect(surface.getAttribute("style")).toBe(original);
   } finally {
     state.__ouroPaintCapture = (clip) => commands.squircleCapture(clip);
   }
