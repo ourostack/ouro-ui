@@ -516,6 +516,21 @@ describe("ConversationList windowing", () => {
     expect(inView(current()!, pane)).toBe(true);
   });
 
+  it("retains the viewport for automatic selection without losing the current row or subsequent explicit reveal", async () => {
+    const { pane, rerender } = await render(<ConversationList label="Conversations" items={many(500)} selectedId="c420" revealSelection={false} onSelect={() => {}} />);
+    const current = () => pane.querySelector('[aria-current="true"]');
+    expect(titleOf(current())).toBe("c420");
+    expect(pane.scrollTop).toBe(0);
+    await rerender(<ConversationList label="Conversations" items={many(500)} selectedId="c430" revealSelection={false} onSelect={() => {}} />);
+    expect(titleOf(current())).toBe("c430");
+    expect(pane.scrollTop).toBe(0);
+    await act(async () => (current() as HTMLElement).focus({ preventScroll: true }));
+    await userEvent.keyboard("{ArrowDown}");
+    await expect.poll(() => inView(document.activeElement!, pane)).toBe(true);
+    await rerender(<ConversationList label="Conversations" items={many(500)} selectedId="c440" onSelect={() => {}} />);
+    expect(inView(current()!, pane)).toBe(true);
+  });
+
   it("brings the open conversation to the middle of the view when it opens out of view, and leaves one that opens in view where it is", async () => {
     const { pane, rerender } = await render(<ConversationList label="Conversations" items={many(500)} selectedId="c420" onSelect={() => {}} />);
     const middle = () => {

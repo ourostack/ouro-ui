@@ -28,6 +28,7 @@ describe("Ouro check's command", () => {
       assert.ok(widened === undefined || (widened.length > 0 && !widened.includes("\n")), rule);
       assert.deepEqual(rest, {}, rule);
     }
+    assert.ok(listed.some(({ rule, widened }) => rule === "nested-frame" && widened?.includes("lighter framed surface")));
   });
 
   test("reads every option, and refuses what it cannot run", () => {

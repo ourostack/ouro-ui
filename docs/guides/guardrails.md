@@ -5,7 +5,7 @@ The guardrail kits hold an app to Ouro UI. The **census** (`ouro-census`) measur
 Add them from the same place and release tag as your components:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.570 ourostack/ouro-ui/ouro-source-rules#v1.3.570
+npx shadcn@latest add ourostack/ouro-ui/ouro-census#v1.3.661 ourostack/ouro-ui/ouro-source-rules#v1.3.661
 ```
 
 `ouro-census` installs `e2e/ouro-census/` and names `@playwright/test` and `axe-core` as devDependencies. `ouro-source-rules` installs `scripts/ouro-source-rules.mjs` and names `typescript` and `postcss`. Like the test kit, they carry no version, so the CLI installs a package only when your app lacks it.[^kit-versions] The census reads names with axe-core and needs 4.13.0 or later: on an older one it throws before it loads axe into the page, naming the version it found.[^census-axe]
@@ -228,7 +228,7 @@ The check also holds pages to design rules that measurement can decide, after Re
 | --- | --- |
 | `giant-picture` | A banner-shaped picture (scenery, 1.8 times as wide as tall or wider) in the flow, leading a content item, such as a work entry or a card with its own heading, that outweighs its words: it fills the item's width, is over 55% of its height and over 1.25 times the height of the rest.[^check-design-limits] Show the work itself, a screenshot or the component, or a small picture beside the words. A picture of the work, squarer, may be as big as it likes, and so may a figure's picture, which is its subject.[^check-design] |
 | `cramped-heading` | A heading, with the icon on its row, closer to a picture or a filled or framed box above it than half its font size (a quarter, for its own card's picture). A heading on a row is measured by what the row draws, so the row's own padding counts as room. What follows a heading belongs to it, so only the space above is judged.[^check-design] |
-| `nested-frame` | A frame inside a frame: a framed box hugging another within 6px on every side (a double border); or a rounded, filled or framed box whose child has an edge of its own (a fill, a frame, or a picture that runs to its corner, not an icon or a clear logo) and sits near its corner with a radius that isn't the outer radius less the inset, so the corners don't nest.[^check-design] |
+| `nested-frame` | A frame inside a frame: a framed box hugging another within 6px on every side (a double border); a lighter framed surface inside a frame, even when inset further or the outer frame clips; or a rounded, filled or framed box whose child has an edge of its own (a fill, a frame, or a picture that runs to its corner, not an icon or a clear logo) and sits near its corner with a radius that isn't the outer radius less the inset, so the corners don't nest.[^check-design][^check-inset-frame] |
 | `doubled-line` | Two dividing lines side by side where one would separate: a divider (a border on some sides of a box, an `hr`, a separator, or a fill 3px thick or less) within 6px of another line or of a frame's edge, along most of its length, such as a list's last row's border against its card's.[^check-doubled-line] Frames side by side (chips in a row), lines that share pixels, a table whose borders collapse, a thick coloured accent edge, and a line under a sticky bar or a fully opaque surface (alpha 1, no backdrop-filter, opacity 1 up its ancestor chain) pass; a glass or translucent surface over the same pair still flags.[^check-doubled-line-pass] |
 | `count-badge` | A count on a small filled pill laid over an icon, such as a bell's unread number, that a box around it clips, whose numerals' ink sits more than 0.75px off the pill's middle (as a count centred on its line box rather than its cap height can), or that sits at another offset from its icon than the page's other count badges on icons of that size.[^check-count-badge] |
 | `off-centre-text` | One line of words in a control, such as a button, a field's value or placeholder, an editor, or a text area with no frame of its own inside the frame around it, whose cap height sits more than 2.5px off the control's middle (1.5px for a field's value or placeholder, which the browser centres by its line box), as a composer's placeholder pushed low by a bottom-aligned row does.[^check-off-centre] A box with room for two lines or more lays out from its top and is left alone, and so are words on two lines and words under or over an icon.[^check-off-centre-pass] |
@@ -369,7 +369,7 @@ A new rule can start without failing a build: waive it on all pages, with the re
 Add it, build your app, run it on the built folder (or on URLs), and fix what it reports:
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.570
+npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.661
 node scripts/ouro/check/check.ts dist
 ```
 
@@ -453,7 +453,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out, install and build first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.570
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.661
         with:
           targets: dist
           shard: ${{ matrix.shard }}/4
@@ -463,7 +463,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Check out and install first.
-      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.570
+      - uses: ourostack/ouro-ui/.github/actions/check@v1.3.661
         with:
           merge: "true"
 ```
@@ -483,7 +483,7 @@ It reads `.css`, `.scss`, `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, 
 A `blurry-image` finding means the screen draws a picture larger than its file. `ouro-images` writes each raster picture in a folder as AVIF and WebP at each of 320, 640, 960, 1280, 1920, 2560, 3840 and 5120 pixels wide that is narrower than the picture, and at its own width, with `images.json` listing the srcset of each.[^images] `images.json` records what each picture's files were made from, its bytes and the options, so a second run writes only what changed, and a new `--quality` writes them all again.[^images-kept] It turns a photo upright as its EXIF orientation says, and leaves out an animated picture, which would lose its frames; serve that one as it is.[^images-upright]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.570
+npx shadcn@latest add ourostack/ouro-ui/ouro-images#v1.3.661
 node scripts/ouro/images/images.ts pictures --out public/images --base /images/
 ```
 
@@ -563,7 +563,7 @@ Fix the findings that fail first, so a session is spent on the task and not on a
 [Ouro Feel](https://github.com/ourostack/ouro-ui/blob/main/feel/README.md) measures how a scrolling list feels while real input moves it: the reader's row jumping, blank frames, late frames and how long a wheel waits to move it. Its probe is `ouro-feel-probe`, one plain script the page runs first, before its own scripts.[^feel-probe]
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.570
+npx shadcn@latest add ourostack/ouro-ui/ouro-feel-probe#v1.3.661
 ```
 
 It installs `scripts/ouro/feel/ouro-feel-probe.js`. Put it first in the page's `<head>`, or inject it into your web view before the page loads, then call `window.ouroFeel.watch` from your own cases and `window.ouroFeel.stop` for the counts.
@@ -684,6 +684,7 @@ It needs `sudo -n`, as a GitHub-hosted Mac has, and one difference stays: WebKit
 [^check-jank]: test:scripts/check/check-rules.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why; test:scripts/check/check-rules.test.mts::Ouro check's design rules > judges jank only on a step's full runs: a covered target that returns is waited for, and one that never returns skips the step verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why) verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > judges jank only on a step's full runs: a covered target that returns is waited for, and one that never returns skips the step) verify:fileLine(registry/ouro/check/run.ts, /^const MAX_FORCED = 50;$/) verify:fileLine(registry/ouro/check/run.ts, /^const MAX_STEP_SHIFT = 0.01;$/) verify:fileLine(registry/ouro/check/run.ts, /^const WALK_EACH = 3;$/) verify:fileLine(registry/ouro/check/run.ts, /^const WALK_RUNS = 3;$/) verify:fileLine(registry/ouro/check/run.ts, /^const WALK_WAIT_MS = 2000;$/)
 [^check-design]: test:scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups; test:scripts/check/check-rules.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why; test:test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > counts a row's own padding as room above its heading, so a heading on a padded row is judged by where its text sits; test:scripts/check/check.test.mts::Ouro check > squircle-missing fires in WebKit without corner-shape, on its fail page only, and never in Chromium, which draws it verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > fails each seed case where a person saw it, with numbers that say why) verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > counts a row's own padding as room above its heading, so a heading on a padded row is judged by where its text sits) verify:testExists(scripts/check/check.test.mts::Ouro check > squircle-missing fires in WebKit without corner-shape, on its fail page only, and never in Chromium, which draws it) verify:testExists(scripts/check/check.test.mts::Ouro check > squircle-missing fires in WebKit without corner-shape, on its fail page only, and never in Chromium, which draws it)
 [^check-drawn]: test:test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > measures a box by the part of it that is drawn: cut by a clipping ancestor, or nothing at all once scrolled out; test:test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > lets an absolutely positioned box escape a clip below its positioned ancestor, and a fixed one escape every clip verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > measures a box by the part of it that is drawn: cut by a clipping ancestor, or nothing at all once scrolled out) verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: cramped-heading > lets an absolutely positioned box escape a clip below its positioned ancestor, and a fixed one escape every clip)
+[^check-inset-frame]: test:test/check-design-in-page.test.ts::findDesignIssues: nested-frame > finds a lighter framed card inside a clipping frame even when it is inset well beyond the hug gap verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: nested-frame > finds a lighter framed card inside a clipping frame even when it is inset well beyond the hug gap) verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: nested-frame > finds lighter framed surfaces at different insets and leaves unfilled, darker, hidden and allowed ones alone)
 [^check-repaint]: test:scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups verify:testExists(scripts/check/check.test.mts::Ouro check > finds each rule on its fail page and nothing on any pass page, with a report, a contact sheet and close-ups) verify:fileLine(registry/ouro/check/run.ts, /contextFor\(width, height, theme, "no-preference"\)/)
 [^check-giant-emoji]: test:scripts/check/check-rules.test.mts::Ouro check's design rules > giant-text counts no emoji: a picker's grid drawn large on a 4K display is no running text (#2363) verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > giant-text counts no emoji: a picker's grid drawn large on a 4K display is no running text (#2363))
 [^check-dark-token]: test:scripts/check/check-rules.test.mts::Ouro check's design rules > dark-miss leaves a fill from a token the theme gives a dark value, as nova's near-white primary, and still finds one with no dark value (#2363) verify:testExists(scripts/check/check-rules.test.mts::Ouro check's design rules > dark-miss leaves a fill from a token the theme gives a dark value, as nova's near-white primary, and still finds one with no dark value (#2363))
