@@ -201,6 +201,12 @@ export type CommandEntry = CommandItem | CommandGroup;
 export interface CommandRecent {
   /** The chip's text, which screen readers hear. */
   label: string;
+  /**
+   * What the chip shows in place of `label`, as a command's `labelContent`: a chat's name with its emoji as pictures.
+   * `label` stays the chip's name for screen readers.
+   * @claim "`label` stays the chip's name for screen readers" registry/ouro/components/ouro/command/command.recents.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.recents.test.tsx::Command recents > shows a chip's labelContent in place of its label, and screen readers hear the label)
+   */
+  labelContent?: ReactNode;
   /** A small picture before the label. */
   icon?: ReactNode;
   /** Runs when the chip is pressed. The palette closes first. */
@@ -923,7 +929,14 @@ export function Command(props: CommandProps): JSX.Element {
                   </span>
                 )}
                 <span data-slot="command-recent-label" className="min-w-0 truncate">
-                  {recent.label}
+                  {recent.labelContent === undefined ? (
+                    recent.label
+                  ) : (
+                    <>
+                      <span aria-hidden="true">{recent.labelContent}</span>
+                      <span className="sr-only">{recent.label}</span>
+                    </>
+                  )}
                 </span>
               </button>
             ))}
