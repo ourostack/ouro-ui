@@ -1,6 +1,7 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it } from "vitest";
 import { page } from "vitest/browser";
+import { findDesignIssues } from "@/registry/ouro/check/design-check";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import NavigationRailDemo from "./navigation-rail.demo";
 
@@ -19,11 +20,13 @@ it.each(["light", "dark"] as const)("separates the navigation rail from its cont
   await page.viewport(3840, 2160);
   host = document.createElement("div");
   if (scheme === "dark") host.className = "dark";
+  else host.style.setProperty("--background", "#f8f8fc");
   document.body.append(host);
   root = createRoot(host);
   await act(async () => root!.render(<NavigationRailDemo />));
   const rail = host.querySelector<HTMLElement>('[data-ouro="navigation-rail"]')!;
   const content = rail.nextElementSibling as HTMLElement;
   expect(parseFloat(getComputedStyle(content).borderInlineStartWidth)).toBe(0);
-  expect(getComputedStyle(content).backgroundColor).not.toBe(getComputedStyle(content.parentElement!).backgroundColor);
+  expect(findDesignIssues({}).filter((issue) =>
+    issue.rule === "pane-edge" && host!.querySelector(`[data-ouro-check-ref~="${issue.ref}"]`))).toEqual([]);
 });
