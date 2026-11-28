@@ -1043,6 +1043,22 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
         add(line.left - m.actualBoundingBoxLeft * scale, baseline - m.actualBoundingBoxAscent * scale, line.left + m.actualBoundingBoxRight * scale, baseline + m.actualBoundingBoxDescent * scale);
       }
     }
+    if (!hasWords) {
+      hasWords = [el, ...el.querySelectorAll("*")].some((n) => drawn(n) && ["::before", "::after"].some((pseudo) => {
+        const style = getComputedStyle(n, pseudo);
+        if (style.display === "none" || style.visibility !== "visible" || Number(style.opacity) <= 0
+          || /^(absolute|fixed)$/.test(style.position)) return false;
+        const content = style.content.match(/^(?:"(?:[^"\\]|\\.)*"\s*)+/)?.[0];
+        if (!content) return false;
+        // Computed content is CSS text; a slash's alternative label is not painted.
+        const text = content.replace(/\\([0-9a-f]{1,6})\s?|\\(.)/gi, (_escape, hex: string | undefined, char: string | undefined) => {
+          if (!hex) return char!;
+          const point = Number.parseInt(hex, 16);
+          return String.fromCodePoint(point > 0 && point <= 0x10ffff ? point : 0xfffd);
+        });
+        return /[\p{L}\p{N}\p{Extended_Pictographic}]/u.test(text);
+      }));
+    }
     if (hasWords) continue;
     for (const svg of el.querySelectorAll("svg")) {
       if (svg.parentElement?.closest("svg") || !drawn(svg)) continue;

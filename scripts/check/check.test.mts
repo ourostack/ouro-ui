@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 import { chromium, webkit } from "playwright";
+import { findDesignIssues } from "../../registry/ouro/check/design-check.ts";
 import { BUDGETS, check, knownKey, merge, RULES, type Finding, type Gate, type Report } from "../../registry/ouro/check/run.ts";
 import { fragmentFocusScript } from "../../registry/ouro/lib/ouro/fragment-focus-script.ts";
 
@@ -15,6 +16,38 @@ import { axe, browser, dir, fixtures, page, quiet, site, spots, steady, two } fr
 // Part of Ouro check's Node side tests; scripts/check.test.mjs runs every file here under Node's coverage.
 
 describe("Ouro check", () => {
+  for (const engine of [chromium, webkit]) {
+    test(`off-centre-ink recognises painted pseudo-label words without hiding displaced icons in ${engine.name()}`, async () => {
+      const instance = await engine.launch({ headless: true });
+      try {
+        const tab = await instance.newPage();
+        const icon = '<svg width="24" height="24" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>';
+        const ids = ["after", "before", "escaped", "joined", "hidden", "none", "transparent", "badge", "glyph", "glyph-alt"];
+        await tab.setContent(`<style>
+          button { width: 180px; height: 48px; border: 0; padding: 8px; display: inline-flex; align-items: center; }
+          span { display: inline-flex; align-items: center; gap: 8px; position: relative; }
+          #after span::after, #hidden span::after, #transparent span::after, #badge span::after { content: "Compose"; }
+          #before::before { content: "Compose"; }
+          #escaped span::after { content: "New\\a chat"; white-space: pre; }
+          #joined span::after { content: "New " "chat"; }
+          #hidden span::after { visibility: hidden; }
+          #none span::after { content: "Compose"; display: none; }
+          #transparent span::after { opacity: 0; }
+          #badge span::after { position: absolute; top: 0; left: 0; }
+          #glyph span::after { content: "\\2026"; }
+          #glyph-alt span::after { content: "..." / "Compose"; }
+        </style>${ids.map((id) => `<button id="${id}" aria-label="${id}"><span>${icon}</span></button>`).join("")}`);
+        const issues = (await tab.evaluate(findDesignIssues)).filter((issue) => issue.rule === "off-centre-ink");
+        assert.deepEqual(
+          issues.map((issue) => issue.element.match(/^button#([^\s.]+)/)?.[1]).sort(),
+          ["badge", "glyph", "glyph-alt", "hidden", "none", "transparent"],
+        );
+      } finally {
+        await instance.close();
+      }
+    });
+  }
+
   test("fragment-focus passes fragmentFocusScript as the item ships it, first in <body>, and names a copy a script adds to <head> as the page streams", async () => {
     // The pass page carries the item's own script, so the rule is tested against what apps install.
     assert.ok(readFileSync(join(fixtures, "fragment-focus-pass.html"), "utf8").includes(`<script>${fragmentFocusScript()}</script>`));
