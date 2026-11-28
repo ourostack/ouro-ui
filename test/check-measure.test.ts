@@ -123,13 +123,14 @@ describe("listenForMeasures", () => {
     const [press, hidden, kept] = ["press", "hidden", "kept"].map((id) => document.getElementById(id)!);
     expect(m.shownAtInput).toBeNull();
     hidden!.hidden = true;
+    const atInput = new Map([[press!, rectOf(press!)], [kept!, rectOf(kept!)]]);
     press!.addEventListener("pointerdown", () => press!.remove());
     await userEvent.click(press!);
-    expect(m.shownAtInput).toEqual(new Set([press, kept]));
+    expect(m.shownAtInput).toEqual(atInput);
     // Only the first input counts.
     kept!.remove();
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
-    expect(m.shownAtInput).toEqual(new Set([press, kept]));
+    expect(m.shownAtInput).toEqual(atInput);
   });
 
   it("ends the reading at input that lands while a frame is on its way to be read", async () => {
@@ -257,6 +258,20 @@ const swaps = async (painted: Measures["painted"]) => {
 };
 
 describe("findLoadingIssues: first-paint-swap", () => {
+  it.each([false, true])("judges replacement geometry before the first input, not a later layout (%s)", async (swappedBeforeInput) => {
+    host = render("");
+    const more = control("More");
+    host.append(more);
+    const original = rectOf(more);
+    const away = { left: original.left + 1000, right: original.right + 1000, top: original.top, bottom: original.bottom };
+    recorded({
+      painted: new Map([drew(control("Settings"), 1, original), drew(more, 2)]),
+      shownAtInput: new Map([[more, swappedBeforeInput ? original : away]]),
+    });
+    more.style.transform = swappedBeforeInput ? "translateX(1000px)" : "none";
+    expect((await findLoadingIssues(budgets)).filter((issue) => issue.rule === "first-paint-swap")).toHaveLength(swappedBeforeInput ? 1 : 0);
+  });
+
   it("reports a control a later frame drew over the place of one the first frame drew, with no input, once", async () => {
     host = render("");
     const more = control("More");
@@ -337,7 +352,7 @@ describe("findLoadingIssues: first-paint-swap", () => {
     const more = control("More");
     host.append(more);
     const pressed = control("Decline");
-    recorded({ painted: new Map([drew(pressed, 1, rectOf(more)), drew(control("Settings"), 1, rectOf(more)), drew(more, 2)]), shownAtInput: new Set([pressed, more]) });
+    recorded({ painted: new Map([drew(pressed, 1, rectOf(more)), drew(control("Settings"), 1, rectOf(more)), drew(more, 2)]), shownAtInput: new Map([[pressed, rectOf(more)], [more, rectOf(more)]]) });
     expect((await findLoadingIssues(budgets)).filter((issue) => issue.rule === "first-paint-swap").map((issue) => issue.detail)).toEqual([
       'button "Settings" drew in the first frame, then button "More" took its place without input',
     ]);
