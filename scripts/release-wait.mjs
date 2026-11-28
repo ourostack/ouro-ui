@@ -49,8 +49,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const [sha, time] = line.split(" ");
     return { sha, time: Number(time) };
   });
+  const tagLines = releasedAt(tag);
+  const linesOf = (commit) => releasedAt(commit.sha);
+  let found = pendingWait(commits, tagLines, linesOf, Date.now());
   let runs = [];
-  try {
+  // Landing is never before the committer time, so only a wait that already looks over asks GitHub when it landed.
+  if (found?.over) try {
     const out = execFileSync("gh", ["api", `repos/${process.env.GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?event=push&branch=main&per_page=100`, "--jq", ".workflow_runs[] | [.head_sha, .created_at] | @tsv"], { encoding: "utf8" });
     runs = out.split("\n").filter(Boolean).map((line) => {
       const [sha, createdAt] = line.split("\t");
@@ -59,6 +63,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   } catch {
     // Without the runs the clock falls back to the committer time.
   }
-  const found = pendingWait(commits, releasedAt(tag), (commit) => releasedAt(commit.sha), Date.now(), LIMIT_MINUTES, runs);
+  if (found?.over) found = pendingWait(commits, tagLines, linesOf, Date.now(), LIMIT_MINUTES, runs);
   if (found) console.log(`${found.sha} ${found.minutes} ${found.over ? "over" : "under"}`);
 }
