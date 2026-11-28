@@ -21,4 +21,4 @@ jobs:
           node-version: 24
       - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - run: pnpm i --frozen-lockfile
-      - run: node --test --test-name-pattern='squircle-paint accepts native antialiasing' scripts/check/check-corners.test.mts
+      - run: node --test --test-name-pattern='squircle-paint (accepts native antialiasing|finds a native squircle)' scripts/check/check-corners.test.mts

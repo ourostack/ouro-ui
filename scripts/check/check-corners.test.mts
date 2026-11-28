@@ -597,6 +597,30 @@ test("squircle-paint accepts native antialiasing on a wrapped inline surface", a
   }
 });
 
+test("squircle-paint finds a native squircle's square border image", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const tab = await browser.newPage({ viewport: { width: 390, height: 300 }, deviceScaleFactor: 2 });
+  await bindCapture(tab);
+  try {
+    await tab.setContent(`<style>
+      body { margin: 0; background: white; }
+      .surface { position: absolute; left: 80px; top: 80px; width: 160px; height: 120px;
+        border: 8px solid transparent; border-image: linear-gradient(red, red) 8;
+        border-radius: 28px; corner-shape: squircle; }
+    </style><div class="surface"></div>`);
+    const findings = await tab.evaluate(findSquirclePaint);
+    assert.equal(findings.length, 1);
+    assert.match(findings[0]!.element, /div\.surface/);
+    await tab.locator(".surface").evaluate((element) => {
+      element.style.borderImage = "none";
+      element.style.borderColor = "red";
+    });
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+  } finally {
+    await browser.close();
+  }
+});
+
 test("squircle-paint separates distant fractional inline fragments and still finds a leaking end", async () => {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 390, height: 300 }, deviceScaleFactor: 2 });
