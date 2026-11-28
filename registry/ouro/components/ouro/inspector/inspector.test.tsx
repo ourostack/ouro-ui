@@ -180,6 +180,26 @@ describe("Inspector geometry", () => {
 
   const path = (index = 0) => outlines()[index]!.querySelector("path")!.getAttribute("d");
 
+  for (const fallback of [false, true]) {
+    it(`follows a squircle surface's corner instead of painting a square or a circular arc, ${fallback ? "fallback" : "native"}`, async () => {
+      const surface = component(100, 200, 200, 100);
+      // The fallback's border radius is only its enclosing circle; --sq-* holds the surface's actual radius.
+      surface.style.borderRadius = `${fallback ? 40 * 0.543 : 40}px`;
+      if (fallback) {
+        for (const corner of ["tl", "tr", "br", "bl"]) surface.style.setProperty(`--sq-${corner}`, "40px");
+      } else surface.style.setProperty("corner-shape", "squircle");
+      await xray();
+      await drawn(1);
+      const curve = outlines()[0]!.querySelector("path")!;
+      // The n=4 superellipse crosses the corner diagonal here, not at the square or circle's corner.
+      const diagonal = 40 * (1 - 2 ** -0.25) + 0.5;
+      expect(curve.isPointInStroke(new DOMPoint(diagonal, diagonal))).toBe(true);
+      expect(curve.isPointInStroke(new DOMPoint(0.5, 0.5))).toBe(false);
+      const circular = 40 * (1 - Math.SQRT1_2) + 0.5;
+      expect(curve.isPointInStroke(new DOMPoint(circular, circular))).toBe(false);
+    });
+  }
+
   it("breaks each edge of an outline where a line of text crosses it, a pixel wider on each side, and nowhere else", async () => {
     component(100, 200, 200, 100);
     // Across the top edge: a short line inside a long one, before it in the page; a line that
