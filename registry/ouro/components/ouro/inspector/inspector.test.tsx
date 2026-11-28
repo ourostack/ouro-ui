@@ -201,6 +201,7 @@ describe("Inspector geometry", () => {
       expect(curve.isPointInStroke(new DOMPoint(0.5, 0.5))).toBe(false);
       const circular = 40 * (1 - Math.SQRT1_2) + 0.5;
       expect(curve.isPointInStroke(new DOMPoint(circular, circular))).toBe(false);
+      expect(curve.isPointInStroke(new DOMPoint(0.5, 50))).toBe(true);
       if (fallback) {
         expect(document.elementFromPoint(100 + diagonal - 1, 200 + diagonal - 1)).not.toBe(surface);
         expect(document.elementFromPoint(100 + diagonal + 1, 200 + diagonal + 1)).toBe(surface);

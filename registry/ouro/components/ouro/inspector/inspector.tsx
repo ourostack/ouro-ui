@@ -417,7 +417,7 @@ function roundedFrame(box: DOMRect, style: CSSStyleDeclaration, radiusLength: Ra
         : `A${rx} ${ry} 0 0 1 ${end}`;
     return { start, curve };
   });
-  return corners.map(({ start, curve }, index) => `${index === 0 ? "M" : "L"}${start}${curve}`).join("");
+  return corners.map(({ start, curve }, index) => `${index === 0 ? "M" : "L"}${start}${curve}`).join("") + "Z";
 }
 
 // The frame's four edges as an SVG path in the outline's own pixels, with a gap wherever a line of
