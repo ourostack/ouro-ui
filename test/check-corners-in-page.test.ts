@@ -81,6 +81,33 @@ it("treats a picture clipped at the top corners as the frame's paint", () => {
   expect(findCornerIssues()).toEqual([]);
 });
 
+it("judges only the corners an image actually paints", async () => {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 40;
+  const pen = canvas.getContext("2d")!;
+  pen.fillStyle = "#789";
+  pen.fillRect(10, 10, 20, 20);
+  const transparent = canvas.toDataURL();
+  pen.fillRect(0, 0, 40, 40);
+  const opaque = canvas.toDataURL();
+  const root = render(`<div id="frame" style="position:relative;width:160px;height:120px;background:#345;border-radius:24px;corner-shape:squircle"><img id="image" alt="" src="${transparent}" style="position:absolute;inset:4px;width:152px;height:112px"></div>`);
+  const image = root.querySelector<HTMLImageElement>("#image")!;
+  await image.decode();
+  expect(findCornerIssues()).toEqual([]);
+  image.src = opaque;
+  await image.decode();
+  expect(findCornerIssues()[0]?.detail).toContain("top left");
+  image.style.objectFit = "contain";
+  expect(findCornerIssues()).toEqual([]);
+  image.style.objectPosition = "left top";
+  expect(findCornerIssues()[0]?.detail).toContain("top left");
+  expect(findCornerIssues()[0]?.detail).not.toContain("top right");
+  image.src = transparent;
+  await image.decode();
+  image.style.border = "1px solid red";
+  expect(findCornerIssues()[0]?.detail).toContain("top right");
+});
+
 it("reads elliptical, percentage, scaled and fallback radii on painted geometric siblings", () => {
   const root = render('<div id="area" style="position:relative;width:200px;height:160px;transform:scale(.8);transform-origin:top left"><div class="shell" style="position:absolute;inset:0;background:linear-gradient(red,blue);border-radius:32px / 24px;corner-shape:squircle"></div><div class="panel" style="position:absolute;inset:4px;background:rgba(255,255,255,.5);border-radius:28px / 20px;corner-shape:squircle"></div></div>');
   const panel = root.querySelector<HTMLElement>(".panel")!;
