@@ -90,6 +90,7 @@ describe("Ouro check's command", () => {
     const help = await run(["--help"]);
     assert.equal(help.code, 0);
     assert.match(help.out, /^ouro-check: checks every page/);
+    assert.match(help.out, /mismatched nested corners and paint beyond squircle curves/);
     assert.match(help.out, /--ready-event <name>\.\.\./);
     const wrong = await run(["--wat"]);
     assert.equal(wrong.code, 2);
@@ -258,6 +259,14 @@ module.exports = { chromium: { launch: async (options) => {
     assert.equal(badConfig.code, 2);
     // A press setting JSON leaves unchecked: a string would read as its letters, and 0 presses would turn inp off.
     for (const [config, message] of [
+      [{ windowRadius: -1 }, /"windowRadius" takes the native window corner radius as a non-negative number of CSS pixels/],
+      [{ windowRadius: "32" }, /"windowRadius" takes the native window corner radius as a non-negative number of CSS pixels/],
+      [{ windowBounds: { x: 0, y: -52, width: 390, height: 352 } }, /"windowBounds" also needs "windowRadius"/],
+      [{ windowRadius: 48, windowBounds: { x: 0, y: -52, width: 0, height: 352 } }, /"windowBounds" takes finite x and y and positive width and height/],
+      [{ windowRadius: 48, windowBounds: { x: "0", y: -52, width: 390, height: 352 } }, /"windowBounds" takes finite x and y and positive width and height/],
+      [{ windowInsets: { top: 52, right: 0, bottom: 0, left: 0 } }, /"windowInsets" also needs "windowRadius"/],
+      [{ windowRadius: 48, windowInsets: { top: -1, right: 0, bottom: 0, left: 0 } }, /"windowInsets" takes non-negative top, right, bottom and left/],
+      [{ windowRadius: 48, windowBounds: { x: 0, y: 0, width: 390, height: 300 }, windowInsets: { top: 0, right: 0, bottom: 0, left: 0 } }, /pass "windowBounds" or "windowInsets", not both/],
       [{ press: "button" }, /"press" takes a list of CSS selectors/],
       [{ press: ["[role=tab]", " "] }, /"press" takes a list of CSS selectors/],
       [{ pressRepeat: 0 }, /"pressRepeat" takes a whole number of presses, 1 or more/],
