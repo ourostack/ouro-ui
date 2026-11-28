@@ -2,7 +2,7 @@ import { useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { ThreadRail, type ThreadRailProps } from "@/registry/ouro/components/ouro/thread-rail/thread-rail";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -83,6 +83,17 @@ function Stateful({ returnFocus }: { returnFocus?: RefObject<HTMLElement | null>
 }
 
 describe("ThreadRail", () => {
+  it("keeps a visible edge in forced colors without drawing one otherwise", async () => {
+    const { rail } = await render(<ThreadRail label="Thread" autoFocus={false} onClose={noop} />);
+    expect(getComputedStyle(rail).borderInlineStartWidth).toBe("0px");
+    try {
+      await commands.emulateMedia({ forcedColors: "active" });
+      await expect.poll(() => getComputedStyle(rail).borderInlineStartWidth).not.toBe("0px");
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("keeps its fixed sizes at a compact --spacing", async () => {
     const { host, close } = await render(<ThreadRail label="Thread" onClose={noop} />);
     const icon = () => getComputedStyle(close.querySelector<SVGElement>("svg")!);

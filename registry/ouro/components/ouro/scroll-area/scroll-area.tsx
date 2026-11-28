@@ -167,11 +167,11 @@ function useUnnamedRegionCheck(viewportRef: { current: HTMLDivElement | null }, 
  * (pixels hidden), so a parent can draw a hairline once it is scrolled from the start. Its focus ring
  * is drawn over the content, so a header that sticks to the top never hides an edge of it.
  *
- * The viewport paints `--ouro-scroller-surface`, the fill of the surface behind it (the page's
- * `--background` by default; Card, Popover, Menu, Select, Combobox, Dialog and Sheet set their own), because
+ * The viewport paints `--ouro-scroller-surface` (`--muted` on the page by default; Card, Popover,
+ * Menu, Select, Combobox, Dialog and Sheet set their own), because
  * Chromium on Windows keeps a see-through scroller off the compositor where LCD text is on, and repaints
- * it on every scroll frame (ourostack/ouro-ui#2891). Where the scroller sits on any other fill, set
- * the token on it (`[--ouro-scroller-surface:var(--muted)]`); on glass, set it to `transparent`.
+ * it on every scroll frame (ourostack/ouro-ui#2891). Set the token to another theme surface when
+ * needed (`[--ouro-scroller-surface:var(--card)]`); on glass, set it to `transparent`.
  *
  * Use plain page scrolling instead for a page's main content, and `Dialog` or `Sheet`,
  * which scroll their own bodies, for long content in an overlay.
