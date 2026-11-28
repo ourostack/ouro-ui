@@ -370,6 +370,17 @@ it("treats a clipped full-size fill as the outer paint and checks a native windo
   expect(findCornerIssues({ windowRadius: 32 })[0]?.element).toContain("native window");
 });
 
+it("uses the clipping corner when a divider is on the opposite edge", () => {
+  const root = render('<div id="outer" style="position:relative;width:160px;height:120px;overflow:hidden;background:#345;border-radius:24px;corner-shape:squircle"><div id="bar" style="position:absolute;inset:0 0 auto;height:40px;background:#789;border-bottom:1px solid #123"></div></div>');
+  const bar = root.querySelector<HTMLElement>("#bar")!;
+  expect(findCornerIssues()).toEqual([]);
+  bar.style.borderTop = "1px solid #123";
+  expect(findCornerIssues().find((issue) => issue.element === "div#bar in div#outer")?.detail).toContain("top left");
+  bar.style.borderTop = "";
+  bar.style.boxShadow = "inset 0 0 0 2px #123";
+  expect(findCornerIssues().find((issue) => issue.element === "div#bar in div#outer")?.detail).toContain("top left");
+});
+
 it("compares the visible curves through an unpainted clipping layer", () => {
   const root = render(`<div id="outer" style="position:relative;width:200px;height:160px;box-shadow:0 2px 6px #0002;border-radius:17.376px;--sq-tl:32px;--sq-tr:32px;--sq-br:32px;--sq-bl:32px">
     <div id="clip" style="position:absolute;left:8px;top:8px;width:100px;height:100px;overflow:hidden"><div id="tile" style="position:absolute;inset:0;background:#789"></div></div>
