@@ -24,7 +24,7 @@ try {
       decoration: s.boxDecorationBreak,
       direction: s.direction,
     }];
-  }), null, 2));
+  })), null, 2));
 } finally {
   await browser.close();
   await server.close();
