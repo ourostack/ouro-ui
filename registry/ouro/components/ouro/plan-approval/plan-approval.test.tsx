@@ -113,6 +113,18 @@ describe("PlanApproval", () => {
     await expect.element(page.getByRole("textbox", { name: "How?" })).toBeVisible();
   });
 
+  it("comes back with its buttons and an empty field when the answer is cleared for a revised plan", async () => {
+    const view = await render(<PlanApproval title={title}>{plan}</PlanApproval>);
+    await userEvent.click(view.button("request-changes")!);
+    await userEvent.fill(view.field!, "Make it vegetarian.");
+    await view.rerender(<PlanApproval title={title} answer={{ decision: "changes-requested", by: "you" }}>{plan}</PlanApproval>);
+    await view.rerender(<PlanApproval title={title}>{plan}</PlanApproval>);
+    expect(view.field).toBeNull();
+    expect(view.button("approve")).not.toBeNull();
+    await userEvent.click(view.button("request-changes")!);
+    expect(view.field!.value).toBe("");
+  });
+
   it("shows the answer on its way as busy, and turns the other buttons off", async () => {
     const view = await render(<PlanApproval title={title} answering="approve">{plan}</PlanApproval>);
     expect(view.button("approve")!.getAttribute("aria-busy")).toBe("true");

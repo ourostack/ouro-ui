@@ -132,6 +132,16 @@ export function PlanApproval(props: PlanApprovalProps): JSX.Element {
   const requestRef = useRef<HTMLButtonElement>(null);
   const [editing, setEditing] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const answered = answer !== undefined;
+  // An answer settles the actions: when it is cleared for a revised plan, they come back closed and empty.
+  const [wasAnswered, setWasAnswered] = useState(answered);
+  if (answered !== wasAnswered) {
+    setWasAnswered(answered);
+    if (answered) {
+      setEditing(false);
+      setFeedback("");
+    }
+  }
   // Where focus goes once the person opens or cancels the field: the field, or back to Request changes.
   const focusAfter = useRef<"field" | "request" | undefined>(undefined);
   useLayoutEffect(() => {
@@ -153,7 +163,6 @@ export function PlanApproval(props: PlanApprovalProps): JSX.Element {
       actionsHeldFocus.current = element.contains(document.activeElement);
     };
   });
-  const answered = answer !== undefined;
   useLayoutEffect(() => {
     if (!answered || !actionsHeldFocus.current) return;
     // Stryker disable next-line BooleanLiteral,AssignmentOperator: only a later answer with focus on no element could tell, and focus then belongs on the answer anyway.
