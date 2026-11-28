@@ -4038,6 +4038,9 @@ test("install prep refreshes a changed base stylesheet from a checked base befor
   const block = ciJobs()["install-prep"];
   const key = block.match(/key: install-app-[^\n]*/)[0];
   assert.match(key, /hashFiles\('scripts\/install-delta\.mjs'\)/);
+  const restore = block.split("restore-keys: |")[1].split("\n").filter((line) => line.trim().startsWith("install-app-"));
+  assert.match(restore[0], /hashFiles\('scripts\/install-delta\.mjs'\)/);
+  assert.doesNotMatch(restore[1], /hashFiles\('scripts\/install-delta\.mjs'\)/);
   const add = block.slice(block.indexOf("name: Add the shipped tests"), block.indexOf("name: Pack the app"));
   assert.match(add, /refresh-plan/);
   assert.match(add, /base\.tar\.zst/);
