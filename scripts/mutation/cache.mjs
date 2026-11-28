@@ -239,6 +239,28 @@ export function testFilesFor(paths, rootDir = root) {
   return { own: [...own].sort(), wider: [...wider].filter((file) => !own.has(file)).sort() };
 }
 
+/**
+ * The key a shard's dry run (Stryker's first, unmutated run of every test file the shard needs) is
+ * kept under: a hash of everything that run reads. The mutated files themselves, every test file
+ * collected for them, the harness and plugin (`harnessFiles`, which holds the lockfile), every lib/
+ * and theme file and each module any of these import, the shard's mutated ranges, and the runner's
+ * settings (`settings`, the Stryker configuration as JSON). A push that changes any of them gets a
+ * new key, so its dry run runs again.
+ * @param {string[]} mutated repository-relative runtime files the shard mutates
+ * @param {string[]} tests the test files collected for them
+ * @param {string[]} ranges the shard's mutated ranges
+ * @param {string} settings
+ */
+export function dryRunKey(mutated, tests, ranges, settings, options = {}) {
+  const files = new Set([...dependencyFiles(mutated, { ...options, tests }), ...mutated, ...tests]);
+  const read = options.read ?? ((path) => readFileSync(join(root, path), "utf8"));
+  const exists = options.exists ?? ((path) => existsSync(join(root, path)));
+  const hash = createHash("sha256");
+  hash.update(dependencyHash([...files].filter(exists), read));
+  hash.update(`\0${[...ranges].sort().join(",")}\0${settings}`);
+  return hash.digest("hex").slice(0, 32);
+}
+
 /** A short hash of the files' paths and contents. */
 export function dependencyHash(files, read = (path) => readFileSync(join(root, path), "utf8")) {
   const hash = createHash("sha256");

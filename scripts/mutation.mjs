@@ -17,7 +17,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import { dirname, join, relative, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
-import { componentsDir, hangRates, libDir, planShards, pruneChangedFiles, recordSources, recordTests, runtimeSource, scopeReport, shardCost, shardCount, testFilesFor, testSeconds, unmeasuredSeconds } from "./mutation/cache.mjs";
+import { componentsDir, dryRunKey, hangRates, libDir, planShards, pruneChangedFiles, recordSources, recordTests, runtimeSource, scopeReport, shardCost, shardCount, testFilesFor, testSeconds, unmeasuredSeconds } from "./mutation/cache.mjs";
 import { ignoreReason } from "./mutation/plugins.mjs";
 
 export { runtimeSource, testFilesFor };
@@ -396,6 +396,16 @@ async function main(args) {
   );
   process.env["OURO_MUTATION_TESTS"] = JSON.stringify(testsByFile);
   process.env["OURO_MUTATION_EXCLUDED"] = JSON.stringify(excluded);
+  // The dry run is kept under a key over everything it reads (`dryRunKey`), so a later push to the
+  // same pull request whose files, tests and settings are unchanged reuses it.
+  const mutatedFiles = Object.keys(testsByFile);
+  process.env["OURO_MUTATION_DRYRUN_KEY"] = dryRunKey(
+    mutatedFiles,
+    [...new Set(Object.values(testsByFile).flatMap(({ own, wider }) => [...own, ...wider]))],
+    mutate,
+    readFileSync(fileURLToPath(import.meta.url), "utf8"),
+  );
+  process.env["OURO_MUTATION_DRYRUN_FILE"] = join(root, ".tmp/stryker-dry-run.json");
   const incrementalFile = join(root, ".tmp/stryker-incremental.json");
   const kept = existsSync(incrementalFile) ? JSON.parse(readFileSync(incrementalFile, "utf8")) : null;
   // Every runtime file the pull request changes, a deletion-only change too: what pruneChangedFiles
