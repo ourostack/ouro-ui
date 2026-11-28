@@ -359,7 +359,7 @@ test("the reduced run stands when the shards' merged coverage reaches 100%, and 
 });
 
 test("a change to a CI helper, a Node script test, another workflow or a baseline selects no component, and a shared suite or test kit still runs everything", () => {
-  for (const path of ["scripts/main-green.mjs", "scripts/workflows.test.mjs", ".github/workflows/release.yml", "test/__screenshots__/a/b-linux.png"]) {
+  for (const path of ["scripts/main-green.mjs", "scripts/workflows.test.mjs", ".github/workflows/release.yml", "test/__screenshots__/a/b-linux.png", "scripts/fixtures/interactive-components.json"]) {
     assert.equal(testImpact([path], fixture()).full, false, path);
   }
   for (const path of ["scripts/gen-docs.mts", "test/first-frame.test.tsx", "test/stories.tsx", ".github/workflows/ci.yml"]) {
