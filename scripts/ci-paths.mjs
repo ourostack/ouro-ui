@@ -62,7 +62,7 @@ export const scoped = [
 export const runsAll = {
   scripts: [
     "a11y-evidence/", "addresses.d.mts", "addresses.mjs", "adoption/", "agent-benchmark/", "agent-usability/", "apple-release.mjs", "attribution.mjs", "ax-docs.mts",
-    "branch-holds-pin.mjs", "browser-deps.sh", "catalog-groups.mts", "changes.mjs", "check/", "ci-paths.mjs", "ci-relevance.mjs", "claims.mjs", "components.mts", "conformance-exemptions.mjs", "control-matrix.mts",
+    "browser-deps.sh", "catalog-groups.mts", "changes.mjs", "check/", "ci-paths.mjs", "ci-relevance.mjs", "claims.mjs", "components.mts", "conformance-exemptions.mjs", "control-matrix.mts",
     "core-bundle.mts", "coverage-merge.mjs", "cross-kit/", "docs-summary.mts", "drift/", "fixtures/", "form-answer-impact.mjs", "gen-docs.mts", "generate.mjs",
     "generated-files.d.mts", "generated-files.mjs", "git-hooks/", "goto-timeout-reporter.mjs", "gradient-known.json", "headroom-ratchet.mjs", "headroom-reporter.mts", "headroom.d.mts", "headroom.mjs", "images/", "install-check.mjs", "install-folders.mts", "install-hooks.mjs",
     "kit-pin.mjs", "kits/", "latency-quiet.mjs", "latest-release.mjs", "local-test-gate.sh", "layout-animation-allowed.json", "links.mjs", "lint/", "mcp-app.mts", "mcp-app/", "mirror/", 
@@ -78,7 +78,7 @@ export const runsAll = {
     "__screenshots__/", "check-known.ts", "check-story.ts", "check-sweep.ts", "conformance/", "control-suite.tsx", "controls.ts", "fixtures/", "form-answer-fixture/",
     "form-answer.config.ts", "form-answer.probe.tsx", "incumbent-fixture/", "ax-standalone-fixture/", "install-fixture-next/", "install-fixture-tests/",
     "install-fixture-themes/", "install-fixture-upgrade/", "install-fixture/", "mcp-app/", "motion.ts", "scroll-rest.ts", "shadcn-stock.css", "slice-core.ts", "slice.ts", "stories.tsx",
-    "story-axe.ts", "story-costs.json", "story-selection.ts", "theme-fixtures.ts", "theme-fixtures/", "themes/", "warm-stories.ts",
+    "squircle-command.ts", "squircle-fallback.ts", "story-axe.ts", "story-costs.json", "story-selection.ts", "theme-fixtures.ts", "theme-fixtures/", "themes/", "warm-stories.ts",
   ],
   ".github": ["actions/", "copilot/", "dependabot.yml", "ouro-check.json", "ouro-current.json", "quarantine.json", "repeat-red-quarantine.json", "required-checks.json", "workflows/ci.yml", "workflows/screens.yml"],
 };
