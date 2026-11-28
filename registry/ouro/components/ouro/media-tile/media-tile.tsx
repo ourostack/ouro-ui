@@ -136,8 +136,6 @@ export interface MediaTileOwnProps {
    * as seen once a tenth of it is on screen, so a sliver doesn't count, and not while the page
    * is hidden. The first call waits until the browser has said whether the tile is on screen.
    * Changes are gathered once a frame, and it is never called twice with the same values.
-   * On unmount, the latest callback receives `(false, 0, 0)` so the app can stop receiving the picture.
-   * @claim "On unmount, the latest callback receives" registry/ouro/components/ouro/media-tile/media-tile.test.tsx verify:testExists(registry/ouro/components/ouro/media-tile/media-tile.test.tsx::MediaTile visibility > stops watching when it unmounts)
    * @claim "The first call waits until the" registry/ouro/components/ouro/media-tile/media-tile.test.tsx verify:testExists(registry/ouro/components/ouro/media-tile/media-tile.test.tsx::MediaTile visibility > calls nothing until the browser has said whether the tile is on screen, so it never starts unseen by mistake)
    * @claim "A tile counts as seen once a" registry/ouro/components/ouro/media-tile/media-tile.test.tsx verify:testExists(registry/ouro/components/ouro/media-tile/media-tile.test.tsx::MediaTile visibility > counts a tile as seen only once a tenth of it is on screen, so a sliver doesn't count)
    * @claim "and not while the page is hidden" registry/ouro/components/ouro/media-tile/media-tile.test.tsx verify:testExists(registry/ouro/components/ouro/media-tile/media-tile.test.tsx::MediaTile visibility > reports a hidden page as unseen at once, and seen again when it shows)
@@ -329,7 +327,6 @@ function useTileObservers(
       resize.disconnect();
       intersection?.disconnect();
       document.removeEventListener("visibilitychange", onPageVisibility);
-      if (watching) reportRef.current?.(false, 0, 0);
     };
   }, [tile, nameRef, watching]);
   return { photoSize, truncated };

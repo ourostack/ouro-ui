@@ -546,8 +546,15 @@ export function Button(props: ButtonProps): JSX.Element {
   // button, so the button's accessible name stays exactly its label.
   const wasLoading = useRef(loading);
   // A button that mounts already loading draws its spinner on the first frame; it fades in only when loading turns on later.
-  const [initialLoading, setInitialLoading] = useState(loading);
-  if (initialLoading && !loading) setInitialLoading(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(
+    () => {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMounted(true);
+    },
+    // Stryker disable next-line ArrayDeclaration: an effect that only sets a flag to true runs the same whatever its list holds.
+    [],
+  );
   useEffect(() => {
     if (loading && !wasLoading.current) announce(loadingLabel);
     wasLoading.current = loading;
@@ -618,7 +625,7 @@ export function Button(props: ButtonProps): JSX.Element {
         {children}
       </span>
       {EndIcon && <EndIcon aria-hidden="true" className={cn(iconClass, fade, "-me-0.5")} />}
-      {loading && <Spinner fadeIn={!initialLoading} />}
+      {loading && <Spinner fadeIn={mounted} />}
     </>
   );
 

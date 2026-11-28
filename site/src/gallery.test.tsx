@@ -2,7 +2,7 @@ import { lazy, StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderFixture, renderPage, rerenderFixture, scan, setScheme, settle } from "../test/render";
-import { pageDemos as demos } from "./docs/demos";
+import { demos } from "./docs/demos";
 import { LiveDemo, moduleLoadFailed } from "./components/live-demo";
 
 const originalForm = demos["form"]!;

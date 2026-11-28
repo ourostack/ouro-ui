@@ -1,5 +1,5 @@
 import { Component, Suspense, useEffect, useLayoutEffect, useRef, useSyncExternalStore, type JSX, type ReactNode, type RefObject } from "react";
-import { pageDemos as demos } from "../docs/demos";
+import { demos } from "../docs/demos";
 import { href } from "../routes";
 
 /**

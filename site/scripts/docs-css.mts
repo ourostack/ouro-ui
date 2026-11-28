@@ -9,7 +9,7 @@
 // manifest stays as it is.
 //
 //   import { docsDelta } from "./docs-css.mts"   the minified delta for a demo file, or "" when the shell suffices
-import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -104,8 +104,6 @@ function shellBuild(): Promise<{ candidates: Set<string>; declarations: Map<stri
  */
 export async function docsDelta(demo: string | undefined): Promise<string> {
   if (!demo) return "";
-  const pageDemo = demo.replace(/\.demo\.tsx$/, ".page-demo.tsx");
-  if (existsSync(pageDemo)) demo = pageDemo;
   const { candidates, declarations } = await shellBuild();
   const excluded = unreached(reachable([entry, docsPage, demo], docsPage));
   const compiled = await compileWith(excluded);
