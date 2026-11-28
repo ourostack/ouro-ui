@@ -45,11 +45,49 @@ it("checks a marked surface when it is inset from its parent", () => {
   }
 });
 
+it("does not treat a table row's dividing line as a painted corner", () => {
+  const root = render('<div style="width:160px;height:120px;background:#eef4fa;border-radius:24px;corner-shape:squircle;overflow:hidden"><table style="border-collapse:collapse;width:100%"><tbody><tr style="border-bottom:1px solid #789"><td style="height:28px">Example</td></tr></tbody></table></div>');
+  const row = root.querySelector<HTMLElement>("tr")!;
+  expect(findCornerIssues().map((issue) => issue.element)).not.toContain("tr in div");
+  row.style.background = "#789";
+  expect(findCornerIssues().map((issue) => issue.element)).toContain("tr in div");
+});
+
 it("compares painted corners against the actual browser pixels", async () => {
   render('<div id="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"><div style="position:absolute;inset:0;background:#f40"></div></div>');
   const issues = await findSquirclePaint();
   expect(issues.map((issue) => issue.element)).toContain("div#surface");
   expect(issues.find((issue) => issue.element === "div#surface")?.detail).toContain("top left");
+}, paintTimeout);
+
+it("ignores a neighboring raster change while finding real paint beyond the box", async () => {
+  const root = render('<div id="surface" style="position:relative;width:160px;height:120px;background:white;border-radius:28px;corner-shape:squircle;box-shadow:0 4px 12px #0008"></div>');
+  const surface = root.querySelector<HTMLElement>("#surface")!;
+  const capture = state.__ouroPaintCapture!;
+  let leaking = false;
+  state.__ouroPaintCapture = async (clip) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = clip.width;
+    canvas.height = clip.height;
+    const context = canvas.getContext("2d")!;
+    context.fillStyle = "rgb(120,130,140)";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    const hidden = getComputedStyle(surface).opacity === "0" || surface.hasAttribute("data-ouro-paint-solo");
+    const masked = surface.style.getPropertyValue("clip-path") !== "";
+    if ((!leaking && hidden) || (leaking && !hidden && !masked)) {
+      const rect = surface.getBoundingClientRect();
+      context.fillStyle = leaking ? "#c20" : "rgb(126,136,146)";
+      context.fillRect(rect.left - clip.x - 10, rect.top - clip.y - 10, 5, 5);
+    }
+    return canvas.toDataURL();
+  };
+  try {
+    expect(await findSquirclePaint()).toEqual([]);
+    leaking = true;
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#surface");
+  } finally {
+    state.__ouroPaintCapture = capture;
+  }
 }, paintTimeout);
 
 it("detects visible paint outside a low-opacity surface", async () => {
