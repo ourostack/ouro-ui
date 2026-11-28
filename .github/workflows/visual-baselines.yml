@@ -1,17 +1,20 @@
-# Regenerates the screenshot baselines on Linux, the renderer CI compares against, and
-# uploads them as the `visual-baselines` artifact. To refresh them: run this workflow on
-# your branch, download the artifact with `gh run download <run-id> -n visual-baselines
-# -D test/__screenshots__`, review the images, and commit them.
-name: Visual baselines
+name: Wordmark radius verification
 on:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  baselines:
-    # Pinned: the baselines are only valid for the image that rendered them. Keep this
-    # and the `visual` job in ci.yml on the same image.
+  verify:
     runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    container:
+      image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      env:
+        OURO_SYSTEM_PACKAGES: image
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [normal, missing, all-sizes]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -20,17 +23,30 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: pnpm
       - run: pnpm i --frozen-lockfile
-      - uses: ./.github/actions/playwright-browsers
-        with:
-          browsers: chromium webkit
-      # Write fresh references, then compare against them in a second run, so a baseline
-      # that does not reproduce on the same machine fails here instead of in CI.
-      - run: pnpm test:visual --update
-      - run: pnpm test:visual
+      - name: Check the real and mutated wordmark
+        env:
+          VARIANT: ${{ matrix.variant }}
+        shell: bash
+        run: |
+          if [ "$VARIANT" != normal ]; then
+            node -e 'const fs = require("node:fs"); const file = "registry/ouro/components/ouro/theme-picker/theme-picker.tsx"; const text = fs.readFileSync(file, "utf8"); const original = `size === "sm" && "rounded-[max(0px,calc(var(--ouro-control-r)-var(--ouro-tp-inset)))]"`; if (!text.includes(original)) throw new Error("wordmark condition missing"); const replacement = `${process.env.VARIANT === "missing" ? "false" : "true"} && "rounded-[max(0px,calc(var(--ouro-control-r)-var(--ouro-tp-inset)))]"`; fs.writeFileSync(file, text.replace(original, replacement));'
+          fi
+          set +e
+          pnpm exec vitest run registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx --project ouro-chromium --project ouro-webkit -t "nests the chosen wordmark's corners inside the trigger" --reporter=verbose > wordmark.log 2>&1
+          result=$?
+          set -e
+          cat wordmark.log
+          if [ "$VARIANT" = normal ]; then
+            test "$result" -eq 0
+          else
+            test "$result" -ne 0
+            grep -q 'AssertionError' wordmark.log
+            grep -q 'ouro-chromium' wordmark.log
+            grep -q 'ouro-webkit' wordmark.log
+          fi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
         with:
-          name: visual-baselines
-          path: test/__screenshots__/
-          if-no-files-found: error
+          name: wordmark-${{ matrix.variant }}
+          path: wordmark.log
