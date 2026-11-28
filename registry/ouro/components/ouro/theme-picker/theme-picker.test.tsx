@@ -546,6 +546,29 @@ describe("ThemePicker popover", () => {
     await expect.poll(() => document.activeElement).toBe(trigger);
   });
 
+  it("centres the chosen name on its cap height in the button, and every option's in its tile, whatever the face", async () => {
+    const el = await render(
+      <>
+        <ThemePicker presets={three} presentation="popover" defaultPreset="dusk" />
+        <ThemePicker presets={three} size="md" storageKey="other" />
+      </>,
+    );
+    const [popover, inline] = [...el.querySelectorAll<HTMLElement>('[data-ouro="theme-picker"]')];
+    const middle = (box: Element) => {
+      const r = box.getBoundingClientRect();
+      return r.top + r.height / 2;
+    };
+    const trigger = popover!.querySelector<HTMLElement>('[data-ouro-part="trigger"]')!;
+    const shown = [...trigger.querySelectorAll<HTMLElement>("[data-shows]")].find((wordmark) => !wordmark.hidden)!;
+    const names = [shown, ...inline!.querySelectorAll<HTMLElement>('[data-slot="theme-picker-wordmark"]')].map((box) => box.querySelector<HTMLElement>('[data-slot="theme-picker-name"]')!);
+    for (const name of names) {
+      // Trimmed to its capitals and baseline, the name's own box is the capitals, so the tile's centring centres them.
+      expect(Math.abs(middle(name) - middle(name.closest('[data-slot="theme-picker-wordmark"]')!))).toBeLessThan(0.5);
+      expect(getComputedStyle(name).getPropertyValue("text-box-trim")).toBe("trim-both");
+    }
+    expect(Math.abs(middle(names[0]!) - middle(trigger))).toBeLessThan(0.5);
+  });
+
   it("is flat: its panel has a hairline and no shadow", async () => {
     const el = await render(<ThemePicker presets={presets} presentation="popover" />);
     const popup = await openPopover(el);

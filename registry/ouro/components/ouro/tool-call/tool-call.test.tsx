@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { ToolCall } from "@/registry/ouro/components/ouro/tool-call/tool-call";
 import { formatDuration, toolCallStatusFix } from "@/registry/ouro/components/ouro/tool-call/tool-call-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -70,6 +70,25 @@ describe("ToolCall", () => {
     const plain = await render(<ToolCall name="Read file" detail="recipes/roast.md" status="done" />);
     expect(plain.trigger).toBeNull();
     expect(plain.part("row")!.tagName).toBe("DIV");
+  });
+
+  it("shows output on a surface without a second border, keeping its edge in forced colours", async () => {
+    const { call } = await render(
+      <div className="dark" data-test-frame="" style={{ background: "var(--background)", border: "1px solid var(--border)", padding: 16 }}>
+        <ToolCall name="Ran command" status="done" output="Result" defaultOpen />
+      </div>,
+    );
+    const output = call.querySelector<HTMLElement>('[data-slot="tool-call-output"]')!;
+    const frame = call.closest<HTMLElement>("[data-test-frame]")!;
+    expect(getComputedStyle(output).backgroundColor).not.toBe(getComputedStyle(frame).backgroundColor);
+    expect(getComputedStyle(output).borderTopColor).toBe("rgba(0, 0, 0, 0)");
+    try {
+      await commands.emulateMedia({ forcedColors: "active" });
+      expect(getComputedStyle(output).borderTopColor).toBe(themed("CanvasText"));
+      expect(parseFloat(getComputedStyle(output).borderTopWidth)).toBeGreaterThanOrEqual(1);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
   });
 
   it("keeps its own state with no onOpenChange", async () => {

@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 import { chromium } from "playwright";
-import { blank, BUDGETS, check, goTo, summary, transportIssues, type Report } from "../../registry/ouro/check/run.ts";
+import { blank, BUDGETS, caption, check, goTo, summary, transportIssues, type Report } from "../../registry/ouro/check/run.ts";
 
 import { globToRegExp, listPages, serve } from "../../registry/ouro/check/serve.ts";
 import { dir, fixtures, page, quiet, site, two } from "./kit.mts";
@@ -144,6 +144,25 @@ describe("Ouro check's server", () => {
 });
 
 describe("Ouro check's design rules", () => {
+  test("reports an inset framed surface with the surface-token fix at both sizes and themes", async () => {
+    const markup = (fixed: boolean) => `
+      <div style="width:340px;height:200px;padding:24px;overflow:hidden;border:1px solid var(--line);background:var(--shell)">
+        <div id="card" style="width:220px;height:100px;${fixed ? "" : "border:1px solid var(--line);"}background:var(--card)">A collection</div>
+      </div>`;
+    const styles = "<style>:root{--shell:#ddd;--card:#fff;--line:#888}.dark{--shell:#202020;--card:#555;--line:#888}</style>";
+    const folder = site("inset-frame", {
+      "broken.html": page(markup(false), styles),
+      "fixed.html": page(markup(true), styles),
+    });
+    const report = await check({ targets: [folder], out: dir("inset-frame"), sizes: [[390, 844], [1280, 800]], themes: ["light", "dark"], config: { walk: false }, measured: false, axe: false, chromium, log: quiet });
+    const findings = report.findings.filter((finding) => finding.rule === "nested-frame");
+    assert.equal(findings.length, 4, JSON.stringify(findings));
+    assert.ok(findings.every((finding) => finding.page.includes("broken.html") && finding.gated));
+    assert.deepEqual(new Set(findings.map(({ width, theme }) => `${width} ${theme}`)), new Set(["390 light", "390 dark", "1280 light", "1280 dark"]));
+    assert.ok(findings.every((finding) => /\): .*theme surface tokens/.test(caption(finding))));
+    assert.ok(findings.every((finding) => /for mismatched corners, .*radius/.test(caption(finding))));
+  });
+
   // Ari's findings of 2026-11-09, each as a fixture page that reproduces it: the check fails on each and passes once it
   // is fixed (each rule's pass page, in the test above).
   test("fails each seed case where a person saw it, with numbers that say why", async () => {
