@@ -44,13 +44,13 @@ Ouro UI is a complete kit for agents to build delightful interfaces for people a
 
 Ouro HX for web is this repository's part of Ouro UI: the components for the screens people use, on the web. Ouro AX ("Ouro AX" below) is for the doors agents use.
 
-Check what you build first: build your app, run node scripts/ouro/check/check.ts <built folder> (from the ouro-check item: npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.570) and fix what it reports. It installs under scripts/ouro/, outside your TypeScript project, so tsc -b skips it. It imports the Ouro AX kit as #ouro-ax/<file>: npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*" adds that once (src/lib is your lib folder). It opens your pages at screen sizes from a phone to a wide desktop, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, narrow text (prose a max-width holds well short of its column), and long lines only where you declare a measure.[^check] Long lines are opt-in, because a fixed text measure is a design choice.[^long-lines] Declare one in ouro-check.json only where your design or the request sets it, and don't cap text width just to quiet the check. A clean report is the floor: what measurement can decide isn't broken. It doesn't show that people understand the screen; before you call a screen good, watch a few people do its task.[^floor] Guide: https://ui.ouroboros.bot/docs/guardrails.md
+Check what you build first: build your app, run node scripts/ouro/check/check.ts <built folder> (from the ouro-check item: npx shadcn@latest add ourostack/ouro-ui/ouro-check#v1.3.646) and fix what it reports. It installs under scripts/ouro/, outside your TypeScript project, so tsc -b skips it. It imports the Ouro AX kit as #ouro-ax/<file>: npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*" adds that once (src/lib is your lib folder). It opens your pages at screen sizes from a phone to a wide desktop, light and dark, and finds overlap, sideways scroll, clipped text, blurry pictures and serious axe-core violations, narrow text (prose a max-width holds well short of its column), and long lines only where you declare a measure.[^check] Long lines are opt-in, because a fixed text measure is a design choice.[^long-lines] Declare one in ouro-check.json only where your design or the request sets it, and don't cap text width just to quiet the check. A clean report is the floor: what measurement can decide isn't broken. It doesn't show that people understand the screen; before you call a screen good, watch a few people do its task.[^floor] Guide: https://ui.ouroboros.bot/docs/guardrails.md
 
 Ask of every pixel, control, command, flag and line of output whether the people who made the Mac and the iPhone would ship it. Start from the jobs people do, not a reference product's items, and let each element earn its place. Before a person sees a screen, a mock or a capture of either, pass the beauty gate: put it beside its references, ask independent critics, and fix until they approve. Before agents rely on a door, pass the AX gate: fresh agents do real jobs with only the door, then independent critics read the transcripts (https://ui.ouroboros.bot/docs/design-craft.md).
 
 ## Install
 
-In an existing Vite or Next.js app with Tailwind CSS v4[^tailwind-4] and an "@/*" path alias, run shadcn init once, with the Base UI base and without -t/--template, register the @ouro namespace, then add items. The namespace serves the newest release (the same code as #v1.3.570)[^namespace] and installs much faster than the GitHub addresses, which fetch each file from GitHub:
+In an existing Vite or Next.js app with Tailwind CSS v4[^tailwind-4] and an "@/*" path alias, run shadcn init once, with the Base UI base and without -t/--template, register the @ouro namespace, then add items. The namespace serves the newest release (the same code as #v1.3.646)[^namespace] and installs much faster than the GitHub addresses, which fetch each file from GitHub:
 
 ```sh
 npx shadcn@latest init --base base --preset nova --yes --no-monorepo
@@ -63,10 +63,10 @@ npx shadcn@latest add @ouro/ouro-base @ouro/dialog @ouro/form --yes
 To pin a release instead, use the GitHub addresses:
 
 ```sh
-npx shadcn@latest search 'ourostack/ouro-ui#v1.3.570'      # list the items
-npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.570'  # read one item
-npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.570
-npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.570     # install a component
+npx shadcn@latest search 'ourostack/ouro-ui#v1.3.646'      # list the items
+npx shadcn@latest view 'ourostack/ouro-ui/dialog#v1.3.646'  # read one item
+npx shadcn@latest add ourostack/ouro-ui/ouro-base#v1.3.646
+npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.646     # install a component
 ```
 
 - Add ouro-base once, before the first component. No component installs it, so no later add changes the app's stylesheet (in v0.7.0 every component still installs it, and an add can rewrite the stylesheet).[^ouro-base-only][^v0.7.0] Without it, overlays have no backdrop or motion and fields no border, and in development the first component to mount logs the command to run.[^theme-check]
@@ -74,10 +74,10 @@ npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.570     # install a componen
 - Starting from nothing? Set up a new Vite or Next.js app first: https://ui.ouroboros.bot/docs/installing.md#start-a-new-app
 - A new Vite app needs @tailwindcss/vite, @import "tailwindcss";, a Vite @ alias, and "paths": { "@/*": ["./src/*"] } in both tsconfig.json and tsconfig.app.json (no baseUrl on TypeScript 6 or 7) before init: shadcn reads the root file, and tsc -b builds the app one.[^vite-app]
 - --preset nova lets init run without prompts. It sets shadcn's starting theme, font and icons, which Ouro components read like any shadcn theme. The install test runs nova and vega; other presets are untested.
-- A GitHub source is owner/repo#ref; an item is owner/repo/item#ref. @v1.3.570, github: and /tree/ URLs do not work.
-- A release tag (#v1.3.570) installs the item and every Ouro dependency at that tag.[^release-pins] Every install needs a release tag or @ouro: main has no registry.json, so an address without a ref fails with "did not return a root registry.json file".[^main-no-registry]
+- A GitHub source is owner/repo#ref; an item is owner/repo/item#ref. @v1.3.646, github: and /tree/ URLs do not work.
+- A release tag (#v1.3.646) installs the item and every Ouro dependency at that tag.[^release-pins] Every install needs a release tag or @ouro: main has no registry.json, so an address without a ref fails with "did not return a root registry.json file".[^main-no-registry]
 - Components land in components/ouro/<component>/ and the helpers they import in lib/ouro/, one file each.[^lands] Ouro UI never writes to components/ui/, so do not pass --overwrite on a first install.[^not-ui]
-- Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.570 ourostack/ouro-ui/dialog-tests#v1.3.570), or ouro-tests for all of them.[^ouro-tests] They need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later, axe-core 4.13.0 or later and Storybook 10.2.10 or later, and never change a version the app already has (v0.7.0's items still carry versions: after add, restore the versions you had pinned).[^minimums][^v0.7.0] Ouro UI's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one.[^vitest-5][^minimums] The ouro-testing install message lists the config files to add.
+- Tests are optional: add <item>-tests beside the item (npx shadcn@latest add ourostack/ouro-ui/dialog#v1.3.646 ourostack/ouro-ui/dialog-tests#v1.3.646), or ouro-tests for all of them.[^ouro-tests] They need Vitest 4.1.11 or later in browser mode, Playwright 1.58.1 or later, axe-core 4.13.0 or later and Storybook 10.2.10 or later, and never change a version the app already has (v0.7.0's items still carry versions: after add, restore the versions you had pinned).[^minimums][^v0.7.0] Ouro UI's own CI runs them on Vitest 5 only; Vitest 4 is the stated minimum, not a tested one.[^vitest-5][^minimums] The ouro-testing install message lists the config files to add.
 
 ## Changing a component
 
@@ -92,8 +92,8 @@ Ouro AX is the part of Ouro UI for agents: it is for the interfaces an agent use
 - The evaluation gate: a claim is `must` only when an agent evaluation shows agents failing without it, or when it guards against a stated safety, compatibility or integrity hazard.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.570         # the kit and the X-ray, in lib/ouro/ax/ and scripts/ouro/ax/
-npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.570   # with their node:test tests
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax#v1.3.646         # the kit and the X-ray, in lib/ouro/ax/ and scripts/ouro/ax/
+npx shadcn@latest add ourostack/ouro-ui/ouro-ax-tests#v1.3.646   # with their node:test tests
 ```
 
 Its Node-only parts (the X-ray, the flow runner, the surfaces check and their tests) install under scripts/ouro/ax/, outside your TypeScript project, so tsc -b does not read them. They import the kit as #ouro-ax/<file>: npm pkg set "imports.#ouro-ax/*=./src/lib/ouro/ax/*" adds that once.
