@@ -194,7 +194,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     image.close();
     return { width: canvas.width, height: canvas.height, data: context.getImageData(0, 0, canvas.width, canvas.height).data };
   };
-  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, strokePads: { x: number; y: number }[], clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean, otherFragments: DOMRect[], fragmented: boolean, attributable: (x: number, y: number) => boolean, restored: string | null, withoutEffects: string | null, roundedEffects: boolean[], clippedEffects: boolean[]) => {
+  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, strokePads: { x: number; y: number }[], clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean, ownBorderImage: boolean, otherFragments: DOMRect[], fragmented: boolean, attributable: (x: number, y: number) => boolean, restored: string | null, withoutEffects: string | null, roundedEffects: boolean[], clippedEffects: boolean[]) => {
     const [a, b, c, own, noBadges, noStrokes, stable, noEffects] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null, withoutBadges ? pixels(withoutBadges) : null, withoutStrokes ? pixels(withoutStrokes) : null, restored ? pixels(restored) : null, withoutEffects ? pixels(withoutEffects) : null]);
     if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height)) || (noBadges && (a.width !== noBadges.width || a.height !== noBadges.height)) || (noStrokes && (a.width !== noStrokes.width || a.height !== noStrokes.height)) || (stable && (a.width !== stable.width || a.height !== stable.height)) || (noEffects && (a.width !== noEffects.width || a.height !== noEffects.height))) {
       throw new Error("squircle-paint screenshots changed size during measurement");
@@ -262,7 +262,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const edgeX = Math.min(Math.abs(px - rect.left), Math.abs(px - rect.right)) <= clip.width / a.width / 2 + 0.001;
           const edgeY = Math.min(Math.abs(py - rect.top), Math.abs(py - rect.bottom)) <= clip.height / a.height / 2 + 0.001;
           if ((outsideX && edgeX) || (outsideY && edgeY) || (own && difference(a.data, own.data, index) < 2 && (edgeX || edgeY))) continue;
-          const delta = difference(a.data, fragmented ? c.data : own && (native || outsideCorner) ? own.data : outsideCorner ? c.data : b.data, index);
+          const ownReference = own && !ownBorderImage && (native || outsideCorner);
+          const reference = fragmented && !(native && ownReference) ? c.data : ownReference ? own.data : outsideCorner ? c.data : b.data;
+          const delta = difference(a.data, reference, index);
           const behind = difference(b.data, c.data, index);
           if (delta < 2 || (!fragmented && !outsideCorner && behind > 4)) continue;
           if ((outsideCorner || clippedEffects[cornerIndex]) && noEffects && roundedEffects[cornerIndex] && difference(a.data, noEffects.data, index) >= 2 && difference(noEffects.data, c.data, index) < 2) continue;
@@ -349,7 +351,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
   const hasPaint = (element: Element, corner?: number) => {
     if (element.matches("img, video, canvas, svg")) return true;
     const paintedStyle = (style: CSSStyleDeclaration) => {
-      if (style.backgroundImage !== "none" || alpha(style.backgroundColor) > 0 || style.boxShadow !== "none" ||
+      if (style.backgroundImage !== "none" || style.borderImageSource !== "none" || alpha(style.backgroundColor) > 0 || style.boxShadow !== "none" ||
         (style.backdropFilter || "none") !== "none") return true;
       if (style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0 && alpha(style.outlineColor) > 0) return true;
       const sides = corner === undefined ? ["Top", "Right", "Bottom", "Left"] as const :
@@ -385,6 +387,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     const style = getComputedStyle(el);
     const transform = style.transform;
     const ownEffects = style.boxShadow !== "none" || style.outlineStyle !== "none";
+    const ownBorderImage = style.borderImageSource !== "none";
     const scaleX = bounds.width / initial.width;
     const scaleY = bounds.height / initial.height;
     const inlineRects = style.display === "inline" ? [...el.getClientRects()] : [];
@@ -695,7 +698,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               try {
                 for (const fragment of fragments) {
                   const otherFragments = fragments.filter((other) => other !== fragment).map((other) => other.rect);
-                  const result = await differences(actual, masked, hidden, solo, withoutBadges, badges, withoutStrokes, strokes, clip, fragment.rect, fragment.width, fragment.height, fragment.corners, initial.native, otherFragments, fragmented, attributable, restored, withoutEffects, roundedEffects, clippedEffects);
+                  const result = await differences(actual, masked, hidden, solo, withoutBadges, badges, withoutStrokes, strokes, clip, fragment.rect, fragment.width, fragment.height, fragment.corners, initial.native, ownBorderImage, otherFragments, fragmented, attributable, restored, withoutEffects, roundedEffects, clippedEffects);
                   if (result) return { ...result, x: Math.round(result.x + fragment.rect.left - r.left), y: Math.round(result.y + fragment.rect.top - r.top) };
                 }
                 return null;
