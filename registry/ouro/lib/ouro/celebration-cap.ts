@@ -77,7 +77,7 @@ function recordCelebration(key: string, cap: CelebrationCap, now: number): void 
  * @internal
  */
 function takeCelebration(key: string, cap: CelebrationCap, now: number): boolean {
-  if (!canCelebrate(key, cap, now)) return false;
+  if ((!canCelebrate(key, cap, now))) return false;
   recordCelebration(key, cap, now);
   return true;
 }

@@ -20,7 +20,7 @@ function halveShown<T>(list: readonly T[], shown: (item: T) => boolean, before: 
       if (middle + offset < high && shown(list[middle + offset]!)) at = middle + offset;
       else if (shown(list[middle - offset]!)) at = middle - offset;
     }
-    if (at === -1) return high;
+    if ((at === -1)) return high;
     if (before(list[at]!)) low = at + 1;
     else high = at;
   }

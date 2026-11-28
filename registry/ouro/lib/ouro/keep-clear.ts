@@ -34,7 +34,7 @@ function keepClear(element: HTMLElement, selector: string): () => void {
   });
   page.observe(document.body, { childList: true, subtree: true, attributes: true });
   addEventListener("resize", place);
-  place();
+  (place());
   return () => {
     page.disconnect();
     removeEventListener("resize", place);
