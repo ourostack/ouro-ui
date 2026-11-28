@@ -188,15 +188,17 @@ test("squircle-paint passes adjacent native buttons at a fractional edge", async
   const tab = await context.newPage();
   await bindCapture(tab);
   try {
-    await tab.setContent(`<style>
+    for (const [first, second] of [[125.484375, 116.90625], [129.171875, 99.828125]]) {
+      await tab.setContent(`<style>
       body { margin: 0; background: rgb(247,245,240); }
       .row { display: flex; position: absolute; left: 16px; top: 40px; }
       button { position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center;
         box-sizing: border-box; height: 44px; border: 1px solid transparent; border-radius: 6px;
         corner-shape: squircle; background: rgb(11,110,79); color: white; }
       .label { display: inline-flex; isolation: isolate; }
-    </style><div class="row"><button style="width:125.484375px"><span class="label">First</span></button><button style="width:116.90625px"><span class="label">Second</span></button></div>`);
-    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+    </style><div class="row"><button style="width:${first}px"><span class="label">First</span></button><button style="width:${second}px"><span class="label">Second</span></button></div>`);
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${first}px beside ${second}px`);
+    }
   } finally {
     await browser.close();
   }

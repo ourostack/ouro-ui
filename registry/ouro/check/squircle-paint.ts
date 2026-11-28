@@ -247,9 +247,10 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
           const r = el.getBoundingClientRect();
           const margin = 32;
-          const x = Math.max(0, r.left - margin);
-          const y = Math.max(0, r.top - margin);
-          const clip = { x, y, width: Math.min(r.right + margin, innerWidth) - x, height: Math.min(r.bottom + margin, innerHeight) - y };
+          // Screenshots round fractional clips; integral bounds keep their pixels aligned to the viewport.
+          const x = Math.max(0, Math.floor(r.left - margin));
+          const y = Math.max(0, Math.floor(r.top - margin));
+          const clip = { x, y, width: Math.min(Math.ceil(r.right + margin), innerWidth) - x, height: Math.min(Math.ceil(r.bottom + margin), innerHeight) - y };
           if (clip.width < 1 || clip.height < 1) continue;
           const active = layers.filter((layer) => layer.el === el || !covers(layer.el, r));
           const actual = await capture(clip);
