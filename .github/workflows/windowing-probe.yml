@@ -1,31 +1,20 @@
-name: Windowing probe
-# Probe: runs message-list.windowing.test.tsx in ouro-chromium repeatedly, once on a quiet runner and once under controlled CPU
-# load (scripts/load.mjs, at most the runner's cores minus two, killed on every exit path), printing each run's time and, on a
-# hang, the wait that was in flight. Dispatch by hand only; never a push or a pull request. Remove it once the cause is fixed.
+name: Corner repair validation
 on:
   workflow_dispatch:
-    inputs:
-      runs:
-        description: Runs in each mode
-        required: false
-        default: "30"
-        type: string
 permissions:
   contents: read
 jobs:
-  measure:
+  verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 150
+    timeout-minutes: 25
     container:
       image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
-      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
     strategy:
-      max-parallel: 2
       fail-fast: false
       matrix:
-        mode: [unloaded, loaded]
+        kind: [geometry, segment, apple]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -34,10 +23,14 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: ""
       - run: pnpm i --frozen-lockfile
-      - name: Measure
+      - name: Run changed corner cases
+        shell: bash
         env:
-          MODE: ${{ matrix.mode }}
-          RUNS: ${{ inputs.runs }}
-        run: node scripts/probe-windowing.mjs "$MODE" "$RUNS" 240
+          KIND: ${{ matrix.kind }}
+        run: |
+          case "$KIND" in
+            geometry) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium --project ouro-webkit --shard=1/1 --no-passWithNoTests -t 'clipping corner|larger painted corner|visible curves through an unpainted|clipped full-size fill|selected segment and its shadow' ;;
+            segment) pnpm exec vitest run registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx registry/ouro/components/ouro/segmented-control/segmented-control.glass.test.tsx --project ouro-chromium --project ouro-webkit --shard=1/1 --no-passWithNoTests ;;
+            apple) pnpm exec vitest run site/src/apple/apple.test.tsx --project site -t 'continues the off-screen annotation' --no-passWithNoTests ;;
+          esac
