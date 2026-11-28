@@ -334,6 +334,11 @@ describe("findDesignIssues: nested-frame", () => {  it("finds a frame hugging a 
           <div style="height:100px"><textarea aria-label="Message" style="width:95%;height:45px"></textarea><button>Send</button></div>
           <div role="group" aria-label="Attachments" style="height:70px"><button>Remove file</button></div>
         </div>
+        <div id="compact-editor" style="width:300px;height:140px;border:1px solid #888;background:#fff">
+          <div style="height:45px"><button>Bold</button></div>
+          <div style="height:45px"><textarea aria-label="Reply" style="box-sizing:border-box;width:75%;height:45px"></textarea><button>Send</button></div>
+          <div role="group" aria-label="Attachments" style="height:45px"><button>Remove file</button></div>
+        </div>
         <div id="card" style="width:300px;height:150px;border:1px solid #888;background:#fff">
           <div style="height:120px"><p>Describe the collection.</p><input aria-label="Name" style="width:95%"></div>
         </div>
@@ -362,8 +367,12 @@ describe("findDesignIssues: nested-frame", () => {  it("finds a frame hugging a 
           <img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" style="display:block;width:100%;height:155px">
           <h2 style="margin:0;font-size:16px;line-height:20px">A collection</h2>
         </article>
+        <div id="caption-card" style="box-sizing:border-box;width:300px;height:180px;margin-top:20px;border:1px solid #888;background:#fff">
+          <img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" style="display:block;width:100%;height:155px">
+          <span>A caption</span>
+        </div>
       </div>`);
-    expect(of("nested-frame").map((issue) => issue.element)).toEqual(["article#card in div"]);
+    expect(of("nested-frame").map((issue) => issue.element)).toEqual(["article#card in div", "div#caption-card in div"]);
   });
 
   it("distinguishes composite colour and chip fields from a framed card", () => {
