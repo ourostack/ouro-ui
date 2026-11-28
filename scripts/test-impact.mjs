@@ -47,6 +47,15 @@ const everything = [
 const demosDir = "site/src/docs/demos/";
 
 /**
+ * Files each component adds outside its folder, named after it, which no other component's tests read: its agent
+ * snippets, which scripts/agent-types.test.mjs (every run's script tests) and test/agent-types.test.tsx (in every
+ * reduced run, with all of test/) check, and its Next.js server section, which the install jobs check in full on
+ * every run. A new component adds both, so mapping them by name keeps its pull request a reduced run.
+ */
+const agentSnippets = /^scripts\/fixtures\/agent-types\/([\w-]+)\.(?:cases\.ts|snippets\.tsx)$/;
+const nextSection = /^test\/install-fixture-next\/src\/app\/sections\/([\w-]+)\.tsx$/;
+
+/**
  * Paths no component's tests read: prose and generated files, which `pnpm run docs --check`,
  * `pnpm registry --check`, the links check and the install jobs check in full on every run, and
  * the site, whose tests (the Vitest `site` project and the site's end-to-end specs) every
@@ -174,7 +183,14 @@ export function testImpact(changedFiles, root = repoRoot) {
     const scopedOut = scope?.scope === "scoped" && !scope.rule.components ? [scope.rule.pattern, scope.rule.reason] : undefined;
     const shared = scopedOut ? undefined : everything.find(([pattern]) => pattern.test(path));
     const none = scopedOut ?? noComponent.find(([pattern]) => pattern.test(path));
-    if (shared) {
+    const snippetsOf = folderOf(folders, agentSnippets.exec(path)?.[1] ?? "");
+    const sectionOf = folderOf(folders, nextSection.exec(path)?.[1] ?? "");
+    if (snippetsOf) {
+      tested.add(snippetsOf);
+      reasons.push(`${path}: ${agentSnippets.exec(path)[1]}'s agent snippets, which run its folder's tests and render no story`);
+    } else if (sectionOf) {
+      reasons.push(`${path}: ${nextSection.exec(path)[1]}'s server section, which the install jobs check in full on every run, no component's tests`);
+    } else if (shared) {
       full = true;
       reasons.push(`${path}: ${shared[1]}, so everything runs`);
     } else if (path.startsWith(componentsDir)) {

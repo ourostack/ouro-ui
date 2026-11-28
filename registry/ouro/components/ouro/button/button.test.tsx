@@ -329,6 +329,7 @@ describe("loading", () => {
     try {
       const spinnerBox = () => host.querySelector("[data-ouro-spinner]")!.parentElement!;
       flushSync(() => root.render(<Button loading>Save</Button>));
+      await act(async () => {});
       expect(getComputedStyle(spinnerBox()).opacity).toBe("1");
       expect(spinnerBox().getAnimations()).toEqual([]);
       flushSync(() => root.render(<Button>Save</Button>));
