@@ -21,6 +21,7 @@ jobs:
           node-version: 24
       - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - run: pnpm i --frozen-lockfile
+      - run: mkdir -p .tmp
       - run: pnpm exec vitest run test/stories.test.tsx --project ouro-chromium -t 'Message/ReplyActions has no paint outside.*1280' --reporter=verbose > .tmp/corner-reply-diagnostic.log 2>&1
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
