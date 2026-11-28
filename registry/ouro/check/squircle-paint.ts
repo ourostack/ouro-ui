@@ -94,14 +94,8 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       });
     });
     if (candidates.length === 0) return [];
-    const standalone = candidates.every((candidate) =>
-      candidate.children.length === 0 && ["::before", "::after"].every((pseudo) => {
-        const content = getComputedStyle(candidate, pseudo).content;
-        return content === "none" || content === "normal";
-      }),
-    );
-    if (standalone && !hasOutline && !hasPaint(el) &&
-      ![...el.querySelectorAll("*"), ...siblings].some((other) => !candidates.some((candidate) => candidate === other) && visible(other) && hasPaint(other))) return candidates;
+    if (!hasOutline && !hasPaint(el) &&
+      ![...el.querySelectorAll("*"), ...siblings].some((other) => !candidates.some((candidate) => candidate.contains(other)) && visible(other) && hasPaint(other))) return candidates;
     const surfaces = [el, ...el.querySelectorAll<HTMLElement>("*")].flatMap((surface) => {
       if (!(surface instanceof HTMLElement) || !sameBox(surface.getBoundingClientRect()) || getComputedStyle(surface).clipPath === "none") return [];
       const shape = geometry(surface);

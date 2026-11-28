@@ -327,8 +327,12 @@ it("passes clipped paint, explained allowances, and a surface hidden by another 
 it("distinguishes a transparent hit area from its full-size painted surface", async () => {
   const restore = forceSquircleFallback();
   try {
-    const root = render('<div id="hit" class="rounded-ouro-xl" style="position:relative;width:160px;height:120px"><div style="position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:#b44939"></div></div>');
+    const root = render('<div id="hit" class="rounded-ouro-xl" style="position:relative;width:160px;height:120px"><div class="badge" style="position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:#b44939"><span style="position:absolute;inset:3px;background:white"></span></div></div>');
     expect(await findSquirclePaint()).toEqual([]);
+    const badge = root.querySelector<HTMLElement>(".badge")!;
+    badge.insertAdjacentHTML("beforeend", '<span style="position:absolute;left:-4px;top:-4px;width:6px;height:6px;background:#b44939"></span>');
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#hit.rounded-ouro-xl");
+    badge.lastElementChild!.remove();
     root.querySelector("#hit")!.insertAdjacentHTML("beforeend", '<div style="position:absolute;right:-4px;top:-4px;width:10px;height:10px;background:#b44939"></div>');
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#hit.rounded-ouro-xl");
     const hit = root.querySelector<HTMLElement>("#hit")!;
@@ -418,6 +422,16 @@ it("samples a leaking layer at each of the four corners", async () => {
     layer.style.cssText = `position:absolute;width:16px;height:16px;background:#f40;${horizontal}:0;${vertical}:0`;
     expect(await findSquirclePaint(), `${vertical} ${horizontal}`).toHaveLength(1);
   }
+}, paintTimeout);
+
+it("ignores hidden and distant round decorations while finding a one-corner leak", async () => {
+  render(`<div id="surface" style="position:relative;width:160px;height:120px;background:white;border-top-left-radius:15px;--sq-tl:28px">
+    <div style="position:absolute;left:0;top:0;width:10px;height:10px;border-radius:50%;background:#c65;visibility:hidden"></div>
+    <div style="position:absolute;right:0;bottom:0;width:10px;height:10px;border-radius:50%;background:#c65"></div>
+    <svg style="position:absolute;right:0;bottom:0;width:10px;height:10px"></svg>
+    <div style="position:absolute;left:-4px;top:-4px;width:8px;height:8px;background:#b44939"></div>
+  </div>`);
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#surface");
 }, paintTimeout);
 
 it("detects a protruding sibling without reporting an inset one", async () => {
@@ -515,6 +529,19 @@ it("finds separate paint beside a curved independent SVG stroke", async () => {
     const { surface } = outlinedSurface();
     surface.insertAdjacentHTML("beforeend", '<div style="position:absolute;left:-12px;top:-12px;width:8px;height:8px;background:#b44939"></div>');
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-ouro-xl");
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
+it("finds an SVG fill that escapes its rounded parent", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render('<div id="surface" class="rounded-ouro-xl" style="position:relative;width:160px;height:120px;background:white;clip-path:none"><svg style="position:absolute;inset:0;width:100%;height:100%"><rect width="100%" height="100%" fill="#b44939"></rect></svg></div>');
+    const surface = root.querySelector<HTMLElement>("#surface")!;
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#surface.rounded-ouro-xl");
+    surface.style.removeProperty("clip-path");
+    expect(await findSquirclePaint()).toEqual([]);
   } finally {
     restore();
   }
