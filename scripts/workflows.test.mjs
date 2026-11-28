@@ -4170,3 +4170,11 @@ test("the ci check's judge is asked only about the parts that failed, since judg
   assert.deepEqual(runStep(parts, { ...passed, SUBSETS: "failure", COVERAGE: "failure", FALLBACK: "true", BROWSER_FALLBACK: "failure" }).output, { ids: "subsets coverage browser-fallback" });
   assert.match(jobs.ci, /^ {8}run: node scripts\/quarantine\.mjs judge "\$GITHUB_RUN_ID" \$\{\{ steps\.parts\.outputs\.ids \}\}$/m);
 });
+
+test("each pin workflow leaves a branch that already pins its release or a newer one alone, never pushing over it", () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..", ".github", "workflows");
+  for (const [file, kind] of [["docs-pin.yml", "docs"], ["core-pin.yml", "core"], ["kit-pin.yml", '"$KIT"']]) {
+    const text = readFileSync(join(root, file), "utf8");
+    assert.ok(text.includes(`node scripts/branch-holds-pin.mjs ${kind} "$TAG"`), `${file} checks whether the branch already holds the pin before it pushes`);
+  }
+});
