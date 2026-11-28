@@ -1,0 +1,1 @@
+- New: MessageList takes a `foot` prop that floats a composer over its bottom edge, with the list keeping room under its last message and Jump to latest above it.

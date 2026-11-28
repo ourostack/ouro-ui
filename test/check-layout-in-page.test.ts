@@ -173,6 +173,30 @@ describe("findLayoutIssues: near-miss", () => {
     ]);
   });
 
+  it("separates a modal plane from its background without hiding gaps within either plane", () => {
+    render(`
+      ${box("behind", 10, 20, 60, 30)}
+      ${box("back-a", 10, 160, 60, 30)}${box("back-b", 74, 160, 60, 30)}
+      <div role="dialog" aria-modal="true" style="position:fixed;left:40px;top:0;width:240px;height:120px;background:white;z-index:2">
+        ${box("front-a", 74, 20, 60, 30)}${box("front-b", 138, 20, 60, 30)}
+      </div>`);
+    expect(found()).toEqual([["div#back-a and div#back-b", "4px"], ["div#front-a and div#front-b", "4px"]]);
+    host.querySelector('[role="dialog"]')!.removeAttribute("aria-modal");
+    expect(found()).toContainEqual(["div#behind and div#front-a", "4px"]);
+  });
+
+  it("keeps a modal's inner spacing separate from a surface outside its unfilled frame", () => {
+    render(`
+      <div id="background" style="position:fixed;left:10px;top:10px;width:200px;height:100px;background:#eee">
+        <div role="alertdialog" aria-modal="true">
+          ${box("inside", 14, 30, 60, 30)}
+        </div>
+      </div>`);
+    expect(found()).toEqual([]);
+    host.querySelector('[role="alertdialog"]')!.removeAttribute("aria-modal");
+    expect(found()).toEqual([["div#background and div#inside", "4px"]]);
+  });
+
   it("finds a picture, an outlined box, a ringed one and a framed one as surfaces, and one finding for two cards with parts in them", () => {
     render(`
       <img id="p" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" style="position:fixed;left:10px;top:10px;width:60px;height:30px">
