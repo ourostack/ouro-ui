@@ -643,6 +643,10 @@ let layerModule: Promise<typeof MessageBarLayer> | undefined;
 let loadedLayer: typeof MessageBarLayer | undefined;
 const loadLayer = () =>
   (layerModule ??= import("@/registry/ouro/components/ouro/message/message-parts").then((module) => (loadedLayer = module.MessageBarLayer)));
+// Fetched as the list's code loads, not at the first row with a bar: a first list then draws the layer's host with its first
+// frame, where waiting for a row added it a frame or more after the first.
+// Stryker disable next-line ConditionalExpression,StringLiteral: in a browser, true runs the same, as does comparing with "" (typeof is never ""); false never fetches, as the === mutant does, which message-list.preload.test.tsx fails.
+/* istanbul ignore else @preserve -- a server render has no document, and the tests run in a browser */ if (typeof document !== "undefined") void loadLayer();
 
 // The find layer and its marks, loaded with the first list that has `find`, so a list without it adds none of that code.
 let findPromise: Promise<typeof MessageFindLayer> | undefined;
@@ -3289,7 +3293,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
           <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
           {/* The one bar and menu: portals, so nothing of theirs is here in the page; inside the scroller in React, so a key
               in the bar (Tab, the arrows) reaches the list's keyboard handling as a key in its message would. */}
-          {Layer && <Layer scroller={scrollerRef} layer={layer} />}
+          {/* The layer portals into the scroller, which server HTML can't hold: it joins once hydration is done. */}
+          {Layer && !hydrating && <Layer scroller={scrollerRef} layer={layer} />}
           <span ref={floorRef} aria-hidden="true" data-ouro-message-list-floor="" className="pointer-events-none absolute start-0 top-0 hidden size-px" />
           <span ref={endMarkRef} aria-hidden="true" data-ouro-message-list-end-mark="" data-slot="message-list-end-mark" className="pointer-events-none absolute start-0 top-0 hidden size-px [overflow-anchor:none]" />
         </div>
