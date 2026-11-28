@@ -169,15 +169,15 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
       tabIndex={-1}
       onKeyDownCapture={onKeyDownCapture}
       onKeyDown={onKeyDown}
-      className={cn("flex h-full min-h-0 flex-col bg-muted [--ouro-scroller-surface:var(--accent)] [--ouro-message-list-bubble-default:var(--background)] outline-none forced-colors:border-s forced-colors:border-solid forced-colors:border-[CanvasText]", className)}
+      className={cn("flex h-full min-h-0 flex-col bg-muted [--ouro-scroller-surface:var(--background)] [--ouro-message-list-bubble-default:var(--muted)] outline-none forced-colors:border-s forced-colors:border-solid forced-colors:border-[CanvasText]", className)}
     >
       <div data-ouro-thread-rail-header="" className="flex min-w-0 shrink-0 items-start gap-2 bg-muted px-4 py-3">
         <div className="min-w-0 flex-1">
           <h2 id={headingId} className="m-0 truncate text-base leading-6 font-semibold font-[family-name:var(--font-heading,inherit)]">
             {title ?? label}
           </h2>
-          {detail !== undefined && <p className="m-0 truncate text-sm leading-5 text-muted-foreground">{detail}</p>}
-          {meta !== undefined && <p className="m-0 text-xs leading-4 text-muted-foreground">{meta}</p>}
+          {detail !== undefined && <p className="m-0 truncate text-sm leading-5 text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">{detail}</p>}
+          {meta !== undefined && <p className="m-0 text-xs leading-4 text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">{meta}</p>}
         </div>
         <Tooltip content={<span className="inline-flex items-center gap-2">{closeLabel}<Kbd keys={["escape"]} /></span>}>
           <Button

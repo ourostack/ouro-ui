@@ -8,14 +8,19 @@ import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
+import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
+import { ThreadSummary } from "@/registry/ouro/components/ouro/message/thread-summary";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { Separator } from "@/registry/ouro/components/ouro/separator/separator";
+import { Sidebar } from "@/registry/ouro/components/ouro/sidebar/sidebar";
 import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text, type TextProps } from "@/registry/ouro/components/ouro/text/text";
 import { TimeGrid } from "@/registry/ouro/components/ouro/time-grid/time-grid";
 import { Table } from "@/registry/ouro/components/ouro/table/table";
+import { ThreadRail } from "@/registry/ouro/components/ouro/thread-rail/thread-rail";
+import { page } from "vitest/browser";
 import stockCss from "./shadcn-stock.css?raw";
 
 // Every Button tone and variant, every Text tone and Heading, every Badge tone and
@@ -235,6 +240,78 @@ for (const [name, css] of Object.entries(themes)) {
         const bubble = host.querySelector<HTMLElement>("[data-ouro-message-content]")!;
         const behind = backdrop(bubble);
         expect(ratio(over(getComputedStyle(bubble).color, behind), behind)).toBeGreaterThanOrEqual(4.5);
+      });
+
+      it("keeps message metadata, rail details and sidebar footer readable on their surfaces", async () => {
+        await page.viewport(1024, 800);
+        document.documentElement.classList.toggle("dark", scheme === "dark");
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.append(style);
+        mounted.push(style);
+        const host = document.createElement("div");
+        host.setAttribute("data-theme-probe", "");
+        host.style.cssText = "background:var(--background);height:600px";
+        document.body.append(host);
+        mounted.push(host);
+        const root = createRoot(host);
+        roots.push(root);
+        try {
+          await act(async () => root.render(
+            <>
+              <MessageList label="Conversation" style={{ height: 200 }}>
+                <Message role="assistant" name="Guide">Hello</Message>
+                <Message role="assistant" variant="chat" name="Guide" nameTag="Editor" time="9:00" thread={<ThreadSummary count={2} lastReply="9:05" onOpen={() => {}} />}>Hello</Message>
+              </MessageList>
+              <ThreadRail label="Thread" detail="Details" meta="Two replies" autoFocus={false} onClose={() => {}}>
+                <MessageList label="Replies" style={{ height: 100 }}><Message role="assistant" name="Guide">Hello</Message></MessageList>
+              </ThreadRail>
+              <Sidebar label="Navigation" sections={[{ items: [{ label: "Inbox", href: "#inbox" }] }]} header="Navigation" footer={<Text tone="muted">Account</Text>} />
+            </>,
+          ));
+          const targets = [
+            ...host.querySelectorAll('[data-ouro="message"] [data-ouro-message-author]:not(.sr-only), [data-ouro="message"] [data-ouro-message-name-tag]:not(.sr-only), [data-ouro="message"] time:not(.sr-only)'),
+            ...host.querySelectorAll('[data-ouro-thread-rail-header] p'),
+            ...host.querySelectorAll('[data-ouro="sidebar"] [data-ouro="text"]'),
+          ];
+          expect(targets.length).toBeGreaterThanOrEqual(8);
+          const failures = targets.flatMap((element) => {
+            const behind = backdrop(element);
+            const value = ratio(over(getComputedStyle(element).color, behind), behind);
+            return value < 4.5 ? [`${element.textContent}: ${value.toFixed(2)}`] : [];
+          });
+          expect(failures).toEqual([]);
+          const sidebar = host.querySelector('[data-ouro="sidebar"] nav')!;
+          const sidebarScroller = sidebar.querySelector("[data-ouro-sidebar-scroll]")!;
+          expect(backdrop(sidebarScroller)).not.toEqual(backdrop(sidebarScroller.previousElementSibling!));
+          const rail = host.querySelector('[data-ouro="thread-rail"]')!;
+          expect(backdrop(rail.querySelector("[data-ouro-message-list-scroller]")!)).not.toEqual(backdrop(rail));
+        } finally {
+          await page.viewport(1280, 800);
+        }
+      });
+
+      it("keeps a thread link readable on a tinted message list with a warm primary", async () => {
+        document.documentElement.classList.toggle("dark", scheme === "dark");
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.append(style);
+        mounted.push(style);
+        const host = document.createElement("div");
+        host.setAttribute("data-theme-probe", "");
+        host.style.cssText = "--background:#fbfaf4;--muted:#e8e9df;--primary:#9b6834;--foreground:#28231d;background:var(--background)";
+        document.body.append(host);
+        mounted.push(host);
+        const root = createRoot(host);
+        roots.push(root);
+        await act(async () => root.render(
+          <MessageList label="Conversation">
+            <Message variant="chat" role="assistant" name="Guide" thread={<ThreadSummary count={2} onOpen={() => {}} />}>Hello</Message>
+          </MessageList>,
+        ));
+        const button = host.querySelector('[data-ouro-control="thread-summary"]')!;
+        const behind = backdrop(button);
+        expect(ratio(over(getComputedStyle(button).color, behind), behind)).toBeGreaterThanOrEqual(4.5);
       });
 
       it("a TimeGrid's muted labels keep 4.5:1 or more on its scrolling surface and marked days", async () => {

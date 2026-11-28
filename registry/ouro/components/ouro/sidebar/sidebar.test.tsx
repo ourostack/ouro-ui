@@ -127,6 +127,12 @@ async function settled() {
 }
 
 describe("Sidebar", () => {
+  it("leaves no empty header when none is supplied", async () => {
+    const { nav } = await render(<Sidebar label="Main" collapsible={false} sections={[{ items: [{ label: "Inbox", href: "/inbox" }] }]} />);
+    expect(nav!.children).toHaveLength(1);
+    expect(nav!.firstElementChild?.hasAttribute("data-ouro-sidebar-scroll")).toBe(true);
+  });
+
   it("uses a surface step, not a line, beside the page and at its scrolling edges", async () => {
     const { nav } = await render(<Sidebar label="Main" sections={[{ items: [{ label: "Inbox", href: "/inbox", badge: 12 }] }]} header="Search" footer="Account" />);
     const sample = document.createElement("span");
@@ -137,13 +143,11 @@ describe("Sidebar", () => {
     expect(getComputedStyle(nav!).borderInlineEndWidth).toBe("0px");
     sample.style.backgroundColor = "var(--background)";
     const pageSurface = getComputedStyle(sample).backgroundColor;
-    sample.style.backgroundColor = "var(--accent)";
-    const listSurface = getComputedStyle(sample).backgroundColor;
     sample.remove();
     const scroller = nav!.querySelector<HTMLElement>("[data-ouro-sidebar-scroll]")!;
-    expect(getComputedStyle(scroller).backgroundColor).toBe(listSurface);
-    expect(getComputedStyle(scroller.previousElementSibling!).backgroundColor).toBe(paneSurface);
-    expect(getComputedStyle(scroller.nextElementSibling!).backgroundColor).toBe(paneSurface);
+    expect(getComputedStyle(scroller).backgroundColor).toBe(paneSurface);
+    expect(getComputedStyle(scroller.previousElementSibling!).backgroundColor).toBe(pageSurface);
+    expect(getComputedStyle(scroller.nextElementSibling!).backgroundColor).toBe(pageSurface);
     const link = page.getByRole("link", { name: "Inbox 12" }).element();
     expect(getComputedStyle(link.querySelector("[data-ouro-sidebar-badge]")!).backgroundColor).toBe(pageSurface);
     await userEvent.hover(link);
