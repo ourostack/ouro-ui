@@ -6,6 +6,7 @@ import { findCornerIssues } from "@/registry/ouro/check/corner-check";
 import { findDesignIssues } from "@/registry/ouro/check/design-check";
 import { findSquirclePaint, type PaintClip } from "@/registry/ouro/check/squircle-paint";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { SegmentedControl } from "@/registry/ouro/components/ouro/segmented-control/segmented-control";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { forceSquircleFallback } from "./squircle-fallback";
 
@@ -379,6 +380,16 @@ it("uses the clipping corner when a divider is on the opposite edge", () => {
   bar.style.borderTop = "";
   bar.style.boxShadow = "inset 0 0 0 2px #123";
   expect(findCornerIssues().find((issue) => issue.element === "div#bar in div#outer")?.detail).toContain("top left");
+  bar.style.boxShadow = "0 10px 14px -12px #123";
+  expect(findCornerIssues()).toEqual([]);
+});
+
+it("checks a larger painted corner even when its outer frame clips", () => {
+  const root = render('<div id="outer" style="position:relative;width:160px;height:120px;overflow:hidden;background:#345;border-radius:24px;corner-shape:squircle"><div id="inner" style="position:absolute;inset:0;background:#789;border-radius:32px;corner-shape:squircle"></div></div>');
+  const inner = root.querySelector<HTMLElement>("#inner")!;
+  expect(findCornerIssues().find((issue) => issue.element === "div#inner in div#outer")?.detail).toContain("32px, expected 24px");
+  inner.style.borderRadius = "8px";
+  expect(findCornerIssues()).toEqual([]);
 });
 
 it("compares the visible curves through an unpainted clipping layer", () => {
@@ -1773,6 +1784,23 @@ it("keeps real glass buttons' curved shadows distinct from square paint", async 
   } finally {
     await act(async () => root.unmount());
     restore();
+  }
+}, paintTimeout);
+
+it("keeps a selected segment and its shadow inside the track's corners", async () => {
+  const host = render("");
+  host.style.setProperty("--radius", "20px");
+  host.style.setProperty("--shadow-sm", "0 4px 8px rgba(0,0,0,.4)");
+  const root = createRoot(host);
+  try {
+    await act(async () => root.render(createElement(SegmentedControl, {
+      label: "View",
+      items: [{ value: "one", label: "One" }, { value: "two", label: "Two" }],
+    })));
+    host.querySelector<HTMLElement>('[role="radiogroup"]')!.id = "segment-track";
+    expect((await findSquirclePaint()).map((issue) => issue.element)).not.toContain("div#segment-track.relative.isolate.m-0");
+  } finally {
+    await act(async () => root.unmount());
   }
 }, paintTimeout);
 
