@@ -14,6 +14,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
   type Saved = { value: string; priority: string };
   type InlineElement = Element & { style: CSSStyleDeclaration };
   const capture = (window as unknown as { __ouroPaintCapture?: PaintCapture }).__ouroPaintCapture;
+  const diagnostic = (window as unknown as { __ouroPaintDiagnostic?: (data: { actual: string; hidden: string; masked: string; solo: string | null; restored: string; rect: DOMRect; clip: PaintClip; point: object; html: string }) => Promise<void> }).__ouroPaintDiagnostic;
   if (!capture) throw new Error("squircle-paint needs a screenshot capture supplied by its host");
   const names = [
     { key: "tl", property: "TopLeft", shape: "top-left" },
@@ -177,6 +178,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     image.close();
     return { width: canvas.width, height: canvas.height, data: context.getImageData(0, 0, canvas.width, canvas.height).data };
   };
+  let pixelIndex = 0;
   const differences = async (actual: string, masked: string, hidden: string, solo: string | null, withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, strokePads: { x: number; y: number }[], clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean) => {
     const [a, b, c, own, noBadges, noStrokes] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null, withoutBadges ? pixels(withoutBadges) : null, withoutStrokes ? pixels(withoutStrokes) : null]);
     if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height)) || (noBadges && (a.width !== noBadges.width || a.height !== noBadges.height)) || (noStrokes && (a.width !== noStrokes.width || a.height !== noStrokes.height))) {
@@ -252,6 +254,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             if (edge) continue;
           }
           if (delta >= 64 || (x > startX && row[x - 1]) || previous[x]) {
+            pixelIndex = index;
             return { corner: cornerIndex, x: Math.round(px - rect.left), y: Math.round(py - rect.top) };
           }
           row[x] = 1;
@@ -571,7 +574,14 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               differs = await differences(actual, masked, hidden, solo, withoutBadges, badges.map((badge) => badge.getBoundingClientRect()), withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native);
             }
           }
-          if (differs) { found = differs; break; }
+          if (differs) {
+            const restored = await capture(clip);
+            await diagnostic?.({ actual, hidden, masked, solo, restored, rect: r.toJSON(), clip, point: differs, html: el.outerHTML });
+            const captures = await Promise.all([actual, masked, hidden, ...(solo ? [solo] : []), restored].map(pixels));
+            const rgba = captures.map((image) => [...image.data.slice(pixelIndex, pixelIndex + 4)]);
+            console.log("SQUIRCLE-DIAGNOSTIC", JSON.stringify({ target: describe(el), point: differs, rgba, shape: initial, active: active.map(({ el }) => el.outerHTML.slice(0, 1000)) }));
+            found = differs; break;
+          }
         }
         if (found) break;
       }
