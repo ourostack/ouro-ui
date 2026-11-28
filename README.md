@@ -556,6 +556,8 @@ Components:
 `toaster`,
 `toggle`,
 `toggle-group`,
+`tool-call`,
+`tool-call-group`,
 `toolbar`,
 `tooltip`,
 `typing-indicator`,
@@ -926,6 +928,8 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **ReadReceipt** — Who has seen a message, as small faces under it: the first three readers, overlapping, then "+N" for the rest. [Docs](docs/ReadReceipt.md)
 - **ThreadRail** — A thread beside its conversation: a labelled landmark with a header and a close button. [Docs](docs/ThreadRail.md)
 - **ThreadSummary** — The line under a post that leads to its thread: who replied, "N replies" (a button that opens the thread) and when the last reply came. [Docs](docs/ThreadSummary.md)
+- **ToolCall** — One call an agent made to a tool, as a row in its conversation: a status icon, what it did, a summary of the arguments and how long it took. [Docs](docs/ToolCall.md)
+- **ToolCallGroup** — Several tool calls an agent made in a row, under one line: "Ran 3 tools", with how many failed. [Docs](docs/ToolCallGroup.md)
 - **TypingIndicator** — The line under a chat that says who is writing: their faces, pulsing dots and "Ned Land is writing…". [Docs](docs/TypingIndicator.md)
 - **usePerson** — One person from a cache made with `createPeopleCache`, for a component that shows them, such as an avatar or a message's author: their entry, read while the component shows it and again whenever it runs out. [Docs](docs/usePerson.md)
 - **webStorage** — Storage for `createPeopleCache` in `localStorage`, or another `Storage`, under one key. [Docs](docs/webStorage.md)
