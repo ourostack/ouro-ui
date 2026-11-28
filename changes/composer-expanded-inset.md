@@ -1,0 +1,1 @@
+- Composer [keeps its expanded action row clear of the frame's lower edge](registry/ouro/components/ouro/composer/composer.test.tsx "verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > keeps the pressed expand control clearly inset from the frame's lower edge)").

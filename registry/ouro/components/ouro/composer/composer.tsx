@@ -1043,7 +1043,7 @@ export function Composer(props: ComposerProps): JSX.Element {
             className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 [&_textarea]:ps-3 [&_textarea]:pe-2", expanded && "w-full flex-auto")}
           />
           )}
-          <div className="ms-auto flex shrink-0 items-center gap-0.5 p-1">
+          <div className={cn("ms-auto flex shrink-0 items-center gap-0.5", canExpand ? "p-2" : "p-1")}>
             {canExpand && (
               <Tooltip
                 content={

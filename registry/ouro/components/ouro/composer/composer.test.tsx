@@ -1016,6 +1016,13 @@ const expandButton = () => document.querySelector<HTMLButtonElement>('[data-ouro
 const formatting = <Button variant="plain" aria-label="Bold">B</Button>;
 
 describe("Composer expanded", () => {
+  it("keeps the pressed expand control clearly inset from the frame's lower edge", async () => {
+    const { frame } = await render(<Composer label="Reply" defaultExpanded onSend={() => {}} />);
+    const button = expandButton()!;
+    const inset = frame.getBoundingClientRect().bottom - button.getBoundingClientRect().bottom - parseFloat(getComputedStyle(frame).borderBottomWidth);
+    expect(inset).toBeGreaterThanOrEqual(parseFloat(getComputedStyle(document.documentElement).fontSize) / 2);
+  });
+
   it("shows the expand button first among the actions, pressed while expanded, with the toolbar only while expanded", async () => {
     const onExpandedChange = vi.fn();
     const { root, textarea } = await render(
