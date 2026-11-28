@@ -141,6 +141,23 @@ describe("Command recents", () => {
     expect(chips()[1]!.querySelector('[data-testid="pie-icon"]')).toBeNull();
   });
 
+  it("shows a chip's labelContent in place of its label, and screen readers hear the label", async () => {
+    await render(
+      <Command
+        title="Go to"
+        open
+        onOpenChange={() => {}}
+        recents={[{ label: "Launch", labelContent: <b data-testid="drawn">🚀 Launch</b>, onSelect: () => {} }, { label: "Soup", onSelect: () => {} }]}
+        items={[]}
+      />,
+    );
+    const [launch, soup] = chips();
+    expect(launch!.querySelector('[aria-hidden="true"] [data-testid="drawn"]')).not.toBeNull();
+    expect(launch!.querySelector(".sr-only")!.textContent).toBe("Launch");
+    await expect.element(page.getByRole("button", { name: "Launch", exact: true })).toBeInTheDocument();
+    expect(soup!.textContent).toBe("Soup");
+  });
+
   it("runs a chip when it is pressed, and gives way to the search once something is typed", async () => {
     const onSelect = vi.fn();
     await open(onSelect);
