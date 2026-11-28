@@ -1383,7 +1383,8 @@ describe("MessageList windowing", () => {
     expect(worst).toBeLessThanOrEqual(1);
     // What the top stopped is space above the first message.
     expect(content.offsetTop).toBeGreaterThanOrEqual(100);
-  });
+    // About 90 wheel steps of a frame each reach the top, about 9 s in WebKit on CI: past half the default 15 s.
+  }, 30_000);
 
   it("holds the reader's row to the pixel and keeps no space above the first message as a wheel takes them to the top past rows already measured", async () => {
     // Older rows far shorter than the estimate the newest set, as in wheelToTheTop, fewer of them.
