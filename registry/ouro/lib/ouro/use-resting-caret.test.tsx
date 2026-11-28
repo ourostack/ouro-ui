@@ -63,7 +63,7 @@ describe("resting caret host contract", () => {
     vi.spyOn(navigator, "platform", "get").mockReturnValue(platform);
     vi.spyOn(navigator, "vendor", "get").mockReturnValue(vendor);
     const box = await render() as HTMLTextAreaElement;
-    box.style.cssText = "font:20px/28px monospace;letter-spacing:0.13px;width:240px;height:80px;padding:4.5px 8.875px;border:1px solid;box-sizing:border-box;caret-color:rgb(18,52,86)";
+    box.style.cssText = "font:20px/28px monospace;letter-spacing:0.13px;width:240px;height:80px;padding:4.5px 8.875px;border:1px solid;box-sizing:border-box;caret-color:rgb(18,52,86);left:40px";
     box.value = "MMMMMMMM";
     const reference = document.createElement("div");
     reference.style.cssText = "font:20px/28px monospace;letter-spacing:0.13px";
@@ -496,12 +496,18 @@ describe("resting caret geometry fixtures", () => {
       box.style.paddingTop = "12.5px";
       window.dispatchEvent(new Event("resize"));
       expect(caret.getBoundingClientRect().top - before.top).toBe(24);
+      box.style.paddingBottom = "20.5px";
+      window.dispatchEvent(new Event("resize"));
+      expect(caret.getBoundingClientRect().top - before.top).toBe(20);
     });
 
     it("measures without leaking a visible, accessible or interactive mirror into the document", async () => {
       const box = await editor();
       box.style.transition = "color 1s";
       box.style.animationName = "consumer-decoration";
+      const styles = document.createElement("style");
+      styles.textContent = 'div[aria-hidden="true"] { transform:scale(2); transition:color 1s; animation-name:consumer-decoration; white-space:normal; overflow-wrap:normal }';
+      host.append(styles);
       box.value = "A long unbroken word that wraps naturally";
       box.setSelectionRange(2, 2);
       const append = document.body.append.bind(document.body);
@@ -518,6 +524,8 @@ describe("resting caret geometry fixtures", () => {
             expect(style.transform).toBe("none");
             expect(style.transitionDuration).toBe("0s");
             expect(style.animationName).toBe("none");
+            expect(style.whiteSpace).toBe("pre-wrap");
+            expect(style.overflowWrap).toBe("break-word");
             expect(node.getAttribute("aria-hidden")).toBe("true");
           }
         }
@@ -606,6 +614,29 @@ describe("resting caret geometry fixtures", () => {
       expect(Math.abs(caret.getBoundingClientRect().top - text.top)).toBeLessThanOrEqual(1);
     });
 
+    it("snaps a fractional border and padding inset to the device's pixels", async () => {
+      const box = await editor("rich");
+      box.textContent = "Draft";
+      box.focus();
+      document.getSelection()!.collapse(box.firstChild!, 2);
+      vi.spyOn(box, "getBoundingClientRect").mockReturnValue(new DOMRect(100, 100, 240, 120));
+      vi.spyOn(Range.prototype, "getClientRects").mockReturnValue(rectangles(new DOMRect(120, 116.25, 0, 20)));
+      const computed = window.getComputedStyle.bind(window);
+      vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
+        const style = computed(element, pseudo);
+        return element === box ? new Proxy(style, {
+          get(target, key) {
+            if (key === "borderTopWidth") return "1.3px";
+            if (key === "paddingTop") return "4.25px";
+            return Reflect.get(target, key, target);
+          },
+        }) : style;
+      });
+      const caret = await hold(box);
+      expect(caret.getBoundingClientRect().top).toBe(115.5);
+      expect(caret.getBoundingClientRect().left).toBe(120);
+    });
+
     it("hides decoration when a native control loses its text selection API", async () => {
       const box = await editor("input");
       box.value = "Draft";
@@ -636,7 +667,7 @@ describe("resting caret geometry fixtures", () => {
       const box = await editor();
       box.style.width = "120px";
       box.style.height = "240px";
-      box.value = "AA BBBBBBBB CCCCCCC\n  DD";
+      box.value = "AA BBBBBBBBBBBBBBB CCCCCCC\n  DD";
       const reference = document.createElement("div");
       const style = getComputedStyle(box);
       reference.style.cssText = "white-space:pre-wrap;overflow-wrap:break-word";
@@ -653,6 +684,7 @@ describe("resting caret geometry fixtures", () => {
         const caret = await hold(box);
         expect(caret.hidden).toBe(false);
         expect(Math.abs(caret.getBoundingClientRect().top - box.getBoundingClientRect().top - expected)).toBeLessThanOrEqual(1);
+        expect(Math.abs(caret.getBoundingClientRect().left - box.getBoundingClientRect().left - glyph.left + reference.getBoundingClientRect().left)).toBeLessThanOrEqual(1);
         wake();
       }
     });
@@ -749,7 +781,9 @@ describe("resting caret lifecycle fixtures", () => {
       vi.setSystemTime(new Date("2026-11-27T12:00:00Z"));
       const box = editor() as HTMLTextAreaElement;
       await render(box);
+      const deadlines = vi.spyOn(globalThis, "setTimeout");
       box.focus();
+      expect(deadlines.mock.calls.map(([, delay]) => delay)).toEqual([30_000]);
       await advance(29_999);
       expect(box.readOnly).toBe(false);
       expect(box.dataset.caretRest).toBe("blinks");
@@ -760,15 +794,15 @@ describe("resting caret lifecycle fixtures", () => {
 
       wakes[0]!();
       await advance(20_000);
-      const schedule = vi.spyOn(globalThis, "setTimeout");
+      deadlines.mockClear();
       box.dispatchEvent(new Event("input"));
       box.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
-      expect(schedule).not.toHaveBeenCalled();
-      schedule.mockRestore();
+      expect(deadlines).not.toHaveBeenCalled();
       expect(vi.getTimerCount()).toBe(1);
       await advance(10_000);
       expect(box.readOnly).toBe(false);
       expect(vi.getTimerCount()).toBe(1);
+      expect(deadlines.mock.calls.at(-1)?.[1]).toBe(20_000);
       await advance(19_999);
       expect(box.readOnly).toBe(false);
       await advance(1);
@@ -1041,7 +1075,7 @@ describe("resting caret lifecycle fixtures", () => {
       expect(box.readOnly).toBe(true);
     });
 
-    it.each([0, 2])("restarts fallback blinking with the exact selection nudge from offset %s on hold and wake", async (start) => {
+    it.each([0, 3])("restarts fallback blinking with the exact selection nudge from offset %s on hold and wake", async (start) => {
       const box = editor() as HTMLTextAreaElement;
       await render(box);
       box.focus();
