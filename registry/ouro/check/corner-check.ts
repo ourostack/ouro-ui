@@ -190,7 +190,27 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
     const shadowOnly = s.boxShadow !== "none" && !paintedFill(el, s) && !paintedOutline(s) &&
       !(["Top", "Right", "Bottom", "Left"] as const).some((side) => paintedSide(s, side)) && !el.matches("img, video, canvas");
     const corners = names.map(({ name, key, property, shape }) => {
-      const fallback = s.getPropertyValue(`--sq-${key}`).trim();
+      const token = `--sq-${key}`;
+      let fallback = s.getPropertyValue(token).trim();
+      const parent = el.parentElement;
+      if (parseFloat(fallback) > 0 && parent && "style" in parent && parent.style instanceof CSSStyleDeclaration &&
+        getComputedStyle(parent).getPropertyValue(token).trim() === fallback) {
+        const original = parent.getAttribute("style");
+        const normalized = parent.style.cssText;
+        const value = parent.style.getPropertyValue(token);
+        const priority = parent.style.getPropertyPriority(token);
+        try {
+          parent.style.setProperty(token, "0px", "important");
+          if (getComputedStyle(el).getPropertyValue(token).trim() !== fallback) fallback = "";
+        } finally {
+          if (value) parent.style.setProperty(token, value, priority);
+          else parent.style.removeProperty(token);
+          if (parent.getAttribute("style") !== original && parent.style.cssText === normalized) {
+            if (original === null) parent.removeAttribute("style");
+            else parent.setAttribute("style", original);
+          }
+        }
+      }
       const parts = (parseFloat(fallback) > 0 ? fallback : s[`border${property}Radius`]).trim().split(/\s+/);
       const x = length(parts[0]!, rect.width, sx);
       const y = length(parts[1] ?? parts[0]!, rect.height, sy);
@@ -359,7 +379,7 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
         const exponent = oc.squircle ? 4 : 2;
         const norm = ((1 - Math.max(0, dx) / oc.x) ** exponent + (1 - Math.max(0, dy) / oc.y) ** exponent) ** (1 / exponent);
         const distanceInside = norm < 1 ? (1 / norm - 1) * Math.hypot(oc.x - dx, oc.y - dy) : 0;
-        if (distanceInside > 4) continue;
+        if (distanceInside > 5) continue;
         if (clippedCorner(inner, outer, index)) break;
         const innerPaint = paintedCorner(inner, index);
         if (innerPaint === false) break;
