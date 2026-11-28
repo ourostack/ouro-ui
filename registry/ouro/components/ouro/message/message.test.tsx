@@ -2237,12 +2237,22 @@ describe("Message actions", () => {
   // row with no bar keeps no such room.
   it("keeps a row beside the bubble as tall as its action bar, and a row with no bar as tall as what it holds", async () => {
     const rowOf = (message: HTMLElement) => message.querySelector<HTMLElement>("[data-ouro-message-body] > .box-border")!;
-    const { message } = await render(
+    const { host, message } = await render(
       <Message variant="chat" role="assistant" name="Mara Quill" actionsPlacement="beside" actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
         Hi
       </Message>,
     );
-    expect(Number.parseFloat(getComputedStyle(rowOf(message)).minHeight)).toBeGreaterThanOrEqual(36);
+    try {
+      for (const [width, height] of [[390, 844], [1280, 800]] as const) {
+        await page.viewport(width, height);
+        for (const spacing of ["0.25rem", "0.2rem"]) {
+          host.style.setProperty("--spacing", spacing);
+          expect(box(rowOf(message)).height).toBeGreaterThanOrEqual(box(barOf(message)).height);
+        }
+      }
+    } finally {
+      await page.viewport(390, 844);
+    }
     const { message: bare } = await render(<Message variant="chat" role="assistant" name="Mara Quill" actionsPlacement="beside" attachments={<Attachment name="menu.pdf" />} />);
     expect(getComputedStyle(rowOf(bare)).minHeight).toMatch(/^(0px|auto)$/);
     // A bar in the corner sits over the bubble, not beside it, so its row keeps no bar-sized room either.
