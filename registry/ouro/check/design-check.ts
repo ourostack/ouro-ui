@@ -646,7 +646,16 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
         const inside = document.elementFromPoint(ix, iy);
         const outside = document.elementFromPoint(ox, oy);
         if (!inside || !el.contains(inside) || !outside || el.contains(outside)) return false;
-        const within = surfaceOf(inside);
+        let painted: Element = inside;
+        while (painted !== el) {
+          const r = painted.getBoundingClientRect();
+          const width = horizontal ? r.width : r.height;
+          const span = horizontal ? right - left : bottom - top;
+          const style = getComputedStyle(painted);
+          if (width >= span * 0.9 && (rgba(style.backgroundColor)[3] > 0 || style.backgroundImage !== "none")) break;
+          painted = painted.parentElement!;
+        }
+        const within = surfaceOf(painted);
         const beyond = surfaceOf(outside);
         return within !== null && beyond !== null && colourDistance(within, beyond) <= 12;
       });

@@ -6,6 +6,7 @@ import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { Separator } from "@/registry/ouro/components/ouro/separator/separator";
@@ -14,6 +15,7 @@ import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text, type TextProps } from "@/registry/ouro/components/ouro/text/text";
 import { TimeGrid } from "@/registry/ouro/components/ouro/time-grid/time-grid";
+import { Table } from "@/registry/ouro/components/ouro/table/table";
 import stockCss from "./shadcn-stock.css?raw";
 
 // Every Button tone and variant, every Text tone and Heading, every Badge tone and
@@ -235,7 +237,7 @@ for (const [name, css] of Object.entries(themes)) {
         expect(ratio(over(getComputedStyle(bubble).color, behind), behind)).toBeGreaterThanOrEqual(4.5);
       });
 
-      it("a TimeGrid's muted text on a marked day keeps 4.5:1 or more on the day's tint, in every tone", async () => {
+      it("a TimeGrid's muted labels keep 4.5:1 or more on its scrolling surface and marked days", async () => {
         document.documentElement.classList.toggle("dark", scheme === "dark");
         const style = document.createElement("style");
         style.textContent = css;
@@ -270,12 +272,37 @@ for (const [name, css] of Object.entries(themes)) {
           ...[...host.querySelectorAll("[data-ouro-time-grid-summary]")].filter((summary) => summary.getAttribute("aria-label")!.includes("Away")),
         ];
         expect(muted).toHaveLength(17);
+        muted.push(
+          ...host.querySelectorAll('[data-slot="time-grid-hour-label"]'),
+          ...[...host.querySelectorAll("[data-ouro-time-grid-summary]")].filter((summary) => !summary.getAttribute("aria-label")!.includes("Away")),
+        );
         const short = muted.flatMap((element) => {
           const behind = backdrop(element);
           const value = ratio(over(getComputedStyle(element).color, behind), behind);
           return value < 4.5 ? [`${element.textContent}: ${value.toFixed(2)}`] : [];
         });
         expect(short).toEqual([]);
+      });
+
+      it("a striped Table distinguishes its rows on the page and inside a Card", async () => {
+        document.documentElement.classList.toggle("dark", scheme === "dark");
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.append(style);
+        mounted.push(style);
+        const host = document.createElement("div");
+        host.setAttribute("data-theme-probe", "");
+        host.style.background = "var(--background)";
+        document.body.append(host);
+        mounted.push(host);
+        const root = createRoot(host);
+        roots.push(root);
+        const table = <Table caption="Items" striped columns={[{ key: "name", header: "Item" }]} rows={[{ name: "One" }, { name: "Two" }]} />;
+        await act(async () => root.render(<>{table}<Card title="Items">{table}</Card></>));
+        for (const viewport of host.querySelectorAll("[data-scroll-viewport]")) {
+          const row = viewport.querySelector("tbody tr:nth-child(2)")!;
+          expect(ratio(backdrop(row), backdrop(viewport))).toBeGreaterThan(1.02);
+        }
       });
 
       it.each(["background", "popover"] as const)("every tone and variant has text at 4.5:1 or more on the %s", async (surface) => {

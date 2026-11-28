@@ -1,0 +1,1 @@
+- Changed: ScrollArea and MessageList use the muted surface on a page, with a contrasting message bubble; Table stripes and sticky headers and TimeGrid labels follow the surface.

@@ -158,7 +158,7 @@ const levels = [2, 3, 4, 5, 6] as const;
 const variants = {
   // Where corner-shape is missing, the surface slot paints the background and border instead (see ouro-base.css).
   outline:
-    "rounded-ouro-xl border border-border bg-(--ouro-bg) border-(--ouro-bd) [--ouro-bg:var(--card)] [--ouro-scroller-surface:var(--card)] [--ouro-bd:var(--border)] text-card-foreground shadow-(--shadow-xs)",
+    "rounded-ouro-xl border border-border bg-(--ouro-bg) border-(--ouro-bd) [--ouro-bg:var(--card)] [--ouro-scroller-surface:var(--card)] [--ouro-message-list-bubble-default:var(--muted)] [--ouro-bd:var(--border)] text-card-foreground shadow-(--shadow-xs)",
   plain: "bg-transparent text-foreground",
 } as const;
 

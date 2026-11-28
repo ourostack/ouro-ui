@@ -368,7 +368,7 @@ export function TableRow(props: TableRowProps): JSX.Element {
         data-linked={linked ? "" : undefined}
         data-follows-link={linked ? "" : undefined}
         className={cn(
-          table.striped && kind === "body" && "even:bg-muted/50",
+          table.striped && kind === "body" && "even:bg-foreground/5",
           linked && "relative isolate cursor-pointer pointer-coarse:h-ouro-11",
           linked && raiseControlsClass,
           className,
