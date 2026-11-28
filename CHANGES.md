@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Changed: MessageList fetches its action bar and menu layer's code as the list's own code loads, so the first list in a session draws the layer's host on its first frame instead of adding it a frame or more later.
