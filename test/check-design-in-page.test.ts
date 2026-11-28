@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { findDesignIssues, listCornerMedia, mediaDrawn, readCorners, shownCorners, type CornerReading } from "@/registry/ouro/check/design-check";
 import { findRepaints, listenForMotion, markWalkables, readMotion, resetMotion } from "@/registry/ouro/check/motion-check";
 
@@ -591,6 +591,32 @@ describe("findDesignIssues: pane-edge", () => {
       expect.objectContaining({ element: "section#pane-two and section#pane-three" }),
     ]));
     expect(of("pane-edge")).toHaveLength(2);
+  });
+
+  it("passes a large grid's row-header gutter and repeated columns, even when some columns are clipped", async () => {
+    const size = { width: innerWidth, height: innerHeight };
+    await page.viewport(1280, 900);
+    try {
+      render(`
+        <div style="width:700px;height:240px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:80px repeat(4, 200px);width:880px;height:240px">
+            <div aria-hidden="true">Hours</div>
+            <div style="border-left:1px solid #888">First</div>
+            <div style="border-left:1px solid #888">Second</div>
+            <div style="border-left:1px solid #888">Third</div>
+            <div style="border-left:1px solid #888">Fourth</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:80px repeat(3, 200px);width:680px;height:240px">
+          <aside id="navigation">Navigation</aside>
+          <main id="details" style="border-left:1px solid #888">Details</main>
+          <section style="border-left:1px solid #888">History</section>
+          <section style="border-left:1px solid #888">Activity</section>
+        </div>`);
+      expect(of("pane-edge").map((issue) => issue.element)).toEqual(["aside#navigation and main#details"]);
+    } finally {
+      await page.viewport(size.width, size.height);
+    }
   });
 
   it("finds a narrow notch in a pane boundary without mistaking a full-width row for one", () => {
