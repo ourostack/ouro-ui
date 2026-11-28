@@ -6,14 +6,26 @@ import { Alert } from "@/registry/ouro/components/ouro/alert/alert";
 import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
+import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
+import { ThreadSummary } from "@/registry/ouro/components/ouro/message/thread-summary";
+import { ReactionBar } from "@/registry/ouro/components/ouro/reaction-bar/reaction-bar";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
+import { ReadReceipt } from "@/registry/ouro/components/ouro/read-receipt/read-receipt";
+import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
 import { Separator } from "@/registry/ouro/components/ouro/separator/separator";
+import { Sidebar } from "@/registry/ouro/components/ouro/sidebar/sidebar";
 import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
 import { Switch } from "@/registry/ouro/components/ouro/switch/switch";
 import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text, type TextProps } from "@/registry/ouro/components/ouro/text/text";
 import { TimeGrid } from "@/registry/ouro/components/ouro/time-grid/time-grid";
+import { Table } from "@/registry/ouro/components/ouro/table/table";
+import { TabsIndicator, TabsList, TabsPanel, TabsRoot, TabsTab } from "@/registry/ouro/components/ouro/tabs/tabs-parts";
+import { ThreadRail } from "@/registry/ouro/components/ouro/thread-rail/thread-rail";
+import { ToggleGroup } from "@/registry/ouro/components/ouro/toggle/toggle-group";
+import { page } from "vitest/browser";
 import stockCss from "./shadcn-stock.css?raw";
 
 // Every Button tone and variant, every Text tone and Heading, every Badge tone and
@@ -235,7 +247,168 @@ for (const [name, css] of Object.entries(themes)) {
         expect(ratio(over(getComputedStyle(bubble).color, behind), behind)).toBeGreaterThanOrEqual(4.5);
       });
 
-      it("a TimeGrid's muted text on a marked day keeps 4.5:1 or more on the day's tint, in every tone", async () => {
+      it("keeps message metadata, rail details and sidebar footer readable on their surfaces", async () => {
+        await page.viewport(1024, 800);
+        document.documentElement.classList.toggle("dark", scheme === "dark");
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.append(style);
+        mounted.push(style);
+        const host = document.createElement("div");
+        host.setAttribute("data-theme-probe", "");
+        host.style.cssText = "background:var(--background);height:600px";
+        document.body.append(host);
+        mounted.push(host);
+        const root = createRoot(host);
+        roots.push(root);
+        try {
+          await act(async () => root.render(
+            <>
+              <MessageList label="Conversation" style={{ height: 200 }}>
+                <Message role="assistant" name="Guide">Hello</Message>
+                <Message role="assistant" variant="chat" name="Guide" nameTag="Editor" time="9:00" thread={<ThreadSummary count={2} lastReply="9:05" onOpen={() => {}} />}>Hello</Message>
+              </MessageList>
+              <ThreadRail label="Thread" detail="Details" meta="Two replies" autoFocus={false} onClose={() => {}}>
+                <MessageList label="Replies" style={{ height: 100 }}><Message role="assistant" name="Guide">Hello</Message></MessageList>
+              </ThreadRail>
+              <Sidebar label="Navigation" sections={[{ items: [{ label: "Inbox", href: "#inbox" }] }]} header="Navigation" footer={<Text tone="muted">Account</Text>} />
+            </>,
+          ));
+          const targets = [
+            ...host.querySelectorAll('[data-ouro="message"] [data-ouro-message-author]:not(.sr-only), [data-ouro="message"] [data-ouro-message-name-tag]:not(.sr-only), [data-ouro="message"] time:not(.sr-only)'),
+            ...host.querySelectorAll('[data-ouro-thread-rail-header] p'),
+            ...host.querySelectorAll('[data-ouro="sidebar"] [data-ouro="text"]'),
+          ];
+          expect(targets.length).toBeGreaterThanOrEqual(8);
+          const failures = targets.flatMap((element) => {
+            const behind = backdrop(element);
+            const value = ratio(over(getComputedStyle(element).color, behind), behind);
+            return value < 4.5 ? [`${element.textContent}: ${value.toFixed(2)}`] : [];
+          });
+          expect(failures).toEqual([]);
+          const sidebar = host.querySelector('[data-ouro="sidebar"] nav')!;
+          const sidebarScroller = sidebar.querySelector("[data-ouro-sidebar-scroll]")!;
+          expect(backdrop(sidebarScroller)).not.toEqual(backdrop(sidebarScroller.previousElementSibling!));
+          const rail = host.querySelector('[data-ouro="thread-rail"]')!;
+          expect(backdrop(rail.querySelector("[data-ouro-message-list-scroller]")!)).not.toEqual(backdrop(rail));
+        } finally {
+          await page.viewport(1280, 800);
+        }
+      });
+
+      it("keeps a thread link readable on a tinted message list with a warm primary", async () => {
+        document.documentElement.classList.toggle("dark", scheme === "dark");
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.append(style);
+        mounted.push(style);
+        const host = document.createElement("div");
+        host.setAttribute("data-theme-probe", "");
+        host.style.cssText = "--background:#fbfaf4;--muted:#e8e9df;--primary:#9b6834;--foreground:#28231d;background:var(--background)";
+        document.body.append(host);
+        mounted.push(host);
+        const root = createRoot(host);
+        roots.push(root);
+        await act(async () => root.render(
+          <MessageList label="Conversation">
+            <Message variant="chat" role="assistant" name="Guide" thread={<ThreadSummary count={2} onOpen={() => {}} />}>Hello</Message>
+          </MessageList>,
+        ));
+        const button = host.querySelector('[data-ouro-control="thread-summary"]')!;
+        const behind = backdrop(button);
+        expect(ratio(over(getComputedStyle(button).color, behind), behind)).toBeGreaterThanOrEqual(4.5);
+      });
+
+      it("keeps controls and metadata readable on a tinted scroller", async () => {
+        document.documentElement.classList.toggle("dark", scheme === "dark");
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.append(style);
+        mounted.push(style);
+        const host = document.createElement("div");
+        host.setAttribute("data-theme-probe", "");
+        host.style.cssText = "--background:#fff;--muted:#f5f5f5;--foreground:#171717;--muted-foreground:#737373;--destructive:#e7000b;background:var(--background)";
+        document.body.append(host);
+        mounted.push(host);
+        const root = createRoot(host);
+        roots.push(root);
+        await act(async () => root.render(
+          <>
+            <MessageList label="Conversation">
+              <Message
+                variant="chat"
+                role="user"
+                name="You"
+                failed={{ onRetry: () => {} }}
+                footer={<ReadReceipt readers={[{ name: "One" }, { name: "Two" }, { name: "Three" }, { name: "Four" }]} />}
+              >
+                Hello
+              </Message>
+            </MessageList>
+            <Table caption="Items" columns={[{ key: "name", header: "Item" }]} rows={[] as { name: string }[]} empty="Nothing here" />
+            <ScrollArea label="Sections">
+              <TabsRoot defaultValue="one">
+                <TabsList aria-label="Sections" sticky>
+                  <TabsTab value="one">One</TabsTab>
+                  <TabsTab value="two">Two</TabsTab>
+                  <TabsIndicator />
+                </TabsList>
+                <TabsPanel value="one">First</TabsPanel>
+                <TabsPanel value="two">Second</TabsPanel>
+              </TabsRoot>
+            </ScrollArea>
+          </>,
+        ));
+        const targets = [
+          host.querySelector('[data-ouro-message-failed] > span')!,
+          host.querySelector('[data-ouro-read-receipt-more]')!,
+          host.querySelector("tbody td span")!,
+          host.querySelector('[role="tab"][aria-selected="false"]')!,
+        ];
+        const failures = targets.flatMap((element) => {
+          const behind = backdrop(element);
+          const value = ratio(over(getComputedStyle(element).color, behind), behind);
+          return value < 4.5 ? [`${element.textContent}: ${value.toFixed(2)}`] : [];
+        });
+        expect(failures).toEqual([]);
+      });
+
+      it("keeps a plain action and a pressed scrolling pill readable with a warm primary", async () => {
+        document.documentElement.classList.toggle("dark", scheme === "dark");
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.append(style);
+        mounted.push(style);
+        const host = document.createElement("div");
+        host.setAttribute("data-theme-probe", "");
+        host.style.cssText = "--background:#fbfaf4;--muted:#e8e9df;--primary:#9b6834;--foreground:#28231d;background:var(--background)";
+        document.body.append(host);
+        mounted.push(host);
+        const root = createRoot(host);
+        roots.push(root);
+        await act(async () => root.render(
+          <>
+            <ScrollArea label="Actions"><Button variant="plain">Open</Button></ScrollArea>
+            <MessageList label="Conversation">
+              <Message variant="chat" role="user" name="You" failed={{ onRetry: () => {} }}>Hello</Message>
+            </MessageList>
+            <ToggleGroup label="Filter" overflow="scroll" shape="pill" variant="outline" items={[{ value: "all", label: "All" }]} defaultValue="all" />
+          </>,
+        ));
+        const targets = [
+          host.querySelector('[data-scroll-viewport] button')!,
+          host.querySelector('[data-ouro-message-failed] button')!,
+          host.querySelector('[data-ouro="toggle-group"] [data-pressed]')!,
+        ];
+        const failures = targets.flatMap((element) => {
+          const behind = backdrop(element);
+          const value = ratio(over(getComputedStyle(element).color, behind), behind);
+          return value < 4.5 ? [`${element.textContent}: ${value.toFixed(2)}`] : [];
+        });
+        expect(failures).toEqual([]);
+      });
+
+      it("a TimeGrid's muted labels keep 4.5:1 or more on its scrolling surface and marked days", async () => {
         document.documentElement.classList.toggle("dark", scheme === "dark");
         const style = document.createElement("style");
         style.textContent = css;
@@ -270,12 +443,37 @@ for (const [name, css] of Object.entries(themes)) {
           ...[...host.querySelectorAll("[data-ouro-time-grid-summary]")].filter((summary) => summary.getAttribute("aria-label")!.includes("Away")),
         ];
         expect(muted).toHaveLength(17);
+        muted.push(
+          ...host.querySelectorAll('[data-slot="time-grid-hour-label"]'),
+          ...[...host.querySelectorAll("[data-ouro-time-grid-summary]")].filter((summary) => !summary.getAttribute("aria-label")!.includes("Away")),
+        );
         const short = muted.flatMap((element) => {
           const behind = backdrop(element);
           const value = ratio(over(getComputedStyle(element).color, behind), behind);
           return value < 4.5 ? [`${element.textContent}: ${value.toFixed(2)}`] : [];
         });
         expect(short).toEqual([]);
+      });
+
+      it("a striped Table distinguishes its rows on the page and inside a Card", async () => {
+        document.documentElement.classList.toggle("dark", scheme === "dark");
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.append(style);
+        mounted.push(style);
+        const host = document.createElement("div");
+        host.setAttribute("data-theme-probe", "");
+        host.style.background = "var(--background)";
+        document.body.append(host);
+        mounted.push(host);
+        const root = createRoot(host);
+        roots.push(root);
+        const table = <Table caption="Items" striped columns={[{ key: "name", header: "Item" }]} rows={[{ name: "One" }, { name: "Two" }]} />;
+        await act(async () => root.render(<>{table}<Card title="Items">{table}</Card></>));
+        for (const viewport of host.querySelectorAll("[data-scroll-viewport]")) {
+          const row = viewport.querySelector("tbody tr:nth-child(2)")!;
+          expect(ratio(backdrop(row), backdrop(viewport))).toBeGreaterThan(1.02);
+        }
       });
 
       it.each(["background", "popover"] as const)("every tone and variant has text at 4.5:1 or more on the %s", async (surface) => {
@@ -289,3 +487,30 @@ for (const [name, css] of Object.entries(themes)) {
     });
   }
 }
+
+it("keeps a selected reaction and soft badge readable on tinted scrollers with a warm primary", async () => {
+  const host = document.createElement("div");
+  host.style.cssText = "--background:#fbfaf4;--muted:#e8e9df;--primary:#9b6834;--foreground:#28231d;background:var(--background)";
+  document.body.append(host);
+  mounted.push(host);
+  const root = createRoot(host);
+  roots.push(root);
+  await act(async () => root.render(
+    <>
+      <ScrollArea label="Items">
+        <Badge tone="primary" variant="soft">Ready</Badge>
+      </ScrollArea>
+      <MessageList label="Conversation">
+        <Message variant="post" role="assistant" name="Guide" footer={<ReactionBar reactions={[{ key: "like", label: "Like", emoji: "+", count: 3, mine: true }]} onReact={() => {}} />}>
+          Hello
+        </Message>
+      </MessageList>
+    </>,
+  ));
+  const targets = host.querySelectorAll('[data-ouro="badge"]');
+  expect(targets).toHaveLength(2);
+  for (const element of targets) {
+    const behind = backdrop(element);
+    expect(ratio(over(getComputedStyle(element).color, behind), behind)).toBeGreaterThanOrEqual(4.5);
+  }
+});

@@ -163,6 +163,27 @@ describe("Table", () => {
     expect(getComputedStyle(plain.querySelectorAll("tbody tr")[1]!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
   });
 
+  it("keeps header and footer rows unstriped in a striped table", async () => {
+    const { table } = await render(
+      <TableRoot caption="Items" striped>
+        <TableHeader>
+          <TableRow><TableHead>First heading</TableHead></TableRow>
+          <TableRow><TableHead>Second heading</TableHead></TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow><TableCell>First</TableCell></TableRow>
+          <TableRow><TableCell>Second</TableCell></TableRow>
+        </TableBody>
+        <TableFooter>
+          <TableRow><TableCell>First total</TableCell></TableRow>
+          <TableRow><TableCell>Second total</TableCell></TableRow>
+        </TableFooter>
+      </TableRoot>,
+    );
+    expect(getComputedStyle(table.querySelector("tbody tr:nth-child(2)")!).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    for (const row of table.querySelectorAll("thead tr, tfoot tr")) expect(getComputedStyle(row).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+  });
+
   it("tightens the cells with dense", async () => {
     const { table } = await render(<Table caption="Recipes" columns={[{ key: "name", header: "Recipe" }]} rows={recipes} />);
     const { table: dense } = await render(<Table caption="Recipes" dense columns={[{ key: "name", header: "Recipe" }]} rows={recipes} />);
@@ -249,6 +270,7 @@ describe("Table scrolling", () => {
     const top = viewport.getBoundingClientRect().top;
     const header = table.querySelector<HTMLElement>("thead th:nth-child(2)")!;
     expect(Math.abs(header.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+    expect(getComputedStyle(header).backgroundColor).toBe(getComputedStyle(viewport).backgroundColor);
     // The header scrolls sideways with its column.
     const cell = table.querySelector("tbody tr td:nth-child(2)")!;
     expect(Math.abs(header.getBoundingClientRect().left - cell.getBoundingClientRect().left)).toBeLessThanOrEqual(1);
@@ -256,6 +278,24 @@ describe("Table scrolling", () => {
     const box = viewport.getBoundingClientRect();
     const hit = document.elementFromPoint(box.left + box.width / 2, center(header)[1]);
     expect(table.querySelector("thead")!.contains(hit)).toBe(true);
+  });
+
+  it("uses the nested dark theme's muted surface for its sticky header", async () => {
+    const root = document.documentElement;
+    const wasDark = root.classList.contains("dark");
+    root.classList.remove("dark");
+    try {
+      const { host, table } = await render(
+        <div className="dark"><Table caption="Prep log" stickyHeader className="max-h-64" columns={wideColumns} rows={manyRows} /></div>,
+      );
+      const header = table.querySelector("thead th")!;
+      const probe = document.createElement("div");
+      probe.style.backgroundColor = "var(--muted)";
+      host.querySelector(".dark")!.append(probe);
+      expect(getComputedStyle(header).backgroundColor).toBe(getComputedStyle(probe).backgroundColor);
+    } finally {
+      root.classList.toggle("dark", wasDark);
+    }
   });
 
   it("lets the header scroll away without stickyHeader", async () => {

@@ -634,6 +634,22 @@ describe("Tabs show the chosen panel", () => {
     expect([box.scrollTop, panel()]).toEqual([start - list.offsetHeight, list.offsetHeight]);
   });
 
+  it("uses the nested dark theme's muted surface for the sticky row", async () => {
+    const root = document.documentElement;
+    const wasDark = root.classList.contains("dark");
+    root.classList.remove("dark");
+    try {
+      const { host } = await render(<div className="dark">{inBox(240, { sticky: true })}</div>);
+      const row = parts(host).list;
+      const probe = document.createElement("div");
+      probe.style.backgroundColor = "var(--muted)";
+      row.append(probe);
+      expect(getComputedStyle(row).backgroundColor).toBe(getComputedStyle(probe).backgroundColor);
+    } finally {
+      root.classList.toggle("dark", wasDark);
+    }
+  });
+
   it("keeps a sticky row still while a panel shorter than the box leaves, whether it brings the tabs up or not", async () => {
     const { host } = await render(inBox(240, { sticky: true, height: 150, after: 300 }));
     const { box } = parts(host);

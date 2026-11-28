@@ -213,7 +213,7 @@ export function ThreadSummary(props: ThreadSummaryProps): JSX.Element {
         {shown}
       </Button>
       {replied && lastReply !== undefined && (
-        <time dateTime={lastReplyDateTime} className="text-xs text-muted-foreground tabular-nums">
+        <time dateTime={lastReplyDateTime} className="text-xs text-muted-foreground [[data-ouro=message-list]_&]:text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] tabular-nums">
           {lastReplyLabel(lastReply)}
         </time>
       )}

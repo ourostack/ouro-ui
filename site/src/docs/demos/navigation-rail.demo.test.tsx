@@ -17,6 +17,23 @@ afterEach(async () => {
   await page.viewport(size.width, size.height);
 });
 
+it.each(["light", "dark"] as const)("separates the navigation rail from its content without a border in %s", async (scheme) => {
+  size = { width: innerWidth, height: innerHeight };
+  wasDark = document.documentElement.classList.contains("dark");
+  await page.viewport(3840, 2160);
+  host = document.createElement("div");
+  if (scheme === "dark") host.className = "dark";
+  else host.style.setProperty("--background", "#f8f8fc");
+  document.body.append(host);
+  root = createRoot(host);
+  await act(async () => root!.render(<NavigationRailDemo />));
+  const rail = host.querySelector<HTMLElement>('[data-ouro="navigation-rail"]')!;
+  const content = rail.nextElementSibling as HTMLElement;
+  expect(parseFloat(getComputedStyle(content).borderInlineStartWidth)).toBe(0);
+  expect(findDesignIssues({}).filter((issue) =>
+    issue.rule === "pane-edge" && host!.querySelector(`[data-ouro-check-ref~="${issue.ref}"]`))).toEqual([]);
+});
+
 it.each([
   [390, 844, false],
   [1440, 900, false],

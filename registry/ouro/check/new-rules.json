@@ -52,6 +52,14 @@
     "summary": "Two dividing lines side by side where one would separate, such as a list's last row's border against its card's; each finding names both elements."
   },
   {
+    "rule": "cut-off-edge",
+    "summary": "Scrollable content clipped before the window edge into the same surface, with no visible edge or fade; use a step between theme surface tokens."
+  },
+  {
+    "rule": "pane-edge",
+    "summary": "Large adjoining panes separated by a line, by no surface-colour step, or by an interrupted step; remove the line and use different theme surface tokens."
+  },
+  {
     "rule": "nested-frame",
     "widened": "a lighter framed surface inside a frame at any inset, including when clipped",
     "summary": "Remove the inner border and use a step between theme surface tokens."

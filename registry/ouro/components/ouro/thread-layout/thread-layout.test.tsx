@@ -106,11 +106,52 @@ describe("ThreadLayout", () => {
     expect(rail!.getBoundingClientRect().left).toBeCloseTo(conversation.getBoundingClientRect().left, 0);
   });
 
-  it("drops the rail's own border-s below 32rem, where it would double the box's own edge, and keeps it from 32rem up", async () => {
+  it("separates the rail with a surface step instead of a line at both widths", async () => {
     const { host, rail } = await render(<ThreadLayout conversation={<Conversation />} thread={<Thread />} />, 640);
-    expect(getComputedStyle(rail!).borderInlineStartWidth).not.toBe("0px");
+    const surface = document.createElement("div");
+    surface.style.backgroundColor = "var(--accent)";
+    host.append(surface);
+    expect(getComputedStyle(rail!).backgroundColor).toBe(getComputedStyle(surface).backgroundColor);
+    expect(getComputedStyle(rail!).borderInlineStartWidth).toBe("0px");
     host.style.width = "360px";
     await expect.poll(() => getComputedStyle(rail!).borderInlineStartWidth).toBe("0px");
+  });
+
+  it.each(["light", "dark"])("keeps a surface step beside a plain or scrolling conversation (%s)", async (scheme) => {
+    const root = document.documentElement;
+    const wasDark = root.classList.contains("dark");
+    root.classList.toggle("dark", scheme === "dark");
+    const thread = (
+      <ThreadRail label="Thread" autoFocus={false} onClose={() => {}}>
+        <MessageList label="Replies" className="min-h-0 flex-1">
+          <Message role="assistant" name="Assistant">A reply</Message>
+        </MessageList>
+      </ThreadRail>
+    );
+    try {
+      const { host, rerender } = await render(<ThreadLayout conversation={<Conversation />} thread={thread} />, 800);
+      host.style.height = "400px";
+      const pane = host.querySelector<HTMLElement>("[data-ouro-thread-layout-conversation]")!;
+      const rail = host.querySelector<HTMLElement>('[data-ouro="thread-rail"]')!;
+      const railScroller = () => host.querySelector<HTMLElement>('[data-ouro="thread-rail"] [data-ouro-message-list-scroller]')!;
+      const surface = document.createElement("div");
+      surface.style.backgroundColor = "var(--background)";
+      host.append(surface);
+      expect(getComputedStyle(pane).backgroundColor).toBe(getComputedStyle(surface).backgroundColor);
+      expect(getComputedStyle(pane).backgroundColor).not.toBe(getComputedStyle(rail).backgroundColor);
+
+      await rerender(
+        <ThreadLayout
+          conversation={<MessageList label="Conversation"><Message role="assistant" name="Assistant">A note</Message></MessageList>}
+          thread={thread}
+        />,
+      );
+      const conversationScroller = pane.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+      expect(getComputedStyle(conversationScroller).backgroundColor).not.toBe(getComputedStyle(railScroller()).backgroundColor);
+      expect(pane.getBoundingClientRect().right - conversationScroller.getBoundingClientRect().right).toBeGreaterThanOrEqual(20);
+    } finally {
+      root.classList.toggle("dark", wasDark);
+    }
   });
 
   it("keeps the conversation mounted and its draft while a narrow box hides it", async () => {

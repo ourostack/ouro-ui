@@ -202,7 +202,7 @@ it("keeps the message a scrolled-up reader is on in place when older history loa
 });
 
 it("shows the list's one action bar on a tapped message, where the message itself takes keyboard focus, until a press lands elsewhere", async () => {
-  await render(
+  const { scroller } = await render(
     <MessageList label="Channel" style={{ height: 400 }}>
       {["Earlier", "Newest"].map((text) => (
         <Message key={text} variant="chat" role="assistant" name="Mara Quill" id={text} actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
@@ -211,6 +211,8 @@ it("shows the list's one action bar on a tapped message, where the message itsel
       ))}
     </MessageList>,
   );
+  await document.fonts.ready;
+  await settle(scroller);
   const bars = () => document.querySelectorAll('[role="toolbar"]');
   for (const id of ["Newest", "Earlier"]) {
     const message = document.getElementById(id)!;
@@ -218,8 +220,11 @@ it("shows the list's one action bar on a tapped message, where the message itsel
     // A tap whose target is the message itself, as on the space beside its bubble; the bar's code loads with the first message that has one.
     const tap = () => message.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerType: "touch" }));
     await expect.poll(async () => (await act(async () => void tap()), message.querySelector('[role="toolbar"]'))).not.toBeNull();
+    await expect.poll(() => {
+      const bar = message.querySelector('[role="toolbar"]');
+      return bar ? getComputedStyle(bar).opacity : null;
+    }).toBe("1");
     expect(bars()).toHaveLength(1);
-    await expect.poll(() => getComputedStyle(message.querySelector('[role="toolbar"]')!).opacity).toBe("1");
   }
   await act(async () => void document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" })));
   await expect.poll(() => bars().length).toBe(0);
