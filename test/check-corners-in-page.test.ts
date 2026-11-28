@@ -1068,6 +1068,33 @@ it("does not mistake the next line of a wrapped inline surface for corner paint"
   expect(await findSquirclePaint()).toEqual([]);
 }, paintTimeout);
 
+it("checks the real ends of wrapped inline surfaces in each writing direction", async () => {
+  for (const [writingMode, direction, decoration] of [
+    ["horizontal-tb", "ltr", "slice"],
+    ["horizontal-tb", "rtl", "slice"],
+    ["vertical-rl", "ltr", "slice"],
+    ["vertical-rl", "rtl", "slice"],
+    ["horizontal-tb", "ltr", "clone"],
+  ] as const) {
+    const root = render(`<div class="line" style="position:relative;width:120px;height:120px;writing-mode:${writingMode};direction:${direction};font:16px/24px monospace">
+      <code class="inline" style="background:#eee;border-radius:8px;corner-shape:squircle;--sq-tl:8px;--sq-tr:8px;--sq-br:8px;--sq-bl:8px;-webkit-box-decoration-break:${decoration};box-decoration-break:${decoration}">one two three four five six seven eight nine ten</code>
+    </div>`);
+    const line = root.querySelector<HTMLElement>(".line")!;
+    const inline = root.querySelector<HTMLElement>(".inline")!;
+    const fragments = inline.getClientRects();
+    expect(fragments.length, `${writingMode} ${direction} ${decoration}`).toBeGreaterThan(1);
+    expect(await findSquirclePaint()).toEqual([]);
+    const fragment = decoration === "clone" ? fragments[fragments.length - 1]! : fragments[0]!;
+    const bounds = line.getBoundingClientRect();
+    const horizontal = writingMode === "horizontal-tb";
+    const x = horizontal && direction === "rtl" ? fragment.right - 4 : fragment.left;
+    const y = !horizontal && direction === "rtl" ? fragment.bottom - 4 : fragment.top;
+    inline.insertAdjacentHTML("beforeend", `<span style="position:absolute;left:${x - bounds.left}px;top:${y - bounds.top}px;width:4px;height:4px;background:#c30"></span>`);
+    expect((await findSquirclePaint()).map((issue) => issue.element), `${writingMode} ${direction} ${decoration}`).toContain("code.inline");
+    root.remove();
+  }
+}, paintTimeout);
+
 it("ignores a border pixel straddling the inside of a fractional box edge", async () => {
   const restore = forceSquircleFallback();
   try {
