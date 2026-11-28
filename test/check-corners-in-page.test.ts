@@ -1430,6 +1430,36 @@ it("keeps a separate round badge distinct from square paint on it", async () => 
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
 }, paintTimeout);
 
+it("separates a fractional badge raster edge from square paint", async () => {
+  const root = render('<div style="position:fixed;left:50px;top:50px;width:112px;height:112px"><div class="surface" style="position:absolute;inset:0;background:#456;border-radius:27px;clip-path:inset(0 round 27px);--sq-tl:49.28px;--sq-tr:49.28px;--sq-br:49.28px;--sq-bl:49.28px"></div><span class="badge" style="position:absolute;right:-6.6px;bottom:-6.6px;width:31px;height:31px;border-radius:9999px;background:#fb0"></span></div>');
+  const surface = root.querySelector<HTMLElement>(".surface")!;
+  const badge = root.querySelector<HTMLElement>(".badge")!;
+  const capture = state.__ouroPaintCapture!;
+  let square = false;
+  state.__ouroPaintCapture = async (clip) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = clip.width;
+    canvas.height = clip.height;
+    const pen = canvas.getContext("2d")!;
+    pen.fillStyle = "#000";
+    pen.fillRect(0, 0, canvas.width, canvas.height);
+    if (badge.style.opacity !== "0" && badge.style.clipPath === "" && !surface.hasAttribute("data-ouro-paint-solo")) {
+      const rect = surface.getBoundingClientRect();
+      pen.fillStyle = "#413109";
+      pen.fillRect(rect.left + (square ? 124 : 108) - clip.x, rect.top + (square ? 90 : 118) - clip.y, 1, 1);
+    }
+    return canvas.toDataURL();
+  };
+  try {
+    expect(await findSquirclePaint()).toEqual([]);
+    badge.insertAdjacentHTML("beforeend", '<span style="position:absolute;left:34px;top:2px;width:8px;height:8px;background:#d11"></span>');
+    square = true;
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+  } finally {
+    state.__ouroPaintCapture = capture;
+  }
+}, paintTimeout);
+
 it("keeps a round sibling's curved shadow separate from a transparent focus surface", async () => {
   const restore = forceSquircleFallback();
   try {
