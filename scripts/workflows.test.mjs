@@ -2349,9 +2349,8 @@ test("install-test.sh splits and narrows only the shipped tests, from OURO_SHARD
   const specs = ["e2e/ouro/dialog.spec.ts", "e2e/ouro/menu.spec.ts", "e2e/ouro/timer.spec.ts", "e2e/ouro-fixtures.ts"];
   const shard = run({ OURO_SHARD: "2/2" }, [...shipped, ...specs]);
   assert.equal(shard.status, 0, shard.stderr);
-  const { installShard, installSpecShard } = await import("./shard.mjs");
-  const mine = installShard(shipped.slice(0, 4), { index: 2, count: 2 });
-  const mySpecs = installSpecShard(specs.slice(0, 3), { index: 2, count: 2 });
+  const { installShare } = await import("./shard.mjs");
+  const { files: mine, specs: mySpecs } = installShare(shipped.slice(0, 4), specs.slice(0, 3), { index: 2, count: 2 });
   assert.ok(mine.length > 0 && mySpecs.length > 0);
   const escaped = (paths) => paths.join(" ").replace(/[.]/g, "\\.");
   assert.match(shard.stdout, new RegExp(`^npx vitest run --maxWorkers=1 ${escaped(mine)}$`, "m"));
