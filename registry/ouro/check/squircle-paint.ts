@@ -426,6 +426,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     const surfaceLayers = [...el.querySelectorAll("*"), ...siblings, ...outlines].filter(visible);
     const independent = surfaceLayers.filter((other): other is HTMLElement => {
       if (!(other instanceof HTMLElement)) return false;
+      if (siblings.includes(other)) return false;
       if (geometry(other) !== null && hasPaint(other)) return true;
       return !hasPaint(el) && Math.abs(other.offsetWidth - other.offsetHeight) > 0.5 &&
         round(other) && (hasPaint(other) || [...other.querySelectorAll("*")].some((child) => hasPaint(child)));

@@ -787,6 +787,36 @@ test("squircle-paint checks coincident rounded siblings without treating their s
   }
 });
 
+test("squircle-paint attributes a distant shadow separately from an overlapping overlay", async () => {
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+    await bindCapture(tab);
+    try {
+      await tab.setContent(`<style>
+        body { margin: 0; background: #e8edf2; }
+        .surface { position: absolute; left: 60px; top: 100px; width: 300px; height: 44px;
+          background: #cdd7df; border-radius: 9.774px;
+          --sq-tl: 18px; --sq-tr: 18px; --sq-br: 18px; --sq-bl: 18px;
+          clip-path: path("M -500 -500 H 800 V 500 H -500 Z M 0 0 V 44 H 300 V 0 Z ${contour(300, 44, 18)}"); }
+        .selected { position: absolute; left: 110px; top: 2px; width: 90px; height: 40px;
+          background: white; box-shadow: 0 1px 3px #0008; }
+        .overlay { position: absolute; left: 60px; top: 90px; width: 50px; height: 14px;
+          z-index: 1; background: #1d1d1f; }
+        .surface[style*="clip-path"] + .overlay, .surface[data-ouro-paint-solo] + .overlay { background: #2e2e30; }
+        .surface[style*="opacity: 0"] + .overlay { background: #272729; }
+      </style><div class="surface"><div class="selected"></div></div><div class="overlay"></div>`);
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: an unrelated overlay is not the distant shadow`);
+      await tab.locator(".surface").evaluate((el) => {
+        el.insertAdjacentHTML("beforeend", '<div style="position:absolute;left:0;bottom:-6px;width:10px;height:10px;background:#b44939"></div>');
+      });
+      assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, `${engine.name()}: a nearby leaking layer is still found`);
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
 test("squircle-paint finds a leaking child under a strict content policy", async () => {
   for (const engine of [chromium, webkit]) {
     const browser = await engine.launch({ headless: true });
