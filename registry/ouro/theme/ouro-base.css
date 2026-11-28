@@ -538,6 +538,27 @@
   }
 }
 
+/* A new message's bubble in MessageList: a sent one grows from its tail's corner, another's grows from its sender's side
+   while it fades in. Both scale only, never translate, so the list's scrollable overflow does not grow; reduced motion
+   only fades. */
+@keyframes ouro-message-sent {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+@keyframes ouro-message-received {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+@keyframes ouro-message-fade {
+  from {
+    opacity: 0;
+  }
+}
+
 /* A state nobody has designed yet: data-ouro-veil covers its element with a plain, solid "Not designed yet" layer, so no
    one mistakes it for the design. Ouro check skips what is inside it. The value, when set, is added as the reason. */
 @layer base {

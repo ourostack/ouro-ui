@@ -1,10 +1,18 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { capsuleHalf, installSquircleCapsules } from "@/registry/ouro/lib/ouro/squircle-capsules";
+import { capsuleHalf, installSquircleCapsules, ROUND } from "@/registry/ouro/lib/ouro/squircle-capsules";
 
 describe("capsule measure", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it("exports ROUND, the round things an app's own squircles leave alone", () => {
+    const round = document.createElement("span");
+    round.setAttribute("data-ouro-avatar-presence", "");
+    const plain = document.createElement("span");
+    expect(round.matches(ROUND)).toBe(true);
+    expect(plain.matches(ROUND)).toBe(false);
   });
 
   it("takes half the shorter side in eighths of a pixel", () => {
