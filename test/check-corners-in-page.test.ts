@@ -34,6 +34,17 @@ it("finds mismatched nested corners in the browser", () => {
   expect(findCornerIssues().map((issue) => issue.element)).toContain("div#inner in div#outer");
 });
 
+it("checks a marked surface when it is inset from its parent", () => {
+  for (const marker of ["data-ouro-surface", "data-ouro-avatar-surface"]) {
+    const root = render(`<div id="outer" style="position:relative;width:160px;height:120px;background:#345;border-radius:24px;corner-shape:squircle"><div id="inner" ${marker} style="position:absolute;inset:4px;background:#789;border-radius:6px;corner-shape:squircle"></div></div>`);
+    const inner = root.querySelector<HTMLElement>("#inner")!;
+    expect(findCornerIssues().map((issue) => issue.element)).toContain("div#inner in div#outer");
+    inner.style.borderRadius = "20px";
+    expect(findCornerIssues()).toEqual([]);
+    root.remove();
+  }
+});
+
 it("compares painted corners against the actual browser pixels", async () => {
   render('<div id="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"><div style="position:absolute;inset:0;background:#f40"></div></div>');
   const issues = await findSquirclePaint();
