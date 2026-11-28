@@ -731,13 +731,21 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       return rgba(style.backgroundColor)[3] > 0 || style.backgroundImage !== "none"
         || sideNames.some((side) => px(style.getPropertyValue(`border-${side}-width`)) >= 0.5);
     })) continue;
+    const gridPeers = /grid/.test(ps.display) ? children.map((el) => ({ el, r: el.getBoundingClientRect() })) : [];
     for (const [index, { el: a, r: ar }] of panes.entries()) {
       for (const { el: b, r: br } of panes.slice(index + 1)) {
         if (optedOut(a, "pane-edge") || optedOut(b, "pane-edge")) continue;
-        if (/grid/.test(ps.display) && Math.abs(ar.width - br.width) <= 1 && Math.abs(ar.height - br.height) <= 1) {
-          const peers = children.map((child) => drawnRect(child)!);
-          if (peers.filter((r) => Math.abs(r.width - ar.width) <= 1 && Math.abs(r.height - ar.height) <= 1).length >= 3
-            && peers.some((r) => r.width < ar.width / 2 && Math.abs(r.height - ar.height) <= 1)) continue;
+        if (gridPeers.length) {
+          const aBox = a.getBoundingClientRect();
+          const bBox = b.getBoundingClientRect();
+          const column = aBox.width >= bBox.width ? aBox : bBox;
+          const matchesColumn = (r: DOMRect) => Math.abs(r.width - column.width) <= 1 && Math.abs(r.height - column.height) <= 1;
+          const isGutter = (r: DOMRect) => r.width < column.width / 2 && Math.abs(r.height - column.height) <= 1;
+          const columns = gridPeers.filter(({ r }) => matchesColumn(r)).length;
+          const gutter = gridPeers.some(({ r }) => isGutter(r));
+          const gutterPair = (a.matches('[aria-hidden="true"]') && isGutter(aBox) && matchesColumn(bBox))
+            || (b.matches('[aria-hidden="true"]') && isGutter(bBox) && matchesColumn(aBox));
+          if (columns >= 3 && gutter && ((matchesColumn(aBox) && matchesColumn(bBox)) || gutterPair)) continue;
         }
         const directions = [
           { first: a, second: b, f: ar, s: br, side: "right" as const, other: "left" as const, across: false },
