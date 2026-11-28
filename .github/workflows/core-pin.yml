@@ -103,8 +103,8 @@ jobs:
           git add -A
           git commit -q -m "Point the Platforms pages at core $TAG"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          git push -q --force origin "$BRANCH"
-      - if: steps.pin.outputs.result == 'changed' && steps.queued.outputs.queued != 'true'
+          bash scripts/push-pin-branch.sh "$BRANCH"
+      - if: steps.pin.outputs.result == 'changed' && steps.queued.outputs.queued != 'true' && steps.push.outputs.queued != 'true'
         id: pr
         name: Open or update the pull request, and turn auto-merge on
         env:
@@ -135,7 +135,7 @@ jobs:
           [ -n "$on" ] || { echo "::error::Could not turn auto-merge on for #$number after 5 tries."; exit 1; }
           echo "Auto-merge is on for #$number: it merges once the checks main's ruleset requires pass." >> "$GITHUB_STEP_SUMMARY"
           echo "number=$number" >> "$GITHUB_OUTPUT"
-      - if: steps.pin.outputs.result == 'changed' && steps.queued.outputs.queued != 'true'
+      - if: steps.pin.outputs.result == 'changed' && steps.queued.outputs.queued != 'true' && steps.push.outputs.queued != 'true'
         name: Start the pull request's CI, and fail when it has not started
         env:
           GH_TOKEN: ${{ github.token }}
