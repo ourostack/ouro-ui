@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { findDesignIssues, listCornerMedia, mediaDrawn, readCorners, shownCorners, type CornerReading } from "@/registry/ouro/check/design-check";
 import { findRepaints, listenForMotion, markWalkables, readMotion, resetMotion } from "@/registry/ouro/check/motion-check";
@@ -701,6 +701,162 @@ describe("findDesignIssues: cut-off-edge", () => {
     ]);
   });
 
+  it("recognizes a pseudo-element fade on each edge without hiding an unfaded edge", () => {
+    const cases = [
+      { axis: "y", place: "top:0;left:0;width:300px;height:20px", expected: "bottom" },
+      { axis: "y", place: "bottom:0;left:0;width:300px;height:20px", expected: "top" },
+      { axis: "x", place: "top:0;left:0;width:20px;height:80px", expected: "right" },
+      { axis: "x", place: "top:0;right:0;width:20px;height:80px", expected: "left" },
+      { axis: "y", place: "top:0;left:0;width:30px;height:20px", expected: "top and bottom" },
+      { axis: "y", place: "top:0;left:0;width:300px;height:20px;z-index:-1", expected: "top and bottom" },
+      { axis: "y", place: "top:0;left:0;width:300px;height:20px;z-index:0", expected: "top and bottom", scrollZ: 1 },
+    ];
+    for (const { axis, place, expected, scrollZ } of cases) {
+      render(`
+        <style>#fade-owner::before { content:""; position:absolute; z-index:2; ${place}; background:linear-gradient(#eee,transparent); pointer-events:none }</style>
+        <div style="padding:20px;width:340px;background:#eee">
+          <div id="fade-owner" style="position:relative;width:300px;height:80px">
+            <div id="fade-list" style="position:relative;${scrollZ === undefined ? "" : `z-index:${scrollZ};`}width:300px;height:80px;overflow:auto;background:#eee">
+              <div style="${axis === "y" ? "height:160px" : "width:600px;height:80px"}">Notes</div>
+            </div>
+          </div>
+        </div>`);
+      const scroller = host.querySelector<HTMLElement>("#fade-list")!;
+      if (axis === "y") scroller.scrollTop = 40;
+      else scroller.scrollLeft = 40;
+      expect(of("cut-off-edge").map((issue) => issue.detail.match(/clipped at the (.*?) into/)?.[1]), place).toEqual([expected]);
+      host.remove();
+    }
+  });
+
+  it("ignores an overlay fade that is behind the scroller or too narrow, and accepts one above it", () => {
+    const cases = [
+      { shade: "z-index:-1", scroll: "", expected: "top and bottom" },
+      { shade: "z-index:0", scroll: "z-index:1", expected: "top and bottom" },
+      { shade: "z-index:2", scroll: "z-index:1", expected: "bottom" },
+      { shade: "z-index:2;width:30px", scroll: "", expected: "top and bottom" },
+    ];
+    for (const { shade, scroll, expected } of cases) {
+      render(`
+        <div style="padding:20px;width:340px;background:#eee">
+          <div style="position:relative;width:300px;height:80px">
+            <div style="position:absolute;top:0;left:0;width:300px;height:20px;${shade};background:linear-gradient(#eee,transparent);pointer-events:none"></div>
+            <div id="fade-list" style="position:relative;${scroll};width:300px;height:80px;overflow:auto;background:#eee">
+              <div style="height:160px">Notes</div>
+            </div>
+          </div>
+        </div>`);
+      host.querySelector<HTMLElement>("#fade-list")!.scrollTop = 40;
+      expect(of("cut-off-edge").map((issue) => issue.detail.match(/clipped at the (.*?) into/)?.[1]), shade).toEqual([expected]);
+      host.remove();
+    }
+  });
+
+  it("distinguishes content clipped by an inner ancestor from content reaching the scroll edge", () => {
+    for (const { height, expected } of [{ height: 70, expected: [] }, { height: 140, expected: ["div#nested-list"] }]) {
+      render(`
+        <div style="padding:20px;width:340px;background:#eee">
+          <div id="nested-list" style="width:300px;height:80px;overflow:auto;background:#eee">
+            <div id="clip-wrap" style="position:relative;height:${height}px;overflow:hidden">
+              <div style="height:140px">A long note</div>
+            </div>
+            <div style="height:120px;visibility:hidden"></div>
+          </div>
+        </div>`);
+      Object.defineProperty(host.querySelector<HTMLElement>("#clip-wrap")!, "offsetHeight", { value: 0 });
+      expect(of("cut-off-edge").map((issue) => issue.element), String(height)).toEqual(expected);
+      host.remove();
+    }
+    render(`
+      <div style="padding:20px;width:340px;background:#eee">
+        <div style="display:flex;width:240px;height:80px;overflow:auto;background:#eee">
+          <div id="clip-wrap" style="position:relative;flex:none;width:180px;height:80px;overflow:hidden">
+            <div style="width:400px;height:80px">A long note</div>
+          </div>
+          <div style="flex:none;width:180px;visibility:hidden"></div>
+        </div>
+      </div>`);
+    Object.defineProperty(host.querySelector<HTMLElement>("#clip-wrap")!, "offsetWidth", { value: 0 });
+    expect(of("cut-off-edge")).toEqual([]);
+    host.remove();
+    render(`
+      <div style="padding:20px;width:340px;background:#eee">
+        <div id="sticky-list" style="width:300px;height:80px;overflow:auto;background:#eee">
+          <div style="position:sticky;top:0;height:70px;overflow:hidden">
+            <div style="position:absolute;top:-40px;height:140px;width:300px">A long note</div>
+          </div>
+          <div style="height:160px;visibility:hidden"></div>
+        </div>
+      </div>`);
+    host.querySelector<HTMLElement>("#sticky-list")!.scrollTop = 40;
+    expect(of("cut-off-edge")).toEqual([]);
+  });
+
+  it("does not mistake a fixed descendant for content clipped by its scroller", () => {
+    render(`
+      <div style="padding:20px;width:340px;background:#eee">
+        <div id="fixed-list" style="width:300px;height:80px;overflow:auto;background:#eee">
+          <div id="fixed-wrap" style="position:fixed;width:300px;height:80px"><div style="height:80px">Floating note</div></div>
+          <div style="height:160px;visibility:hidden"></div>
+        </div>
+      </div>`);
+    const scroller = host.querySelector<HTMLElement>("#fixed-list")!;
+    const box = scroller.getBoundingClientRect();
+    const fixed = host.querySelector<HTMLElement>("#fixed-wrap")!;
+    fixed.style.top = `${box.bottom - 30}px`;
+    fixed.style.left = `${box.left}px`;
+    expect(of("cut-off-edge")).toEqual([]);
+  });
+
+  it("uses the drawn box when layout dimensions are unavailable and an unknown gradient is not a proven fade", () => {
+    render(`
+      <div style="padding:20px;width:340px;background:#eee">
+        <div id="fallback-owner" style="position:relative;width:300px;height:80px">
+          <div id="fallback-list" style="width:300px;height:80px;overflow:auto;background:#eee">
+            <div style="height:160px">Notes</div>
+          </div>
+          <div id="unknown-fade" style="position:absolute;top:60px;width:300px;height:20px;pointer-events:none"></div>
+        </div>
+      </div>`);
+    const scroller = host.querySelector<HTMLElement>("#fallback-list")!;
+    const owner = host.querySelector<HTMLElement>("#fallback-owner")!;
+    for (const element of [scroller, owner]) {
+      Object.defineProperty(element, "offsetWidth", { value: 0 });
+      Object.defineProperty(element, "offsetHeight", { value: 0 });
+    }
+    const computed = window.getComputedStyle;
+    const styles = vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
+      const style = computed.call(window, element, pseudo);
+      return new Proxy(style, {
+        get(target, property) {
+          if (element === scroller && property === "maskImage") return "";
+          if (element.id === "unknown-fade" && property === "backgroundImage") {
+            return "linear-gradient(device-cmyk(0 1 1 0), device-cmyk(1 0 0 0))";
+          }
+          const value = Reflect.get(target, property, target);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+    });
+    try {
+      expect(of("cut-off-edge").map((issue) => issue.element)).toEqual(["div#fallback-list"]);
+    } finally {
+      styles.mockRestore();
+    }
+  });
+
+  it("accepts an enclosing edge even when its gradient surface cannot be resolved", () => {
+    render(`
+      <div style="padding:20px;width:340px;background:#eee">
+        <div style="width:300px;height:80px;border-bottom:1px solid #888;background:linear-gradient(#ddd,#bbb)">
+          <div style="width:300px;height:80px;overflow:auto;background:#eee">
+            <div style="height:160px">Notes</div>
+          </div>
+        </div>
+      </div>`);
+    expect(of("cut-off-edge")).toEqual([]);
+  });
+
   it("does not report a scroll edge hidden behind an ancestor's clip", () => {
     render(`
       <div style="width:180px;height:100px;overflow:hidden;background:#eee">
@@ -935,6 +1091,9 @@ describe("findDesignIssues: pane-edge", () => {
           <main id="details" style="border-left:1px solid #888">Details</main>
           <section style="border-left:1px solid #888">History</section>
           <section style="border-left:1px solid #888">Activity</section>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3, 200px) 80px;width:680px;height:240px">
+          <div>First</div><div>Second</div><div>Third</div><div aria-hidden="true">Hours</div>
         </div>`);
       expect(of("pane-edge").map((issue) => issue.element)).toEqual(["aside#navigation and main#details"]);
     } finally {
@@ -980,6 +1139,22 @@ describe("findDesignIssues: pane-edge", () => {
     expect(of("pane-edge")).toEqual([
       expect.objectContaining({ element: expect.stringMatching(/translucent.*mixed/) }),
     ]);
+  });
+
+  it("does not guess a pane's gradient surface or attribute an opted-out notch to its pane", () => {
+    render(`
+      <div style="display:flex;width:360px;height:180px">
+        <aside style="width:170px;background:linear-gradient(#ddd,#bbb)">Folders</aside>
+        <main style="width:190px;background:#fff">Notes</main>
+      </div>
+      <div style="display:flex;width:360px;height:180px;margin-top:20px">
+        <aside style="position:relative;width:170px;background:#ddd">
+          <div data-ouro-allow="pane-edge" data-ouro-allow-why="a deliberate example"
+            style="position:absolute;right:0;top:20px;width:12px;height:20px;background:#fff"></div>
+        </aside>
+        <main style="width:190px;background:#fff">Notes</main>
+      </div>`);
+    expect(of("pane-edge")).toEqual([]);
   });
 
   it("reads panes painted by wrappers' children, including a line drawn by a child", () => {
