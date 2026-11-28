@@ -1,11 +1,11 @@
 {
-  "release": "1.10.1",
+  "release": "1.12.0",
   "commit": "29d041d01bbba2088fb8990a42d617bb31745eaa",
   "main": "29d041d01bbba2088fb8990a42d617bb31745eaa",
   "feelReinsRelease": "0.4.1",
-  "releaseUrl": "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.10.1",
+  "releaseUrl": "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.12.0",
   "repository": "https://github.com/ourostack/ouro-ui-apple",
-  "packageLine": ".package(url: \"https://github.com/ourostack/ouro-ui-apple.git\", from: \"1.10.1\")",
+  "packageLine": ".package(url: \"https://github.com/ourostack/ouro-ui-apple.git\", from: \"1.12.0\")",
   "requires": { "iOS": "18", "macOS": "15", "swiftTools": "6.1" },
   "sources": {
     "tokens": "https://github.com/ourostack/ouro-ui-apple/blob/29d041d01bbba2088fb8990a42d617bb31745eaa/Sources/OuroHX/Tokens/OuroTokens.swift",

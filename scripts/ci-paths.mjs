@@ -15,7 +15,7 @@
 export const scoped = [
   { pattern: /^scripts\/[^/]+\.test\.mjs$/, tiers: [], components: false, reason: "a Node script test (pnpm test:scripts)" },
   {
-    pattern: /^scripts\/(ceiling-ratchet|ci-budget|ci-fail-fast|ci-proof|ci-yield|run-jobs|docs-pin-release-check|fresh-main|main-green|required-checks|required-producers|cache-prune|patch-guard|quarantine|repeat-red-quarantine|rerun-guard|size-budget|release-commit|release-note|release-wait|run-script-tests|script-tests|check-node-coverage|check-node-coverage-merge|main-red-signatures|cascade-retrigger|queue-unmergeable|ceiling-fix-exempt|fail-fast-fresh-main|download-newest-artifacts)\.(mjs|sh)$|^scripts\/(required-ci|dispatch-required|scheduled-failure|sr-infra-issue|pages-clear|retry)\.sh$/,
+    pattern: /^scripts\/(ceiling-ratchet|ci-budget|ci-fail-fast|ci-proof|ci-yield|run-jobs|docs-pin-release-check|fresh-main|main-green|required-checks|required-producers|cache-prune|patch-guard|quarantine|repeat-red-quarantine|rerun-guard|size-budget|release-commit|release-note|release-wait|run-script-tests|script-tests|check-node-coverage|check-node-coverage-merge|main-red-signatures|cascade-retrigger|queue-unmergeable|ceiling-fix-exempt|fail-fast-fresh-main|download-newest-artifacts|fetch-newest-release)\.(mjs|sh)$|^scripts\/(required-ci|dispatch-required|scheduled-failure|sr-infra-issue|pages-clear|retry)\.sh$/,
     tiers: [],
     components: false,
     reason: "a CI or release helper that only the workflows and the Node script tests run",
@@ -37,6 +37,7 @@ export const scoped = [
   { pattern: /^scripts\/ouro-census\//, tiers: [], components: false, reason: "the Ouro AX census, which only its Node script test (scripts/ouro-census.test.mjs) runs" },
   { pattern: /^scripts\/ax-claim-sets\.(json|mjs)$/, tiers: [], components: false, reason: "the Ouro AX claim-set history, which only its Node script test and the adoption ledger read" },
   { pattern: /^scripts\/claims-urls\.json$/, tiers: [], components: false, reason: "the claim URL list, which only the Node script tests read" },
+  { pattern: /^scripts\/fixtures\/interactive-components\.json$/, tiers: [], components: false, reason: "the list of interactive components, which only its Node script test (scripts/control-matrix.test.mjs) reads" },
   { pattern: /^scripts\/model-reviews\//, tiers: ["screens"], components: false, reason: "the model reviews and their pages, which the Node script tests read and the site renders at install (#2600)" },
   {
     pattern: /^scripts\/parity-data\/[^/]+\.json$/,
