@@ -99,7 +99,7 @@ describe("SettingsPage", () => {
     await userEvent.fill(field("Display name"), "Edited");
     await userEvent.click(page.getByRole("button", { name: "Delete account" }));
     await expect.element(page.getByRole("alertdialog")).toBeVisible();
-    await passesAxe();
+    expect(onDelete).not.toHaveBeenCalled();
     await userEvent.click(page.getByRole("alertdialog").getByRole("button", { name: "Delete account" }));
     await expect.poll(() => onDelete.mock.calls.length).toBe(1);
     await expect.element(field("Display name")).toHaveValue("");
@@ -109,6 +109,13 @@ describe("SettingsPage", () => {
     await userEvent.fill(field("Email"), "bo@example.com");
     await userEvent.click(page.getByRole("button", { name: "Save" }));
     await expect.element(status()).toHaveTextContent("Settings saved.");
+  });
+
+  it("passes axe with the delete confirmation open", async () => {
+    await render(<SettingsPage />);
+    await userEvent.click(page.getByRole("button", { name: "Delete account" }));
+    await expect.element(page.getByRole("alertdialog")).toBeVisible();
+    await passesAxe();
   });
 
   it("clears what it said while the next save runs, so each save is announced and a failed one never reads as saved", async () => {
