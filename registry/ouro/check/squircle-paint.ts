@@ -650,9 +650,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               changed = !differs;
             }
             if (differs) {
-              const rgba = (await Promise.all([actual, masked, hidden, ...(solo ? [solo] : []), restoredFrame!].map(pixels))).map((image) => [...image.data.slice(pixelIndex, pixelIndex + 4)]);
+              const rgba = (await Promise.all([actual, masked, hidden, ...(solo ? [solo] : []), restoredFrame!, ...(withoutEffects ? [withoutEffects] : []), ...(withoutBadges ? [withoutBadges] : [])].map(pixels))).map((image) => [...image.data.slice(pixelIndex, pixelIndex + 4)]);
               const computed = getComputedStyle(el);
-              console.log("CORNER-DIAGNOSTIC", JSON.stringify({ target: describe(el), point: differs, rgba, rect: r.toJSON(), clip, corners: initial.corners, radius: computed.borderRadius, clipPath: computed.clipPath, background: computed.backgroundColor, shadow: computed.boxShadow, outline: computed.outline, html: el.outerHTML.slice(0, 1200) }));
+              console.log("CORNER-DIAGNOSTIC", JSON.stringify({ target: describe(el), point: differs, rgba, rect: r.toJSON(), clip, corners: initial.corners, radius: computed.borderRadius, clipPath: computed.clipPath, background: computed.backgroundColor, backdropFilter: computed.backdropFilter, shadow: computed.boxShadow, outline: computed.outline, font: computed.font, roundedEffects, layers: active.map((layer) => ({html: layer.el.outerHTML.slice(0, 800), box: layer.el.getBoundingClientRect().toJSON()})), parent: el.parentElement?.outerHTML.slice(0, 4000), html: el.outerHTML.slice(0, 4000) }));
               await diagnostic?.({ actual, hidden, masked, solo, restored: restoredFrame!, rect: r.toJSON(), clip, point: differs, html: el.outerHTML });
               found = differs;
               break;
