@@ -44,6 +44,12 @@ expectTypeOf<{ role: "user"; name: "Ana"; quote: { author: "Grace"; excerpt: "Lu
 // A quote may say when it was sent, in the app's own words, and where it sits.
 expectTypeOf<{ role: "user"; name: "Ana"; quote: { author: "Grace"; excerpt: "Lunch?"; at: number; atText: "Yesterday"; context: "Replied in thread" } }>().toExtend<MessageProps>();
 expectTypeOf<{ author: "Grace"; excerpt: "Lunch?"; avatar: ReactElement }>().toExtend<MessageQuote>();
+expectTypeOf<{ author: "Fern Moss"; excerpt: "The lanterns arrive at noon."; href: "/messages/lanterns" }>().toExtend<MessageQuote>();
+expectTypeOf<{ author: "Fern Moss"; excerpt: "The lanterns arrive at noon."; href: "/messages/lanterns"; onActivate: () => void }>().toExtend<MessageQuote>();
+expectTypeOf<MessageQuote["href"]>().toEqualTypeOf<string | undefined>();
+expectTypeOf<MessageQuote["onActivate"]>().toEqualTypeOf<(() => void) | undefined>();
+expectTypeOf<MessageQuote["onOpen"]>().toEqualTypeOf<(() => void) | undefined>();
+expectTypeOf<{ author: "Fern Moss"; href: "/messages/lanterns" }>().not.toExtend<MessageQuote>();
 expectTypeOf<{ author: "Grace" }>().not.toExtend<MessageQuote>();
 expectTypeOf<{ excerpt: "Lunch?" }>().not.toExtend<MessageQuote>();
 // An action needs a label, for its name and tooltip.
