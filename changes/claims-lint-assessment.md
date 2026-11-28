@@ -1,0 +1,1 @@
+- Fixed: the claims lint on a pull request body skips the marked Agent assessment block, and still fails a claim outside it.
