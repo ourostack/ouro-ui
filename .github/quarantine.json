@@ -54,5 +54,29 @@
     "issue": "https://github.com/ourostack/ouro-ui/issues/3736",
     "owner": "shipper",
     "expiry": "2026-11-29T00:00:00Z"
+  },
+  {
+    "project": "site",
+    "file": "site/src/docs/calendar-demo.test.tsx",
+    "title": "the calendar page > names no key on a touch screen, and keeps the Undo toast reachable when Go to date opens over it",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/4114",
+    "owner": "shipper",
+    "expiry": "2026-11-30T00:00:00Z"
+  },
+  {
+    "project": "site",
+    "file": "site/src/docs/calendar-demo.test.tsx",
+    "title": "the calendar page > puts focus in the grid after Delete even when the sheet takes ages to close",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/4114",
+    "owner": "shipper",
+    "expiry": "2026-11-30T00:00:00Z"
+  },
+  {
+    "project": "site",
+    "file": "site/src/docs/calendar-demo.test.tsx",
+    "title": "the calendar page > puts focus in the grid after Delete on a phone, not on the page body",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/4114",
+    "owner": "shipper",
+    "expiry": "2026-11-30T00:00:00Z"
   }
 ]
