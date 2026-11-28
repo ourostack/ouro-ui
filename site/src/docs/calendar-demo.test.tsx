@@ -13,12 +13,13 @@ afterEach(async () => {
   setScheme("light");
 });
 
-const eventTitles = () => document.querySelectorAll("[data-site-calendar-demo] [data-ouro='time-grid'] [data-event-id], [data-site-calendar-demo] [data-ouro='time-grid'] button[aria-label*=', ']").length;
-
-function holdWorkday() {
+// The demo seeds Monday to Friday and a phone opens on today, so a phone case pins the date to a Wednesday; timers and animation stay real.
+const freezeWeekday = () => {
   vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date(2026, 2, 9, 12, 0));
-}
+  vi.setSystemTime(new Date(2026, 10, 25, 10, 0, 0));
+};
+
+const eventTitles = () => document.querySelectorAll("[data-site-calendar-demo] [data-ouro='time-grid'] [data-event-id], [data-site-calendar-demo] [data-ouro='time-grid'] button[aria-label*=', ']").length;
 
 // A narrow column shows State as a Select, a wide one as a SegmentedControl.
 async function chooseEmptyWeek() {
@@ -309,10 +310,11 @@ describe("the calendar page", () => {
   });
 
   it("names no key on a touch screen, and keeps the Undo toast reachable when Go to date opens over it", async () => {
-    holdWorkday();
+    freezeWeekday();
     const real = window.matchMedia.bind(window);
     vi.stubGlobal("matchMedia", (query: string) => (query === "(pointer: coarse)" ? ({ matches: true, media: query, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList) : real(query)));
     try {
+      freezeWeekday();
       await page.viewport(390, 844);
       await renderPage("/docs/calendar-demo/");
       await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
@@ -355,7 +357,7 @@ describe("the calendar page", () => {
   });
 
   it("puts focus in the grid after Delete on a phone, not on the page body", async () => {
-    holdWorkday();
+    freezeWeekday();
     await page.viewport(390, 844);
     await renderPage("/docs/calendar-demo/");
     await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
@@ -371,7 +373,7 @@ describe("the calendar page", () => {
   });
 
   it("puts focus in the grid after Delete even when the sheet takes ages to close", async () => {
-    holdWorkday();
+    freezeWeekday();
     await page.viewport(390, 844);
     await renderPage("/docs/calendar-demo/");
     await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
