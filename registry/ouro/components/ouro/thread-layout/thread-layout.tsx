@@ -123,7 +123,7 @@ export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
         data-ouro-thread-layout-conversation=""
         className={cn(
           "min-w-0 flex-1 outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid",
-          open && "@max-lg:hidden @lg:bg-muted @lg:has-[[data-ouro=message-list]]:bg-background",
+          open && "@max-lg:hidden @lg:bg-background",
         )}
         onFocus={remember}
       >
