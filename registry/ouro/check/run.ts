@@ -1154,7 +1154,7 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       await page.evaluate(decodeImages);
       shown.push(...(await page.evaluate(findSizeIssues, { measures: measuresFor(config, target.page) })));
       shown.push(...(await page.evaluate(findImageFades)));
-      shown.push(...(await page.evaluate(findDesignIssues, { legacyCorners: false })));
+      shown.push(...(await page.evaluate(findDesignIssues, {})));
       shown.push(...(await page.evaluate(findCornerIssues, {
         ...(config.windowRadius === undefined ? {} : { windowRadius: config.windowRadius }),
         ...(config.windowBounds === undefined ? {} : { windowBounds: config.windowBounds }),
