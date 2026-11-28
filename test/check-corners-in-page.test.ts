@@ -1612,6 +1612,31 @@ it("keeps a selected segment and its shadow inside the track's corners", async (
   }
 }, paintTimeout);
 
+it("keeps a fractional-width segment thumb and its shadow inside its own corners", async () => {
+  const restore = forceSquircleFallback();
+  const host = render("");
+  host.style.width = "302.3125px";
+  host.style.setProperty("--shadow-sm", "0 1px 3px #0004");
+  const root = createRoot(host);
+  try {
+    await act(async () => root.render(createElement(SegmentedControl, {
+      label: "Example",
+      hideLabel: true,
+      fullWidth: true,
+      items: [{ value: "one", label: "One" }, { value: "two", label: "Two" }, { value: "three", label: "Three" }],
+      value: "two",
+      onValueChange: () => {},
+    })));
+    const thumb = host.querySelector<HTMLElement>("[data-ouro-segment-thumb]")!;
+    thumb.id = "fractional-thumb";
+    expect(thumb.getBoundingClientRect().width).toBeCloseTo(99.4375, 2);
+    expect((await findSquirclePaint()).map((issue) => issue.element)).not.toContain("span#fractional-thumb.pointer-events-none.absolute.top-0.5");
+  } finally {
+    await act(async () => root.unmount());
+    restore();
+  }
+}, paintTimeout);
+
 it("ignores a bottom corner when only the opposite border is painted", async () => {
   const root = render(`<div class="wrapper" style="position:relative;width:160px;height:120px;border-top:2px solid #444;border-radius:0 0 28px 28px;corner-shape:squircle;--sq-br:28px;--sq-bl:28px">
     <div style="position:absolute;left:0;bottom:0;width:24px;height:24px;background:#d11"></div>
