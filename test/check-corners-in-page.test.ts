@@ -1044,6 +1044,43 @@ it("finds a surface fill beyond its curve even when its shadow is rounded", asyn
   expect(surface.getAttribute("style")).toBe(original);
 }, paintTimeout);
 
+it("compares a rounded shadow alone without hiding an escaping fill", async () => {
+  const root = render('<div class="surface" style="width:160px;height:120px;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px;border-radius:15.204px;background:#fff;box-shadow:0 2px 6px #0004"></div>');
+  const surface = root.querySelector<HTMLElement>(".surface")!;
+  const original = surface.getAttribute("style");
+  const capture = state.__ouroPaintCapture!;
+  let leaking = false;
+  let wrongSize = false;
+  state.__ouroPaintCapture = async (clip) => {
+    const onlyEffects = surface.hasAttribute("data-ouro-paint-solo") && surface.style.backgroundColor === "transparent";
+    const hidden = surface.style.opacity === "0";
+    const masked = surface.style.clipPath !== "";
+    const canvas = document.createElement("canvas");
+    canvas.width = clip.width + (onlyEffects && wrongSize ? 2 : 0);
+    canvas.height = clip.height;
+    const pen = canvas.getContext("2d")!;
+    pen.fillStyle = "#fff";
+    pen.fillRect(0, 0, canvas.width, canvas.height);
+    if (!hidden && !masked && (!onlyEffects || !leaking)) {
+      const rect = surface.getBoundingClientRect();
+      pen.fillStyle = "#333";
+      pen.fillRect(rect.left - clip.x + 1, rect.top - clip.y + 1, 4, 4);
+    }
+    return canvas.toDataURL();
+  };
+  try {
+    expect(await findSquirclePaint()).toEqual([]);
+    leaking = true;
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+    leaking = false;
+    wrongSize = true;
+    await expect(findSquirclePaint()).rejects.toThrow("screenshots changed size");
+    expect(surface.getAttribute("style")).toBe(original);
+  } finally {
+    state.__ouroPaintCapture = capture;
+  }
+}, paintTimeout);
+
 it("checks a single squircle corner, accepts raw PNG data, and restores existing effects", async () => {
   const root = render('<div class="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px 0 0 0;corner-shape:squircle;opacity:.9;outline:2px solid red;box-shadow:0 2px 3px #000;transition:opacity 1s;clip-path:inset(0)"><div style="position:absolute;inset:0;background:#f40"></div></div>');
   const surface = root.querySelector<HTMLElement>(".surface")!;
