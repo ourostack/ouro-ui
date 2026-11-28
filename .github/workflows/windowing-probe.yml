@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kind: [edge-inner]
+        kind: [badge, avatar]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -40,6 +40,8 @@ jobs:
             effects) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium --project ouro-webkit -t '(rounded focus outline|detached rounded indicator|inside of a fractional box edge)' ;;
             edge-inner) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium --project ouro-webkit -t 'inside of a fractional box edge' ;;
             badge-pixel) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium --project ouro-webkit -t "round badge's fractional antialiasing" ;;
+            badge) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium --project ouro-webkit -t '(badge|detached rounded indicator)' ;;
+            avatar) pnpm exec vitest run test/stories.test.tsx --project ouro-chromium --project ouro-webkit -t 'Avatar/Presence has no paint outside' ;;
             message-ring) pnpm exec vitest run registry/ouro/components/ouro/message/message.test.tsx --project ouro-chromium --project ouro-webkit -t 'keeps each focused action' ;;
             edge) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium --project ouro-webkit -t 'captures paint at the bottom edge' ;;
             priority) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium -t 'keeps a native shadow and its probe separate' ;;

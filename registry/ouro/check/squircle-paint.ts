@@ -222,11 +222,12 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const outsideY = py < rect.top || py >= rect.bottom;
           const outsideCorner = outsideX || outsideY;
           // A separate rounded badge or detached indicator is not paint from the surface.
-          if (noBadges && difference(a.data, noBadges.data, index) >= 2 && badges.some((badge) => {
-            const radius = Math.min(badge.width, badge.height) / 2 + 0.5;
-            const dx = Math.max(0, Math.abs(px - (badge.left + badge.right) / 2) - (badge.width / 2 + 0.5 - radius));
-            const dy = Math.max(0, Math.abs(py - (badge.top + badge.bottom) / 2) - (badge.height / 2 + 0.5 - radius));
-            return dx * dx + dy * dy <= radius * radius;
+          if (noBadges && difference(a.data, noBadges.data, index) >= 2 && difference(noBadges.data, c.data, index) < 2 && badges.some((badge) => {
+            const radius = Math.min(badge.width, badge.height) / 2;
+            const dx = Math.max(0, Math.abs(px - (badge.left + badge.right) / 2) - (badge.width / 2 - radius));
+            const dy = Math.max(0, Math.abs(py - (badge.top + badge.bottom) / 2) - (badge.height / 2 - radius));
+            const pixelRadius = Math.hypot(clip.width / a.width, clip.height / a.height) / 2;
+            return dx * dx + dy * dy <= (radius + pixelRadius) ** 2;
           })) continue;
           // A pixel straddling the box edge can contain the surface's own antialiasing.
           if ((outsideX && Math.min(Math.abs(px - rect.left), Math.abs(px - rect.right)) <= clip.width / a.width / 2 + 0.001) ||
