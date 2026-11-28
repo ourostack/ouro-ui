@@ -689,9 +689,10 @@ it("detects a protruding sibling without reporting an inset one", async () => {
 it("keeps a detached rounded indicator distinct from square corner paint", async () => {
   const restore = forceSquircleFallback();
   try {
-    const root = render('<div class="surface rounded-ouro-xl" style="position:relative;width:160px;height:120px;background:#eee"><span class="indicator" style="position:absolute;left:-4px;top:10px;width:3px;height:20px;border-radius:999px;background:#06c"></span></div>');
+    const root = render('<div class="surface rounded-ouro-xl" style="position:relative;width:160px;height:120px;background:#eee"><span class="indicator" style="position:absolute;left:-4px;top:10px;width:3px;height:20px;border-radius:50%;background:#06c"></span></div>');
     const indicator = root.querySelector<HTMLElement>(".indicator")!;
     expect(await findSquirclePaint()).toEqual([]);
+    indicator.insertAdjacentHTML("afterend", '<span style="position:absolute;left:-6px;top:7px;width:1px;height:2px;background:#c30"></span>');
     indicator.style.cssText = "position:absolute;left:-8px;top:0;width:8px;height:8px;background:#c30";
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-ouro-xl");
   } finally {
