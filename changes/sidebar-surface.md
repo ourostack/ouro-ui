@@ -1,0 +1,1 @@
+- Sidebar: [uses an accent-surface column and page-coloured controls instead of a dividing line](registry/ouro/components/ouro/sidebar/sidebar.test.tsx "verify:testExists(registry/ouro/components/ouro/sidebar/sidebar.test.tsx::Sidebar > uses a surface step, not a line, beside the page and at its scrolling edges)").

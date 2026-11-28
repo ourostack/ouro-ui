@@ -15,6 +15,31 @@ import { axe, browser, dir, fixtures, page, quiet, site, spots, steady, two } fr
 // Part of Ouro check's Node side tests; scripts/check.test.mjs runs every file here under Node's coverage.
 
 describe("Ouro check", () => {
+  test("judges a carousel's clipped edge by its surface, not by its role", async () => {
+    const carousel = (surface: string) => page(
+      `<div style="width:200px;overflow:hidden"><div role="region" aria-roledescription="carousel" aria-label="Featured" tabindex="0" style="display:flex;gap:12px;width:200px;overflow-x:auto;background:${surface}">` +
+      `<div style="flex:0 0 180px"><p>A slide with words at its edge.</p></div><div style="flex:0 0 180px"><p>Another slide.</p></div></div></div>`,
+    );
+    const folder = site("carousel-edges", { "same.html": carousel("white"), "step.html": carousel("#e8e9df") });
+    const result = await check({ targets: [folder], out: dir("carousel-edges"), sizes: two, themes: ["light"], measured: false, chromium, log: quiet });
+    assert.deepEqual(result.findings.filter((f) => f.rule === "cut-off-edge").map((f) => f.page), ["/same.html", "/same.html"]);
+  });
+
+  test("the clipped-text pass fixture gives its carousel a distinct surface", async () => {
+    const result = await check({ targets: [fixtures], pages: "clipped-text-pass.html", out: dir("clipped-text-edge"), sizes: two, themes: ["light"], measured: false, chromium, log: quiet });
+    assert.deepEqual(result.findings.filter((f) => f.rule === "cut-off-edge"), []);
+  });
+
+  test("the jank pass fixture gives its horizontal scroller a distinct surface", async () => {
+    const result = await check({ targets: [fixtures], pages: "jank-pass.html", out: dir("jank-edge"), sizes: two, themes: ["light"], measured: false, chromium, log: quiet });
+    assert.deepEqual(result.findings.filter((f) => f.rule === "cut-off-edge"), []);
+  });
+
+  test("the off-screen pass fixture gives its horizontal scroller a distinct surface", async () => {
+    const result = await check({ targets: [fixtures], pages: "off-screen-pass.html", out: dir("off-screen-edge"), sizes: two, themes: ["light"], measured: false, chromium, log: quiet });
+    assert.deepEqual(result.findings.filter((f) => f.rule === "cut-off-edge"), []);
+  });
+
   test("fragment-focus passes fragmentFocusScript as the item ships it, first in <body>, and names a copy a script adds to <head> as the page streams", async () => {
     // The pass page carries the item's own script, so the rule is tested against what apps install.
     assert.ok(readFileSync(join(fixtures, "fragment-focus-pass.html"), "utf8").includes(`<script>${fragmentFocusScript()}</script>`));
@@ -54,14 +79,14 @@ describe("Ouro check", () => {
     assert.match(swap.taker.first, /^<(button|a)\b/);
     assert.match(swap.taker.rest, /^<(button|a)\b/);
     assert.ok(swap.gone.rest === null || /^<(button|a)\b/.test(swap.gone.rest));
-    assert.equal(result.shots.length, 143 * 2);
+    assert.equal(result.shots.length, 147 * 2);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
-    assert.equal(report.pages.length, 143);
+    assert.equal(report.pages.length, 147);
     // report.json says what it scanned, so a run that reached nothing reads differently from one with no findings
     // (#3864): every page, size and theme the sweep swept, with the elements and rules each visit read.
-    assert.deepEqual(report.scanned, { pages: 143, sizes: 2, themes: 1, visits: 143 * 2, ready: 143 * 2, elements: report.shots.reduce((sum, s) => sum + s.elements, 0), rules: report.shots.reduce((sum, s) => sum + s.rules, 0) });
+    assert.deepEqual(report.scanned, { pages: 147, sizes: 2, themes: 1, visits: 147 * 2, ready: 147 * 2, elements: report.shots.reduce((sum, s) => sum + s.elements, 0), rules: report.shots.reduce((sum, s) => sum + s.rules, 0) });
     assert.ok(report.scanned!.elements > 0 && report.scanned!.rules > 0);
-    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 143 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
+    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 147 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
     for (const ref of report.pages) assert.ok(existsSync(join(out, "sheets", `${ref.name}.png`)), ref.name);
     for (const f of result.findings.filter((f) => f.closeUp)) {
       assert.ok(existsSync(join(out, f.closeUp!)) && existsSync(join(out, f.closeUp!.replace(/\.png$/, "-raw.png"))), f.closeUp);
@@ -155,7 +180,7 @@ describe("Ouro check", () => {
     // whole comparison the way the measured-rules test above already leaves it out of its own (#3836).
     assert.deepEqual(spots(steady(merged.findings)), spots(steady(whole.findings)));
     assert.equal(merged.shots.length, whole.shots.length);
-    assert.equal(merged.pages.length, 72);
+    assert.equal(merged.pages.length, 74);
     // A merge sums the shards' own coverage rather than reading one shard's, so scanned.visits is every shard's
     // shots added together, the same total a single whole run reads from its own.
     assert.deepEqual(merged.scanned, whole.scanned);

@@ -98,7 +98,7 @@ export function ReadReceipt(props: ReadReceiptProps): JSX.Element | null {
   if (readers.length === 0) return <span {...rest} data-ouro="read-receipt" data-slot="read-receipt-hold" aria-hidden="true" className={cn("block h-ouro-4", className)} />;
   const more = readers.length - 3;
   return (
-    <span {...rest} data-ouro="read-receipt" className={cn("inline-flex items-center gap-1 text-[0.625rem] leading-none text-muted-foreground", className)}>
+    <span {...rest} data-ouro="read-receipt" className={cn("inline-flex items-center gap-1 text-[0.625rem] leading-none text-muted-foreground [[data-ouro=message-list]_&]:text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]", className)}>
       <span
         aria-hidden="true"
         // 16px faces, smaller than Avatar's smallest size: a receipt is a hint, not a face to read.

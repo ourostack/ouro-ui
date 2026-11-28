@@ -282,7 +282,7 @@ function ChatDemo(): JSX.Element {
       </div>
     ) : stage === "empty" ? (
       <div className="grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]">
-        <div className="border-e border-border p-2 max-md:hidden">
+        <div className="bg-accent p-2 max-md:hidden forced-colors:border-e forced-colors:border-solid">
           <ConversationList className="grid h-full place-items-center" label="Conversations" items={[]} empty="Conversations appear here" onSelect={() => {}} />
         </div>
         <div className="grid place-items-center">
@@ -291,8 +291,8 @@ function ChatDemo(): JSX.Element {
       </div>
     ) : (
       <div className="group/app grid h-full grid-cols-1 md:grid-cols-[18rem_1fr]" data-pane={open ? "chat" : "list"}>
-        <div ref={listRef} className="min-h-0 overflow-auto md:border-e md:border-border p-2 max-md:group-data-[pane=chat]/app:hidden">{list}</div>
-        <div className="min-h-0 min-w-0 max-md:group-data-[pane=list]/app:hidden">
+        <div ref={listRef} className="min-h-0 overflow-auto bg-accent p-2 max-md:group-data-[pane=chat]/app:hidden forced-colors:md:border-e forced-colors:md:border-solid">{list}</div>
+        <div className="min-h-0 min-w-0 bg-background md:ps-4 max-md:group-data-[pane=list]/app:hidden">
           <ThreadLayout conversation={conversation} thread={thread} conversationLabel="Conversation" />
         </div>
       </div>

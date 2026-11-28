@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page } from "vitest/browser";
+import { commands, page } from "vitest/browser";
 import { ToggleGroup, type ToggleGroupItem } from "@/registry/ouro/components/ouro/toggle/toggle-group";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
@@ -49,6 +49,43 @@ const filters: ToggleGroupItem[] = [
 ];
 
 describe("ToggleGroup overflow scroll", () => {
+  it("keeps a pressed scrolling pill in HighlightText under forced colours", async () => {
+    const { toggles } = await render(
+      <ToggleGroup label="Show" overflow="scroll" shape="pill" items={filters} defaultValue="all" />,
+    );
+    const probe = document.createElement("span");
+    probe.style.color = "HighlightText";
+    document.body.append(probe);
+    try {
+      await commands.emulateMedia({ forcedColors: "active" });
+      expect(getComputedStyle(toggles[0]!).color).toBe(getComputedStyle(probe).color);
+    } finally {
+      probe.remove();
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it.each(["light", "dark"])("distinguishes a clipped row from the page surface in %s", async (scheme) => {
+    const root = document.documentElement;
+    const wasDark = root.classList.contains("dark");
+    root.classList.toggle("dark", scheme === "dark");
+    const pageSurface = document.createElement("div");
+    try {
+      await page.viewport(320, 400);
+      const { row } = await render(
+        <ToggleGroup label="Show" hideLabel overflow="scroll" items={filters} value="all" onValueChange={() => {}} />,
+      );
+      pageSurface.style.backgroundColor = "var(--background)";
+      document.body.append(pageSurface);
+      expect(row.scrollWidth).toBeGreaterThan(row.clientWidth);
+      expect(getComputedStyle(row).backgroundColor).not.toBe(getComputedStyle(pageSurface).backgroundColor);
+      expect(getComputedStyle(row).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    } finally {
+      pageSurface.remove();
+      root.classList.toggle("dark", wasDark);
+    }
+  });
+
   it("stays one line tall, narrower than the toggles, instead of wrapping", async () => {
     await page.viewport(320, 400);
     const { row, toggles } = await render(
