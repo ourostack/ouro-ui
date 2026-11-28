@@ -25,7 +25,7 @@ const NumbersIcon = icon(<path d="M10 6h10M10 12h10M10 18h10M4 5l1.5-1v5M4 14h3l
 
 export default function ComposerDemo(): JSX.Element {
   const editor = useRef<ComposerEditor>(null);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [height, setHeight] = useState<number | null>(null);
   const [sent, setSent] = useState<string>();
   const [receiptOpen, setReceiptOpen] = useState(false);
