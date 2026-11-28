@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-28T03:04:53.423Z",
+  "generatedAt": "2026-11-28T03:32:50.064Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -155,21 +155,21 @@
     },
     {
       "repo": "ourostack/gatefold",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "Packages/GatefoldCloud/Package.resolved",
           "follows": "apple",
-          "current": "1.11.0",
+          "current": "1.12.0",
           "latest": "v1.12.0",
-          "behind": true
+          "behind": false
         },
         {
           "file": "project.yml",
           "follows": "apple",
-          "current": "1.11.0",
+          "current": "1.12.0",
           "latest": "v1.12.0",
-          "behind": true
+          "behind": false
         },
         {
           "file": "tools/ouro-actions/dist-manifest.json",
@@ -179,10 +179,7 @@
           "behind": false
         }
       ],
-      "pr": {
-        "number": 674,
-        "url": "https://github.com/ourostack/gatefold/pull/674"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/hackamore",
@@ -270,21 +267,21 @@
     },
     {
       "repo": "ourostack/ouro-md",
-      "state": "pr",
+      "state": "current",
       "pins": [
         {
           "file": "Package.resolved",
           "follows": "apple",
-          "current": "1.11.0",
+          "current": "1.12.0",
           "latest": "v1.12.0",
-          "behind": true
+          "behind": false
         },
         {
           "file": "Package.swift",
           "follows": "apple",
-          "current": "1.11.0",
+          "current": "1.12.0",
           "latest": "v1.12.0",
-          "behind": true
+          "behind": false
         },
         {
           "file": "tools/ouro-actions/dist-manifest.json",
@@ -294,10 +291,7 @@
           "behind": false
         }
       ],
-      "pr": {
-        "number": 239,
-        "url": "https://github.com/ourostack/ouro-md/pull/239"
-      }
+      "pr": null
     },
     {
       "repo": "ourostack/ouro-work-substrate",
