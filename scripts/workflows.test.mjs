@@ -3595,7 +3595,7 @@ test("Docs pin points main's docs at the newest release through one pull request
     ['node scripts/docs-pin-release-check.mjs "$TAG"', 'node scripts/latest-release.mjs set "$TAG"', "pnpm run docs"],
   );
   const push = stepScript(pin, "Commit the docs and push their branch");
-  assert.match(push, /git push -q --force origin "\$BRANCH"/);
+  assert.match(push, /push-pin-branch\.sh "\$BRANCH"/);
   assert.match(push, /41898282\+github-actions\[bot\]@users\.noreply\.github\.com/);
   const open = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
   assert.match(open, /gh pr list --head "\$BRANCH" --base main --state open/);
@@ -3650,7 +3650,7 @@ test("Kit pin pushes a kit's branch only when main has moved since its last push
   const script = stepScript(workflow("kit-pin.yml").split("\n  pin:\n")[1], "Commit the pages and push their branch, unless the branch already holds this pin");
   for (const [unchanged, pushed] of [[true, false], [false, true]]) {
     const dir = scratchDir("ouro-kit-pin-");
-    const git = `git() {\n  printf 'git %s\\n' "$*" >> "$LOG"\n  case "$1" in\n    fetch) return 0 ;;\n    diff) return ${unchanged ? 0 : 1} ;;\n    rev-parse) echo abc123 ;;\n  esac\n}`;
+    const git = `git() {\n  printf 'git %s\\n' "$*" >> "$LOG"\n  case "$1" in\n    fetch) return 0 ;;\n    diff) return ${unchanged ? 0 : 1} ;;\n    rev-parse) echo abc123 ;;\n  esac\n}\nbash() {\n  printf 'git push %s\\n' "$*" >> "$LOG"\n}`;
     const result = runStep(`${git}\n${script}`, { TAG: "v0.11.0", KIT: "windows", NAME: "Windows", BRANCH: "docs/point-at-windows", LOG: join(dir, "git.log") });
     assert.equal(result.status, 0, result.stdout + result.calls);
     const calls = readFileSync(join(dir, "git.log"), "utf8");
@@ -3837,6 +3837,30 @@ test("Core pin leaves the pull request alone, rather than fail, when it is in th
     assert.notEqual(runStep(fns(o) + script, { ...env, GITHUB_STEP_SUMMARY: join(dir, "other.md") }).output.queued, "true", JSON.stringify(o));
   }
   assert.equal(pin.split("steps.queued.outputs.queued != 'true'").length - 1, 3, "the push, the pull request and its CI start all wait on the queue check");
+});
+
+test("The pin workflows push through push-pin-branch.sh: a push refused because the branch just entered the merge queue exits green and skips the rest, any other refusal fails", () => {
+  const dir = scratchDir("ouro-push-pin-");
+  const bin = join(dir, "bin");
+  mkdirSync(bin);
+  writeFileSync(join(bin, "git"), `#!/usr/bin/env bash\necho "$GIT_MESSAGE" >&2\nexit "\${GIT_STATUS:-0}"\n`);
+  chmodSync(join(bin, "git"), 0o755);
+  const run = (env) => {
+    const output = join(dir, "output.txt");
+    writeFileSync(output, "");
+    const result = spawnSync("bash", [join(root, "scripts/push-pin-branch.sh"), "docs/point-at-release"], { encoding: "utf8", env: sandboxEnv({ GITHUB_OUTPUT: output, ...env }, [bin]) });
+    return { status: result.status, output: readFileSync(output, "utf8") };
+  };
+  assert.deepEqual(run({}), { status: 0, output: "" });
+  const queued = run({ GIT_STATUS: "1", GIT_MESSAGE: "remote: error: GH006: Protected branch update failed.\nremote:   are queued for merging cannot be updated. To modify this branch, dequeue the" });
+  assert.deepEqual(queued, { status: 0, output: "queued=true\n" });
+  assert.deepEqual(run({ GIT_STATUS: "1", GIT_MESSAGE: "remote: error: GH006: Protected branch update failed.\nremote: Cannot force-push to this branch" }), { status: 1, output: "" });
+  for (const name of ["docs-pin", "core-pin", "kit-pin"]) {
+    const text = workflow(`${name}.yml`);
+    assert.match(text, /bash scripts\/push-pin-branch\.sh "\$BRANCH"/, `${name} pushes through the script`);
+    assert.doesNotMatch(text, /git push -q --force/, `${name} has no bare force-push`);
+    assert.match(text, /steps\.push\.outputs\.queued != 'true'/, `${name} skips its later steps when the push was refused for the queue`);
+  }
 });
 
 test("Docs pin reuses its open pull request and turns auto-merge on for it", () => {
