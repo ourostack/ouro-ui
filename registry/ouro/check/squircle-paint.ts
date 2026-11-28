@@ -211,9 +211,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       canvas.width = canvas.height = 0;
     }
   };
-  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, strokePads: { x: number; y: number }[], clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean, otherFragments: DOMRect[], fragmented: boolean, attributable: (x: number, y: number) => boolean, restored: string | null, withoutEffects: string | null, roundedEffects: boolean[], clippedEffects: boolean[]) => {
-    const [a, b, c, own, noBadges, noStrokes, stable, noEffects] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null, withoutBadges ? pixels(withoutBadges) : null, withoutStrokes ? pixels(withoutStrokes) : null, restored ? pixels(restored) : null, withoutEffects ? pixels(withoutEffects) : null]);
-    if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height)) || (noBadges && (a.width !== noBadges.width || a.height !== noBadges.height)) || (noStrokes && (a.width !== noStrokes.width || a.height !== noStrokes.height)) || (stable && (a.width !== stable.width || a.height !== stable.height)) || (noEffects && (a.width !== noEffects.width || a.height !== noEffects.height))) {
+  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, withoutBadges: string | null, roundedBadgePaint: string | null, idealBodyPaint: string | null, badges: DOMRect[], withoutStrokes: string | null, strokePads: { x: number; y: number }[], clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean, otherFragments: DOMRect[], fragmented: boolean, attributable: (x: number, y: number) => boolean, restored: string | null, withoutEffects: string | null, roundedEffects: boolean[], clippedEffects: boolean[]) => {
+    const [a, b, c, own, noBadges, roundBadges, idealBody, noStrokes, stable, noEffects] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null, withoutBadges ? pixels(withoutBadges) : null, roundedBadgePaint ? pixels(roundedBadgePaint) : null, idealBodyPaint ? pixels(idealBodyPaint) : null, withoutStrokes ? pixels(withoutStrokes) : null, restored ? pixels(restored) : null, withoutEffects ? pixels(withoutEffects) : null]);
+    if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height)) || (noBadges && (a.width !== noBadges.width || a.height !== noBadges.height)) || (roundBadges && (a.width !== roundBadges.width || a.height !== roundBadges.height)) || (idealBody && (a.width !== idealBody.width || a.height !== idealBody.height)) || (noStrokes && (a.width !== noStrokes.width || a.height !== noStrokes.height)) || (stable && (a.width !== stable.width || a.height !== stable.height)) || (noEffects && (a.width !== noEffects.width || a.height !== noEffects.height))) {
       throw new Error("squircle-paint screenshots changed size during measurement");
     }
     if (![1, window.devicePixelRatio].some((scale) =>
@@ -266,6 +266,8 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const outsideY = py < rect.top || py >= rect.bottom;
           const outsideCorner = outsideX || outsideY;
           // A separate rounded badge or detached indicator is not paint from the surface.
+          if (noBadges && roundBadges && idealBody && difference(a.data, noBadges.data, index) >= 2 &&
+            difference(a.data, roundBadges.data, index) < 2 && difference(noBadges.data, idealBody.data, index) < 2) continue;
           if (noBadges && difference(a.data, noBadges.data, index) >= 2 && difference(noBadges.data, c.data, index) < 2 && badges.some((badge) => {
             const radius = Math.min(badge.width, badge.height) / 2;
             const dx = Math.max(0, Math.abs(px - (badge.left + badge.right) / 2) - (badge.width / 2 - radius));
@@ -682,6 +684,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             const actual = await capture(clip);
             // A mask can change how a browser composites the restored shadow, so take this reference first.
             let solo = ownEffects ? await captureSolo() : null;
+            const idealMasks = new Map<InlineElement, { width: number; height: number; path: string }>();
             for (const layer of active) {
               const layerRect = layer.el.getBoundingClientRect();
               const layerStyle = getComputedStyle(layer.el);
@@ -700,7 +703,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
                   offsetY: (fragment.rect.top - layerRect.top) / layerScaleY,
                 };
               });
-              layer.el.style.setProperty("clip-path", clipPath(regions), "important");
+              const idealClip = clipPath(regions);
+              idealMasks.set(layer.el, { width: layerWidth, height: layerHeight, path: idealClip.slice(6, -2) });
+              layer.el.style.setProperty("clip-path", idealClip, "important");
             }
             const masked = await capture(clip);
             for (const layer of active) layer.el.style.setProperty("opacity", "0", "important");
@@ -710,11 +715,13 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               restore(layer.el, "clip-path", layer.saved.get("clip-path")!);
             }
             let clippedEffects: boolean[] = [];
+            let roundedBadgePaint: string | null = null;
+            let idealBodyPaint: string | null = null;
             const compare = async (withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, restored: string | null = null, withoutEffects: string | null = null, roundedEffects: boolean[] = []) => {
               try {
                 for (const fragment of fragments) {
                   const otherFragments = fragments.filter((other) => other !== fragment).map((other) => other.rect);
-                  const result = await differences(actual, masked, hidden, solo, withoutBadges, badges, withoutStrokes, strokes, clip, fragment.rect, fragment.width, fragment.height, fragment.corners, initial.native, otherFragments, fragmented, attributable, restored, withoutEffects, roundedEffects, clippedEffects);
+                  const result = await differences(actual, masked, hidden, solo, withoutBadges, roundedBadgePaint, idealBodyPaint, badges, withoutStrokes, strokes, clip, fragment.rect, fragment.width, fragment.height, fragment.corners, initial.native, otherFragments, fragmented, attributable, restored, withoutEffects, roundedEffects, clippedEffects);
                   if (result) return { ...result, x: Math.round(result.x + fragment.rect.left - r.left), y: Math.round(result.y + fragment.rect.top - r.top) };
                 }
                 return null;
@@ -837,6 +844,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
                   normalized: badge.style.cssText,
                   opacity: save(badge, "opacity"),
                   transition: save(badge, "transition"),
+                  clipPath: save(badge, "clip-path"),
                 }));
                 try {
                   for (const { badge } of saved) {
@@ -853,6 +861,61 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
                 }
                 badgeRects = badges.map((badge) => badge.getBoundingClientRect());
                 differs = await compare(withoutBadges, badgeRects, withoutStrokes, null, withoutEffects, roundedEffects);
+                if (differs) {
+                  const properties = ["mask-image", "mask-mode", "mask-position", "mask-size", "mask-repeat", "mask-origin", "mask-clip", "mask-composite"] as const;
+                  const masks = active.map(({ el }) => ({
+                    el, style: el.getAttribute("style"), normalized: el.style.cssText,
+                    saved: properties.map((property) => ({ property, value: save(el, property) })),
+                    computed: Object.fromEntries(properties.map((property) => [property, getComputedStyle(el).getPropertyValue(property)])),
+                  }));
+                  try {
+                    for (const { el, computed } of masks) {
+                      const { width, height, path } = idealMasks.get(el)!;
+                      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><path fill="white" d="${path}"/></svg>`;
+                      const values = [`url("data:image/svg+xml,${encodeURIComponent(svg)}")`, "alpha", "0 0", "100% 100%", "no-repeat", "border-box", "border-box", "intersect"];
+                      for (const [index, property] of properties.entries()) {
+                        const value = values[index]! + (computed["mask-image"] !== "none" ? `, ${computed[property]}` : "");
+                        if (!CSS.supports(property, value)) throw new Error("squircle-paint needs CSS mask intersection for filtered badges");
+                        el.style.setProperty(property, value, "important");
+                      }
+                    }
+                    for (const { badge } of saved) {
+                      badge.style.setProperty("transition", "none", "important");
+                      badge.style.setProperty("opacity", "0", "important");
+                    }
+                    // Intersect, rather than replace, the original notch and any existing mask.
+                    idealBodyPaint = await capture(clip);
+                  } finally {
+                    for (const { el, style, normalized, saved } of masks) {
+                      for (const { property, value } of saved) restore(el, property, value);
+                      restoreStyle(el, style, normalized);
+                    }
+                    for (const { badge, style, normalized, transition, opacity } of saved) {
+                      restore(badge, "opacity", opacity);
+                      restore(badge, "transition", transition);
+                      restoreStyle(badge, style, normalized);
+                    }
+                  }
+                  try {
+                    for (const { badge } of saved) {
+                      const rect = badge.getBoundingClientRect();
+                      const size = boxSize(badge);
+                      const padX = size.width / rect.width / devicePixelRatio / 2;
+                      const padY = size.height / rect.height / devicePixelRatio / 2;
+                      badge.style.setProperty("transition", "none", "important");
+                      badge.style.setProperty("clip-path", `inset(${-padY}px ${-padX}px round 999999px)`, "important");
+                    }
+                    // An ancestor's blur spreads a valid badge beyond its geometric circle.
+                    roundedBadgePaint = await capture(clip);
+                  } finally {
+                    for (const { badge, style, normalized, transition, clipPath } of saved) {
+                      restore(badge, "clip-path", clipPath);
+                      restore(badge, "transition", transition);
+                      restoreStyle(badge, style, normalized);
+                    }
+                  }
+                  differs = await compare(withoutBadges, badgeRects, withoutStrokes, null, withoutEffects, roundedEffects);
+                }
               }
             }
             let changed = false;
