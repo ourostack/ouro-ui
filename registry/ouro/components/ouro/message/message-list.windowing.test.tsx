@@ -110,19 +110,23 @@ let frameBails = 0;
  * a sibling Chromium project's load wedges this one, #3314) must fail this one call fast, with its own clear error, instead of
  * hanging forever and dragging every later test in the file into the same unresolved wait.
  */
-const frame = () =>
-  new Promise<void>((resolve, reject) => {
+const rafs = <T = void,>(count: number, read?: () => T) =>
+  new Promise<T>((resolve, reject) => {
     const bail = setTimeout(() => {
       frameBails++;
       reject(new Error("frame(): requestAnimationFrame did not fire within 5000ms; the renderer looks stalled"));
     }, 5000);
-    requestAnimationFrame(() =>
+    const next = (left: number) =>
       requestAnimationFrame(() => {
-        clearTimeout(bail);
-        resolve();
-      }),
-    );
+        if (left > 1) next(left - 1);
+        else {
+          clearTimeout(bail);
+          resolve(read?.() as T);
+        }
+      });
+    next(count);
   });
+const frame = () => rafs(2);
 
 // Counts the times viewport()'s own bail fires, so a test can prove the path ran rather than inferring it from timing alone.
 let viewportBails = 0;
@@ -814,7 +818,7 @@ describe("MessageList windowing", () => {
     const above = Math.max(0, Number(reading.message.id.slice(1)) - 3);
     items = items.map((item) => (item.id === above ? { ...item, tall } : item));
     await act(async () => root.render(<Chat items={items} springy={false} />));
-    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await rafs(1);
     // Paid, by writing the scroll position once; or held, by drawing the content, with no write that would stop the wheel.
     expect(writes).toBe(pays ? 1 : 0);
     expect(content.style.translate === "").toBe(pays);
@@ -853,10 +857,10 @@ describe("MessageList windowing", () => {
     const shrinks = below ? items.at(-1)!.id : Number(reading.message.id.slice(1)) - 3;
     items = items.map((item) => (item.id === shrinks ? { ...item, tall: 21 } : item));
     await act(async () => root.render(<Chat items={items} springy={false} />));
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await rafs(2);
     // The wheel turns again: the range it holds stays, though the content is now shorter.
     scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await rafs(2);
     expect(pulled).toBe(0);
     expect(scroller.scrollTop).toBe(at);
     // Above, held by drawing the content down; below, nothing the reader sees moved.
@@ -959,7 +963,7 @@ describe("MessageList windowing", () => {
     // A loaded machine sends scrollend between the parts of one wheel scroll: a scroll after it holds the carry for the rest again.
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     onTestFinished(() => void vi.useRealTimers());
-    const frameLater = () => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+    const frameLater = () => rafs(1);
     scroller.dispatchEvent(new Event("scrollend"));
     vi.advanceTimersByTime(79);
     const more = scrolled();
@@ -1298,13 +1302,13 @@ describe("MessageList windowing", () => {
     placeholder.style.height = "20px";
     above.append(placeholder);
     await settle(scroller);
-    const read = new Promise<number>((resolve) => {
+    const read = new Promise<number>((resolve, reject) => {
       // A picture's placeholder gives way to the picture, in a task of its own; the frame's callbacks come before the resize observer.
       setTimeout(() => {
         const picture = document.createElement("div");
         picture.style.height = "140px";
         placeholder.replaceWith(picture);
-        requestAnimationFrame(() => resolve(Math.abs(reading.message.getBoundingClientRect().top - reading.top)));
+        rafs(1, () => Math.abs(reading.message.getBoundingClientRect().top - reading.top)).then(resolve, reject);
       });
     });
     expect(await read).toBeLessThanOrEqual(1);
@@ -1992,7 +1996,7 @@ describe("MessageList windowing", () => {
     const drawn: number[] = [];
     let seen = commits;
     for (let frames = 0; frames < 200; frames++) {
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await rafs(1);
       perFrame.push(commits - seen);
       seen = commits;
       drawn.push(older());
