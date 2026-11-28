@@ -117,6 +117,41 @@ describe("ThreadLayout", () => {
     await expect.poll(() => getComputedStyle(rail!).borderInlineStartWidth).toBe("0px");
   });
 
+  it.each(["light", "dark"])("keeps a surface step beside a plain or scrolling conversation (%s)", async (scheme) => {
+    const root = document.documentElement;
+    const wasDark = root.classList.contains("dark");
+    root.classList.toggle("dark", scheme === "dark");
+    const thread = (
+      <ThreadRail label="Thread" autoFocus={false} onClose={() => {}}>
+        <MessageList label="Replies" className="min-h-0 flex-1">
+          <Message role="assistant">A reply</Message>
+        </MessageList>
+      </ThreadRail>
+    );
+    try {
+      const { host, rerender } = await render(<ThreadLayout conversation={<Conversation />} thread={thread} />, 800);
+      host.style.height = "400px";
+      const pane = host.querySelector<HTMLElement>("[data-ouro-thread-layout-conversation]")!;
+      const railScroller = () => host.querySelector<HTMLElement>('[data-ouro="thread-rail"] [data-ouro-message-list-scroller]')!;
+      const surface = document.createElement("div");
+      surface.style.backgroundColor = "var(--muted)";
+      host.append(surface);
+      expect(getComputedStyle(pane).backgroundColor).toBe(getComputedStyle(surface).backgroundColor);
+      expect(getComputedStyle(pane).backgroundColor).not.toBe(getComputedStyle(railScroller()).backgroundColor);
+
+      await rerender(
+        <ThreadLayout
+          conversation={<MessageList label="Conversation"><Message role="assistant">A note</Message></MessageList>}
+          thread={thread}
+        />,
+      );
+      const conversationScroller = pane.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
+      expect(getComputedStyle(conversationScroller).backgroundColor).not.toBe(getComputedStyle(railScroller()).backgroundColor);
+    } finally {
+      root.classList.toggle("dark", wasDark);
+    }
+  });
+
   it("keeps the conversation mounted and its draft while a narrow box hides it", async () => {
     const { host, conversation, rerender } = await render(<ThreadLayout conversation={<Conversation />} thread={<Thread />} />, 640);
     const draft = host.querySelector("textarea")!;
