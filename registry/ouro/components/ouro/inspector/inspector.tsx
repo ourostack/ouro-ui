@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { actionsClass, frameClass, isPartOf, itemFor, labelClass, layerClass, linkClass, listClass, outlineClass, outlinesClass, pillClass, scanClass, statusClass, tagClass } from "@/registry/ouro/components/ouro/inspector/inspector-styles";
 import { Sheet } from "@/registry/ouro/components/ouro/sheet/sheet";
-import { squircleCorner } from "@/registry/ouro/lib/ouro/squircle-curve";
+import { squircleCorner, splitCornerRadii } from "@/registry/ouro/lib/ouro/squircle-curve";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { useReducedMotion } from "@/registry/ouro/lib/ouro/use-reduced-motion";
 
@@ -387,7 +387,7 @@ function roundedFrame(box: DOMRect, style: CSSStyleDeclaration, radiusLength: Ra
   const radii = names.map((name, index) => {
     const fallback = style.getPropertyValue(`--sq-${["tl", "tr", "br", "bl"][index]}`);
     const squircle = radiusLength(fallback, Math.max(box.width, box.height)) > 0;
-    const value = squircle ? [fallback] : style.getPropertyValue(`border-${name}-radius`).split(/\s+(?![^()]*\))/);
+    const value = squircle ? [fallback] : splitCornerRadii(style.getPropertyValue(`border-${name}-radius`));
     const x = radiusLength(value[0]!, box.width);
     const y = radiusLength(value[1] ?? value[0]!, box.height);
     return {

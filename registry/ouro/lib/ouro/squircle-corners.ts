@@ -1,4 +1,4 @@
-import { squircleCorner } from "./squircle-curve.ts";
+import { squircleCorner, splitCornerRadii } from "./squircle-curve.ts";
 
 export { squircleCorners };
 export { squircleCornersDedupe };
@@ -250,27 +250,11 @@ function cornersOf(rule: Node): (string | null)[] {
     if (decl.type !== "decl") continue;
     const value = decl.value!.trim();
     if (decl.prop === "border-radius" && !value.includes("/")) {
-      const [a, b = a, c = a, d = b] = splitTop(value);
+      const [a, b = a, c = a, d = b] = splitCornerRadii(value);
       out.splice(0, 4, a ?? null, b ?? null, c ?? null, d ?? null);
-    } else if (decl.prop! in LONGHANDS) out[LONGHANDS[decl.prop!]!] = splitTop(value)[0] ?? null;
+    } else if (decl.prop! in LONGHANDS) out[LONGHANDS[decl.prop!]!] = splitCornerRadii(value)[0] ?? null;
   }
   return out;
-}
-
-function splitTop(value: string): string[] {
-  const parts: string[] = [];
-  let depth = 0;
-  let start = 0;
-  for (let i = 0; i <= value.length; i++) {
-    const ch = value[i];
-    if (ch === "(") depth++;
-    else if (ch === ")") depth--;
-    else if ((ch === " " || ch === undefined) && depth === 0) {
-      if (i > start) parts.push(value.slice(start, i));
-      start = i + 1;
-    }
-  }
-  return parts;
 }
 
 const px = (v: string) => (/px$/.test(v) ? parseFloat(v) : /rem$/.test(v) ? parseFloat(v) * 16 : NaN);

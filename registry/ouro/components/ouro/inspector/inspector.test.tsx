@@ -26,7 +26,7 @@ import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 import { isMoving } from "@/registry/ouro/lib/ouro/testing/settled";
-import { squircleCorner } from "@/registry/ouro/lib/ouro/squircle-curve";
+import { squircleCorner, splitCornerRadii } from "@/registry/ouro/lib/ouro/squircle-curve";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -181,6 +181,21 @@ describe("Inspector geometry", () => {
 
   const path = (index = 0) => outlines()[index]!.querySelector("path")!.getAttribute("d");
 
+  it("separates radius axes around nested CSS math and repeated whitespace", () => {
+    expect(splitCornerRadii("  min(calc(10% + 20px), max(10px, 30%))   40px ")).toEqual(["min(calc(10% + 20px), max(10px, 30%))", "40px"]);
+    expect(splitCornerRadii("")).toEqual([]);
+  });
+
+  it("keeps paths finite when pixel snapping collapses either dimension", async () => {
+    for (const [width, height] of [[0.25, 100], [100, 0.25]]) {
+      const surface = component(100, 200, width!, height!);
+      surface.style.borderTopLeftRadius = "40px";
+    }
+    await xray();
+    await drawn(2);
+    for (const outline of outlines()) expect(outline.querySelector("path")!.getAttribute("d")).not.toMatch(/NaN|Infinity/);
+  });
+
   for (const fallback of [false, true]) {
     it(`follows a squircle surface's corner instead of painting a square or a circular arc, ${fallback ? "fallback" : "native"}`, async () => {
       const surface = component(100, 200, 200, 100);
@@ -265,6 +280,19 @@ describe("Inspector geometry", () => {
     expect(curve.isPointInStroke(new DOMPoint(0.5 + diagonal, 99.5 - diagonal))).toBe(true);
     expect(curve.isPointInStroke(new DOMPoint(0.5, 0.5))).toBe(true);
     expect(curve.isPointInStroke(new DOMPoint(99.5, 99.5))).toBe(true);
+  });
+
+  it("keeps a mixed fallback radius when only its longer axis resolves above zero", async () => {
+    const surface = component(100, 200, 100, 200);
+    surface.style.borderRadius = "0px 20px 20px 20px";
+    surface.style.setProperty("--sq-tl", "calc(400% - 500px)");
+    surface.style.setProperty("corner-shape", "round");
+    await xray();
+    await drawn(1);
+    const curve = outlines()[0]!.querySelector("path")!;
+    const diagonal = (20 * (200 / 320) - 0.5) * (1 - Math.SQRT1_2);
+    expect(curve.isPointInStroke(new DOMPoint(99.5 - diagonal, 0.5 + diagonal))).toBe(true);
+    expect(curve.isPointInStroke(new DOMPoint(0.5, 0.5))).toBe(true);
   });
 
   it("resolves CSS min, max and clamp radii instead of adding their terms", async () => {
