@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nested corners: passes</title>
+<style>
+body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; }
+main { max-width: 36rem; margin: 0 auto; }
+.outer { box-sizing: border-box; width: 240px; height: 180px; padding: 4px; overflow: hidden; border-radius: 32px; corner-shape: squircle; background: #dce5ef; }
+.inner { box-sizing: border-box; width: 100%; height: 100%; border-radius: 28px; corner-shape: squircle; background: #557799; }
+</style>
+<main><h1>Nested corners</h1><div class="outer"><div style="height:100%"><div class="inner"></div></div></div></main>
+</html>

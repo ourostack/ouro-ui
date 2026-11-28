@@ -31,7 +31,7 @@ const small = ["fades", "base-check", "ax-hooks", "first-run-units", "first-run-
 export const groups = {
   "pages-a": { files: ["scripts/check/check-pages.test.mts"], pattern: pagesPattern },
   "pages-b": { files: ["scripts/check/check-pages.test.mts"], skip: pagesPattern },
-  "rules-command": { files: ["scripts/check/check-rules.test.mts", "scripts/check/check-command.test.mts"] },
+  "rules-command": { files: ["scripts/check/check-rules.test.mts", "scripts/check/check-command.test.mts", "scripts/check/check-corners.test.mts"] },
   "watch-small": { files: ["scripts/check/check-watch.test.mts", ...small] },
   "check-rules": { files: ["scripts/check/check.test.mts"], pattern: escape(checkAlone[0]) },
   "check-shards": { files: ["scripts/check/check.test.mts"], pattern: escape(checkAlone[1]) },
