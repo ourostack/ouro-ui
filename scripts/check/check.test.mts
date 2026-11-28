@@ -54,14 +54,14 @@ describe("Ouro check", () => {
     assert.match(swap.taker.first, /^<(button|a)\b/);
     assert.match(swap.taker.rest, /^<(button|a)\b/);
     assert.ok(swap.gone.rest === null || /^<(button|a)\b/.test(swap.gone.rest));
-    assert.equal(result.shots.length, 142 * 2);
+    assert.equal(result.shots.length, 143 * 2);
     const report = JSON.parse(readFileSync(join(out, "report.json"), "utf8")) as Report;
-    assert.equal(report.pages.length, 142);
+    assert.equal(report.pages.length, 143);
     // report.json says what it scanned, so a run that reached nothing reads differently from one with no findings
     // (#3864): every page, size and theme the sweep swept, with the elements and rules each visit read.
-    assert.deepEqual(report.scanned, { pages: 142, sizes: 2, themes: 1, visits: 142 * 2, ready: 142 * 2, elements: report.shots.reduce((sum, s) => sum + s.elements, 0), rules: report.shots.reduce((sum, s) => sum + s.rules, 0) });
+    assert.deepEqual(report.scanned, { pages: 143, sizes: 2, themes: 1, visits: 143 * 2, ready: 143 * 2, elements: report.shots.reduce((sum, s) => sum + s.elements, 0), rules: report.shots.reduce((sum, s) => sum + s.rules, 0) });
     assert.ok(report.scanned!.elements > 0 && report.scanned!.rules > 0);
-    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 142 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
+    assert.match(readFileSync(join(out, "summary.md"), "utf8"), /^### Ouro check: 143 pages at 2 sizes, light, density 2 \(1 above 3072px wide\)$/m);
     for (const ref of report.pages) assert.ok(existsSync(join(out, "sheets", `${ref.name}.png`)), ref.name);
     for (const f of result.findings.filter((f) => f.closeUp)) {
       assert.ok(existsSync(join(out, f.closeUp!)) && existsSync(join(out, f.closeUp!.replace(/\.png$/, "-raw.png"))), f.closeUp);
@@ -155,7 +155,7 @@ describe("Ouro check", () => {
     // whole comparison the way the measured-rules test above already leaves it out of its own (#3836).
     assert.deepEqual(spots(steady(merged.findings)), spots(steady(whole.findings)));
     assert.equal(merged.shots.length, whole.shots.length);
-    assert.equal(merged.pages.length, 71);
+    assert.equal(merged.pages.length, 72);
     // A merge sums the shards' own coverage rather than reading one shard's, so scanned.visits is every shard's
     // shots added together, the same total a single whole run reads from its own.
     assert.deepEqual(merged.scanned, whole.scanned);
