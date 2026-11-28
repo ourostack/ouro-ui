@@ -49,7 +49,7 @@ export interface Described {
 // Runs in the page, so it refers to nothing outside itself.
 export function describe(arg: { selector: string; only?: number }): Described {
   // An avatar showing its picture (data-image=loaded) is another state from one showing initials, as the crew's faces on /nautilus/ are.
-  const stateAttr = /^data-(checked|unchecked|disabled|invalid|variant|tone|size|orientation|open|pressed|selected|shape|highlighted|layout|image)$/;
+  const stateAttr = /^data-(checked|unchecked|disabled|invalid|variant|tone|ouro-toolbar-tone|size|orientation|open|pressed|selected|shape|highlighted|layout|image)$/;
   const ariaState = /^aria-(checked|pressed|selected|expanded|disabled|invalid|current)$/;
   const all = [...document.querySelectorAll<HTMLElement>(arg.selector)];
   const looks: Look[] = [];
@@ -155,7 +155,8 @@ export function describe(arg: { selector: string; only?: number }): Described {
     const theme = el.closest<HTMLElement>("[data-theme]")?.dataset["theme"] ?? "";
     const sizeOf = `${px(String(rect.width))}x${px(String(rect.height))}`;
     const labelled = (el.textContent ?? "").trim().length > 0;
-    const shapeOf = (labelled ? `h${px(String(rect.height))}` : sizeOf) + (el.querySelector("svg") ? "+icon" : "") + (el.closest("main") ? "" : "+chrome");
+    const ownIcons = [...el.querySelectorAll("svg")].filter((icon) => icon.closest("[data-ouro]") === root);
+    const shapeOf = (labelled ? `h${px(String(rect.height))}` : sizeOf) + (ownIcons.length ? "+icon" : "") + (el.closest("main") ? "" : "+chrome");
     // Size comes from props that leave no attribute, and a preset repaints its subtree, so both belong to the key.
     const key = `${inGroup ? "grouped " : ""}${name}|${el.dataset["ouroPart"] ?? ""}|${el.tagName.toLowerCase()}|${attrs}|${shapeOf}|${theme}|${labelled ? rgb(cs.color) : ""}`;
     const radii = [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomLeftRadius, cs.borderBottomRightRadius];
@@ -202,7 +203,7 @@ export function describe(arg: { selector: string; only?: number }): Described {
       const at = text ? "" : `@${px(String(r.left - rect.left))},${px(String(r.top - rect.top))}`;
       return [`${child.tagName.toLowerCase()}:${size}${at}`];
     });
-    const icons = [...el.querySelectorAll("svg")].map((s) => {
+    const icons = ownIcons.map((s) => {
       const r = s.getBoundingClientRect();
       return `${px(String(r.width))}x${px(String(r.height))}`;
     });

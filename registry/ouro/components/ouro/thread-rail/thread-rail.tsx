@@ -46,7 +46,7 @@ export interface ThreadRailProps {
 /** Elements that take Escape for themselves when they are open: a menu, a listbox or a dialog. */
 const POPUP = '[role="menu"], [role="listbox"], [role="dialog"]';
 /** Text a person types into: Escape there is not a request to close. */
-const TEXT_ENTRY = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
+const TEXT_ENTRY = "input, textarea, select";
 // Stryker disable next-line ArrayDeclaration: equivalent; the effect runs once, on mount, with any list that never changes
 const MOUNT_ONLY: readonly never[] = [];
 
@@ -68,7 +68,8 @@ function CloseIcon(): JSX.Element {
 }
 
 /**
- * A thread beside its conversation: a labelled landmark with a header and a close button. Escape closes it.
+ * A thread beside its conversation: a labelled landmark with a header and a close button. Escape closes it,
+ * unless a field, rich-text editor, menu, listbox or dialog takes the key first.
  * It takes focus when it opens and gives it back when it closes.
  *
  * Use Sheet instead when the thread should cover the page, as on a phone, and close on a tap outside it.
@@ -82,6 +83,7 @@ function CloseIcon(): JSX.Element {
  * @claim "It takes focus when it opens" registry/ouro/components/ouro/thread-rail/thread-rail.test.tsx verify:testExists(registry/ouro/components/ouro/thread-rail/thread-rail.test.tsx::ThreadRail focus > takes focus on mount, on the rail itself or on initialFocus)
  * @claim "gives it back when it closes" registry/ouro/components/ouro/thread-rail/thread-rail.test.tsx verify:testExists(registry/ouro/components/ouro/thread-rail/thread-rail.test.tsx::ThreadRail focus > returns focus to the control that opened it when it closes)
  * @claim "Escape closes it" registry/ouro/components/ouro/thread-rail/thread-rail.test.tsx verify:testExists(registry/ouro/components/ouro/thread-rail/thread-rail.test.tsx::ThreadRail Escape > calls onClose on Escape with focus in the rail, and ignores other keys)
+ * @claim "unless a field, rich-text editor" registry/ouro/components/ouro/thread-rail/thread-rail.test.tsx verify:testExists(registry/ouro/components/ouro/thread-rail/thread-rail.test.tsx::ThreadRail Escape > leaves Escape in a descendant of a %s editor to the editor)
  */
 export function ThreadRail(props: ThreadRailProps): JSX.Element {
   const {
@@ -145,9 +147,9 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
   // Escape closes the rail unless it is pressed in a text field or a popup inside the rail, or
   // something already handled it.
   function onKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (event.key !== "Escape" || event.nativeEvent.defaultPrevented) return;
+    if (event.key !== "Escape" || event.nativeEvent.isComposing || event.nativeEvent.defaultPrevented) return;
     const target = event.target as Element;
-    if (target.matches(TEXT_ENTRY) || inPopup(target, event.currentTarget)) return;
+    if (target.closest(TEXT_ENTRY) || (target instanceof HTMLElement && target.isContentEditable) || inPopup(target, event.currentTarget)) return;
     event.preventDefault();
     onClose();
   }
@@ -155,7 +157,7 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
   // The close button's tooltip names Escape as its shortcut, so it must not take the key: closing
   // here, before the tooltip sees it, makes the first press close the rail.
   function onKeyDownCapture(event: KeyboardEvent<HTMLElement>) {
-    if (event.key !== "Escape" || event.nativeEvent.defaultPrevented || event.target !== closeRef.current) return;
+    if (event.key !== "Escape" || event.nativeEvent.isComposing || event.nativeEvent.defaultPrevented || event.target !== closeRef.current) return;
     event.preventDefault();
     event.stopPropagation();
     onClose();

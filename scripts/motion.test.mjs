@@ -203,6 +203,7 @@ test("the motion matrix is plain data a browser test can import, one row per ste
       "choice-card data-disabled -",
       "composer data-expanded frame",
       "composer data-expanded toolbar",
+      "composer data-dragging resize-line",
       "navigation-rail data-selected indicator",
       "level-meter data-highlighted segment",
       "media-tile data-highlighted ring",

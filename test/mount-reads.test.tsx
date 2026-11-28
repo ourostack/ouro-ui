@@ -23,7 +23,6 @@ const patterns = import.meta.glob<Record<string, unknown>>(["../registry/ouro/pa
 const waivers: Record<string, string> = {
   "chart": "the plot reads its box's client size and font (getComputedStyle) before paint to lay out its axes and marks, so the first frame shows the plot rather than an empty box that fills a frame later",
   "conversation-find": "its demo mounts a message list, which pins the first frame to the newest message and needs scroll and client sizes to do so, and the find box takes focus on open",
-  "composer": "the composer measures its action row's offsetHeight before paint so the text box and its buttons are sized in the first frame",
   "family-bar": "the bar measures which chips fit before paint, or the first frame would show chips that overflow and then drop them",
   "hero": "the hero checks whether its picture is shown (getComputedStyle) before paint, to choose between the picture and its fallback in the first frame",
   "level-meter": "Base UI's Slider reads getComputedStyle on its track in a callback it runs at mount (the read is in @base-ui/react, so only an upstream change can move it)",
@@ -46,6 +45,7 @@ const waivers: Record<string, string> = {
 /** Demos that read at mount in WebKit alone, each with the reason; a demo here must read in WebKit and read nothing in Chromium. */
 const webkitWaivers: Record<string, string> = {
   "autocomplete": "WebKit cannot size a text box by its content, so the text box measures its scroll height before the first paint, or the first frame would show one line and then jump",
+  "composer": "WebKit cannot size its plain textarea by its content, so that fallback measures its scroll height before the first paint; Composer's frame itself reads nothing before its animation pass",
   "text-area": "WebKit cannot size a text box by its content, so it measures its scroll height before the first paint, or the first frame would show one line and then jump",
 };
 

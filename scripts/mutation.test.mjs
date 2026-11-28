@@ -279,10 +279,13 @@ test("shardCount takes the fewest shards from the minimum that plan each at the 
   // Each file alone is one shard's worth: four shards at that target, two at what two files cost together, and the minimum when that is more.
   assert.equal(shardCount(files, seconds, { min: 1, max: 16, target: one }), 4);
   assert.equal(shardCount(files, seconds, { min: 1, max: 16, target: shardCost(["a.tsx", "b.tsx"], files, seconds) }), 2);
-  assert.equal(shardCount(files, seconds, { min: 5, max: 16, target: one }), 5);
+  assert.equal(shardCount(files, seconds, { min: 6, max: 16, target: one }), 4);
+  assert.equal(shardCount(files, seconds, { min: 1, max: 16, target: 0 }), 4);
   // A target no plan reaches stops at the maximum; a change with nothing to mutate takes the minimum.
   assert.equal(shardCount(files, seconds, { min: 1, max: 3, target: one }), 3);
   assert.equal(shardCount({}, seconds, { min: 3, max: 16, target: one }), 3);
+  // No shard starts for a unit that is not there: every one of the four units is in a shard of its own, none empty.
+  assert.ok(planShards(files, shardCount(files, seconds, { min: 6, max: 16, target: 0 }), seconds).every((shard) => shard.length > 0));
 });
 
 test("the shard target keeps a shard within ci-budget's 10-minute pull request budget at the worst measured ratio of time to estimate", () => {
