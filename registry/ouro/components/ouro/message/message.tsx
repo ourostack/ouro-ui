@@ -529,6 +529,7 @@ const mutedColors = {
 const mutedInk = {
   "--muted": "var(--ouro-bubble-other-fill)",
   "--foreground": "var(--ouro-bubble-other-ink)",
+  "--ouro-scroller-surface": "color-mix(in oklab,var(--ouro-bubble-other-ink) 12%,var(--ouro-bubble-other-fill))",
   "--primary": "var(--ouro-bubble-link)",
   "--success": "var(--ouro-bubble-success)",
   "--muted-foreground": "var(--ouro-bubble-quiet)",
