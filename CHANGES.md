@@ -1,0 +1,4 @@
+# Changes in this release
+
+- Fixed: [ThemePicker centres each look's name on its capitals in its tile and in the popover button, in any face](registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx "verify:testExists(registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx::ThemePicker popover > centres the chosen name on its cap height in the button, and every option's in its tile, whatever the face)"), instead of nudging small names down by a fixed amount tuned for one font.
+- Clarified: [Toaster's introduction names the upward swipe at the top edge](registry/ouro/components/ouro/toast/toaster.test.tsx "verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > hangs from the top and unfurls downward when its layout classes put it at the top)"), alongside the downward swipe at the bottom.
