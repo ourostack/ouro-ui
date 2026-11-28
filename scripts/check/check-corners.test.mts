@@ -317,12 +317,13 @@ test("squircle-paint finds a surface's own square paint outside its fallback cor
   }
 });
 
-test("squircle-paint distinguishes inherited fallback radii from a child's own corners", async () => {
+test("squircle-paint checks coincident rounded siblings without treating their shadows as square paint", async () => {
   const generated = await styles(`
-    body { margin: 0; background: white; }
-    .outer { position: absolute; left: 60px; top: 60px; width: 200px; height: 140px; background: #dce5ef; border-radius: 32px; }
-    .inner { position: absolute; left: 45px; top: 40px; width: 80px; height: 60px; background: #b44939; }
-    .rounded { border-radius: 32px; }
+    body { margin: 0; background: #dce5ef; }
+    .stage { position: absolute; left: 60px; top: 60px; width: 200px; height: 140px; }
+    .surface { position: absolute; inset: 0; border-radius: 32px; }
+    .raised { background: white; box-shadow: 0 4px 12px #0008; }
+    .narrow { border-radius: 8px; }
   `);
   const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-check-native-shape: squircle)");
   for (const engine of [chromium, webkit]) {
@@ -330,13 +331,46 @@ test("squircle-paint distinguishes inherited fallback radii from a child's own c
     const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
     await bindCapture(tab);
     try {
-      await tab.setContent(`<style>${css}</style><div class="outer"><div class="inner"></div></div>`);
-      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: a square child is not a squircle`);
-      await tab.locator(".inner").evaluate((el) => {
-        el.classList.add("rounded");
-        el.style.cssText = "border-radius:0;clip-path:none";
+      await tab.setContent(`<style>${css}</style><div class="stage"><div class="surface raised"></div><div class="surface"></div></div>`);
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: a separate curved shadow`);
+      await tab.locator(".raised").evaluate((el) => {
+        el.innerHTML = '<div style="position:absolute;left:-12px;top:-12px;width:8px;height:8px;background:#b44939"></div>';
       });
-      assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, `${engine.name()}: the child's own fallback is broken`);
+      assert.ok((await tab.evaluate(findSquirclePaint)).some((issue) => issue.element.includes(".raised")), `${engine.name()}: the raised surface still has a leaking child`);
+      await tab.locator(".raised").evaluate((el) => {
+        el.replaceChildren();
+        el.classList.add("narrow");
+      });
+      assert.ok((await tab.evaluate(findSquirclePaint)).some((issue) => issue.element === "div.surface"), `${engine.name()}: a mismatched coincident surface protrudes`);
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
+test("squircle-paint finds a leaking child under a strict style policy", async () => {
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+    await bindCapture(tab);
+    try {
+      await tab.setContent(`<meta http-equiv="Content-Security-Policy" content="style-src 'self'"><div class="surface"><div class="leak"></div></div>`);
+      await tab.evaluate(() => {
+        const surface = document.querySelector<HTMLElement>(".surface")!;
+        const leak = document.querySelector<HTMLElement>(".leak")!;
+        for (const [property, value] of Object.entries({
+          position: "absolute", left: "60px", top: "60px", width: "200px", height: "140px",
+          "border-radius": "32px", "corner-shape": "squircle", background: "#dce5ef",
+        })) surface.style.setProperty(property, value);
+        for (const [property, value] of Object.entries({
+          position: "absolute", left: "0", top: "0", width: "24px", height: "24px", background: "#b44939",
+        })) leak.style.setProperty(property, value);
+      });
+      const before = await tab.locator(".surface").getAttribute("style");
+      assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, `${engine.name()}: a visible square child`);
+      assert.equal(await tab.locator(".surface").getAttribute("style"), before);
+      await tab.locator(".surface").evaluate((el) => { el.style.setProperty("overflow", "hidden"); });
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: the child is clipped`);
     } finally {
       await browser.close();
     }

@@ -206,7 +206,6 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const outsideX = px < rect.left || px >= rect.right;
           const outsideY = py < rect.top || py >= rect.bottom;
           const outsideCorner = outsideX || outsideY;
-          if (px < rect.left - 2 || px > rect.right + 2 || py < rect.top - 2 || py > rect.bottom + 2) continue;
           // A separate round badge in a real cut-out is not paint from the notched surface.
           if (noBadges && difference(a.data, noBadges.data, index) >= 2 && badges.some((badge) => {
             const dx = (px - (badge.left + badge.right) / 2) / (badge.width / 2 + 0.5);
@@ -271,8 +270,16 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       const rect = other.getBoundingClientRect();
       if (!other.offsetWidth || !other.offsetHeight || getComputedStyle(other).transform !== transform ||
         Math.abs(rect.width / other.offsetWidth - scaleX) > 0.01 || Math.abs(rect.height / other.offsetHeight - scaleY) > 0.01) return false;
-      if ([rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5)) return true;
-      if (geometry(other)) return false;
+      const sameBox = [rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5);
+      const otherGeometry = geometry(other);
+      if (otherGeometry) {
+        const sameCorners = initial.corners.every((corner, index) => {
+          const otherCorner = otherGeometry.corners[index]!;
+          return corner.squircle === otherCorner.squircle && Math.abs(corner.x - otherCorner.x) < 0.5 && Math.abs(corner.y - otherCorner.y) < 0.5;
+        });
+        if (!sameBox || sameCorners) return false;
+      }
+      if (sameBox) return true;
       if (rect.width > bounds.width + 0.5 || rect.height > bounds.height + 0.5) return false;
       return initial.corners.some((corner, index) => {
         if (!corner.squircle) return false;
@@ -348,23 +355,32 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             const previous = el.getAttribute(attribute);
             counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
             const marker = `p${counter.__ouroCheckRef}`;
-            const probe = document.createElement("style");
-            probe.textContent = `[${attribute}="${marker}"] *, [${attribute}="${marker}"]::before, [${attribute}="${marker}"]::after { visibility: hidden !important; }`;
+            const probe = new CSSStyleSheet();
+            probe.replaceSync(`[${attribute}="${marker}"] *, [${attribute}="${marker}"]::before, [${attribute}="${marker}"]::after { visibility: hidden !important; }`);
             const originalStyle = el.getAttribute("style");
             const normalizedStyle = el.style.cssText;
             const radii = names.map(({ shape }) => ({ property: `border-${shape}-radius`, saved: save(el, `border-${shape}-radius`) }));
             try {
               el.setAttribute(attribute, marker);
-              document.head.append(probe);
+              document.adoptedStyleSheets = [...document.adoptedStyleSheets, probe];
               if (!initial.native) {
+                const computed = getComputedStyle(el);
+                const length = (value: string, dimension: number) => value.endsWith("%") ? parseFloat(value) * dimension / 100 : parseFloat(value) || 0;
                 for (const [index, corner] of initial.corners.entries()) {
-                  if (corner.squircle) el.style.setProperty(radii[index]!.property, `${corner.x * 0.543}px ${corner.y * 0.543}px`, "important");
+                  if (!corner.squircle || corner.native) continue;
+                  const raw = computed.getPropertyValue(`--sq-${names[index]!.key}`).trim();
+                  const [currentX, currentY = currentX] = computed.getPropertyValue(radii[index]!.property).trim().split(/\s+/);
+                  const x = length(raw, initial.width) * 0.543;
+                  const y = length(raw, initial.height) * 0.543;
+                  if (Math.abs(length(currentX!, initial.width) - x) > 0.5 || Math.abs(length(currentY!, initial.height) - y) > 0.5) {
+                    el.style.setProperty(radii[index]!.property, `${x}px ${y}px`, "important");
+                  }
                 }
               }
               for (const layer of active.slice(1)) layer.el.style.setProperty("opacity", "0", "important");
               return await capture(clip);
             } finally {
-              probe.remove();
+              document.adoptedStyleSheets = document.adoptedStyleSheets.filter((sheet) => sheet !== probe);
               if (previous === null) el.removeAttribute(attribute);
               else el.setAttribute(attribute, previous);
               for (const { property, saved } of radii) restore(el, property, saved);
