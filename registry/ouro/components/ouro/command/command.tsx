@@ -934,7 +934,9 @@ export function Command(props: CommandProps): JSX.Element {
                   ) : (
                     <>
                       <span aria-hidden="true">{recent.labelContent}</span>
-                      <span className="sr-only">{recent.label}</span>
+                      <span data-slot="command-recent-name" className="sr-only">
+                        {recent.label}
+                      </span>
                     </>
                   )}
                 </span>
