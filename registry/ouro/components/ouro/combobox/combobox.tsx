@@ -980,6 +980,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
         onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => {
           onInputKeyDown?.(event);
           if (event.defaultPrevented) return;
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") setPending(null);
           if (!queryAware || !autoHighlight || readOnly || disabled || event.key !== "Enter" ||
             event.nativeEvent.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey ||
             !event.currentTarget.value.trim() || (!stale && !loading)) return;
