@@ -182,6 +182,26 @@ test("squircle-paint passes a clipped surface at fractional layout coordinates",
   }
 });
 
+test("squircle-paint passes adjacent native buttons at a fractional edge", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  const tab = await context.newPage();
+  await bindCapture(tab);
+  try {
+    await tab.setContent(`<style>
+      body { margin: 0; background: rgb(247,245,240); }
+      .row { display: flex; position: absolute; left: 16px; top: 40px; }
+      button { position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center;
+        box-sizing: border-box; height: 44px; border: 1px solid transparent; border-radius: 6px;
+        corner-shape: squircle; background: rgb(11,110,79); color: white; }
+      .label { display: inline-flex; isolation: isolate; }
+    </style><div class="row"><button style="width:125.484375px"><span class="label">First</span></button><button style="width:116.90625px"><span class="label">Second</span></button></div>`);
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+  } finally {
+    await browser.close();
+  }
+});
+
 test("squircle-paint finds a two-level difference in a square fill", async () => {
   const browser = await chromium.launch({ headless: true });
   const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });

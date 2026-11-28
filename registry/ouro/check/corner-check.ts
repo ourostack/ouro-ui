@@ -98,11 +98,13 @@ function findCornerIssues({ windowRadius }: CornerOptions = {}): PageIssue[] {
     rect: new DOMRect(0, 0, innerWidth, innerHeight),
     corners: names.map(({ name, key }) => ({ name, key, x: windowRadius, y: windowRadius, squircle: true })),
   };
-  const clippedFill = (inner: Surface, outer: Surface) => {
+  const clippedCorner = (inner: Surface, outer: Surface, index: number) => {
     if (!outer.el?.contains(inner.el!)) return false;
     const i = inner.rect;
     const o = outer.rect;
-    if ([i.left - o.left, i.top - o.top, o.right - i.right, o.bottom - i.bottom].some((inset) => Math.abs(inset) > 1)) return false;
+    const horizontal = index === 0 || index === 3 ? i.left - o.left : o.right - i.right;
+    const vertical = index < 2 ? i.top - o.top : o.bottom - i.bottom;
+    if (Math.abs(horizontal) > 1 || Math.abs(vertical) > 1) return false;
     const outside = getComputedStyle(outer.el);
     if (!(/hidden|clip/.test(outside.overflowX) && /hidden|clip/.test(outside.overflowY)) && outside.clipPath === "none") return false;
     const own = getComputedStyle(inner.el!);
@@ -132,7 +134,7 @@ function findCornerIssues({ windowRadius }: CornerOptions = {}): PageIssue[] {
         const dx = left ? i.left - o.left : o.right - i.right;
         const dy = top ? i.top - o.top : o.bottom - i.bottom;
         if (dx < -1 || dy < -1 || dx >= oc.x / 2 || dy >= oc.y / 2) continue;
-        if (clippedFill(inner, outer)) break;
+        if (clippedCorner(inner, outer, index)) break;
         const wantX = Math.max(0, oc.x - Math.max(0, dx));
         const wantY = Math.max(0, oc.y - Math.max(0, dy));
         const wrongRadius = Math.abs(corner.x - wantX) > 1 || Math.abs(corner.y - wantY) > 1;

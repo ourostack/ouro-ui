@@ -139,10 +139,12 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const outsideX = px < rect.left || px >= rect.right;
           const outsideY = py < rect.top || py >= rect.bottom;
           const outsideCorner = outsideX || outsideY;
-          const delta = difference(a.data, outsideCorner ? c.data : b.data, index);
+          // A pixel straddling the box edge can contain the surface's own antialiasing.
+          if ((outsideX && Math.min(Math.abs(px - rect.left), Math.abs(px - rect.right)) < clip.width / a.width / 2) ||
+              (outsideY && Math.min(Math.abs(py - rect.top), Math.abs(py - rect.bottom)) < clip.height / a.height / 2)) continue;
+          const delta = difference(a.data, own && (native || outsideCorner) ? own.data : outsideCorner ? c.data : b.data, index);
           const behind = difference(b.data, c.data, index);
           if (delta < 2 || (!outsideCorner && behind > 4)) continue;
-          if (own && (native || outsideCorner) && difference(a.data, own.data, index) < 2) continue;
           if (outsideCorner && difference(a.data, b.data, index) > 4) continue;
           if (!outsideCorner) {
             let edge = false;

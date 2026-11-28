@@ -76,6 +76,11 @@ it("treats a clipped full-size fill as the outer paint and checks a native windo
   expect(findCornerIssues({ windowRadius: 32 })[0]?.element).toContain("native window");
 });
 
+it("treats a picture clipped at the top corners as the frame's paint", () => {
+  render('<div style="position:relative;width:180px;height:160px;overflow:hidden;background:#345;border-radius:24px;corner-shape:squircle"><img alt="" style="position:absolute;top:0;left:0;width:180px;height:80px"></div>');
+  expect(findCornerIssues()).toEqual([]);
+});
+
 it("reads elliptical, percentage, scaled and fallback radii on painted geometric siblings", () => {
   const root = render('<div id="area" style="position:relative;width:200px;height:160px;transform:scale(.8);transform-origin:top left"><div class="shell" style="position:absolute;inset:0;background:linear-gradient(red,blue);border-radius:32px / 24px;corner-shape:squircle"></div><div class="panel" style="position:absolute;inset:4px;background:rgba(255,255,255,.5);border-radius:28px / 20px;corner-shape:squircle"></div></div>');
   const panel = root.querySelector<HTMLElement>(".panel")!;
