@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
 import { menuItemClass, menuSheetPopupClass, menuSheetPositionerClass } from "@/registry/ouro/components/ouro/menu/menu-styles";
 import { knownFindings, knownFor } from "./check-known.ts";
+import { checkStory } from "./check-story.ts";
 import { sweepStoryCheck } from "./check-sweep.ts";
 import { describeFindings, parkPointer, scan, scanStory, scanStoryViolations, storyScanTimeout } from "./story-axe.ts";
 import { cleanupStories, closeOverlay, openOverlay, overlayOpeners, renderStory, selectedStories, setScheme, settle, stories, story, storyFiles } from "./stories.tsx";
@@ -187,6 +188,16 @@ describe("component roots leave their margin to the app", () => {
 // browser the check runs in (test/check-sweep.ts). A component Ouro check would fail fails here first. The Ouro theme's
 // entries are the ones with no theme in check-known.ts; the nova run (test/themes/nova-check.test.tsx) has its own.
 describe("stories pass Ouro check's rules", () => {
+  it("checks a running progress bar after it appears without its trickle preventing a stable scan", async () => {
+    const entry = stories.find(({ id }) => id === "RouteProgress/Playground")!;
+    const findings = await checkStory(entry.Story, "padded");
+    const bar = document.querySelector<HTMLElement>('[data-ouro="route-progress"] [data-ouro-part="bar"]')!;
+    const indicator = bar.querySelector<HTMLElement>('[data-ouro-part="indicator"]')!;
+    expect(bar.hasAttribute("data-open")).toBe(true);
+    expect(indicator.style.getPropertyValue("--ouro-route-progress")).toBe("0.15");
+    expect(findings.filter(({ rule }) => rule === "pane-edge" || rule === "cut-off-edge")).toEqual([]);
+  }, storyScanTimeout);
+
   it("names only stories that exist", () => {
     const ids = stories.map((entry) => entry.id);
     for (const { story: id, rule } of knownFindings) expect(ids, `${id} (${rule})`).toContain(id);

@@ -97,7 +97,10 @@ describe("ThreadRail", () => {
       const railBox = rail.getBoundingClientRect();
       const scrollerBox = scroller.getBoundingClientRect();
       const inset = direction === "rtl" ? railBox.right - scrollerBox.right : scrollerBox.left - railBox.left;
-      expect(inset).toBeGreaterThanOrEqual(4);
+      const trailing = direction === "rtl" ? scrollerBox.left - railBox.left : railBox.right - scrollerBox.right;
+      expect(inset).toBeGreaterThanOrEqual(20);
+      expect(trailing).toBeGreaterThanOrEqual(12);
+      expect(railBox.bottom - scrollerBox.bottom).toBeGreaterThanOrEqual(12);
     } finally {
       root.dir = previous;
     }
