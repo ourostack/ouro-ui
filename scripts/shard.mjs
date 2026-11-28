@@ -233,20 +233,6 @@ export function installFiles(app, quarantined = quarantinedFilesNow()) {
     .sort();
 }
 
-/**
- * One install shard's share of `files` (app paths, `src/...`), balanced by the time each took here:
- * an app's `src/<path>` is this repository's `registry/ouro/<path>`, summed over the Vitest projects
- * that ran it.
- */
-export function installShard(files, shard, timings = readTimings("vitest")) {
-  const byFile = {};
-  for (const [key, ms] of Object.entries(timings)) {
-    const path = /^.+? \(\w+\) registry\/ouro\/(.+)$/.exec(key)?.[1];
-    if (path) byFile[`src/${path}`] = (byFile[`src/${path}`] ?? 0) + ms;
-  }
-  return shardKeys(files, shard, byFile);
-}
-
 /** The end-to-end specs an installed app has from Ouro UI (e2e/ouro/*.spec.ts), relative to the app. */
 export function installSpecs(app) {
   const dir = join(app, "e2e/ouro");
@@ -258,14 +244,24 @@ export function installSpecs(app) {
 }
 
 /**
- * One install shard's share of `specs` (app paths, `e2e/ouro/...`), balanced by the time each took
- * here: an app's `e2e/ouro/<file>` is this repository's `registry/ouro/e2e/ouro/<file>`, in both
- * browsers. Playwright's own --shard, by test, gave one shard the Chromium tests and the other the
- * slower WebKit ones.
+ * One install shard's share of an app's shipped Vitest `files` (`src/...`) and `specs`
+ * (`e2e/ouro/...`), in one split by the time each took here: an app's `src/<path>` is this
+ * repository's `registry/ouro/<path>`, summed over the Vitest projects that ran it, and its
+ * `e2e/ouro/<file>` is `registry/ouro/e2e/ouro/<file>`, in both browsers. A shard runs its files and
+ * then its specs, so it takes their sum: split apart, the heaviest of each went to shard 1 together
+ * (message-list's windowing test and spec, #3852's run 46131416147). Each kind is spread across the
+ * shards too (balance's `groupOf`), so every shard gets some of both.
  */
-export function installSpecShard(specs, shard, timings = readTimings("e2e")) {
-  const byFile = Object.fromEntries(Object.entries(timings).flatMap(([key, ms]) => (key.startsWith("registry/ouro/e2e/ouro/") ? [[key.slice("registry/ouro/".length), ms]] : [])));
-  return shardKeys(specs, shard, byFile);
+export function installShare(files, specs, shard, vitest = readTimings("vitest"), e2e = readTimings("e2e")) {
+  const weights = {};
+  for (const [key, ms] of Object.entries(vitest)) {
+    const path = /^.+? \(\w+\) registry\/ouro\/(.+)$/.exec(key)?.[1];
+    if (path) weights[`src/${path}`] = (weights[`src/${path}`] ?? 0) + ms;
+  }
+  for (const [key, ms] of Object.entries(e2e)) if (key.startsWith("registry/ouro/e2e/ouro/")) weights[key.slice("registry/ouro/".length)] = ms;
+  const isSpec = new Set(specs);
+  const keys = shardKeys([...files, ...specs], shard, weights, (key) => isSpec.has(key));
+  return { files: keys.filter((key) => !isSpec.has(key)), specs: keys.filter((key) => isSpec.has(key)) };
 }
 
 const sortedObject = (object) => Object.fromEntries(Object.entries(object).sort(([a], [b]) => (a < b ? -1 : 1)));
@@ -294,11 +290,11 @@ function main([command, ...args]) {
     return 0;
   }
   if (command === "install-e2e") {
-    console.log(installSpecShard(installSpecs(args[1] ?? "."), parseShard(args[0])).join("\n"));
+    console.log(installShare(installFiles(args[1] ?? "."), installSpecs(args[1] ?? "."), parseShard(args[0])).specs.join("\n"));
     return 0;
   }
   if (command === "install") {
-    console.log(installShard(installFiles(args[1] ?? "."), parseShard(args[0])).join("\n"));
+    console.log(installShare(installFiles(args[1] ?? "."), installSpecs(args[1] ?? "."), parseShard(args[0])).files.join("\n"));
     return 0;
   }
   if (command === "plan") {

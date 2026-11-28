@@ -4,7 +4,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { balance, browserBalance, collectTimings, drivesBrowser, e2eFiles, filesWithin, installFiles, installShard, installSpecs, installSpecShard, parseShard, ownJobs, projectOf, readTimings, shardKeys, slicedSuites } from "./shard.mjs";
+import { balance, browserBalance, collectTimings, drivesBrowser, e2eFiles, filesWithin, installFiles, installShare, installSpecs, parseShard, ownJobs, projectOf, readTimings, shardKeys, slicedSuites } from "./shard.mjs";
 import { quarantinedFiles } from "./quarantined-files.mjs";
 import { scratchDir } from "./scratch.mjs";
 import { scriptTestFiles } from "./script-tests.mjs";
@@ -218,19 +218,23 @@ test("a sliced check gives every shard its share of the measured cost, longest i
   assert.deepEqual([1, 2, 3].flatMap((index) => sliceOf(unknown, index, 3, "k")).toSorted(), unknown);
 });
 
-test("an install shard takes the app's shipped files by the time each took here, over every Vitest project", () => {
-  const timings = {
-    "ouro-chromium (chromium) registry/ouro/components/ouro/a/a.test.tsx": 300,
-    "ouro-webkit (webkit) registry/ouro/components/ouro/a/a.test.tsx": 300,
-    "ouro-chromium (chromium) registry/ouro/components/ouro/b/b.test.tsx": 500,
-    "ouro-touch (chromium) registry/ouro/components/ouro/c/c.touch.test.tsx": 400,
-    "site (chromium) site/src/site.test.tsx": 9000,
-  };
-  const files = ["src/components/ouro/a/a.test.tsx", "src/components/ouro/b/b.test.tsx", "src/components/ouro/c/c.touch.test.tsx"];
-  // a weighs 600 (two projects): alone in one shard, b and c (900) in the other.
-  assert.deepEqual(installShard(files, { index: 1, count: 2 }, timings), ["src/components/ouro/a/a.test.tsx"]);
-  assert.deepEqual(installShard(files, { index: 2, count: 2 }, timings), ["src/components/ouro/b/b.test.tsx", "src/components/ouro/c/c.touch.test.tsx"]);
+test("an install shard takes its share of the app's shipped files and specs in one split by the time each took here, so a heavy spec takes fewer files", () => {
+  // Over every Vitest project that ran a file; the site's own suites are no shipped file.
+  const vitest = { "ouro-chromium (chromium) registry/ouro/components/ouro/a/a.test.tsx": 30_000, "ouro-webkit (webkit) registry/ouro/components/ouro/a/a.test.tsx": 30_000, "site (chromium) site/src/site.test.tsx": 900_000 };
+  for (const name of ["b", "c", "d"]) vitest[`ouro-chromium (chromium) registry/ouro/components/ouro/${name}/${name}.test.tsx`] = 60_000;
+  const e2e = { "registry/ouro/e2e/ouro/a.spec.ts": 100_000, "registry/ouro/e2e/ouro/b.spec.ts": 20_000, "registry/ouro/e2e/ouro/c.spec.ts": 20_000, "site/e2e/stage.spec.ts": 900_000 };
+  const file = (name) => `src/components/ouro/${name}/${name}.test.tsx`;
+  const files = ["a", "b", "c", "d"].map(file);
+  const specs = ["e2e/ouro/a.spec.ts", "e2e/ouro/b.spec.ts", "e2e/ouro/c.spec.ts"];
+  // Split by kind, shard 1 took two files and a's spec (220 s) and shard 2 two files and the light specs (160 s).
+  // In one split, a's spec goes with one file (180 s), and the other shard runs three (200 s); each gets both kinds.
+  assert.deepEqual(installShare(files, specs, { index: 1, count: 2 }, vitest, e2e), { files: [file("c")], specs: ["e2e/ouro/a.spec.ts", "e2e/ouro/c.spec.ts"] });
+  assert.deepEqual(installShare(files, specs, { index: 2, count: 2 }, vitest, e2e), { files: [file("a"), file("b"), file("d")], specs: ["e2e/ouro/b.spec.ts"] });
   assert.deepEqual(installFiles(join(root, "no-such-app")), []);
+  assert.deepEqual(installSpecs(join(root, "no-such-app")), []);
+  // Every shipped spec has a time here.
+  const shipped = readdirSync(join(root, "registry/ouro/e2e/ouro")).filter((file) => file.endsWith(".spec.ts"));
+  assert.deepEqual(shipped.filter((file) => !(`registry/ouro/e2e/ouro/${file}` in readTimings("e2e"))), []);
 });
 
 test("the e2e spec files are the shipped and the site's specs, without the screen-reader and latency specs, each with a time", () => {
@@ -273,17 +277,6 @@ test("the Playwright timings reporter adds up each spec file's tests, in every p
   reporter.onEnd();
   assert.deepEqual(JSON.parse(readFileSync(out, "utf8")), { "registry/ouro/e2e/ouro/menu.spec.ts": 300, "site/e2e/stage.spec.ts": 2000, "site/e2e/states-dark-1.spec.ts": 50 });
   assert.equal(reporter.printsToStdio(), false);
-});
-
-test("an install shard takes the app's shipped specs by the time each took here, in both browsers", () => {
-  const timings = { "registry/ouro/e2e/ouro/a.spec.ts": 900, "registry/ouro/e2e/ouro/b.spec.ts": 500, "registry/ouro/e2e/ouro/c.spec.ts": 300, "site/e2e/stage.spec.ts": 9000 };
-  const specs = ["e2e/ouro/a.spec.ts", "e2e/ouro/b.spec.ts", "e2e/ouro/c.spec.ts"];
-  assert.deepEqual(installSpecShard(specs, { index: 1, count: 2 }, timings), ["e2e/ouro/a.spec.ts"]);
-  assert.deepEqual(installSpecShard(specs, { index: 2, count: 2 }, timings), ["e2e/ouro/b.spec.ts", "e2e/ouro/c.spec.ts"]);
-  assert.deepEqual(installSpecs(join(root, "no-such-app")), []);
-  // Every shipped spec has a time here.
-  const shipped = readdirSync(join(root, "registry/ouro/e2e/ouro")).filter((file) => file.endsWith(".spec.ts"));
-  assert.deepEqual(shipped.filter((file) => !(`registry/ouro/e2e/ouro/${file}` in readTimings("e2e"))), []);
 });
 
 test("a live whole-file quarantine entry's file is left out of every blocking shard and runs only in the non-blocking step, and an expired or removed entry lifts that", () => {

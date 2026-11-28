@@ -870,7 +870,7 @@ if [ -n "${OURO_COMPONENTS+set}" ]; then
 fi
 shard=()
 [ -z "${OURO_SHARD:-}" ] || shard=(--shard="$OURO_SHARD")
-# A full run's shard takes the shipped Vitest files and specs whose times here add up to its share
+# A full run's shard takes the shipped Vitest files and specs whose times here, in one split, add up to its share
 # (scripts/shard.mjs install and install-e2e): Vitest's own --shard counts files, and Playwright's
 # gave one shard the Chromium tests and the other the slower WebKit ones. Playwright runs a shard's
 # tests one by one across its workers (--fully-parallel). A reduced run keeps their own --shard.
