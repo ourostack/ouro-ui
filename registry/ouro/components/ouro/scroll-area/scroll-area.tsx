@@ -168,7 +168,7 @@ function useUnnamedRegionCheck(viewportRef: { current: HTMLDivElement | null }, 
  * is drawn over the content, so a header that sticks to the top never hides an edge of it.
  *
  * The viewport paints `--ouro-scroller-surface`, falling back to its local `--muted`; Card, Popover,
- * Menu, Select, Combobox, Dialog and Sheet set their own. This is opaque because
+ * Menu, Select, Combobox, Dialog and Sheet set their own. The default is opaque because
  * Chromium on Windows keeps a see-through scroller off the compositor where LCD text is on, and repaints
  * it on every scroll frame (ourostack/ouro-ui#2891). Set the token to another theme surface when
  * needed (`[--ouro-scroller-surface:var(--card)]`); on glass, set it to `transparent`.
