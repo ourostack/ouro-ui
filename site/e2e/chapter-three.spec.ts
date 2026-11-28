@@ -444,7 +444,9 @@ test("before its island, the porthole is the squid's painting in its brass ring:
 test("X-ray outlines Chapter III's HX components", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
-  await page.getByRole("switch", { name: "X-ray" }).click();
+  const xray = page.getByRole("switch", { name: "X-ray" });
+  await xray.click();
+  await expect(xray).toBeChecked();
   const tags = page.locator("[data-ouro-inspector-outline] [data-ouro-part='tag']");
   await expect.poll(() => tags.count()).toBeGreaterThan(10);
   const names = new Set(await tags.allTextContents());
