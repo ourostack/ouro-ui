@@ -151,11 +151,11 @@ export interface SidebarProps {
 // The column: --ouro-sidebar-w, which the app may set on the Sidebar or around it, else 16rem; or a rail when
 // collapsed. The rail keeps its former width, and the width changes at once: layout does not animate.
 const column =
-  "box-border flex h-full w-[var(--ouro-sidebar-w,16rem)] flex-col overflow-hidden border-0 bg-muted text-foreground " +
+  "box-border flex h-full w-[var(--ouro-sidebar-w,16rem)] flex-col overflow-hidden border-0 bg-accent text-foreground " +
   "forced-colors:border-e forced-colors:border-solid [--ouro-sidebar-badge:var(--background)] [--ouro-sidebar-hover:var(--background)] [--ouro-sidebar-hover-text:var(--foreground)] " +
   "data-collapsed:w-[calc(3.75rem+1px)] max-sm:hidden";
 
-// A count or tag at the row's end, distinct from the column's muted surface and the drawer's background.
+// A count or tag at the row's end, distinct from the column's surface and the drawer's background.
 const badgeClass = "ms-auto shrink-0 rounded-ouro-sm bg-(--ouro-sidebar-badge,var(--muted)) px-1.5 text-xs leading-5 font-medium text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] tabular-nums";
 // A badge given as an element (`badge: <Badge>Idle</Badge>`) brings its own look, so it sits bare at the row's end (the label
 // takes the room before it):
@@ -479,7 +479,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
       {wide && (
         <nav aria-label={label} data-collapsed={collapsed ? "" : undefined} className={column}>
           {header !== undefined && <div className="flex min-h-14 shrink-0 items-center overflow-hidden bg-background px-3 py-2">{header}</div>}
-          <div data-ouro-sidebar-scroll="" className="grid grid-cols-1 min-h-0 flex-1 content-start gap-6 overflow-y-auto overscroll-contain bg-muted p-2">
+          <div data-ouro-sidebar-scroll="" className="grid grid-cols-1 min-h-0 flex-1 content-start gap-6 overflow-y-auto overscroll-contain bg-accent p-2">
             {renderSections("c", collapsed)}
           </div>
           {collapsible && (
