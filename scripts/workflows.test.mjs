@@ -3163,6 +3163,7 @@ test("every quarantined test names its test (project, file and title), an issue 
 // failures of the v1.2.15 rehearsals: CI runs 41270773113 (install (shadcn@latest, nova)) and
 // 41256825697 (browser (5/6), with the ci gate after it).
 const logLines = (job, lines) => lines.map((line) => `${job}\tUNKNOWN STEP\t2026-11-01T04:01:29.8723458Z ${line}`).join("\n");
+const browserJob = (shard) => `browser (${shard}/${shardCount(ciJobs().browser)})`;
 const calendarTitle = "Calendar > range > picks a start and an end, in either order, and previews the range in between";
 const calendarLog = logLines("install (shadcn@latest, nova)", [
   "\x1b[31m❯\x1b[39m  ouro-webkit (webkit)  src/components/ouro/calendar/calendar.test.tsx (38 tests | 1 failed) 7350ms",
@@ -3257,10 +3258,10 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   const latestStep = 'Run SHADCN_VERSION=latest scripts/install-test.sh shadcn "$RUNNER_TEMP/latest" b478a3226bf42656ed903307714b9f1d4280e26a';
   const contexts = ["ci", "ci-budget", "quarantined-files", "install (shadcn, nova)", "install (shadcn@latest, nova)"];
   const job = (id, name, conclusion, extra = {}) => ({ id, name, conclusion, url: `https://github.com/o/r/actions/runs/5/job/${id}`, failedSteps: [], ...extra });
-  const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, "browser (5/11)", "success"), job(5, "ci-budget", "success"), job(6, "quarantined-files", "success")];
+  const green = [job(1, "ci", "success"), job(2, "install (shadcn, nova)", "success"), job(3, "install (shadcn@latest, nova)", "success"), job(4, browserJob(5), "success"), job(5, "ci-budget", "success"), job(6, "quarantined-files", "success")];
   const runWith = (jobs, attempt = 1) => [{ id: "5", attempt, workflow: ciYml, jobs: green.filter((base) => !jobs.some((other) => other.name === base.name)).concat(jobs) }];
   const calendar = job(3, "install (shadcn@latest, nova)", "failure", { failedSteps: [latestStep], log: calendarLog });
-  const dive = [job(4, "browser (5/11)", "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "ci-budget", "skipped")];
+  const dive = [job(4, browserJob(5), "failure", { failedSteps: ["Browser tests"], log: diveLog }), job(1, "ci", "failure", { failedSteps: ["Every part passed"], log: logLines("ci", ["##[error]The browser jobs did not pass (failure): see them above this run's ci check."]) }), job(5, "ci-budget", "skipped")];
 
   // Tonight's Calendar failure, quarantined: retried once, recorded with its issue and owner.
   const plan = retryPlan({ runs: runWith([calendar]), contexts, entries: [calendarEntry] });
@@ -3294,9 +3295,9 @@ test("Release and its rehearsal retry once only a failure of quarantined tests w
   assert.match(setup.problems.join("\n"), /failed in "Run pnpm i --frozen-lockfile", which is not a step that runs the tests/);
   assert.equal(retryPlan({ runs: runWith([{ ...dive[0], failedSteps: ["Browser tests", "Coverage of installed subsets"] }, dive[1], dive[2]]), contexts, entries: [diveEntry] }).retry, false);
   // A gate that read a skipped job failed on that, which no test explains.
-  const skippedShard = retryPlan({ runs: runWith([...dive, job(6, "browser (6/11)", "skipped")]), contexts, entries: [diveEntry] });
+  const skippedShard = retryPlan({ runs: runWith([...dive, job(6, browserJob(6), "skipped")]), contexts, entries: [diveEntry] });
   assert.equal(skippedShard.retry, false);
-  assert.match(skippedShard.problems.join("\n"), /ci \(run 5\) read browser \(6\/11\), which was skipped/);
+  assert.ok(skippedShard.problems.includes(`ci (run 5) read ${browserJob(6)}, which was skipped`));
   // A quarantined failure beside any other failure: not retried.
   assert.equal(retryPlan({ runs: runWith([calendar, ...dive]), contexts, entries: [calendarEntry] }).retry, false);
   const build = job(2, "install (shadcn, nova)", "failure", { failedSteps: ["Every shard passed"], log: "" });
@@ -3337,7 +3338,7 @@ test("judgeOwnRun explains ci.yml's own failing jobs, by their id, from inside o
 
   // Two failing ids: a gate (browser, read by nothing here) and install, both quarantined, still
   // forgiven together; judgeOwnRun collects every reason across every id it is asked to judge.
-  const dive = job(4, "browser (5/11)", "failure", { failedSteps: ["Browser tests"], log: diveLog });
+  const dive = job(4, browserJob(5), "failure", { failedSteps: ["Browser tests"], log: diveLog });
   const both = judgeOwnRun({ run: runWith([calendar, dive]), ids: ["install", "browser"], entries: [calendarEntry, diveEntry] });
   assert.equal(both.explained, true, both.problems.join("; "));
   assert.equal(both.retried.length, 2);
