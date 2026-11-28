@@ -400,7 +400,6 @@ function LongMessage() {
         formatting
         editorRef={editor}
         defaultValue={"Proofing times for Saturday's class:\nRye, three hours at room temperature.\nWhite, overnight in the fridge."}
-        description="Ctrl+Enter to send"
         toolbar={
           <Toolbar
             label="Formatting"
