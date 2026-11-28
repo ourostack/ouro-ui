@@ -140,6 +140,17 @@ describe("ThreadRail", () => {
 });
 
 describe("ThreadRail Escape", () => {
+  it("leaves Escape during composition to the input method, including on the close button", async () => {
+    const onClose = vi.fn();
+    const { rail, close } = await render(<ThreadRail label="Thread" onClose={onClose} />);
+    for (const target of [rail, close]) {
+      const event = new KeyboardEvent("keydown", { key: "Escape", isComposing: true, bubbles: true, cancelable: true });
+      await act(async () => target.dispatchEvent(event));
+      expect(event.defaultPrevented).toBe(false);
+    }
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("calls onClose on Escape with focus in the rail, and ignores other keys", async () => {
     const onClose = vi.fn();
     await render(
@@ -214,6 +225,34 @@ describe("ThreadRail Escape", () => {
     rail.querySelector<HTMLElement>("button:not([data-ouro-part])")!.focus();
     await userEvent.keyboard("{Escape}");
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it.each(["true", "plaintext-only"])("leaves Escape in a descendant of a %s editor to the editor", async (editable) => {
+    const onClose = vi.fn();
+    const { rail } = await render(
+      <ThreadRail label="Thread" onClose={onClose}>
+        <div contentEditable={editable === "true" ? true : "plaintext-only"} suppressContentEditableWarning>
+          <span tabIndex={0} data-editor-text="">Draft reply</span>
+        </div>
+      </ThreadRail>,
+    );
+    rail.querySelector<HTMLElement>("[data-editor-text]")!.focus();
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("closes from noneditable content inside an editor unless the content handles Escape", async () => {
+    const onClose = vi.fn();
+    const { rail } = await render(
+      <ThreadRail label="Thread" onClose={onClose}>
+        <div contentEditable suppressContentEditableWarning>
+          <span contentEditable={false} tabIndex={0} data-editor-attachment="">Attached sketch</span>
+        </div>
+      </ThreadRail>,
+    );
+    rail.querySelector<HTMLElement>("[data-editor-attachment]")!.focus();
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("does not close on Escape from a menu drawn in a portal outside the rail", async () => {

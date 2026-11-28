@@ -5,6 +5,7 @@ import { test } from "node:test";
 import { chromium, webkit, type Page } from "playwright";
 import postcss from "postcss";
 import { findCornerIssues, type CornerOptions } from "../../registry/ouro/check/corner-check.ts";
+import { findDesignIssues } from "../../registry/ouro/check/design-check.ts";
 import { check } from "../../registry/ouro/check/run.ts";
 import { findSquirclePaint, type PaintClip } from "../../registry/ouro/check/squircle-paint.ts";
 import { squircleCorners } from "../../registry/ouro/lib/ouro/squircle-corners.ts";
@@ -41,6 +42,108 @@ async function scan(name: string, html: string, config: CornerOptions = {}) {
     log: quiet,
   });
 }
+
+async function transparentClip({ clip = 24, own = 0, clipRound = false, ownRound = false, empty = false } = {}) {
+  const css = (await styles(`
+    body { margin: 0; background: white; }
+    .outer { position: absolute; left: 80px; top: 80px; width: 200px; height: 160px; border-radius: 32px; box-shadow: 0 2px 6px #0002; }
+    .clip { position: absolute; left: 8px; top: 8px; width: 100px; height: 100px; overflow: hidden; border-radius: ${clip}px; ${clipRound ? "corner-shape: round;" : ""} }
+    .tile { position: absolute; inset: 0; background: #557799; border-radius: ${own}px; ${ownRound ? "corner-shape: round;" : ""} }
+  `)).replaceAll("(corner-shape: squircle)", "(ouro-check-native-shape: squircle)");
+  return `<style>${css} .outer { clip-path: none; }</style><div class="outer"><div class="clip">${empty ? "" : '<div class="tile"></div>'}</div></div>`;
+}
+
+test("corners-nest checks the marked surface in the nested-frame pass fixture", async () => {
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage();
+    try {
+      for (const width of [390, 1440]) {
+        await tab.setViewportSize({ width, height: 900 });
+        await tab.setContent(readFileSync(join(fixtures, "nested-frame-pass.html"), "utf8"));
+        assert.deepEqual(await tab.evaluate(findCornerIssues), [], `${engine.name()}: ${width}px`);
+        const design = await tab.evaluate(findDesignIssues, { legacyCorners: false });
+        assert.deepEqual(design.filter((issue) => issue.rule === "nested-frame"), []);
+        await tab.locator(".btn [data-ouro-surface]").evaluate((el) => { el.style.borderRadius = "0"; });
+        const broken = await tab.evaluate(findCornerIssues);
+        assert.equal(broken.length, 1);
+        assert.match(broken[0]!.element, /span in button\.btn/);
+        assert.match(broken[0]!.detail, /0px, expected 5px/);
+      }
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
+test("corners-nest attributes transparent clipping ancestors", async () => {
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 400 } });
+    try {
+      for (const options of [{}, { own: 8 }, { own: 5, ownRound: true }, { clip: 12, empty: true }]) {
+        await tab.setContent(await transparentClip(options));
+        assert.deepEqual(await tab.evaluate(findCornerIssues), [], `${engine.name()}: ${JSON.stringify(options)}`);
+      }
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
+test("corners-nest preserves visible curves through transparent clips", async () => {
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 400 } });
+    try {
+      for (const [options, detail] of [
+        [{ clip: 12 }, /12px, expected 24px/],
+        [{ clipRound: true }, /both corners must be squircles/],
+        [{ own: 32 }, /32px, expected 24px/],
+        [{ own: 24, ownRound: true }, /both corners must be squircles/],
+        [{ own: 14, ownRound: true }, /incompatible clipping curves/],
+      ] as const) {
+        await tab.setContent(await transparentClip(options));
+        const found = await tab.evaluate(findCornerIssues);
+        assert.equal(found.length, 1, `${engine.name()}: ${JSON.stringify(options)}`);
+        assert.match(found[0]!.element, /tile.*outer/);
+        assert.match(found[0]!.detail, detail);
+      }
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
+test("corners-nest keeps transparent fallback shadow envelopes as anchors", async () => {
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 400 } });
+    try {
+      await tab.setContent(await transparentClip());
+      const envelope = await tab.locator(".outer").evaluate((el) => {
+        const s = getComputedStyle(el);
+        return { clip: s.clipPath, radius: parseFloat(s.borderTopLeftRadius) };
+      });
+      assert.equal(envelope.clip, "none");
+      assert.ok(Math.abs(envelope.radius - 32 * .543) < .01);
+      assert.deepEqual(await tab.evaluate(findCornerIssues), []);
+      await tab.setContent(await transparentClip({ clip: 12 }));
+      const wrong = await tab.evaluate(findCornerIssues);
+      assert.equal(wrong.length, 1);
+      assert.match(wrong[0]!.element, /tile.*outer/);
+      assert.match(wrong[0]!.detail, /12px, expected 24px/);
+      await tab.setContent(await transparentClip());
+      await tab.locator(".outer").evaluate((el) => { el.style.borderRadius = "32px"; });
+      assert.match((await tab.evaluate(findCornerIssues))[0]!.detail, /both corners must be squircles/);
+      await tab.setContent(await transparentClip());
+      await tab.locator(".outer").evaluate((el) => { el.style.background = "#778899"; });
+      assert.match((await tab.evaluate(findCornerIssues))[0]!.detail, /both corners must be squircles/);
+    } finally {
+      await browser.close();
+    }
+  }
+});
 
 test("corners-nest finds a mismatched bottom corner through a wrapper in a clipping shell", async () => {
   const css = await styles(`
