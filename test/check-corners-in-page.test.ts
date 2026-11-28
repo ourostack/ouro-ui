@@ -1203,6 +1203,35 @@ it("does not attribute changing background pixels outside the box to a surface",
   }
 });
 
+it("rejects a changed screenshot size after restoring the painted surface", async () => {
+  const root = render('<div style="width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"></div>');
+  const surface = root.firstElementChild!;
+  const original = surface.getAttribute("style");
+  const captures = [
+    { color: "red", extra: 0 },
+    { color: "blue", extra: 0 },
+    { color: "green", extra: 0 },
+    { color: "purple", extra: 0 },
+    { color: "orange", extra: 2 },
+  ];
+  state.__ouroPaintCapture = async (clip) => {
+    const { color, extra } = captures.shift()!;
+    const canvas = document.createElement("canvas");
+    canvas.width = clip.width + extra;
+    canvas.height = clip.height;
+    const context = canvas.getContext("2d")!;
+    context.fillStyle = color;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/png");
+  };
+  try {
+    await expect(findSquirclePaint()).rejects.toThrow("screenshots changed size");
+    expect(surface.getAttribute("style")).toBe(original);
+  } finally {
+    state.__ouroPaintCapture = (clip) => commands.squircleCapture(clip);
+  }
+});
+
 it("does not attribute a shadow probe's background difference to the surface", async () => {
   render('<div style="width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px;box-shadow:0 4px 12px #0008"></div>');
   const image = (clip: PaintClip, outside: string) => {
