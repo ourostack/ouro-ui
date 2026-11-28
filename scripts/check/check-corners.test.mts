@@ -149,6 +149,37 @@ test("corners-nest keeps transparent fallback shadow envelopes as anchors", asyn
   }
 });
 
+test("corners-nest does not mistake an inherited radius for a clipped square", async () => {
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 400 } });
+    try {
+      await tab.setContent(`<style>
+        body { margin: 0; background: white; }
+        .outer { position:absolute; left:40px; top:40px; width:200px; height:160px; background:#ddd;
+          border-radius:17.376px; clip-path:path("${contour(200, 160, 32)}");
+          --sq-tl:32px; --sq-tr:32px; --sq-br:32px; --sq-bl:32px; }
+        .wrapper { position:absolute; left:8px; top:8px; width:100px; height:100px;
+          --sq-tl:24px; --sq-tr:24px; --sq-br:24px; --sq-bl:24px; }
+        .inner { position:absolute; inset:0; background:#557799; clip-path:inset(0); }
+      </style><div class="outer"><div class="wrapper"><div class="inner"></div></div></div>`);
+      const wrapperStyle = await tab.locator(".wrapper").getAttribute("style");
+      const issue = (await tab.evaluate(findCornerIssues))[0];
+      assert.match(issue?.detail ?? "", /0px, expected 24px/, engine.name());
+      assert.match(issue?.detail ?? "", /both corners must be squircles/);
+      assert.equal(await tab.locator(".wrapper").getAttribute("style"), wrapperStyle);
+      await tab.locator(".inner").evaluate((el, path) => {
+        el.style.borderRadius = "13.032px";
+        el.style.clipPath = `path("${path}")`;
+        for (const corner of ["tl", "tr", "br", "bl"]) el.style.setProperty(`--sq-${corner}`, "24px");
+      }, contour(100, 100, 24));
+      assert.deepEqual(await tab.evaluate(findCornerIssues), [], `${engine.name()}: explicitly declared matching tokens`);
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
 test("corners-nest finds a mismatched bottom corner through a wrapper in a clipping shell", async () => {
   const css = await styles(`
     .shell { position: relative; width: 240px; height: 180px; overflow: hidden; border-radius: 32px; background: #dce5ef; }
