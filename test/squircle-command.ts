@@ -1,5 +1,6 @@
 import type {} from "@vitest/browser-playwright";
 import type { BrowserCommand } from "vitest/node";
+import { mkdir, writeFile } from "node:fs/promises";
 import type { PaintClip } from "../registry/ouro/check/squircle-paint.ts";
 
 const squircleCapture: BrowserCommand<[PaintClip]> = async (ctx, clip) => {
@@ -62,12 +63,26 @@ const cornerImageRoute: BrowserCommand<[{ data: string | null }]> = async (ctx, 
   }
 };
 
-export const squircleCommands = { squircleCapture, squircleHostScroll, cornerImageRoute };
+let saved = 0;
+const squircleDiagnostic: BrowserCommand<[{ actual: string; hidden: string; masked: string; solo: string | null; restored: string; withoutEffects: string | null; rect: DOMRect; clip: PaintClip; point: object; html: string }]> = async (ctx, data) => {
+  if (saved++ >= 10) return;
+  const name = `.tmp/corner-images/${saved}`;
+  await mkdir(".tmp/corner-images", { recursive: true });
+  for (const key of ["actual", "hidden", "masked", "solo", "restored", "withoutEffects"] as const) {
+    if (data[key]) await writeFile(`${name}-${key}.png`, Buffer.from(data[key]!.split(",")[1]!, "base64"));
+  }
+  const frame = await ctx.frame();
+  const bounds = await (await frame.frameElement()).boundingBox();
+  await writeFile(`${name}.json`, JSON.stringify({ rect: data.rect, clip: data.clip, point: data.point, html: data.html, bounds, viewport: await frame.evaluate(() => ({ width: innerWidth, height: innerHeight, x: scrollX, y: scrollY })) }));
+};
+
+export const squircleCommands = { squircleCapture, squircleHostScroll, cornerImageRoute, squircleDiagnostic };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
     squircleCapture: (clip: PaintClip) => Promise<string>;
     squircleHostScroll: (options: { y: number | null }) => Promise<{ scroll: number; top: number }>;
     cornerImageRoute: (options: { data: string | null }) => Promise<void>;
+    squircleDiagnostic: (data: { actual: string; hidden: string; masked: string; solo: string | null; restored: string; withoutEffects: string | null; rect: DOMRect; clip: PaintClip; point: object; html: string }) => Promise<void>;
   }
 }
