@@ -83,14 +83,16 @@ function beginTrace(): void {
     }
     return out;
   };
-  (window as unknown as { __ouroTrace: unknown }).__ouroTrace = { read, ids, first: read() };
+  (window as unknown as { __ouroTrace: unknown }).__ouroTrace = { read, ids, first: read(), before: new Set(document.getAnimations()) };
 }
 
 // After the press: waits a frame for the transitions to start, then steps them and returns every frame.
 async function stepTrace(): Promise<TransitionTrace> {
-  const state = (window as unknown as { __ouroTrace: { read: () => Record<string, Reading>; ids: WeakMap<Element, string>; first: Record<string, Reading> } }).__ouroTrace;
+  const state = (window as unknown as { __ouroTrace: { read: () => Record<string, Reading>; ids: WeakMap<Element, string>; first: Record<string, Reading>; before: Set<Animation> } }).__ouroTrace;
   await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
-  const animations = document.getAnimations().filter((a) => a.playState !== "finished" && Number.isFinite(a.effect!.getComputedTiming().endTime as number) && (a.effect as KeyframeEffect).target);
+  // An animation that started after the press belongs to the trace even when a stalled frame ran it to its end before this
+  // step; only one that was already there before the press is left out.
+  const animations = document.getAnimations().filter((a) => (a.playState !== "finished" || !state.before.has(a)) && Number.isFinite(a.effect!.getComputedTiming().endTime as number) && (a.effect as KeyframeEffect).target);
   const end = Math.min(2000, Math.max(0, ...animations.map((a) => a.effect!.getComputedTiming().endTime as number)));
   for (const a of animations) a.pause();
   // Per element, the longest two-keyframe animation of its box and the longest of its opacity give the curves its edges
