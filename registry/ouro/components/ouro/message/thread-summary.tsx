@@ -179,7 +179,7 @@ export function ThreadSummary(props: ThreadSummaryProps): JSX.Element {
       data-ouro="thread-summary"
       // Stryker disable next-line StringLiteral: styles and tests read only whether the attribute is there, never its value.
       data-ouro-thread-summary-unanswered={replied ? undefined : ""}
-      className={cn("box-border flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1", !replied && !alwaysShown && quietReply, className)}
+      className={cn("box-border flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 [[data-ouro=message-list]_&]:[--ouro-thread-summary-ink:color-mix(in_oklab,var(--primary)_80%,var(--foreground))]", !replied && !alwaysShown && quietReply, className)}
     >
       {faces && (
         <AvatarGroup label={repliersLabel} size="xs">
@@ -203,6 +203,7 @@ export function ThreadSummary(props: ThreadSummaryProps): JSX.Element {
         startIcon={replied ? undefined : ReplyIcon}
         aria-label={label}
         onClick={(event) => onOpen?.(event)}
+        style={{ color: "var(--ouro-thread-summary-ink,var(--primary))" }}
         // The label lines up with the text above it, or sits just after the avatars; where a mouse points, the row is
         // a line of small type rather than a button's height, so a post keeps little room under it.
         className={cn(
@@ -213,7 +214,7 @@ export function ThreadSummary(props: ThreadSummaryProps): JSX.Element {
         {shown}
       </Button>
       {replied && lastReply !== undefined && (
-        <time dateTime={lastReplyDateTime} className="text-xs text-muted-foreground tabular-nums">
+        <time dateTime={lastReplyDateTime} className="text-xs text-muted-foreground [[data-ouro=message-list]_&]:text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] tabular-nums">
           {lastReplyLabel(lastReply)}
         </time>
       )}

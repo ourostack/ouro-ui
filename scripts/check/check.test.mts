@@ -15,6 +15,16 @@ import { axe, browser, dir, fixtures, page, quiet, site, spots, steady, two } fr
 // Part of Ouro check's Node side tests; scripts/check.test.mjs runs every file here under Node's coverage.
 
 describe("Ouro check", () => {
+  test("judges a carousel's clipped edge by its surface, not by its role", async () => {
+    const carousel = (surface: string) => page(
+      `<div style="width:200px;overflow:hidden"><div role="region" aria-roledescription="carousel" aria-label="Featured" tabindex="0" style="display:flex;gap:12px;width:200px;overflow-x:auto;background:${surface}">` +
+      `<div style="flex:0 0 180px"><p>A slide with words at its edge.</p></div><div style="flex:0 0 180px"><p>Another slide.</p></div></div></div>`,
+    );
+    const folder = site("carousel-edges", { "same.html": carousel("white"), "step.html": carousel("#e8e9df") });
+    const result = await check({ targets: [folder], out: dir("carousel-edges"), sizes: two, themes: ["light"], measured: false, chromium, log: quiet });
+    assert.deepEqual(result.findings.filter((f) => f.rule === "cut-off-edge").map((f) => f.page), ["/same.html", "/same.html"]);
+  });
+
   test("fragment-focus passes fragmentFocusScript as the item ships it, first in <body>, and names a copy a script adds to <head> as the page streams", async () => {
     // The pass page carries the item's own script, so the rule is tested against what apps install.
     assert.ok(readFileSync(join(fixtures, "fragment-focus-pass.html"), "utf8").includes(`<script>${fragmentFocusScript()}</script>`));
