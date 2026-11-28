@@ -3313,6 +3313,8 @@ jobs:
       # leaves out the Next.js, upgrade and theme fixtures, so a new component's section does not
       # throw the earlier app away), and the add
       # below installs again only the items whose built content changed (scripts/install-delta.mjs).
+      # The second restore key is the earlier, wider one, so the apps main saved before the narrower one
+      # existed still restore.
       # Only main saves these caches (every save in this job checks for main): a pull request
       # restores them, and a cache a pull request saves is readable by that pull request alone.
       - id: prepared
@@ -3322,6 +3324,7 @@ jobs:
           key: install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture/**', 'test/install-fixture-tests/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-${{ hashFiles('registry/**', 'docs/**', 'test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/readme-steps.mjs', 'scripts/shard.mjs', 'scripts/test-impact.mjs', 'scripts/upgrade-note.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml', 'README.md', 'UPGRADING.md') }}
           restore-keys: |
             install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture/**', 'test/install-fixture-tests/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-
+            install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-
       # npm's download cache, seeded from the newest earlier one, so a changed registry file does not
       # download every package again.
       - id: npmcache

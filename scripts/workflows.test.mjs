@@ -4038,7 +4038,8 @@ test("install prep's restore key reads only the fixtures its variants build from
   const ciText = readFileSync(".github/workflows/ci.yml", "utf8");
   const prep = ciText.slice(ciText.indexOf("\n  install-prep:"), ciText.indexOf("\n  install-shard:"));
   const key = prep.match(/key: (install-app-[^\n]*)/)[1];
-  const restore = prep.match(/restore-keys: \|\n\s+(install-app-[^\n]*)/)[1];
+  const [restore, earlier] = prep.match(/restore-keys: \|\n\s+(install-app-[^\n]*)\n\s+(install-app-[^\n]*)/).slice(1);
+  assert.ok(earlier.includes("'test/install-fixture*/**', 'scripts/install-test.sh'"), "the earlier, wider restore key stays, so apps saved before the narrower key still restore");
   assert.ok(key.startsWith(restore.trim()), "the restore key is a prefix of the key");
   assert.ok(restore.includes("'test/install-fixture/**', 'test/install-fixture-tests/**'"), "it reads the bare app and the shipped tests' setup");
   for (const other of ["install-fixture-next", "install-fixture-upgrade", "install-fixture-themes", "install-fixture*"]) assert.ok(!restore.includes(other), `the restore key does not read ${other}`);
