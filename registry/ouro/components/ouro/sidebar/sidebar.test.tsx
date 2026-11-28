@@ -185,6 +185,71 @@ describe("Sidebar", () => {
     await expect.poll(() => getComputedStyle(link.element()).color).toBe(accentForeground);
   });
 
+  for (const place of ["column", "drawer"] as const) {
+    it(`keeps group and nested-item highlights distinct on the ${place} surface`, async () => {
+      if (place === "drawer") await page.viewport(390, 844);
+      const sections = [{ items: [{ label: "Collection", badge: 3, items: [{ label: "Notes", href: "/notes", badge: 9 }, { label: "Add note", onClick: () => {}, badge: 4 }] }] }];
+      const { nav } = await render(<Sidebar label="Main" sections={sections} />);
+      let scope = nav!;
+      if (place === "drawer") {
+        await userEvent.click(page.getByRole("button", { name: "Menu", exact: true }));
+        const dialog = page.getByRole("dialog");
+        await expect.element(dialog).toBeVisible();
+        scope = dialog.element() as HTMLElement;
+      }
+
+      const sample = document.createElement("span");
+      scope.append(sample);
+      const background = (token: string) => {
+        sample.style.backgroundColor = `var(--${token})`;
+        return getComputedStyle(sample).backgroundColor;
+      };
+      const highlight = background(place === "column" ? "background" : "accent");
+      const badge = background(place === "column" ? "background" : "muted");
+      sample.remove();
+
+      const group = scope.querySelector<HTMLElement>('[data-ouro-part="group"]')!;
+      expect(getComputedStyle(group.querySelector("[data-ouro-sidebar-badge]")!).backgroundColor).toBe(badge);
+      await userEvent.hover(group);
+      await expect.poll(() => getComputedStyle(group).backgroundColor).toBe(highlight);
+      await userEvent.click(group);
+      const children = scope.querySelectorAll<HTMLElement>('[data-ouro-part="link"], [data-ouro-part="button"]');
+      expect(children).toHaveLength(2);
+      for (const child of children) {
+        expect(getComputedStyle(child.querySelector("[data-ouro-sidebar-badge]")!).backgroundColor).toBe(badge);
+        await userEvent.hover(child);
+        await expect.poll(() => getComputedStyle(child).backgroundColor).toBe(highlight);
+      }
+    });
+  }
+
+  it("keeps a collapsed group's icon and highlight on the rail surface", async () => {
+    const sections = [{ items: [{ label: "Collection", badge: 3, items: [{ label: "Notes", href: "/notes", badge: 9 }] }] }];
+    const { nav } = await render(<Sidebar label="Main" sections={sections} defaultCollapsed />);
+    const group = nav!.querySelector<HTMLElement>('[data-ouro-part="group"]')!;
+    const label = [...group.querySelectorAll<HTMLElement>("span")].find((span) => span.textContent === "Collection")!;
+    expect(group.querySelector('[aria-hidden="true"]')?.textContent).toBe("C");
+    expect(label.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+    expect(group.querySelector<HTMLElement>("[data-ouro-sidebar-badge]")!.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+    const sample = document.createElement("span");
+    sample.style.backgroundColor = "var(--background)";
+    nav!.append(sample);
+    const highlight = getComputedStyle(sample).backgroundColor;
+    sample.remove();
+    await userEvent.hover(group);
+    await expect.poll(() => getComputedStyle(group).backgroundColor).toBe(highlight);
+    await userEvent.click(group);
+    const menu = page.getByRole("menu");
+    const item = menu.getByRole("menuitem", { name: "Notes 9" });
+    await expect.element(item).toBeVisible();
+    menu.element().append(sample);
+    sample.style.backgroundColor = "var(--muted)";
+    const badgeSurface = getComputedStyle(sample).backgroundColor;
+    sample.remove();
+    const badge = [...item.element().querySelectorAll<HTMLElement>("span")].find((span) => span.textContent === "9")!;
+    expect(getComputedStyle(badge).backgroundColor).toBe(badgeSurface);
+  });
+
   it("keeps its fixed sizes at a compact --spacing: the current bar, a group's chevron and the collapse button's icon", async () => {
     const { host } = await render(
       <Sidebar label="Main" sections={[{ items: [{ label: "Recipes", href: "/recipes" }, { label: "Library", items: [{ label: "Cookbooks", href: "/cookbooks" }] }] }]} currentPath="/recipes" />,
