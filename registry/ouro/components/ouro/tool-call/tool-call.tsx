@@ -20,7 +20,6 @@ import {
   statusLabels,
   statusWords,
   titleRowClass,
-  toolCallStatuses,
   toolCallStatusFix,
   type ToolCallStatus,
 } from "@/registry/ouro/components/ouro/tool-call/tool-call-styles";
@@ -102,7 +101,7 @@ export function ToolCall(props: ToolCallProps): JSX.Element {
     result,
   } = props;
   // A status that is not one of ToolCall's (a type error) renders as done and names the fix in development.
-  const status: ToolCallStatus = (toolCallStatuses as readonly string[]).includes(statusProp) ? (statusProp as ToolCallStatus) : "done";
+  const status: ToolCallStatus = Object.hasOwn(statusLabels, statusProp) ? (statusProp as ToolCallStatus) : "done";
   useAppearanceClassNameCheck(
     "ToolCall",
     className,

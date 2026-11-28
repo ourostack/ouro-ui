@@ -12,7 +12,6 @@ export {
   statusIconTone,
   statusLabels,
   statusWords,
-  toolCallStatuses,
   titleRowClass,
   toolCallStatusFix,
 };
@@ -26,9 +25,6 @@ export type { ToolCallStatus };
  * Where a tool call stands: still running, done, failed, or waiting for the person (for their permission, say).
  */
 type ToolCallStatus = "running" | "done" | "failed" | "waiting";
-
-/** @internal */
-const toolCallStatuses: readonly ToolCallStatus[] = ["running", "done", "failed", "waiting"];
 
 /**
  * The `Fix:` for a status that is not one of ToolCall's, with AI Elements' tool states mapped to Ouro's.
