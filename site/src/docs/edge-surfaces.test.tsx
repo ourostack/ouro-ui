@@ -18,14 +18,15 @@ afterEach(async () => {
   await page.viewport(size.width, size.height);
 });
 
-async function render(node: ReactNode) {
+async function render(node: ReactNode, scheme: "light" | "dark") {
   size = { width: innerWidth, height: innerHeight };
   await page.viewport(1440, 900);
   host = document.createElement("div");
   host.style.width = "1000px";
   host.style.height = "400px";
   host.style.background = "var(--background)";
-  host.style.setProperty("--background", "#f8f8fc");
+  if (scheme === "dark") host.className = "dark";
+  else host.style.setProperty("--background", "#f8f8fc");
   document.body.append(host);
   root = createRoot(host);
   await act(async () => root!.render(node));
@@ -36,7 +37,7 @@ function edges(rule: string) {
     issue.rule === rule && host!.querySelector(`[data-ouro-check-ref~="${issue.ref}"]`));
 }
 
-it("keeps a scrolling sidebar distinct from the surrounding surface", async () => {
+it.each(["light", "dark"] as const)("keeps a scrolling sidebar distinct from the surrounding surface in %s", async (scheme) => {
   await render(
     <Sidebar
       label="Topics"
@@ -45,6 +46,7 @@ it("keeps a scrolling sidebar distinct from the surrounding surface", async () =
       footer="Account"
       sections={[{ items: Array.from({ length: 30 }, (_, index) => ({ label: `Topic ${index + 1}`, href: `#topic-${index + 1}` })) }]}
     />,
+    scheme,
   );
   const scroller = host!.querySelector<HTMLElement>("[data-ouro-sidebar-scroll]")!;
   expect(scroller.scrollHeight).toBeGreaterThan(scroller.clientHeight);
@@ -52,10 +54,9 @@ it("keeps a scrolling sidebar distinct from the surrounding surface", async () =
   expect(edges("cut-off-edge")).toEqual([]);
 });
 
-it.each([
-  ["layout", ThreadLayoutDemo],
-  ["rail", ThreadRailDemo],
-])("separates the thread %s demo's panes without a line", async (_, Demo) => {
-  await render(<Demo />);
-  expect(edges("pane-edge")).toEqual([]);
-});
+for (const [name, Demo] of [["layout", ThreadLayoutDemo], ["rail", ThreadRailDemo]] as const) {
+  it.each(["light", "dark"] as const)(`separates the thread ${name} demo's panes without a line in %s`, async (scheme) => {
+    await render(<Demo />, scheme);
+    expect(edges("pane-edge")).toEqual([]);
+  });
+}
