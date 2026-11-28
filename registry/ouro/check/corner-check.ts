@@ -40,7 +40,7 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
   if (windowBounds && (windowBounds.x > 1 || windowBounds.y > 1 || windowBounds.x + windowBounds.width < innerWidth - 1 || windowBounds.y + windowBounds.height < innerHeight - 1)) {
     throw new Error("native window bounds must contain the viewport; use windowInsets for a sweep of sizes");
   }
-  type Corner = { name: string; key: string; x: number; y: number; squircle: boolean; cutout?: boolean; inverse?: boolean; cutoutMismatch?: boolean };
+  type Corner = { name: string; key: string; x: number; y: number; squircle: boolean; round?: boolean; cutout?: boolean; inverse?: boolean; cutoutMismatch?: boolean; clippingCorners?: Corner[] };
   type Surface = { el: Element | null; rect: DOMRect; corners: Corner[] };
   const names = [
     { name: "top left", key: "tl", property: "TopLeft", shape: "top-left" },
@@ -98,8 +98,9 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
   type Side = "Top" | "Right" | "Bottom" | "Left";
   const paintedSide = (s: CSSStyleDeclaration, side: Side) =>
     s[`border${side}Style`] !== "none" && parseFloat(s[`border${side}Width`]) > 0 && rgba(s[`border${side}Color`])[3]! > 12;
-  const paintedEffect = (s: CSSStyleDeclaration) =>
-    (s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0 && rgba(s.outlineColor)[3]! > 12) || s.boxShadow !== "none";
+  const paintedOutline = (s: CSSStyleDeclaration) =>
+    s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0 && rgba(s.outlineColor)[3]! > 12;
+  const paintedEffect = (s: CSSStyleDeclaration) => paintedOutline(s) || s.boxShadow !== "none";
   const paintedBox = (el: Element) => {
     const s = getComputedStyle(el);
     return paintedFill(el, s) || (["Top", "Right", "Bottom", "Left"] as const).some((side) => paintedSide(s, side)) || paintedEffect(s);
@@ -186,14 +187,21 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
     const sx = html.offsetWidth ? rect.width / html.offsetWidth : 1;
     const sy = html.offsetHeight ? rect.height / html.offsetHeight : 1;
     const length = (value: string, dimension: number, scale: number) => value.endsWith("%") ? (parseFloat(value) / 100) * dimension : (parseFloat(value) || 0) * scale;
+    const shadowOnly = s.boxShadow !== "none" && !paintedFill(el, s) && !paintedOutline(s) &&
+      !(["Top", "Right", "Bottom", "Left"] as const).some((side) => paintedSide(s, side)) && !el.matches("img, video, canvas");
     const corners = names.map(({ name, key, property, shape }) => {
       const fallback = s.getPropertyValue(`--sq-${key}`).trim();
       const parts = (parseFloat(fallback) > 0 ? fallback : s[`border${property}Radius`]).trim().split(/\s+/);
       const x = length(parts[0]!, rect.width, sx);
       const y = length(parts[1] ?? parts[0]!, rect.height, sy);
       const native = s.getPropertyValue(`corner-${shape}-shape`).trim();
-      const squircle = native === "squircle" || native === "superellipse(2)" || (parseFloat(fallback) > 0 && s.clipPath !== "none");
-      return { name, key, x, y, squircle };
+      const border = s[`border${property}Radius`].trim().split(/\s+/);
+      // The fallback's rounded shadow envelope can anchor a descendant's clipping curve.
+      const shadowEnvelope = shadowOnly &&
+        Math.abs(length(border[0]!, rect.width, sx) - x * 0.543) < 0.1 &&
+        Math.abs(length(border[1] ?? border[0]!, rect.height, sy) - y * 0.543) < 0.1;
+      const squircle = native === "squircle" || native === "superellipse(2)" || (parseFloat(fallback) > 0 && (s.clipPath !== "none" || shadowEnvelope));
+      return { name, key, x, y, squircle, round: !native || native === "round" || native === "superellipse(1)" };
     });
     const [tl, tr, br, bl] = corners;
     const factor = Math.min(1, rect.width / Math.max(1, tl!.x + tr!.x), rect.width / Math.max(1, bl!.x + br!.x), rect.height / Math.max(1, tl!.y + bl!.y), rect.height / Math.max(1, tr!.y + br!.y));
@@ -285,6 +293,44 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
     return own.boxShadow === "none" && (own.outlineStyle === "none" || parseFloat(own.outlineWidth) === 0) &&
       (["Top", "Right", "Bottom", "Left"] as const).every((side) => own[`border${side}Style`] === "none" || parseFloat(own[`border${side}Width`]) === 0);
   };
+  // An unpainted clip can supply the visible corner; keep intersecting curves when neither contains the other.
+  const dominates = (a: Corner, b: Corner): boolean => {
+    if (b.x === 0 || b.y === 0) return true;
+    if (a.x < b.x || a.y < b.y) return false;
+    if (a.cutoutMismatch || b.cutoutMismatch) return false;
+    if ((!a.squircle && !a.round) || (!b.squircle && !b.round)) return false;
+    if (a.squircle === b.squircle || !a.squircle) return true;
+    // Monotone interval bounds prove containment of the squircle by the circular corner.
+    const terms = (t: number) => [
+      Math.max(0, 1 - a.x * (1 - t) / b.x) ** 2,
+      Math.max(0, 1 - a.y * (1 - (1 - t ** 4) ** 0.25) / b.y) ** 2,
+    ];
+    const pending = [[0, 1, 0]];
+    while (pending.length) {
+      const [lo, hi, depth] = pending.pop()!;
+      if (terms(hi!)[0]! + terms(lo!)[1]! <= 1 + 1e-10) continue;
+      const mid = (lo! + hi!) / 2;
+      if (terms(mid).reduce((sum, value) => sum + value, 0) > 1 + 1e-10 || depth! >= 16) return false;
+      pending.push([lo!, mid, depth! + 1], [mid, hi!, depth! + 1]);
+    }
+    return true;
+  };
+  const surfaceByElement = new Map(surfaces.map((surface) => [surface.el, surface]));
+  const clips = new Map<Element, Surface>();
+  const effectiveCorner = (inner: Surface, index: number): Corner => {
+    let corners = [inner.corners[index]!];
+    for (let el = inner.el!.parentElement; el; el = el.parentElement) {
+      if (surfaceByElement.has(el)) continue;
+      let clip = clips.get(el);
+      if (!clip) { clip = surface(el); clips.set(el, clip); }
+      if (!clippedCorner(inner, clip, index)) continue;
+      const corner = clip.corners[index]!;
+      if (corner.x === 0 || corner.y === 0 || corners.some((own) => dominates(own, corner))) continue;
+      corners = corners.filter((own) => !dominates(corner, own));
+      corners.push(corner);
+    }
+    return corners.length === 1 ? corners[0]! : { ...corners[0]!, clippingCorners: corners };
+  };
   const issues: PageIssue[] = [];
   for (const inner of surfaces) {
     if (optedOut(inner.el!)) continue;
@@ -298,7 +344,8 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
       })
       .sort((a, b) => a.rect.width * a.rect.height - b.rect.width * b.rect.height);
     const failures = new Map<Surface, string[]>();
-    for (const [index, corner] of inner.corners.entries()) {
+    for (const index of inner.corners.keys()) {
+      const corner = effectiveCorner(inner, index);
       for (const outer of outers) {
         const o = outer.rect;
         const oc = outer.corners[index]!;
@@ -321,10 +368,11 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
         const wantX = Math.max(0, oc.x - Math.max(0, dx));
         const wantY = Math.max(0, oc.y - Math.max(0, dy));
         const wrongRadius = Math.abs(corner.x - wantX) > 1 || Math.abs(corner.y - wantY) > 1;
-        if (wrongRadius || !corner.squircle || !oc.squircle) {
+        const clipMismatch = corner.clippingCorners?.some((part) => !part.squircle || Math.abs(part.x - wantX) > 1 || Math.abs(part.y - wantY) > 1);
+        if (wrongRadius || !corner.squircle || !oc.squircle || clipMismatch) {
           const actual = Math.abs(corner.x - corner.y) < 0.5 ? `${Math.round(corner.x)}px` : `${Math.round(corner.x)}x${Math.round(corner.y)}px`;
           const expected = Math.abs(wantX - wantY) < 0.5 ? `${Math.round(wantX)}px` : `${Math.round(wantX)}x${Math.round(wantY)}px`;
-          const shape = corner.cutoutMismatch ? "; the painted cutout does not match its stated squircle radius" : !oc.squircle || !corner.squircle ? "; both corners must be squircles" : "";
+          const shape = clipMismatch ? "; the visible corner combines incompatible clipping curves" : corner.cutoutMismatch ? "; the painted cutout does not match its stated squircle radius" : !oc.squircle || !corner.squircle ? "; both corners must be squircles" : "";
           const details = failures.get(outer) ?? [];
           const unknown = typeof innerPaint === "string" ? innerPaint : typeof outerPaint === "string" ? outerPaint : null;
           details.push(unknown === "cross-origin"
