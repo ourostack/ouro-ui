@@ -40,7 +40,7 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
   if (windowBounds && (windowBounds.x > 1 || windowBounds.y > 1 || windowBounds.x + windowBounds.width < innerWidth - 1 || windowBounds.y + windowBounds.height < innerHeight - 1)) {
     throw new Error("native window bounds must contain the viewport; use windowInsets for a sweep of sizes");
   }
-  type Corner = { name: string; key: string; x: number; y: number; squircle: boolean; cutout?: boolean; cutoutMismatch?: boolean };
+  type Corner = { name: string; key: string; x: number; y: number; squircle: boolean; cutout?: boolean; inverse?: boolean; cutoutMismatch?: boolean };
   type Surface = { el: Element | null; rect: DOMRect; corners: Corner[] };
   const names = [
     { name: "top left", key: "tl", property: "TopLeft", shape: "top-left" },
@@ -231,6 +231,7 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
           const matches = Boolean(before && after && layer.contains(before) && !layer.contains(after) && root.contains(after));
           inner.corners[index] = { ...corner, squircle: matches, cutout: matches, cutoutMismatch: !matches };
           corner.squircle = matches;
+          corner.inverse = matches;
         }
       } finally {
         for (const { el, style, normalized, value, priority } of previous) {
@@ -291,12 +292,17 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
       for (const outer of outers) {
         const o = outer.rect;
         const oc = outer.corners[index]!;
-        if (Math.min(oc.x, oc.y) < 6 || oc.x >= o.width / 2 - 0.5 || oc.y >= o.height / 2 - 0.5) continue;
+        if (oc.inverse || Math.min(oc.x, oc.y) < 6 || oc.x >= o.width / 2 - 0.5 || oc.y >= o.height / 2 - 0.5) continue;
         const left = index === 0 || index === 3;
         const top = index < 2;
         const dx = left ? i.left - o.left : o.right - i.right;
         const dy = top ? i.top - o.top : o.bottom - i.bottom;
         if (dx < -1 || dy < -1 || dx >= oc.x / 2 || dy >= oc.y / 2) continue;
+        // A small box well inside the curve is content, not a nested corner.
+        const exponent = oc.squircle ? 4 : 2;
+        const norm = ((1 - Math.max(0, dx) / oc.x) ** exponent + (1 - Math.max(0, dy) / oc.y) ** exponent) ** (1 / exponent);
+        const distanceInside = norm < 1 ? (1 / norm - 1) * Math.hypot(oc.x - dx, oc.y - dy) : 0;
+        if (distanceInside > 4) continue;
         if (clippedCorner(inner, outer, index)) break;
         const innerPaint = paintedCorner(inner, index);
         if (innerPaint === false) break;

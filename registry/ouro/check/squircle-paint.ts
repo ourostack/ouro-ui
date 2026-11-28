@@ -12,6 +12,7 @@ type PaintCapture = (clip: PaintClip) => Promise<string>;
 async function findSquirclePaint(): Promise<PageIssue[]> {
   type Corner = { x: number; y: number; squircle: boolean };
   type Saved = { value: string; priority: string };
+  type InlineElement = Element & { style: CSSStyleDeclaration };
   const capture = (window as unknown as { __ouroPaintCapture?: PaintCapture }).__ouroPaintCapture;
   if (!capture) throw new Error("squircle-paint needs a screenshot capture supplied by its host");
   const names = [
@@ -265,11 +266,12 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     }
     return null;
   };
-  const save = (el: HTMLElement | SVGElement, property: string): Saved => ({ value: el.style.getPropertyValue(property), priority: el.style.getPropertyPriority(property) });
-  const restore = (el: HTMLElement | SVGElement, property: string, saved: Saved) => {
+  const save = (el: InlineElement, property: string): Saved => ({ value: el.style.getPropertyValue(property), priority: el.style.getPropertyPriority(property) });
+  const restore = (el: InlineElement, property: string, saved: Saved) => {
     if (saved.value) el.style.setProperty(property, saved.value, saved.priority);
     else el.style.removeProperty(property);
   };
+  const hasInlineStyle = (el: Element): el is InlineElement => "style" in el && el.style instanceof CSSStyleDeclaration;
   const inverseCutout = (el: HTMLElement, shape: NonNullable<ReturnType<typeof geometry>>) => {
     if (getComputedStyle(el).clipPath === "none") return false;
     const rect = el.getBoundingClientRect();
@@ -439,7 +441,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             const normalizedStyle = el.style.cssText;
             const radii = names.map(({ shape }) => ({ property: `border-${shape}-radius`, saved: save(el, `border-${shape}-radius`) }));
             const overrides = [...el.querySelectorAll("[style]")].flatMap((node) => {
-              if (!(node instanceof HTMLElement || node instanceof SVGElement)) return [];
+              if (!hasInlineStyle(node)) return [];
               const opacity = node.style.getPropertyPriority("opacity") === "important";
               const transition = node.style.getPropertyPriority("transition-property") === "important";
               if (!opacity && !transition) return [];

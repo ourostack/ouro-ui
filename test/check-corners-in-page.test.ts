@@ -60,6 +60,9 @@ it("detects visible paint outside a low-opacity surface", async () => {
 it("detects important paint on a MathML descendant outside a shadowed surface", async () => {
   const root = render('<div id="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle;box-shadow:0 4px 12px #0008"><math style="position:absolute;left:-12px;top:-12px;width:8px;height:8px;background:#f40;opacity:1 !important"></math></div>');
   const math = root.querySelector("math")!;
+  const foreign = document.createElementNS("urn:example", "foreign");
+  foreign.setAttribute("style", "color:red");
+  root.querySelector("#surface")!.append(foreign);
   const original = math.getAttribute("style");
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#surface");
   expect(math.getAttribute("style")).toBe(original);
@@ -401,7 +404,7 @@ it("keeps paint inside an inverse cutout while detecting paint above its edge", 
 });
 
 it("recognizes panes whose corners are covered by an ancestor's inverse cutout", () => {
-  render(`<div style="width:160px;height:120px;background:#eef4fa;border-top-left-radius:17.376px;--sq-tl:32px;clip-path:inset(0)">
+  render(`<div style="display:flow-root;width:160px;height:120px;background:#eef4fa;border-top-left-radius:17.376px;--sq-tl:32px;clip-path:inset(0)">
     <div style="position:relative;margin:4px;width:152px;height:112px;background:#789">
       <div style="position:absolute;inset:0;display:flex;background:#567">
         <div style="width:50%;height:100%;background:#345"></div><div style="width:50%;height:100%;background:#678"></div>
