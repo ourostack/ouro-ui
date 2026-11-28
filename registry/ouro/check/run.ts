@@ -344,7 +344,7 @@ const HINTS: Record<string, string> = {
   "image-fade": "end the picture on a hard edge, or put it on a solid band",
   "giant-picture": "show the work itself (the component, a screenshot) or a small picture beside the words, not a banner",
   "cramped-heading": "give the heading room: more space above it than between it and what follows",
-  "nested-frame": "draw one frame: drop the inner border, or make the inner radius the outer one less the inset",
+  "nested-frame": "drop the inner border and use a step between theme surface tokens; for mismatched corners, make the inner radius the outer one less the inset",
   "doubled-line": "keep one line: drop the inner divider where a frame or another divider already separates, or give the two room apart",
   "off-centre-text": "even the padding above and below the words, or centre the row with align-items: center rather than end, and centre a line on its cap height (text-box: trim-both cap alphabetic) where the font sits it high or low",
   "off-centre-ink": "centre the control's content with flex and align-items: center, give the icon an even box, and draw a more or overflow control as an icon, never a typed \u2026, which rests on the text's baseline",

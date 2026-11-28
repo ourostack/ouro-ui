@@ -14,8 +14,9 @@ import type { PageIssue } from "./size-check.ts";
 //                      size (a quarter, for its own item's picture, as a card's title under the card's picture): no room
 //                      to breathe between a title and the art before it. What follows a heading belongs to it, so the
 //                      space below isn't judged
-//   nested-frame       a frame drawn inside a frame: a framed box hugging another within a few pixels on every side (a
-//                      double border), or a rounded, filled or framed box whose child, with an edge of its own (a fill,
+//   nested-frame       a frame drawn inside a frame: a framed box hugging another within a few pixels on every side, or
+//                      a lighter framed surface inside it, or a rounded, filled or framed box whose child has an edge
+//                      of its own (a fill,
 //                      a frame, or a picture that runs to its corner, not an icon or a clear logo), sits in its corner
 //                      (under half the radius in) with a radius that isn't the outer radius less the inset, so the
 //                      corners don't nest
@@ -179,6 +180,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
   const px = (value: string) => parseFloat(value) || 0;
   const all = [...document.body.querySelectorAll("*")].filter((el) => !el.closest("svg, script, style, template, head") || el.tagName === "svg");
   const visible = all.filter(shown);
+  const visibleSet = new Set(visible);
   const hasText = (el: Element) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent!.trim());
 
   // Colours as the browser resolves them, through a canvas, so every syntax (color-mix, oklch, a keyword) reads alike.
@@ -213,6 +215,52 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       if (fill[3] >= 0.5) return fill;
     }
     return matchMedia("(prefers-color-scheme: dark)").matches && /dark/.test(getComputedStyle(document.documentElement).colorScheme) ? [18, 18, 18, 1] : [255, 255, 255, 1];
+  };
+  // The actual solid surface, with translucent fills and group opacity composited over their ancestors. A picture,
+  // gradient or filter that affects the result cannot be represented by one colour, so an edge over it is not guessed.
+  const surfaces = new WeakMap<Element, [number, number, number] | null>();
+  const surfaceOf = (el: Element): [number, number, number] | null => {
+    const known = surfaces.get(el);
+    if (known !== undefined) return known;
+    const colour: [number, number, number] = [0, 0, 0];
+    let alpha = 0;
+    for (let n: Element | null = el; n; n = n.parentElement) {
+      const s = getComputedStyle(n);
+      if ((s.backgroundImage !== "none" && alpha < 0.999) || s.filter !== "none" || (s.backdropFilter && s.backdropFilter !== "none") || s.mixBlendMode !== "normal") {
+        surfaces.set(el, null);
+        return null;
+      }
+      const fill = rgba(s.backgroundColor);
+      const weight = (1 - alpha) * fill[3];
+      for (let i = 0; i < 3; i++) colour[i]! += fill[i]! * weight;
+      alpha += weight;
+      const opacity = Number(s.opacity);
+      for (let i = 0; i < 3; i++) colour[i]! *= opacity;
+      alpha *= opacity;
+    }
+    const canvas = matchMedia("(prefers-color-scheme: dark)").matches && /dark/.test(getComputedStyle(document.documentElement).colorScheme) ? 18 : 255;
+    const result = colour.map((channel) => channel + canvas * (1 - alpha)) as [number, number, number];
+    surfaces.set(el, result);
+    return result;
+  };
+  const colourDistance = (a: number[], b: number[]) => Math.abs(a[0]! - b[0]!) + Math.abs(a[1]! - b[1]!) + Math.abs(a[2]! - b[2]!);
+  const visibleInk = (colour: string, surface: number[]) => {
+    const ink = rgba(colour);
+    const drawn = surface.map((channel, i) => ink[i]! * ink[3] + channel * (1 - ink[3]));
+    return colourDistance(drawn, surface) > 12;
+  };
+  const visibleBorder = (el: Element, side: "top" | "right" | "bottom" | "left", surface: number[]) => {
+    const s = getComputedStyle(el);
+    if (/none|hidden/.test(s.getPropertyValue(`border-${side}-style`)) || px(s.getPropertyValue(`border-${side}-width`)) < 0.5) return false;
+    return visibleInk(s.getPropertyValue(`border-${side}-color`), surface);
+  };
+  const sideNames = ["top", "right", "bottom", "left"] as const;
+  const visibleEdge = (el: Element, side: typeof sideNames[number], surface: number[]) => {
+    if (visibleBorder(el, side, surface)) return true;
+    const s = getComputedStyle(el);
+    if (!/none|hidden/.test(s.outlineStyle) && px(s.outlineWidth) >= 0.5 && Math.abs(px(s.outlineOffset)) <= 1 && visibleInk(s.outlineColor, surface)) return true;
+    const ring = /(?:^|,\s*)([a-z]+\([^)]*\))\s+0px 0px 0px ([\d.]+)px/.exec(s.boxShadow);
+    return ring !== null && px(ring[2]!) >= 0.5 && visibleInk(ring[1]!, surface);
   };
   const pictureLike = (el: Element) => el.matches("img, video, canvas, picture, svg, [role=img]") || (getComputedStyle(el).backgroundImage.includes("url(") && !el.textContent!.trim());
   // A page behind a gradient or a picture has no one colour to differ from, so no fill is judged against it.
@@ -357,8 +405,8 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     }
   }
 
-  // nested-frame: a frame hugging a frame, or corners that don't nest. An Ouro surface layer is its parent's own paint
-  // (where the engine has no corner-shape it draws the parent's fill and border), never a frame inside it.
+  // nested-frame: a frame hugging a frame, a lighter framed surface inside one, or corners that don't nest. An Ouro
+  // surface layer is its parent's own paint, never a frame inside it.
   const isLayer = (el: Element) => el.hasAttribute("data-ouro-surface") || el.hasAttribute("data-ouro-avatar-surface");
   const framed = visible.filter((el) => frameOf(el) !== null);
   const reported = new Set<Element>();
@@ -366,12 +414,80 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     if (optedOut(outer, "nested-frame")) continue;
     const o = outer.getBoundingClientRect();
     for (const inner of framed) {
-      if (inner === outer || !outer.contains(inner) || reported.has(inner) || isLayer(inner)) continue;
+      if (inner === outer || !outer.contains(inner) || reported.has(inner) || isLayer(inner) || optedOut(inner, "nested-frame")) continue;
       const i = inner.getBoundingClientRect();
+      const drawn = drawnRect(inner)!;
+      if (i.width < 48 || i.height < 32 || drawn.width < 2 || drawn.height < 2) continue;
       const insets = [i.top - o.top, o.right - i.right, o.bottom - i.bottom, i.left - o.left];
-      if (i.width >= 48 && i.height >= 32 && insets.every((d) => d >= -1 && d <= hugPx)) {
+      const hugs = insets.every((d) => d >= -1 && d <= hugPx);
+      const inside = Math.min(drawn.right, o.right) - Math.max(drawn.left, o.left) > 1
+        && Math.min(drawn.bottom, o.bottom) - Math.max(drawn.top, o.top) > 1;
+      let lighter = false;
+      if (!hugs && inside && !inner.matches("button, input, select, textarea, [role=button], [role=combobox]") && rgba(getComputedStyle(inner).backgroundColor)[3] > 0) {
+        const [surface, behind] = [surfaceOf(inner), surfaceOf(inner.parentElement!)];
+        if (surface && behind && colourDistance(surface, behind) > 12 && hsl(surface).l > hsl(behind).l) {
+          const editors = [...inner.querySelectorAll('textarea, select, input:not([type="hidden"]), [role="textbox"], [contenteditable="true"]')].filter((el) => visibleSet.has(el));
+          const noHeading = !inner.querySelector("h1, h2, h3, h4, h5, h6, [role=heading]");
+          const fillsField = editors.some((el) => {
+            const r = el.getBoundingClientRect();
+            let region = el;
+            while (region.parentElement && region.parentElement !== inner) region = region.parentElement;
+            const box = region.getBoundingClientRect();
+            const share = el.matches('textarea, [role="textbox"], [contenteditable="true"]') ? 0.3 : 0.35;
+            return r.width >= i.width / 2 && (r.height >= i.height * share
+              || (box.height >= i.height * share && !region.querySelector("p, article, section")));
+          });
+          const flexItems = (parent: Element): Element[] => [...parent.children].flatMap((el) =>
+            getComputedStyle(el).display === "contents" ? flexItems(el) : visibleSet.has(el) ? [el] : []);
+          const style = getComputedStyle(inner);
+          const items = noHeading && editors.some((el) => el.matches('[role="combobox"]')) && /flex/.test(style.display) && style.flexWrap !== "nowrap"
+            ? flexItems(inner) : [];
+          const holdsEditor = (el: Element) => editors.some((editor) => el === editor || el.contains(editor));
+          const isChip = (el: Element) => !holdsEditor(el)
+            && (rgba(getComputedStyle(el).backgroundColor)[3] > 0 || frameOf(el) !== null || el.querySelector('button, [role="button"]') !== null);
+          const chipLayout = items.some(isChip)
+            && items.every((el) => holdsEditor(el) || isChip(el) || el.matches('button, [role="button"]')
+              || (!el.textContent?.trim() && el.querySelector("svg") !== null));
+          const boxes = chipLayout ? items.map((el) => el.getBoundingClientRect()) : [];
+          const fillsChips = boxes.length > 0
+            && Math.max(...boxes.map((r) => r.right)) - Math.min(...boxes.map((r) => r.left)) >= i.width / 2
+            && Math.max(...boxes.map((r) => r.bottom)) - Math.min(...boxes.map((r) => r.top)) >= i.height * 0.35;
+          const fieldFrame = noHeading && (fillsField || fillsChips || (inner instanceof HTMLLabelElement && inner.control !== null));
+          const media = [...inner.querySelectorAll("img, video, canvas, svg")].flatMap((el) => {
+            const r = visibleSet.has(el) ? drawnRect(el) : null;
+            if (!r) return [];
+            const box = { left: Math.max(r.left, drawn.left), right: Math.min(r.right, drawn.right), top: Math.max(r.top, drawn.top), bottom: Math.min(r.bottom, drawn.bottom) };
+            return box.right > box.left && box.bottom > box.top ? [box] : [];
+          });
+          const cuts = [...new Set(media.flatMap(({ left, right }) => [left, right]))].sort((a, b) => a - b);
+          let covered = 0;
+          for (let x = 1; x < cuts.length; x++) {
+            const left = cuts[x - 1]!, right = cuts[x]!;
+            const spans = media.filter((r) => r.left < right && r.right > left).sort((a, b) => a.top - b.top);
+            let bottom = drawn.top;
+            for (const span of spans) {
+              covered += (right - left) * Math.max(0, span.bottom - Math.max(bottom, span.top));
+              bottom = Math.max(bottom, span.bottom);
+            }
+          }
+          const caption = [inner, ...inner.querySelectorAll("*")].some((el) =>
+            visibleSet.has(el) && hasText(el) && !el.closest('button, [role="button"]'));
+          const mediaFrame = noHeading && !caption && covered >= drawn.width * drawn.height * 0.8;
+          lighter = !fieldFrame && !mediaFrame && sideNames.some((side) => {
+            const edgeDrawn = side === "top" ? drawn.top <= i.top + 0.5
+              : side === "right" ? drawn.right >= i.right - 0.5
+                : side === "bottom" ? drawn.bottom >= i.bottom - 0.5
+                  : drawn.left <= i.left + 0.5;
+            return edgeDrawn && visibleEdge(inner, side, surface);
+          });
+        }
+      }
+      if (hugs || lighter) {
         reported.add(inner);
-        issues.push({ ref: ref(inner), rule: "nested-frame", element: `${describe(inner)} in ${describe(outer)}`, detail: `a frame drawn ${Math.round(Math.max(...insets))}px inside another: a double border` });
+        const detail = hugs
+          ? `a frame drawn ${Math.round(Math.max(...insets))}px inside another: a double border`
+          : "a lighter framed surface inside another frame: remove its border and use a step between theme surface tokens";
+        issues.push({ ref: ref(inner), rule: "nested-frame", element: `${describe(inner)} in ${describe(outer)}`, detail });
       }
     }
   }

@@ -1,0 +1,1 @@
+- Ouro check: [finds a lighter framed surface inside a frame even when inset or clipped](test/check-design-in-page.test.ts "verify:testExists(test/check-design-in-page.test.ts::findDesignIssues: nested-frame > finds a lighter framed card inside a clipping frame even when it is inset well beyond the hug gap)").
