@@ -24,7 +24,8 @@ test("squircle corners: a rounded rule gets a sibling that records its radii and
 
 test("squircle corners: pills, circles, half a set height and corner-shape: round stay round, and a mixed rule squares only its squircle corners", async () => {
   const out = await run(".a{border-radius:9999px}.b{border-radius:50%}.c{height:2rem;border-radius:1rem}.d{border-radius:8px;corner-shape:round}.e{border-top-left-radius:8px;border-bottom-right-radius:calc(infinity * 1px)}");
-  assert.doesNotMatch(out, /\.[abcd]\{--sq/);
+  assert.match(out, /\.a,\.b,\.c,\.d\{--sq-tl:0px;--sq-tr:0px;--sq-br:0px;--sq-bl:0px\}/);
+  assert.doesNotMatch(out.slice(out.indexOf("@layer squircle-corners{")), /\.[abcd](?=[,{])/);
   assert.match(out, /\.e\{--sq-tl:8px;--sq-br:0px;/);
   assert.doesNotMatch(out, /\.e\{--sq-tl:8px;[^}]*--sq-tr:/);
 });

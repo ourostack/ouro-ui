@@ -10,6 +10,7 @@ interface Node {
   selectors?: string[];
   prop?: string;
   value?: string;
+  important?: boolean;
   parent?: Node;
   nodes?: Node[];
   walkDecls?: (cb: (decl: Node) => void) => void;
@@ -49,7 +50,8 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
     OnceExit(input: unknown) {
       const root = input as Node;
       const selectors = new Set<string>();
-      type Group = { key: string; vars: string[]; radii: (string | null)[]; selectors: string[]; last: Node };
+      type Declaration = { prop: string; value: string; important?: boolean };
+      type Group = { key: string; declarations: Declaration[]; selectors: string[]; last: Node };
       const groups = new Map<Node, Group[]>();
       root.walkRules((rule) => {
         if (skipped(rule)) return;
@@ -57,25 +59,34 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
         let included = false;
         for (const direction of logical ? ["ltr", "rtl"] as const : [undefined]) {
           const corners = cornersOf(rule, direction === "rtl");
-          if (!corners.some((c) => c !== null && !isRound(c, rule))) continue;
-          included = true;
-          const vars: string[] = [];
+          if (corners.every((c) => c === null)) continue;
+          const squircle = corners.some((c) => c !== null && !isRound(c.value, rule));
+          included ||= squircle;
+          const declarations: Declaration[] = [];
           const radii = corners.map((c, i) => {
             if (c === null) return null;
-            const round = isRound(c, rule);
-            vars.push(`--sq-${KEYS[i]}: ${round ? "0px" : c}`);
-            return round ? c : `calc(${c} * ${ENCLOSING_CIRCLE})`;
+            const round = isRound(c.value, rule);
+            declarations.push({ prop: `--sq-${KEYS[i]}`, value: round ? "0px" : c.value, important: c.important });
+            return { value: round ? c.value : `calc(${c.value} * ${ENCLOSING_CIRCLE})`, important: c.important };
           });
+          if (squircle) {
+            if (radii.every((radius) => radius !== null && radius.important === radii[0]!.important)) {
+              declarations.push({ prop: "border-radius", value: radii.map((radius) => radius!.value).join(" "), important: radii[0]!.important });
+            } else {
+              radii.forEach((radius, i) => { if (radius) declarations.push({ prop: RADIUS_PROPERTIES[i]!, ...radius }); });
+            }
+          }
           let byParent = groups.get(rule.parent!);
           if (!byParent) groups.set(rule.parent!, (byParent = []));
-          const key = `${vars.join(";")}|${radii.join(" ")}`;
+          const key = JSON.stringify(declarations);
           const previous = byParent.at(-1);
           const nodes = rule.parent!.nodes ?? [];
           const between = previous ? nodes.slice(nodes.indexOf(previous.last) + 1, nodes.indexOf(rule)) : [];
           const safe = between.every((node) => node.type === "comment" ||
-            (node.type === "rule" && cornersOf(node).every((corner) => corner === null)));
+            (node.type === "rule" && cornersOf(node).every((corner) => corner === null) &&
+              !(node.nodes ?? []).some((decl) => decl.type === "decl" && (decl.prop === "all" || decl.prop?.startsWith("--sq-")))));
           let group = previous && previous.key === key && safe ? previous : undefined;
-          if (!group) byParent.push((group = { key, vars, radii, selectors: [], last: rule }));
+          if (!group) byParent.push((group = { key, declarations, selectors: [], last: rule }));
           const list = rule.selectors ?? [rule.selector!];
           group.selectors.push(...(direction ? list.map((selector) => directionSelector(selector, direction)) : list));
           group.last = rule;
@@ -86,10 +97,7 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
       for (const byParent of groups.values()) {
         for (const group of byParent.reverse()) {
           for (const selector of selectorGroups(group.selectors).reverse()) {
-            const sibling = { selector, nodes: [] as object[] };
-            for (const v of group.vars) sibling.nodes.push({ prop: v.split(": ")[0], value: v.split(": ")[1] });
-            if (group.radii.every((radius) => radius !== null)) sibling.nodes.push({ prop: "border-radius", value: group.radii.join(" ") });
-            else group.radii.forEach((value, i) => { if (value !== null) sibling.nodes.push({ prop: RADIUS_PROPERTIES[i], value }); });
+            const sibling = { selector, nodes: group.declarations };
             const wrap = { name: "supports", params: MISSING, nodes: [sibling] };
             group.last.after(wrap);
           }
@@ -298,17 +306,20 @@ function skipped(rule: Node): boolean {
 }
 
 // The four corners' radii as written (top-left, top-right, bottom-right, bottom-left), or null for a corner the rule leaves alone.
-function cornersOf(rule: Node, rtl = false): (string | null)[] {
-  const out: (string | null)[] = [null, null, null, null];
+function cornersOf(rule: Node, rtl = false): ({ value: string; important: boolean } | null)[] {
+  const out: ({ value: string; important: boolean } | null)[] = [null, null, null, null];
+  const set = (index: number, value: string | undefined, important: boolean) => {
+    if (value !== undefined && (!out[index]?.important || important)) out[index] = { value, important };
+  };
   for (const decl of rule.nodes ?? []) {
     if (decl.type !== "decl") continue;
     const value = decl.value!.trim();
     if (decl.prop === "border-radius" && !value.includes("/")) {
       const [a, b = a, c = a, d = b] = splitTop(value);
-      out.splice(0, 4, a ?? null, b ?? null, c ?? null, d ?? null);
+      [a, b, c, d].forEach((radius, i) => set(i, radius, !!decl.important));
     } else if (decl.prop! in LONGHANDS) {
       const corner = LONGHANDS[decl.prop!]!;
-      out[Array.isArray(corner) ? corner[rtl ? 1 : 0]! : corner] = splitTop(value)[0] ?? null;
+      set(Array.isArray(corner) ? corner[rtl ? 1 : 0]! : corner, splitTop(value)[0], !!decl.important);
     }
   }
   return out;
