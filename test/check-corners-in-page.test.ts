@@ -787,7 +787,7 @@ it("keeps a round badge's fractional antialiasing separate from its cut-out", as
     </div>`);
     expect(await findSquirclePaint()).toEqual([]);
     root.querySelector(".badge")!.insertAdjacentHTML("beforeend", '<span style="position:absolute;right:-4px;top:-4px;width:8px;height:8px;background:#d11"></span>');
-    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-[44%]");
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.frame.rounded-[24%]");
   } finally {
     restore();
   }
@@ -804,7 +804,7 @@ it("keeps a round badge's dark-background edge distinct from a square leak", asy
     </div>`);
     expect(await findSquirclePaint()).toEqual([]);
     root.querySelector(".badge")!.insertAdjacentHTML("beforeend", '<span style="position:absolute;right:-4px;top:-4px;width:8px;height:8px;background:#d11"></span>');
-    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-[44%]");
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.frame.rounded-[24%]");
   } finally {
     restore();
   }
