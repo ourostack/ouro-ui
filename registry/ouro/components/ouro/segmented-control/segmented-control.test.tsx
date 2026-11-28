@@ -82,6 +82,7 @@ describe("SegmentedControl", () => {
     host.style.setProperty("--radius", "20px");
     for (const spacing of [4, 2]) {
       host.style.setProperty("--spacing", `${spacing}px`);
+      await settled(thumb);
       const inset = thumb.getBoundingClientRect().left - track.getBoundingClientRect().left;
       expect(radius(thumb)).toBeCloseTo(radius(track) - inset, 1);
     }
