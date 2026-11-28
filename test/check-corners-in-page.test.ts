@@ -57,6 +57,14 @@ it("detects visible paint outside a low-opacity surface", async () => {
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#surface");
 }, paintTimeout);
 
+it("detects important paint on a MathML descendant outside a shadowed surface", async () => {
+  const root = render('<div id="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle;box-shadow:0 4px 12px #0008"><math style="position:absolute;left:-12px;top:-12px;width:8px;height:8px;background:#f40;opacity:1 !important"></math></div>');
+  const math = root.querySelector("math")!;
+  const original = math.getAttribute("style");
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#surface");
+  expect(math.getAttribute("style")).toBe(original);
+}, paintTimeout);
+
 it("accepts a percent-encoded PNG capture as well as base64", async () => {
   const capture = state.__ouroPaintCapture!;
   state.__ouroPaintCapture = async (clip) => {
