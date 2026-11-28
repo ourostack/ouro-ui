@@ -53,6 +53,25 @@ it("does not treat a table row's dividing line as a painted corner", () => {
   expect(findCornerIssues().map((issue) => issue.element)).toContain("tr in div");
 });
 
+it("judges a one-sided border only at its adjacent corners", () => {
+  const root = render('<div id="outer" style="position:relative;width:160px;height:120px;background:#eef4fa;border-radius:24px;corner-shape:squircle"><div id="inner" style="position:absolute;inset:4px;border-radius:8px;corner-shape:squircle"></div></div>');
+  const inner = root.querySelector<HTMLElement>("#inner")!;
+  for (const [side, expected] of [
+    ["top", ["top left", "top right"]],
+    ["right", ["top right", "bottom right"]],
+    ["bottom", ["bottom right", "bottom left"]],
+    ["left", ["bottom left", "top left"]],
+  ] as const) {
+    inner.style.setProperty(`border-${side}`, "1px solid #789");
+    const detail = findCornerIssues().find((issue) => issue.element === "div#inner in div#outer")?.detail ?? "";
+    const expectedCorners: readonly string[] = expected;
+    for (const corner of ["top left", "top right", "bottom right", "bottom left"]) {
+      expect(detail.includes(corner)).toBe(expectedCorners.includes(corner));
+    }
+    inner.style.removeProperty(`border-${side}`);
+  }
+});
+
 it("compares painted corners against the actual browser pixels", async () => {
   render('<div id="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"><div style="position:absolute;inset:0;background:#f40"></div></div>');
   const issues = await findSquirclePaint();
