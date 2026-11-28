@@ -193,6 +193,14 @@ export interface ConversationListSection {
    * { id: "favorites", title: "Favorites", reorderable: true }
    */
   reorderable?: boolean | undefined;
+  /**
+   * Whether a row dragged with a mouse can be dropped into this section, on its header or any of its rows, when the list
+   * has `onItemMove`. A row's own section never takes it. Mark the sections the person files conversations in.
+   * @claim "A row's own section never takes it" registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx::ConversationList row move > takes a drop on any row of a section, and none over the row's own section, a section that takes no rows or the gap between sections)
+   * @example
+   * { id: "projects", title: "Projects", acceptsItems: true }
+   */
+  acceptsItems?: boolean | undefined;
 }
 
 /**
@@ -241,6 +249,19 @@ export interface ConversationListOwnProps {
    * <ConversationList sections={[{ id: "favorites", title: "Favorites", reorderable: true }]} onSectionsReorder={(ids, move) => save(ids)} />
    */
   onSectionsReorder?: ((ids: string[], move: ConversationListSectionMove) => void) | undefined;
+  /**
+   * Called with a row's `id` and a section's when the person drags the row with a mouse onto a section that
+   * `acceptsItems`. While it is dragged the row follows the pointer and the section it would land in is highlighted, its
+   * header and its rows; Escape puts it back. A click still selects the row, and a finger or pen still scrolls and
+   * long-presses it. The app moves the row: the list shows it where `items` puts it. Give the row a `menu` entry that
+   * moves it too, for the keyboard and screen readers.
+   * @claim "While it is dragged the row follows the pointer" registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx::ConversationList row move > lifts a row dragged with a mouse, lights the section under the pointer, its header and its rows, and reports the row and the section once on release)
+   * @claim "Escape puts it back" registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx::ConversationList row move > puts the row back and reports nothing on Escape or a cancelled pointer)
+   * @claim "A click still selects the row, and a finger or pen still scrolls" registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx::ConversationList row move > selects a row on a click and not on the click that ends a drag, and drags no row with a finger or pen)
+   * @example
+   * <ConversationList sections={[{ id: "projects", title: "Projects", acceptsItems: true }]} onItemMove={(id, section) => file(id, section)} />
+   */
+  onItemMove?: ((id: string, sectionId: string) => void) | undefined;
   /** The `id` of the open conversation. Its row is highlighted and marked `aria-current`. */
   selectedId?: string | null | undefined;
   /** Whether a changed selection brings its row into view. Disable for an automatic restore that must retain the viewport. @default true */
@@ -274,6 +295,12 @@ export interface ConversationListOwnProps {
   reorderLabel?: string | undefined;
   /** What screen readers hear as a section is picked up, moved, dropped and put back, for other languages. */
   reorderMessages?: ConversationListReorderMessages | undefined;
+  /**
+   * What screen readers hear when a dragged row lands in a section, for other languages: `{label}` is the row's name and `{section}` the section's title.
+   * @default "{label} moved to {section}."
+   * @claim "What screen readers hear when a dragged row lands" registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx::ConversationList row move > says where the row landed, in the app's words when it gives them)
+   */
+  itemMovedMessage?: string | undefined;
   /** What screen readers hear before a row's name on its more button, for other languages. @default "More options for" */
   moreLabel?: string | undefined;
   /**
@@ -317,6 +344,7 @@ const controlClass =
 // with the system's selected-item look (Highlight, with HighlightText for its text) rather than a plain border.
 const rowClass =
   "gap-3 aria-[current=true]:bg-[color:var(--ouro-row-selected,color-mix(in_oklab,var(--accent)_94%,var(--foreground)))] aria-[current=true]:text-accent-foreground " +
+  "data-[drop=into]:bg-[color:var(--ouro-row-selected,color-mix(in_oklab,var(--accent)_94%,var(--foreground)))] data-[drop=into]:text-accent-foreground " +
   "forced-colors:aria-[current=true]:forced-color-adjust-none forced-colors:aria-[current=true]:bg-[Highlight] forced-colors:aria-[current=true]:text-[HighlightText]";
 // The open row keeps its highlight under the pointer and while pressed: the plain rows' muted
 // hover would make it look closed, and their hover ring would make it look raised off the list
@@ -324,7 +352,12 @@ const rowClass =
 // and drop its hover shadow, so the open row is marked by its selected fill alone.
 const currentClass =
   "pointer-fine:group-hover/row:bg-[color:var(--ouro-row-selected-hover,color-mix(in_oklab,var(--accent)_86%,var(--foreground)))] pointer-fine:group-hover/row:[box-shadow:none] active:bg-[color:var(--ouro-row-selected-pressed,color-mix(in_oklab,var(--accent)_75%,var(--foreground)))] pointer-fine:hover:active:bg-[color:var(--ouro-row-selected-pressed,color-mix(in_oklab,var(--accent)_75%,var(--foreground)))]";
-const headerClass = "gap-1.5 py-1.5 text-sm";
+// A section header is lit as the place a dragged row would land: the open row's fill and a ring, and its rows the fill,
+// where a dragged section shows a line between headers instead.
+const headerClass =
+  "gap-1.5 py-1.5 text-sm data-[drop=into]:bg-[color:var(--ouro-row-selected,color-mix(in_oklab,var(--accent)_94%,var(--foreground)))] data-[drop=into]:text-accent-foreground data-[drop=into]:outline-2 data-[drop=into]:outline-solid";
+// A dragged header or row is lifted off the list, as Reorderable lifts a row.
+const liftedClass = "data-dragging:z-10 data-dragging:rounded-ouro-lg data-dragging:bg-background data-dragging:shadow-(--shadow-lg)";
 const listClass = "m-0 flex list-none flex-col gap-0.5 p-0";
 
 const moves: Readonly<Record<string, (index: number, last: number) => number>> = {
@@ -439,11 +472,13 @@ type RowProps = {
   onActive: (key: string) => void;
   moreLabel: string;
   onMore: (key: string, anchor: HTMLElement) => void;
+  /** Starts the row's drag onto a section, when the list has `onItemMove`. */
+  onGrab: ((event: PointerEvent<HTMLButtonElement>) => void) | undefined;
 };
 
 // A row renders again only when its own conversation, place or state changes, so opening another conversation renders
 // the row that closes and the row that opens, not the list.
-const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLabel, membersText, selected, tabStop, windowed, top, slotClass, position, count, register, onPick, onKey, onActive, moreLabel, onMore }: RowProps): JSX.Element {
+const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLabel, membersText, selected, tabStop, windowed, top, slotClass, position, count, register, onPick, onKey, onActive, moreLabel, onMore, onGrab }: RowProps): JSX.Element {
   // An avatar the app passes in (an object, not Avatar's own initials) can carry its own accessible name
   // (a presence dot's words); aria-labelledby reads the title and the rest of the row first, the avatar last,
   // whatever order the DOM draws them in for the visual layout.
@@ -490,7 +525,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
   return (
     <li
       {...(windowed && { style: { top }, "aria-posinset": position, "aria-setsize": count })}
-      className={cn("group/row relative m-0 p-0", windowed && slotClass)}
+      className={cn("group/row relative m-0 p-0", onGrab && liftedClass, windowed && slotClass)}
     >
       <button
         ref={(node) => register(key, node)}
@@ -502,6 +537,7 @@ const Row = memo(function Row({ item, rowKey: key, density, unreadLabel, draftLa
         onClick={(event) => onPick(item.id, event)}
         onKeyDown={(event) => onKey(event, key)}
         onFocus={() => onActive(key)}
+        onPointerDown={onGrab}
         // A row with a menu opens it on a long press, in place of the phone's own callout.
         className={cn(controlClass, rowClass, selected && currentClass, density === "compact" ? "py-1.5" : "py-2", hasMenu(item) && "[-webkit-touch-callout:none]")}
         aria-labelledby={avatarIsElement ? `${contentId} ${avatarId}` : undefined}
@@ -684,8 +720,10 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     sections = noSections,
     onSectionOpenChange,
     onSectionsReorder,
+    onItemMove,
     reorderLabel = "Move section",
     reorderMessages,
+    itemMovedMessage = "{label} moved to {section}.",
     selectedId,
     revealSelection = true,
     onSelect,
@@ -1228,10 +1266,25 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   // the place of shows a line.
   type Spot = { id: string; el: HTMLElement; top: number };
   const drag = useRef<{ id: string; movable: boolean; own: HTMLElement; spots: Spot[]; from: number; to: number; cancelled: boolean; stop?: () => void } | null>(null);
-  const clearDrag = (held: { own: HTMLElement; spots: Spot[] }) => {
+  type Held = { own: HTMLElement; spots: readonly { el: HTMLElement }[]; cancelled: boolean; stop?: () => void };
+  const clearDrag = (held: Held) => {
     for (const spot of held.spots) spot.el.removeAttribute("data-drop");
     held.own.style.transform = "";
     held.own.removeAttribute("data-dragging");
+  };
+  // Escape puts what is dragged back where it began, and its release then moves nothing.
+  const lift = (held: Held) => {
+    dragged.current = true;
+    held.own.setAttribute("data-dragging", "");
+    const escape = (key: globalThis.KeyboardEvent) => {
+      if (key.key !== "Escape") return;
+      key.preventDefault();
+      key.stopPropagation();
+      held.cancelled = true;
+      clearDrag(held);
+    };
+    addEventListener("keydown", escape, true);
+    held.stop = () => removeEventListener("keydown", escape, true);
   };
   const gesture = useDrag({
     // Stryker disable next-line StringLiteral: any axis but "x" is the vertical one.
@@ -1250,17 +1303,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       // Headers are all one height, so their tops order them as their middles would.
       held.spots = [...listRef.current!.querySelectorAll<HTMLElement>("[data-ouro-section-header]")].map((el) => ({ id: el.getAttribute("data-ouro-section-header")!, el, top: el.getBoundingClientRect().top }));
       held.from = held.to = held.spots.findIndex((spot) => spot.id === held.id);
-      dragged.current = true;
-      held.own.setAttribute("data-dragging", "");
-      const escape = (key: globalThis.KeyboardEvent) => {
-        if (key.key !== "Escape") return;
-        key.preventDefault();
-        key.stopPropagation();
-        held.cancelled = true;
-        clearDrag(held);
-      };
-      addEventListener("keydown", escape, true);
-      held.stop = () => removeEventListener("keydown", escape, true);
+      lift(held);
       return undefined;
     },
     onMove: ({ delta }) => {
@@ -1283,6 +1326,62 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   });
   // The header takes a mouse's drag only, so a finger's touch moves on it stay the page's scroll.
   const { ref: gripRef, ...headerDrag } = gesture;
+
+  // Dragging a row with a mouse onto a section that takes rows: the row follows the pointer, and the section it would land
+  // in lights, its header and its rows, since the row it carries may cover the header. A finger or pen scrolls and
+  // long-presses the row as before.
+  type Into = { id: string; title: string; el: HTMLElement; top: number; bottom: number };
+  const carry = useRef<{ item: ConversationListItem; mouse: boolean; own: HTMLElement; spots: Into[]; to: Into | undefined; cancelled: boolean; stop?: () => void } | null>(null);
+  const rowGesture = useDrag({
+    // Stryker disable next-line StringLiteral: any axis but "x" is the vertical one.
+    axis: "y",
+    crossAxis: "ignore",
+    onPress: (event) => {
+      const key = rowAt(event.target!)!;
+      carry.current = { item: itemOf(key)!, mouse: event.pointerType === "mouse", own: controls.current.get(key)!.parentElement!, spots: [], to: undefined, cancelled: false };
+    },
+    onStart: () => {
+      const held = carry.current!;
+      if (!held.mouse) return false;
+      // A section takes the row from its header to its last row drawn; one whose header is not drawn takes none. Each of
+      // its parts drawn is a spot, so all of them light.
+      for (const { section } of groupsShown) {
+        if (section.acceptsItems !== true || section.id === held.item.section) continue;
+        const group = listRef.current!.querySelector(`[data-ouro-conversation-section="${CSS.escape(section.id)}"]`);
+        const header = group?.querySelector<HTMLElement>('[data-ouro-control="conversation-list"][data-ouro-part="section"]');
+        if (!header) continue;
+        const parts = [header, ...group!.querySelectorAll<HTMLElement>('[data-ouro-control="conversation-list"][data-ouro-part="row"]')];
+        const boxes = parts.map((part) => part.getBoundingClientRect());
+        const top = Math.min(...boxes.map((box) => box.top));
+        const bottom = Math.max(...boxes.map((box) => box.bottom));
+        for (const el of parts) held.spots.push({ id: section.id, title: section.title, el, top, bottom });
+      }
+      if (held.spots.length === 0) return false;
+      lift(held);
+      return undefined;
+    },
+    onMove: ({ delta, event }) => {
+      const held = carry.current!;
+      if (held.cancelled) return;
+      held.own.style.transform = `translateY(${delta}px)`;
+      // Stryker disable next-line EqualityOperator: a pointer exactly on a section's top or bottom edge may land in it or not.
+      held.to = held.spots.find((spot) => event.clientY >= spot.top && event.clientY < spot.bottom);
+      for (const spot of held.spots) {
+        if (spot.id === held.to?.id) spot.el.setAttribute("data-drop", "into");
+        else spot.el.removeAttribute("data-drop");
+      }
+    },
+    onEnd: ({ cancelled }) => {
+      const held = carry.current!;
+      carry.current = null;
+      held.stop!();
+      clearDrag(held);
+      if (cancelled || held.cancelled || !held.to || !onItemMove) return;
+      announce(itemMovedMessage.replaceAll("{label}", held.item.name ?? (held.item.title as string)).replaceAll("{section}", held.to.title));
+      onItemMove(held.item.id, held.to.id);
+    },
+  });
+  const grab = onItemMove ? rowGesture.onPointerDown : undefined;
 
   const move = (event: KeyboardEvent<HTMLButtonElement>, key: string) => {
     // Shift+F10 and the Menu key open a row's menu beside it, as a right-click does at the pointer.
@@ -1349,6 +1448,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
         onActive={setActive}
         moreLabel={moreLabel}
         onMore={onMore}
+        onGrab={grab}
       />
     );
   };
@@ -1433,10 +1533,10 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
               <div
                 data-slot="conversation-list-section-header"
                 data-ouro-section-header={reorderable ? section.id : undefined}
-                // Lifted as Reorderable lifts a row while it is dragged. The line where it would land is in the gap above or below
+                // Lifted while it is dragged. The line where it would land is in the gap above or below
                 // a header: below by default, where an absolute box with no top sits after the header's button.
                 className={
-                  "group/row relative data-dragging:z-10 data-dragging:rounded-ouro-lg data-dragging:bg-background data-dragging:shadow-(--shadow-lg) " +
+                  `group/row relative ${liftedClass} ` +
                   "after:pointer-events-none after:absolute after:inset-x-0 data-drop:after:h-0.5 data-drop:after:bg-ring forced-colors:after:bg-[Highlight] data-[drop=before]:after:-top-0.5"
                 }
               >

@@ -118,7 +118,8 @@ function installSquircleCapsules(doc: Document): () => void {
   mutations.observe(doc.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
   // A linked sheet's rules are readable only once it has loaded.
   const onLoad = (event: Event) => {
-    if ((event.target as Element).localName !== "link") return;
+    const link = event.target as HTMLLinkElement;
+    if (link.localName !== "link" || !link.sheet) return;
     selector = readSheets();
     watchAll();
   };

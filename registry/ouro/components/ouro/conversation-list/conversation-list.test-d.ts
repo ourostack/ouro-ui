@@ -27,6 +27,8 @@ expectTypeOf<{ id: "a"; title: "Trail crew"; subtitle: "Hikes"; preview: "Meet a
 expectTypeOf<{ id: "a"; title: "Design reviews"; where: "Lantern Labs"; icon: null; mark: "in 10 min"; avatar: ReactElement; section: "pinned" }>().toExtend<ConversationListItem>();
 expectTypeOf<{ id: "halden"; title: "Halden"; nameTag: "AI agent" }>().toExtend<ConversationListItem>();
 expectTypeOf<{ id: "pinned"; title: "Pinned"; note: "your folder"; defaultOpen: false; open: true }>().toExtend<ConversationListSection>();
+expectTypeOf<{ id: "projects"; title: "Projects"; acceptsItems: true }>().toExtend<ConversationListSection>();
+expectTypeOf<Parameters<NonNullable<ConversationListProps["onItemMove"]>>>().toEqualTypeOf<[id: string, sectionId: string]>();
 expectTypeOf<{
   label: "Chats";
   items: typeof items;
