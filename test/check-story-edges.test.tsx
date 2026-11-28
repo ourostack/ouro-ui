@@ -30,7 +30,7 @@ describe("stories pass Ouro check's rules", () => {
     expect(knownFindings.filter(({ rule }) => rule === "pane-edge" || rule === "cut-off-edge")).toEqual([]);
   });
 
-  it.each(["Message/Posts", "Message/Thread", "ThreadLayout/Default"])(
+  it.each(["Message/Posts", "Message/Thread", "ThreadLayout/Default", "MessageList/WithFloatingComposer"])(
     "%s keeps its edges clear under a stock theme at desktop widths",
     async (id) => {
       const entry = stories.find((candidate) => candidate.id === id)!;
