@@ -1036,6 +1036,14 @@ it("finds a fallback surface's own square outline and shadow without changing it
   }
 }, paintTimeout);
 
+it("finds a surface fill beyond its curve even when its shadow is rounded", async () => {
+  const root = render('<div class="surface" style="width:200px;height:200px;--sq-tl:100px;--sq-tr:100px;--sq-br:100px;--sq-bl:100px;border-radius:54.3px;background:#d40;box-shadow:0 2px 6px #0004"></div>');
+  const surface = root.querySelector<HTMLElement>(".surface")!;
+  const original = surface.getAttribute("style");
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+  expect(surface.getAttribute("style")).toBe(original);
+}, paintTimeout);
+
 it("checks a single squircle corner, accepts raw PNG data, and restores existing effects", async () => {
   const root = render('<div class="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px 0 0 0;corner-shape:squircle;opacity:.9;outline:2px solid red;box-shadow:0 2px 3px #000;transition:opacity 1s;clip-path:inset(0)"><div style="position:absolute;inset:0;background:#f40"></div></div>');
   const surface = root.querySelector<HTMLElement>(".surface")!;
