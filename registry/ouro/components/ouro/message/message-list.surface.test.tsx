@@ -90,6 +90,16 @@ describe("MessageList surface", () => {
     expect(getComputedStyle(scroller.querySelector("button")!).color).toBe(getComputedStyle(probe).color);
   });
 
+  it("keeps the surface step and scroll clearance with a floating foot", async () => {
+    const scroller = await render(
+      <MessageList label="Conversation" style={{ height: 240 }} foot={<div style={{ height: 48 }}>Draft</div>}>
+        <Message role="assistant" name="Assistant">Hello</Message>
+      </MessageList>,
+    );
+    await expect.poll(() => getComputedStyle(scroller).scrollPaddingBottom).toBe("48px");
+    expect(getComputedStyle(scroller).backgroundColor).toBe(fill("--muted"));
+  });
+
   it("uses the nested dark theme's muted surface for its scroller", async () => {
     const root = document.documentElement;
     const wasDark = root.classList.contains("dark");
