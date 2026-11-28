@@ -1,0 +1,1 @@
+- Fix: [squircle-paint preserves a fractional border box while masking its native corners, without hiding a square child's paint](scripts/check/check-corners.test.mts "verify:testExists(scripts/check/check-corners.test.mts::squircle-paint keeps fractional border boxes when masking a native corner)").
