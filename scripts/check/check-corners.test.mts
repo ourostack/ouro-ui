@@ -133,6 +133,12 @@ test("corners-nest resolves native window insets at each viewport size", async (
       assert.deepEqual(await tab.evaluate(findCornerIssues, options), [], `${width}x${height}`);
       await tab.locator(".panel").evaluate((el) => { el.style.borderBottomRightRadius = "12px"; });
       assert.match((await tab.evaluate(findCornerIssues, options))[0]!.detail, /bottom right/);
+      const insets = { top: 13, right: 7, bottom: 5, left: 3 };
+      const windowBounds = { x: -insets.left, y: -insets.top, width: width + insets.left + insets.right, height: height + insets.top + insets.bottom };
+      const insetIssues = await tab.evaluate(findCornerIssues, { windowRadius: 48, windowInsets: insets });
+      const boundIssues = await tab.evaluate(findCornerIssues, { windowRadius: 48, windowBounds });
+      assert.ok(insetIssues.length > 0);
+      assert.deepEqual(insetIssues.map(({ element, detail }) => ({ element, detail })), boundIssues.map(({ element, detail }) => ({ element, detail })));
     }
   } finally {
     await browser.close();
@@ -533,10 +539,21 @@ test("squircle-paint checks a separate SVG outline over a rounded surface", asyn
       assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: a curved outline follows the surface`);
       await tab.locator("path").evaluate((path) => { path.setAttribute("stroke-width", "6"); });
       assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: a thicker curved outline still follows the surface`);
+      await tab.locator(".surface").evaluate((el) => { el.innerHTML = '<div style="position:absolute;left:-12px;top:-12px;width:8px;height:8px;background:#b44939"></div>'; });
+      assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, `${engine.name()}: the curved outline does not hide a leaking child`);
+      await tab.locator(".surface").evaluate((el) => { el.replaceChildren(); });
+      await tab.locator("svg").evaluate((svg) => { svg.insertAdjacentHTML("beforeend", '<rect x="0" y="0" width="12" height="12" fill="#b44939"></rect>'); });
+      assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, `${engine.name()}: a square SVG fill is still checked`);
+      await tab.locator("rect").evaluate((rect) => rect.remove());
       await tab.locator("path").evaluate((path) => { path.setAttribute("d", "M 1 1 H 199 V 139 H 1 Z"); });
       assert.ok((await tab.evaluate(findSquirclePaint)).some((issue) => issue.element === "div.surface"), `${engine.name()}: a square outline crosses the curve`);
       await tab.locator("svg").evaluate((svg) => { svg.style.left = "300px"; });
       assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: an unrelated outline is not attributed to the surface`);
+      await tab.locator(".surface").evaluate((el) => { el.style.transform = "scale(.8)"; el.style.transformOrigin = "top left"; });
+      await tab.locator("svg").evaluate((svg) => { svg.style.cssText = "left:60px;top:60px;width:160px;height:112px"; });
+      assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, `${engine.name()}: a square outline is checked on a scaled surface`);
+      await tab.locator("path").evaluate((path, d) => { path.setAttribute("d", d); }, contour(200, 140, 32));
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: a curved outline follows a scaled surface`);
     } finally {
       await browser.close();
     }

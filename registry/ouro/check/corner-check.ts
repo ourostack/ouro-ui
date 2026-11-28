@@ -8,7 +8,10 @@ interface CornerOptions {
   windowRadius?: number;
   /** The native window's bounds in viewport CSS pixels; defaults to the viewport itself. */
   windowBounds?: { x: number; y: number; width: number; height: number };
-  /** How far the native window extends beyond each viewport edge in CSS pixels. */
+  /**
+   * How far the native window extends beyond each viewport edge in CSS pixels.
+   * @claim "How far the native window extends beyond each viewport edge" scripts/check/check-corners.test.mts verify:testExists(scripts/check/check-corners.test.mts::corners-nest resolves native window insets at each viewport size)
+   */
   windowInsets?: { top: number; right: number; bottom: number; left: number };
 }
 
