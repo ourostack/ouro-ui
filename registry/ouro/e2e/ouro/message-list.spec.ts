@@ -198,7 +198,7 @@ test("the list draws one bar, on the post the pointer is over, and one menu, fro
   await expect(bars).toHaveCount(0);
 
   await posted(page, 38).click({ button: "right" });
-  const menu = page.getByRole("menu", { name: "Message actions for Grace Hopper" });
+  const menu = page.getByRole("menu", { name: "Message actions for Guest A" });
   await expect(menu).toBeVisible();
   await expect(bars).toHaveCount(0);
   await expect(menu.getByRole("group", { name: "Reactions" }).getByRole("menuitem")).toHaveCount(5);
@@ -222,7 +222,7 @@ test("from the keyboard, focus on a post shows its bar, and Shift+F10 opens its 
   await expect(page.locator("#post-38")).toBeFocused();
   await expect(page.locator('#post-38 [role="toolbar"]')).toHaveCount(1);
   await page.keyboard.press("Shift+F10");
-  const menu = page.getByRole("menu", { name: "Message actions for Grace Hopper" });
+  const menu = page.getByRole("menu", { name: "Message actions for Guest A" });
   await expect(menu).toBeVisible();
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Escape");

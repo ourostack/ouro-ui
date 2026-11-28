@@ -24,7 +24,7 @@ test("on a phone the sidebar is a menu button that opens a drawer", async ({ pag
   await menu.click();
   const drawer = page.getByRole("dialog", { name: "Menu" });
   await expect(drawer.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Recipes" })).toHaveAttribute("aria-current", "page");
-  await expect(drawer.getByText("Ari Mendelow")).toBeVisible();
+  await expect(drawer.getByText("Account")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(drawer).toBeHidden();
   await expect(menu).toBeFocused();
