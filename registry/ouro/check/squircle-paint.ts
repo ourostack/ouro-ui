@@ -12,6 +12,7 @@ type PaintCapture = (clip: PaintClip) => Promise<string>;
 async function findSquirclePaint(): Promise<PageIssue[]> {
   type Corner = { x: number; y: number; squircle: boolean };
   type Saved = { value: string; priority: string };
+  type InlineElement = Element & { style: CSSStyleDeclaration };
   const capture = (window as unknown as { __ouroPaintCapture?: PaintCapture }).__ouroPaintCapture;
   if (!capture) throw new Error("squircle-paint needs a screenshot capture supplied by its host");
   const names = [
@@ -21,9 +22,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     { key: "bl", property: "BottomLeft", shape: "bottom-left" },
   ] as const;
   const counter = window as unknown as { __ouroCheckRef?: number };
+  const nextRef = () => counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
   const ref = (el: Element) => {
-    counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
-    const id = `p${counter.__ouroCheckRef}`;
+    const id = `p${nextRef()}`;
     el.setAttribute("data-ouro-check-ref", `${el.getAttribute("data-ouro-check-ref") ?? ""} ${id}`.trim());
     return id;
   };
@@ -39,7 +40,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     if (el.closest("[hidden], template, .visually-hidden, .sr-only, details:not([open]) > :not(summary)")) return false;
     for (let n: Element | null = el; n && n !== document.documentElement; n = n.parentElement) {
       const style = getComputedStyle(n);
-      if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) <= 0.05) return false;
+      if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return false;
     }
     return true;
   };
@@ -72,7 +73,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
   const notchedBadges = (el: HTMLElement, siblings: HTMLElement[], bounds: DOMRect, initial: NonNullable<ReturnType<typeof geometry>>, hasOutline: boolean) => {
     const sameBox = (rect: DOMRect) =>
       [rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5);
-    const candidates = [...el.querySelectorAll<HTMLElement>("*"), ...siblings].filter((candidate) => {
+    const candidates = [...el.querySelectorAll("*"), ...siblings].filter((candidate): candidate is HTMLElement => {
       if (!(candidate instanceof HTMLElement)) return false;
       const rect = candidate.getBoundingClientRect();
       if (rect.width < 2 || Math.abs(rect.width - rect.height) > 0.5 || rect.width > Math.min(bounds.width, bounds.height) / 2) return false;
@@ -94,14 +95,8 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       });
     });
     if (candidates.length === 0) return [];
-    const standalone = candidates.every((candidate) =>
-      candidate.children.length === 0 && ["::before", "::after"].every((pseudo) => {
-        const content = getComputedStyle(candidate, pseudo).content;
-        return content === "none" || content === "normal";
-      }),
-    );
-    if (standalone && !hasOutline && !hasPaint(el) &&
-      ![...el.querySelectorAll("*"), ...siblings].some((other) => !candidates.some((candidate) => candidate === other) && visible(other) && hasPaint(other))) return candidates;
+    if (!hasOutline && !hasPaint(el) &&
+      ![...el.querySelectorAll("*"), ...siblings].some((other) => !candidates.some((candidate) => candidate.contains(other)) && visible(other) && hasPaint(other))) return candidates;
     const surfaces = [el, ...el.querySelectorAll<HTMLElement>("*")].flatMap((surface) => {
       if (!(surface instanceof HTMLElement) || !sameBox(surface.getBoundingClientRect()) || getComputedStyle(surface).clipPath === "none") return [];
       const shape = geometry(surface);
@@ -136,15 +131,12 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           return points.every(([x, y]) => !document.elementsFromPoint(x, y).includes(surface));
         } finally {
           restore(surface, "pointer-events", prior);
-          if (surface.getAttribute("style") !== original && surface.style.cssText === normalized) {
-            if (original === null) surface.removeAttribute("style");
-            else surface.setAttribute("style", original);
-          }
+          restoreStyle(surface, original, normalized);
         }
       });
     });
   };
-  // An even-odd path keeps everything outside the box, but cuts its corner slivers to the ideal n=4 curve.
+  // Clip each layer to the ideal n=4 curve, including paint extending beyond the box.
   const clipPath = (width: number, height: number, corners: Corner[], offsetX: number, offsetY: number) => {
     const [tl, tr, br, bl] = corners as [Corner, Corner, Corner, Corner];
     const n = (value: number) => Number(value.toFixed(4));
@@ -152,8 +144,6 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     const y = (value: number) => n(value + offsetY);
     const [w, h] = [width, height];
     const path = [
-      `M -10000 -10000 H ${w + 10000} V ${h + 10000} H -10000 Z`,
-      `M ${x(0)} ${y(0)} H ${x(w)} V ${y(h)} H ${x(0)} Z`,
       `M ${x(0)} ${y(tl.y)}`,
       `C ${x(0)} ${y(0.613 * tl.y)} ${x(-0.0092 * tl.x)} ${y(0.3274 * tl.y)} ${x(0.1591 * tl.x)} ${y(0.1591 * tl.y)}`,
       `C ${x(0.3274 * tl.x)} ${y(-0.0092 * tl.y)} ${x(0.613 * tl.x)} ${y(0)} ${x(tl.x)} ${y(0)}`,
@@ -168,7 +158,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       `C ${x(-0.0092 * bl.x)} ${y(h - 0.3274 * bl.y)} ${x(0)} ${y(h - 0.613 * bl.y)} ${x(0)} ${y(h - bl.y)}`,
       "Z",
     ].join(" ");
-    return `path(evenodd, "${path}")`;
+    return `path("${path}")`;
   };
   const pixels = async (data: string) => {
     const comma = data.indexOf(",");
@@ -187,9 +177,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     image.close();
     return { width: canvas.width, height: canvas.height, data: context.getImageData(0, 0, canvas.width, canvas.height).data };
   };
-  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, strokePads: { x: number; y: number }[], clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean) => {
-    const [a, b, c, own, noBadges, noStrokes] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null, withoutBadges ? pixels(withoutBadges) : null, withoutStrokes ? pixels(withoutStrokes) : null]);
-    if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height)) || (noBadges && (a.width !== noBadges.width || a.height !== noBadges.height)) || (noStrokes && (a.width !== noStrokes.width || a.height !== noStrokes.height))) {
+  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, strokePads: { x: number; y: number }[], clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean, restored: string | null = null) => {
+    const [a, b, c, own, noBadges, noStrokes, stable] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null, withoutBadges ? pixels(withoutBadges) : null, withoutStrokes ? pixels(withoutStrokes) : null, restored ? pixels(restored) : null]);
+    if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height)) || (noBadges && (a.width !== noBadges.width || a.height !== noBadges.height)) || (noStrokes && (a.width !== noStrokes.width || a.height !== noStrokes.height)) || (stable && (a.width !== stable.width || a.height !== stable.height))) {
       throw new Error("squircle-paint screenshots changed size during measurement");
     }
     if (![1, window.devicePixelRatio].some((scale) =>
@@ -222,8 +212,12 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
         const row = new Uint8Array(a.width);
         for (let x = startX; x < endX; x++) {
           const index = (y * a.width + x) * 4;
+          if (stable && difference(a.data, stable.data, index) >= 2) continue;
           const px = clip.x + (x + 0.5) * clip.width / a.width;
           const py = clip.y + (y + 0.5) * clip.height / a.height;
+          const dx = (left ? cornerX - px : px - cornerX) / (corner.x * rect.width / width);
+          const dy = (top ? cornerY - py : py - cornerY) / (corner.y * rect.height / height);
+          if (dx <= 0 || dy <= 0 || dx ** 4 + dy ** 4 <= 1) continue;
           const outsideX = px < rect.left || px >= rect.right;
           const outsideY = py < rect.top || py >= rect.bottom;
           const outsideCorner = outsideX || outsideY;
@@ -240,7 +234,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const behind = difference(b.data, c.data, index);
           if (delta < 2 || (!outsideCorner && behind > 4)) continue;
           if (outsideCorner && difference(a.data, c.data, index) < 2) continue;
-          if (outsideCorner && difference(a.data, b.data, index) > 4) continue;
+          if (outsideCorner && difference(a.data, b.data, index) < 2) continue;
           if (own && noStrokes && difference(a.data, noStrokes.data, index) >= 2 && difference(noStrokes.data, own.data, index) < 2 &&
             strokePads.some((pad) => {
               const dx = (left ? cornerX - px : px - cornerX) / (corner.x * rect.width / width + pad.x);
@@ -271,11 +265,18 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     }
     return null;
   };
-  const save = (el: HTMLElement | SVGElement, property: string): Saved => ({ value: el.style.getPropertyValue(property), priority: el.style.getPropertyPriority(property) });
-  const restore = (el: HTMLElement | SVGElement, property: string, saved: Saved) => {
+  const save = (el: InlineElement, property: string): Saved => ({ value: el.style.getPropertyValue(property), priority: el.style.getPropertyPriority(property) });
+  const restore = (el: InlineElement, property: string, saved: Saved) => {
     if (saved.value) el.style.setProperty(property, saved.value, saved.priority);
     else el.style.removeProperty(property);
   };
+  const restoreStyle = (el: InlineElement, original: string | null, normalized: string) => {
+    if (el.getAttribute("style") !== original && el.style.cssText === normalized) {
+      if (original === null) el.removeAttribute("style");
+      else el.setAttribute("style", original);
+    }
+  };
+  const hasInlineStyle = (el: Element): el is InlineElement => "style" in el && el.style instanceof CSSStyleDeclaration;
   const inverseCutout = (el: HTMLElement, shape: NonNullable<ReturnType<typeof geometry>>) => {
     if (getComputedStyle(el).clipPath === "none") return false;
     const rect = el.getBoundingClientRect();
@@ -300,10 +301,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       });
     } finally {
       restore(el, "pointer-events", previous);
-      if (el.getAttribute("style") !== original && el.style.cssText === normalized) {
-        if (original === null) el.removeAttribute("style");
-        else el.setAttribute("style", original);
-      }
+      restoreStyle(el, original, normalized);
     }
   };
   const colorContext = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
@@ -314,13 +312,15 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     return colorContext.getImageData(0, 0, 1, 1).data[3]!;
   };
   const opaque = (color: string) => alpha(color) === 255;
-  const hasPaint = (element: Element) => {
+  const hasPaint = (element: Element, corner?: number) => {
     if (element.matches("img, video, canvas, svg")) return true;
     const paintedStyle = (style: CSSStyleDeclaration) => {
       if (style.backgroundImage !== "none" || alpha(style.backgroundColor) > 0 || style.boxShadow !== "none" ||
         (style.backdropFilter || "none") !== "none") return true;
       if (style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0 && alpha(style.outlineColor) > 0) return true;
-      return (["Top", "Right", "Bottom", "Left"] as const).some((side) =>
+      const sides = corner === undefined ? ["Top", "Right", "Bottom", "Left"] as const :
+        [corner < 2 ? "Top" : "Bottom", corner === 0 || corner === 3 ? "Left" : "Right"] as const;
+      return sides.some((side) =>
         style[`border${side}Style`] !== "none" && parseFloat(style[`border${side}Width`]) > 0 && alpha(style[`border${side}Color`]) > 0,
       );
     };
@@ -375,6 +375,15 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       return width > 0 && height > 0 &&
         [rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5);
     });
+    const fullBox = (other: Element) => {
+      const rect = other.getBoundingClientRect();
+      return [rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5);
+    };
+    const surfaceLayers = [...el.querySelectorAll("*"), ...siblings, ...outlines].filter((other) => visible(other) && fullBox(other));
+    for (const [index, corner] of initial.corners.entries()) {
+      if (corner.squircle && !hasPaint(el, index) && !surfaceLayers.some((other) => hasPaint(other, index))) corner.squircle = false;
+    }
+    if (!initial.corners.some((corner) => corner.squircle)) continue;
     const strokes = outlines.flatMap((svg) => [...svg.querySelectorAll<SVGGraphicsElement>("path, rect, circle, ellipse, line, polyline, polygon, use")].flatMap((node) => {
       const stroke = getComputedStyle(node);
       const width = parseFloat(stroke.strokeWidth);
@@ -434,135 +443,162 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const clip = { x, y, width: Math.min(Math.ceil(r.right + margin), innerWidth) - x, height: Math.min(Math.ceil(r.bottom + margin), innerHeight) - y };
           if (clip.width < 1 || clip.height < 1) continue;
           const active = layers.filter((layer) => layer.el === el || !(layer.el instanceof HTMLElement) || !covers(layer.el, r));
-          const captureSolo = async () => {
-            // Compare with the surface alone to separate its own shadow or outline from another layer's paint.
-            const attribute = "data-ouro-paint-solo";
-            const previous = el.getAttribute(attribute);
-            counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
-            const marker = `p${counter.__ouroCheckRef}`;
-            const probe = new CSSStyleSheet();
-            probe.replaceSync(`[${attribute}="${marker}"] *, [${attribute}="${marker}"]::before, [${attribute}="${marker}"]::after { opacity: 0 !important; transition: none !important; }`);
-            const originalStyle = el.getAttribute("style");
-            const normalizedStyle = el.style.cssText;
-            const radii = names.map(({ shape }) => ({ property: `border-${shape}-radius`, saved: save(el, `border-${shape}-radius`) }));
-            try {
-              el.setAttribute(attribute, marker);
-              document.adoptedStyleSheets = [...document.adoptedStyleSheets, probe];
-              if (!initial.native) {
-                const computed = getComputedStyle(el);
-                const length = (value: string, dimension: number) => value.endsWith("%") ? parseFloat(value) * dimension / 100 : parseFloat(value) || 0;
-                for (const [index, corner] of initial.corners.entries()) {
-                  if (!corner.squircle || corner.native) continue;
-                  const raw = computed.getPropertyValue(`--sq-${names[index]!.key}`).trim();
-                  const [currentX, currentY = currentX] = computed.getPropertyValue(radii[index]!.property).trim().split(/\s+/);
-                  const x = length(raw, initial.width) * 0.543;
-                  const y = length(raw, initial.height) * 0.543;
-                  if (Math.abs(length(currentX!, initial.width) - x) > 0.5 || Math.abs(length(currentY!, initial.height) - y) > 0.5) {
-                    el.style.setProperty(radii[index]!.property, `${x}px ${y}px`, "important");
-                  }
-                }
-              }
-              for (const layer of active.slice(1)) layer.el.style.setProperty("opacity", "0", "important");
-              return await capture(clip);
-            } finally {
-              document.adoptedStyleSheets = document.adoptedStyleSheets.filter((sheet) => sheet !== probe);
-              if (previous === null) el.removeAttribute(attribute);
-              else el.setAttribute(attribute, previous);
-              for (const { property, saved } of radii) restore(el, property, saved);
-              if (el.getAttribute("style") !== originalStyle && el.style.cssText === normalizedStyle) {
-                if (originalStyle === null) el.removeAttribute("style");
-                else el.setAttribute("style", originalStyle);
-              }
-              for (const layer of active.slice(1)) restore(layer.el, "opacity", layer.saved.get("opacity")!);
-            }
-          };
-          const actual = await capture(clip);
-          // A mask can change how a browser composites the restored shadow, so take this reference first.
-          let solo = ownEffects ? await captureSolo() : null;
-          for (const layer of active) {
-            const layerRect = layer.el.getBoundingClientRect();
-            const layerStyle = getComputedStyle(layer.el);
-            const layerWidth = layer.el instanceof HTMLElement ? layer.el.offsetWidth : parseFloat(layerStyle.width);
-            const layerHeight = layer.el instanceof HTMLElement ? layer.el.offsetHeight : parseFloat(layerStyle.height);
-            const layerScaleX = layerRect.width / layerWidth;
-            const layerScaleY = layerRect.height / layerHeight;
-            const x = scaleX / layerScaleX;
-            const y = scaleY / layerScaleY;
-            const corners = initial.corners.map((corner) => ({ ...corner, x: corner.x * x, y: corner.y * y }));
-            const offsetX = (r.left - layerRect.left) / layerScaleX;
-            const offsetY = (r.top - layerRect.top) / layerScaleY;
-            layer.el.style.setProperty("clip-path", clipPath(initial.width * x, initial.height * y, corners, offsetX, offsetY), "important");
-          }
-          const masked = await capture(clip);
-          for (const layer of active) layer.el.style.setProperty("opacity", "0", "important");
-          const hidden = await capture(clip);
-          for (const layer of active) {
-            restore(layer.el, "opacity", layer.saved.get("opacity")!);
-            restore(layer.el, "clip-path", layer.saved.get("clip-path")!);
-          }
-          let differs = await differences(actual, masked, hidden, solo, null, [], null, [], clip, r, initial.width, initial.height, initial.corners, initial.native);
-          if (differs && !solo) {
-            solo = await captureSolo();
-            differs = await differences(actual, masked, hidden, solo, null, [], null, [], clip, r, initial.width, initial.height, initial.corners, initial.native);
-          }
-          let withoutStrokes: string | null = null;
-          if (differs && strokes.length) {
-            const saved = strokes.map(({ node }) => ({
-              node,
-              style: node.getAttribute("style"),
-              normalized: node.style.cssText,
-              opacity: save(node, "opacity"),
-              transition: save(node, "transition"),
-            }));
-            try {
-              for (const { node } of saved) {
-                node.style.setProperty("transition", "none", "important");
-                node.style.setProperty("opacity", "0", "important");
-              }
-              withoutStrokes = await capture(clip);
-            } finally {
-              for (const { node, style, normalized, opacity, transition } of saved) {
-                restore(node, "opacity", opacity);
-                restore(node, "transition", transition);
-                if (node.getAttribute("style") !== style && node.style.cssText === normalized) {
-                  if (style === null) node.removeAttribute("style");
-                  else node.setAttribute("style", style);
-                }
-              }
-            }
-            differs = await differences(actual, masked, hidden, solo, null, [], withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native);
-          }
-          if (differs) {
-            const badges = notchedBadges(el, siblings, r, initial, outlines.length > 0);
-            if (badges.length) {
-              const saved = badges.map((badge) => ({
-                badge,
-                style: badge.getAttribute("style"),
-                normalized: badge.style.cssText,
-                opacity: save(badge, "opacity"),
-                transition: save(badge, "transition"),
-              }));
-              let withoutBadges: string;
+          for (let attempt = 0; attempt < 2; attempt++) {
+            const captureSolo = async () => {
+              // Compare with the surface alone to separate its own shadow or outline from another layer's paint.
+              const attribute = "data-ouro-paint-solo";
+              const previous = el.getAttribute(attribute);
+              const marker = `p${nextRef()}`;
+              const probe = new CSSStyleSheet();
+              probe.replaceSync(`[${attribute}="${marker}"] *, [${attribute}="${marker}"]::before, [${attribute}="${marker}"]::after { opacity: 0 !important; transition: none !important; }`);
+              const originalStyle = el.getAttribute("style");
+              const normalizedStyle = el.style.cssText;
+              const radii = names.map(({ shape }) => ({ property: `border-${shape}-radius`, saved: save(el, `border-${shape}-radius`) }));
+              const overrides = [...el.querySelectorAll("[style]")].flatMap((node) => {
+                if (!hasInlineStyle(node)) return [];
+                const opacity = node.style.getPropertyPriority("opacity") === "important";
+                const transition = node.style.getPropertyPriority("transition-property") === "important";
+                if (!opacity && !transition) return [];
+                return [{
+                  node, opacity, style: node.getAttribute("style")!, normalized: node.style.cssText,
+                  savedOpacity: save(node, "opacity"), savedTransition: save(node, "transition-property"),
+                  temporary: "",
+                }];
+              });
               try {
-                for (const { badge } of saved) {
-                  badge.style.setProperty("transition", "none", "important");
-                  badge.style.setProperty("opacity", "0", "important");
+                for (const override of overrides) {
+                  override.node.style.setProperty("transition-property", "none", "important");
+                  if (override.opacity) override.node.style.setProperty("opacity", "0", "important");
+                  override.temporary = override.node.getAttribute("style")!;
                 }
-                withoutBadges = await capture(clip);
-              } finally {
-                for (const { badge, style, normalized, opacity, transition } of saved) {
-                  restore(badge, "opacity", opacity);
-                  restore(badge, "transition", transition);
-                  if (badge.getAttribute("style") !== style && badge.style.cssText === normalized) {
-                    if (style === null) badge.removeAttribute("style");
-                    else badge.setAttribute("style", style);
+                el.setAttribute(attribute, marker);
+                document.adoptedStyleSheets = [...document.adoptedStyleSheets, probe];
+                if (!initial.native) {
+                  const computed = getComputedStyle(el);
+                  const length = (value: string, dimension: number) => value.endsWith("%") ? parseFloat(value) * dimension / 100 : parseFloat(value) || 0;
+                  for (const [index, corner] of initial.corners.entries()) {
+                    if (!corner.squircle || corner.native) continue;
+                    const raw = computed.getPropertyValue(`--sq-${names[index]!.key}`).trim();
+                    const [currentX, currentY = currentX] = computed.getPropertyValue(radii[index]!.property).trim().split(/\s+/);
+                    const x = length(raw, initial.width) * 0.543;
+                    const y = length(raw, initial.height) * 0.543;
+                    if (Math.abs(length(currentX!, initial.width) - x) > 0.5 || Math.abs(length(currentY!, initial.height) - y) > 0.5) {
+                      el.style.setProperty(radii[index]!.property, `${x}px ${y}px`, "important");
+                    }
                   }
                 }
+                for (const layer of active.slice(1)) layer.el.style.setProperty("opacity", "0", "important");
+                return await capture(clip);
+              } finally {
+                document.adoptedStyleSheets = document.adoptedStyleSheets.filter((sheet) => sheet !== probe);
+                if (previous === null) el.removeAttribute(attribute);
+                else el.setAttribute(attribute, previous);
+                for (const { property, saved } of radii) restore(el, property, saved);
+                restoreStyle(el, originalStyle, normalizedStyle);
+                for (const override of overrides) {
+                  if (override.node.getAttribute("style") === override.temporary || override.node.getAttribute("style") === override.style) {
+                    override.node.setAttribute("style", override.style);
+                  } else {
+                    if (override.opacity) restore(override.node, "opacity", override.savedOpacity);
+                    restore(override.node, "transition-property", override.savedTransition);
+                    if (override.node.style.cssText === override.normalized) override.node.setAttribute("style", override.style);
+                  }
+                }
+                for (const layer of active.slice(1)) restore(layer.el, "opacity", layer.saved.get("opacity")!);
               }
-              differs = await differences(actual, masked, hidden, solo, withoutBadges, badges.map((badge) => badge.getBoundingClientRect()), withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native);
+            };
+            const actual = await capture(clip);
+            // A mask can change how a browser composites the restored shadow, so take this reference first.
+            let solo = ownEffects ? await captureSolo() : null;
+            for (const layer of active) {
+              const layerRect = layer.el.getBoundingClientRect();
+              const layerStyle = getComputedStyle(layer.el);
+              const layerWidth = layer.el instanceof HTMLElement ? layer.el.offsetWidth : parseFloat(layerStyle.width);
+              const layerHeight = layer.el instanceof HTMLElement ? layer.el.offsetHeight : parseFloat(layerStyle.height);
+              const layerScaleX = layerRect.width / layerWidth;
+              const layerScaleY = layerRect.height / layerHeight;
+              const x = scaleX / layerScaleX;
+              const y = scaleY / layerScaleY;
+              const corners = initial.corners.map((corner) => ({ ...corner, x: corner.x * x, y: corner.y * y }));
+              const offsetX = (r.left - layerRect.left) / layerScaleX;
+              const offsetY = (r.top - layerRect.top) / layerScaleY;
+              layer.el.style.setProperty("clip-path", clipPath(initial.width * x, initial.height * y, corners, offsetX, offsetY), "important");
             }
+            const masked = await capture(clip);
+            for (const layer of active) layer.el.style.setProperty("opacity", "0", "important");
+            const hidden = await capture(clip);
+            for (const layer of active) {
+              restore(layer.el, "opacity", layer.saved.get("opacity")!);
+              restore(layer.el, "clip-path", layer.saved.get("clip-path")!);
+            }
+            let differs = await differences(actual, masked, hidden, solo, null, [], null, [], clip, r, initial.width, initial.height, initial.corners, initial.native);
+            if (differs && !solo) {
+              solo = await captureSolo();
+              differs = await differences(actual, masked, hidden, solo, null, [], null, [], clip, r, initial.width, initial.height, initial.corners, initial.native);
+            }
+            let withoutStrokes: string | null = null;
+            if (differs && strokes.length) {
+              const saved = strokes.map(({ node }) => ({
+                node,
+                style: node.getAttribute("style"),
+                normalized: node.style.cssText,
+                opacity: save(node, "opacity"),
+                transition: save(node, "transition"),
+              }));
+              try {
+                for (const { node } of saved) {
+                  node.style.setProperty("transition", "none", "important");
+                  node.style.setProperty("opacity", "0", "important");
+                }
+                withoutStrokes = await capture(clip);
+              } finally {
+                for (const { node, style, normalized, opacity, transition } of saved) {
+                  restore(node, "opacity", opacity);
+                  restore(node, "transition", transition);
+                  restoreStyle(node, style, normalized);
+                }
+              }
+              differs = await differences(actual, masked, hidden, solo, null, [], withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native);
+            }
+            let withoutBadges: string | null = null;
+            let badgeRects: DOMRect[] = [];
+            if (differs) {
+              const badges = notchedBadges(el, siblings, r, initial, outlines.length > 0);
+              if (badges.length) {
+                const saved = badges.map((badge) => ({
+                  badge,
+                  style: badge.getAttribute("style"),
+                  normalized: badge.style.cssText,
+                  opacity: save(badge, "opacity"),
+                  transition: save(badge, "transition"),
+                }));
+                try {
+                  for (const { badge } of saved) {
+                    badge.style.setProperty("transition", "none", "important");
+                    badge.style.setProperty("opacity", "0", "important");
+                  }
+                  withoutBadges = await capture(clip);
+                } finally {
+                  for (const { badge, style, normalized, opacity, transition } of saved) {
+                    restore(badge, "opacity", opacity);
+                    restore(badge, "transition", transition);
+                    restoreStyle(badge, style, normalized);
+                  }
+                }
+                badgeRects = badges.map((badge) => badge.getBoundingClientRect());
+                differs = await differences(actual, masked, hidden, solo, withoutBadges, badgeRects, withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native);
+              }
+            }
+            let changed = false;
+            if (differs) {
+              const restored = await capture(clip);
+              differs = await differences(actual, masked, hidden, solo, withoutBadges, badgeRects, withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native, restored);
+              changed = !differs;
+            }
+            if (differs) { found = differs; break; }
+            if (!changed) break;
           }
-          if (differs) { found = differs; break; }
+          if (found) break;
         }
         if (found) break;
       }
@@ -571,13 +607,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       for (const position of scroll) position.node.scrollTo({ left: position.left, top: position.top, behavior: "instant" });
       window.scrollTo({ left: windowScroll.x, top: windowScroll.y, behavior: "instant" });
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      for (const layer of layers) {
-        const currentStyle = layer.el.getAttribute("style");
-        if (currentStyle !== layer.originalStyle && layer.el.style.cssText === layer.normalizedStyle) {
-          if (layer.originalStyle === null) layer.el.removeAttribute("style");
-          else layer.el.setAttribute("style", layer.originalStyle);
-        }
-      }
+      for (const layer of layers) restoreStyle(layer.el, layer.originalStyle, layer.normalizedStyle);
     }
     if (found) {
       const corner = ["top left", "top right", "bottom right", "bottom left"][found.corner]!;

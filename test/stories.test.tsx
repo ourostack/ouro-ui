@@ -223,7 +223,7 @@ describe("stories pass Ouro check's rules", () => {
     });
 
     it.each(sliced(selectedStories, "stories: squircle-paint"))("$id has no paint outside its squircle corners, closed and with each overlay open", async ({ id, Story, parameters }) => {
-      const findings: { phase: string; size: string; scheme: string; element: string; detail: string }[] = [];
+      const findings: { phase: string; size: string; scheme: string; element: string; detail: string; context: object }[] = [];
       try {
         for (const [width, height, scheme] of [[390, 844, "light"], [1280, 800, "dark"]] as const) {
           await page.viewport(width, height);
@@ -234,7 +234,18 @@ describe("stories pass Ouro check's rules", () => {
           await settle();
           const record = async (phase: string) => {
             expect(document.querySelector('[data-ouro-allow~="squircle-paint"], [data-ouro-allow~="all"]')).toBeNull();
-            for (const issue of await findSquirclePaint()) findings.push({ phase, size: `${width}x${height}`, scheme, element: issue.element, detail: issue.detail });
+            for (const issue of await findSquirclePaint()) {
+              const target = document.querySelector<HTMLElement>(`[data-ouro-check-ref~="${issue.ref}"]`)!;
+              const rect = target.getBoundingClientRect();
+              const style = getComputedStyle(target);
+              const point = /at \((-?\d+), (-?\d+)\)$/.exec(issue.detail);
+              const stack = point ? document.elementsFromPoint(rect.left + Number(point[1]), rect.top + Number(point[2]))
+                .slice(0, 8).map((element) => `${element.tagName.toLowerCase()}${element.getAttribute("data-ouro") ? `[data-ouro=${element.getAttribute("data-ouro")}]` : ""}.${[...element.classList].slice(0, 3).join(".")}`) : [];
+              findings.push({
+                phase, size: `${width}x${height}`, scheme, element: issue.element, detail: issue.detail,
+                context: { width: rect.width, height: rect.height, background: style.backgroundColor, shadow: style.boxShadow, outline: style.outlineStyle, stack },
+              });
+            }
           };
           await record("closed");
           await visitStoryOverlays(id, host, async (phase) => record(phase));
