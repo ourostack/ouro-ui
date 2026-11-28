@@ -177,9 +177,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     image.close();
     return { width: canvas.width, height: canvas.height, data: context.getImageData(0, 0, canvas.width, canvas.height).data };
   };
-  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, strokePads: { x: number; y: number }[], clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean, restored: string | null = null) => {
-    const [a, b, c, own, noBadges, noStrokes, stable] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null, withoutBadges ? pixels(withoutBadges) : null, withoutStrokes ? pixels(withoutStrokes) : null, restored ? pixels(restored) : null]);
-    if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height)) || (noBadges && (a.width !== noBadges.width || a.height !== noBadges.height)) || (noStrokes && (a.width !== noStrokes.width || a.height !== noStrokes.height)) || (stable && (a.width !== stable.width || a.height !== stable.height))) {
+  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, strokePads: { x: number; y: number }[], clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean, restored: string | null = null, withoutEffects: string | null = null, roundedEffects: boolean[] = []) => {
+    const [a, b, c, own, noBadges, noStrokes, stable, noEffects] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null, withoutBadges ? pixels(withoutBadges) : null, withoutStrokes ? pixels(withoutStrokes) : null, restored ? pixels(restored) : null, withoutEffects ? pixels(withoutEffects) : null]);
+    if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height)) || (noBadges && (a.width !== noBadges.width || a.height !== noBadges.height)) || (noStrokes && (a.width !== noStrokes.width || a.height !== noStrokes.height)) || (stable && (a.width !== stable.width || a.height !== stable.height)) || (noEffects && (a.width !== noEffects.width || a.height !== noEffects.height))) {
       throw new Error("squircle-paint screenshots changed size during measurement");
     }
     if (![1, window.devicePixelRatio].some((scale) =>
@@ -221,11 +221,12 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const outsideX = px < rect.left || px >= rect.right;
           const outsideY = py < rect.top || py >= rect.bottom;
           const outsideCorner = outsideX || outsideY;
-          // A separate round badge in a real cut-out is not paint from the notched surface.
+          // A separate rounded badge or detached indicator is not paint from the surface.
           if (noBadges && difference(a.data, noBadges.data, index) >= 2 && badges.some((badge) => {
-            const dx = (px - (badge.left + badge.right) / 2) / (badge.width / 2 + 0.5);
-            const dy = (py - (badge.top + badge.bottom) / 2) / (badge.height / 2 + 0.5);
-            return dx * dx + dy * dy <= 1;
+            const radius = Math.min(badge.width, badge.height) / 2 + 0.5;
+            const dx = Math.max(0, Math.abs(px - (badge.left + badge.right) / 2) - (badge.width / 2 + 0.5 - radius));
+            const dy = Math.max(0, Math.abs(py - (badge.top + badge.bottom) / 2) - (badge.height / 2 + 0.5 - radius));
+            return dx * dx + dy * dy <= radius * radius;
           })) continue;
           // A pixel straddling the box edge can contain the surface's own antialiasing.
           if ((outsideX && Math.min(Math.abs(px - rect.left), Math.abs(px - rect.right)) <= clip.width / a.width / 2 + 0.001) ||
@@ -233,6 +234,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const delta = difference(a.data, own && (native || outsideCorner) ? own.data : outsideCorner ? c.data : b.data, index);
           const behind = difference(b.data, c.data, index);
           if (delta < 2 || (!outsideCorner && behind > 4)) continue;
+          if (noEffects && roundedEffects[cornerIndex] && difference(a.data, noEffects.data, index) >= 2 && difference(noEffects.data, c.data, index) < 2) continue;
           if (outsideCorner && difference(a.data, c.data, index) < 2) continue;
           if (outsideCorner && difference(a.data, b.data, index) < 2) continue;
           if (own && noStrokes && difference(a.data, noStrokes.data, index) >= 2 && difference(noStrokes.data, own.data, index) < 2 &&
@@ -545,6 +547,30 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               solo = await captureSolo();
               differs = await differences(actual, masked, hidden, solo, null, [], null, [], clip, r, initial.width, initial.height, initial.corners, initial.native);
             }
+            let withoutEffects: string | null = null;
+            let roundedEffects: boolean[] = [];
+            if (differs && ownEffects) {
+              const computed = getComputedStyle(el);
+              const length = (value: string, dimension: number) => value.endsWith("%") ? parseFloat(value) * dimension / 100 : parseFloat(value) || 0;
+              roundedEffects = initial.corners.map((corner, index) => {
+                if (corner.native) return true;
+                const raw = computed.getPropertyValue(`--sq-${names[index]!.key}`).trim();
+                const [x, y = x] = computed[`border${names[index]!.property}Radius`].split(/\s+/);
+                return Math.abs(length(x!, initial.width) - length(raw, initial.width) * 0.543) < 0.5 &&
+                  Math.abs(length(y!, initial.height) - length(raw, initial.height) * 0.543) < 0.5;
+              });
+              const shadow = save(el, "box-shadow");
+              const outline = save(el, "outline");
+              try {
+                el.style.setProperty("box-shadow", "none", "important");
+                el.style.setProperty("outline", "none", "important");
+                withoutEffects = await capture(clip);
+              } finally {
+                restore(el, "box-shadow", shadow);
+                restore(el, "outline", outline);
+              }
+              differs = await differences(actual, masked, hidden, solo, null, [], null, [], clip, r, initial.width, initial.height, initial.corners, initial.native, null, withoutEffects, roundedEffects);
+            }
             let withoutStrokes: string | null = null;
             if (differs && strokes.length) {
               const saved = strokes.map(({ node }) => ({
@@ -567,12 +593,25 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
                   restoreStyle(node, style, normalized);
                 }
               }
-              differs = await differences(actual, masked, hidden, solo, null, [], withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native);
+              differs = await differences(actual, masked, hidden, solo, null, [], withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native, null, withoutEffects, roundedEffects);
             }
             let withoutBadges: string | null = null;
             let badgeRects: DOMRect[] = [];
             if (differs) {
-              const badges = notchedBadges(el, siblings, r, initial, outlines.length > 0);
+              const detached = surfaceLayers.filter((other): other is HTMLElement => {
+                if (!(other instanceof HTMLElement) || !hasPaint(other)) return false;
+                const rect = other.getBoundingClientRect();
+                if (!(rect.right <= r.left || rect.left >= r.right || rect.bottom <= r.top || rect.top >= r.bottom)) return false;
+                const radius = Math.min(rect.width, rect.height) / 2;
+                if (radius < 1) return false;
+                const style = getComputedStyle(other);
+                const length = (value: string, dimension: number) => value.endsWith("%") ? parseFloat(value) * dimension / 100 : parseFloat(value) || 0;
+                return names.every(({ property }) => {
+                  const [x, y = x] = style[`border${property}Radius`].split(/\s+/);
+                  return length(x!, other.offsetWidth) >= radius && length(y!, other.offsetHeight) >= radius;
+                });
+              });
+              const badges = [...new Set([...notchedBadges(el, siblings, r, initial, outlines.length > 0), ...detached])];
               if (badges.length) {
                 const saved = badges.map((badge) => ({
                   badge,
@@ -595,13 +634,13 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
                   }
                 }
                 badgeRects = badges.map((badge) => badge.getBoundingClientRect());
-                differs = await differences(actual, masked, hidden, solo, withoutBadges, badgeRects, withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native);
+                differs = await differences(actual, masked, hidden, solo, withoutBadges, badgeRects, withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native, null, withoutEffects, roundedEffects);
               }
             }
             let changed = false;
             if (differs) {
               const restored = await capture(clip);
-              differs = await differences(actual, masked, hidden, solo, withoutBadges, badgeRects, withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native, restored);
+              differs = await differences(actual, masked, hidden, solo, withoutBadges, badgeRects, withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native, restored, withoutEffects, roundedEffects);
               changed = !differs;
             }
             if (differs) { found = differs; break; }
