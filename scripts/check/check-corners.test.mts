@@ -662,7 +662,7 @@ test("squircle-paint ignores compositing noise on an unchanged overlapping surfa
   const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
   try {
     await tab.setContent('<div style="position:absolute;left:60px;top:60px;width:160px;height:120px;background:white;border-radius:28px;corner-shape:squircle;box-shadow:0 0 0 1px black"></div>');
-    const captures = await tab.evaluate(() => [false, true, false, true].map((noise) => {
+    const captures = await tab.evaluate(() => [false, true, true, false].map((noise) => {
       const canvas = document.createElement("canvas");
       canvas.width = 224;
       canvas.height = 184;
