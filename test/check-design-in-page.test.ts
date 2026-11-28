@@ -368,6 +368,23 @@ describe("findDesignIssues: nested-frame", () => {  it("finds a frame hugging a 
     expect(of("nested-frame").map((issue) => issue.element)).toEqual(["div#card in div"]);
   });
 
+  it("counts overlapping pictures once and leaves hidden or outside pictures out of a framed surface", () => {
+    render(`
+      <div style="width:400px;padding:20px;border:1px solid #888;background:#ddd">
+        <div id="partial" style="position:relative;box-sizing:border-box;width:300px;height:160px;border:1px solid #888;background:#fff">
+          <img alt="" style="position:absolute;left:0;top:0;width:100%;height:100px">
+          <img alt="" style="position:absolute;left:0;top:20px;width:100%;height:80px">
+          <img alt="" style="display:none;width:100%;height:100%">
+          <img alt="" style="position:absolute;left:320px;top:0;width:40px;height:40px">
+        </div>
+        <div id="full" style="position:relative;box-sizing:border-box;width:300px;height:160px;border:1px solid #888;background:#fff">
+          <img alt="" style="position:absolute;left:0;top:0;width:100%;height:100px">
+          <img alt="" style="position:absolute;left:0;top:50px;width:100%;height:108px">
+        </div>
+      </div>`);
+    expect(of("nested-frame").map((issue) => issue.element)).toEqual(["div#partial in div"]);
+  });
+
   it("finds a lighter framed card even when its picture fills most of it", () => {
     render(`
       <div style="width:400px;padding:20px;border:1px solid #888;background:#ddd">
@@ -400,6 +417,7 @@ describe("findDesignIssues: nested-frame", () => {  it("finds a frame hugging a 
           <div style="display:contents">
             <span style="display:inline-flex;width:120px;height:32px;border-radius:4px;background:#eee">One</span>
             <span style="display:inline-flex;width:120px;height:32px;border-radius:4px;background:#eee">Two</span>
+            <span style="display:none">Hidden</span>
             <input role="combobox" aria-label="Selected tags" readonly style="width:64px;height:32px">
           </div>
           <span><svg width="12" height="12"></svg></span>
