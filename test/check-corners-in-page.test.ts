@@ -588,6 +588,10 @@ it("keeps a native shadow and its probe separate from a descendant's external pa
   surface.innerHTML = '<div style="position:absolute;left:-12px;top:-12px;width:8px;height:8px;background:#f40"></div>';
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
   expect(surface.getAttribute("data-ouro-paint-solo")).toBe("original");
+  surface.firstElementChild!.setAttribute("style", "position:absolute;left:-12px;top:-12px;width:8px;height:8px;background:#f40;opacity:1 !important;transition:opacity 1s !important");
+  const childStyle = surface.firstElementChild!.getAttribute("style");
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+  expect(surface.firstElementChild!.getAttribute("style")).toBe(childStyle);
 }, paintTimeout);
 
 it("keeps a fallback popup's curved shadow separate from its content", async () => {
@@ -785,7 +789,7 @@ it("checks a clipped squircle partly outside the viewport", async () => {
 }, paintTimeout);
 
 it("captures paint at the bottom edge of the test viewport", async () => {
-  const root = render('<div id="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"><div style="position:absolute;inset:0;background:#f40"></div></div>');
+  const root = render('<div id="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px"><div style="position:absolute;inset:0;background:#f40"></div></div>');
   root.style.top = "auto";
   root.style.bottom = "0";
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#surface");
