@@ -5,6 +5,7 @@ import { test } from "node:test";
 import { chromium, webkit, type Page } from "playwright";
 import postcss from "postcss";
 import { findCornerIssues, type CornerOptions } from "../../registry/ouro/check/corner-check.ts";
+import { findDesignIssues } from "../../registry/ouro/check/design-check.ts";
 import { check } from "../../registry/ouro/check/run.ts";
 import { findSquirclePaint, type PaintClip } from "../../registry/ouro/check/squircle-paint.ts";
 import { squircleCorners } from "../../registry/ouro/lib/ouro/squircle-corners.ts";
@@ -51,6 +52,29 @@ async function transparentClip({ clip = 24, own = 0, clipRound = false, ownRound
   `)).replaceAll("(corner-shape: squircle)", "(ouro-check-native-shape: squircle)");
   return `<style>${css} .outer { clip-path: none; }</style><div class="outer"><div class="clip">${empty ? "" : '<div class="tile"></div>'}</div></div>`;
 }
+
+test("corners-nest checks the marked surface in the nested-frame pass fixture", async () => {
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage();
+    try {
+      for (const width of [390, 1440]) {
+        await tab.setViewportSize({ width, height: 900 });
+        await tab.setContent(readFileSync(join(fixtures, "nested-frame-pass.html"), "utf8"));
+        assert.deepEqual(await tab.evaluate(findCornerIssues), [], `${engine.name()}: ${width}px`);
+        const design = await tab.evaluate(findDesignIssues, { legacyCorners: false });
+        assert.deepEqual(design.filter((issue) => issue.rule === "nested-frame"), []);
+        await tab.locator(".btn [data-ouro-surface]").evaluate((el) => { el.style.borderRadius = "0"; });
+        const broken = await tab.evaluate(findCornerIssues);
+        assert.equal(broken.length, 1);
+        assert.match(broken[0]!.element, /span in button\.btn/);
+        assert.match(broken[0]!.detail, /0px, expected 5px/);
+      }
+    } finally {
+      await browser.close();
+    }
+  }
+});
 
 test("corners-nest attributes transparent clipping ancestors", async () => {
   for (const engine of [chromium, webkit]) {
