@@ -567,6 +567,36 @@ test("squircle-paint treats wrapped inline fragments as separate painted boxes",
   }
 });
 
+test("squircle-paint accepts native antialiasing on a wrapped inline surface", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: 2560, height: 1440 }, deviceScaleFactor: 2 });
+  const tab = await context.newPage();
+  await bindCapture(tab);
+  try {
+    const font = readFileSync("site/public/fonts/geist-mono-5.3.0.woff2").toString("base64");
+    await tab.setContent(`<style>
+      @font-face { font-family: FixtureMono; src: url(data:font/woff2;base64,${font}); font-weight: 100 900; }
+      body { margin: 0; background: #000; }
+      .line { position: absolute; left: 1086.4375px; top: 1320px; width: 160px; font: 15.75px/27px FixtureMono, monospace; }
+      code { font-size-adjust: .46; background: #1c1c1e; color: #f5f5f7; border-radius: 5.40675px;
+        corner-shape: squircle; padding: .1em .3em; }
+    </style><div class="line"><code>aaaaaaaa aaaaaa[] | (aaaaaa &amp; { 'Aaa aa aaaaa: aaaa={["aaa", "a"]}': aaaaa })</code></div>`);
+    await tab.evaluate(async () => {
+      await document.fonts.ready;
+      const line = document.querySelector<HTMLElement>(".line")!;
+      const first = document.querySelector("code")!.getClientRects()[0]!;
+      line.style.top = `${parseFloat(line.style.top || "1320") + 1334.53125 - first.top}px`;
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    });
+    const rects = await tab.locator("code").evaluate((el) => [...el.getClientRects()].map((rect) => rect.toJSON()));
+    assert.equal(rects.length, 4);
+    assert.equal(rects[0]!.top, 1334.53125);
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+  } finally {
+    await browser.close();
+  }
+});
+
 test("squircle-paint separates distant fractional inline fragments and still finds a leaking end", async () => {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 390, height: 300 }, deviceScaleFactor: 2 });
