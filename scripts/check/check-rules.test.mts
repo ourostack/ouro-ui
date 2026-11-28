@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 import { chromium } from "playwright";
-import { blank, BUDGETS, check, goTo, summary, transportIssues, type Report } from "../../registry/ouro/check/run.ts";
+import { blank, BUDGETS, caption, check, goTo, summary, transportIssues, type Report } from "../../registry/ouro/check/run.ts";
 
 import { globToRegExp, listPages, serve } from "../../registry/ouro/check/serve.ts";
 import { dir, fixtures, page, quiet, site, two } from "./kit.mts";
