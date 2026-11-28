@@ -2827,6 +2827,22 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // A reply that streams out of view stays drawn until it is heard, though it stops streaming.
     const publish = () => setWaitingKeys([...waiting].map(slotKeyOf).join("\n"));
     const redrawn = (message: Element) => viewRef.current.windowed && keysHeard.has(slotKeyOf(message));
+    // Marks a message that just arrived, so its bubble grows in (Message's styles read the mark). The mark comes off two
+    // frames after the arrival ends, not in its animationend: taking it off there drops the finished animation at once,
+    // which reads as a cancel to anything that watches it between frames, and a finished animation draws nothing anyway.
+    const arrive = (message: HTMLElement) => {
+      const done = (event: Event) => {
+        if (!(event as AnimationEvent).animationName.startsWith("ouro-message-")) return;
+        // Stryker disable next-line StringLiteral,CallExpression: a listener left on runs again only to take off a mark already gone.
+        message.removeEventListener("animationend", done);
+        // Stryker disable next-line StringLiteral,CallExpression: a listener left on runs again only to take off a mark already gone.
+        message.removeEventListener("animationcancel", done);
+        requestAnimationFrame(() => requestAnimationFrame(() => message.removeAttribute("data-starting-style")));
+      };
+      message.toggleAttribute("data-starting-style", true);
+      message.addEventListener("animationend", done);
+      message.addEventListener("animationcancel", done);
+    };
     const check = () => {
       const now = messages();
       const before = new Set(known);
@@ -2849,6 +2865,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           // the first `||` alone, false never changes the result some test here could observe.
           if (old === undefined || waiting.has(old) || texts.get(old) !== textOf(message)) {
             waiting.add(message);
+            if (!content.closest("[hidden]")) arrive(message);
             // A message new to the conversation's end, not merely redrawn by windowing nor a quiet replacement of the one
             // in its place: the newest drawn row could now reach the pill, so the room it keeps clear of it is owed.
             // Stryker disable next-line ConditionalExpression: while pinned, this same arrival also keeps the view following

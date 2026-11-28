@@ -58,11 +58,17 @@ export function testSeconds(rootDir = root) {
 /** A test file with no measured time (new since the last measurement) counts as this many seconds. */
 export const unmeasuredSeconds = 5;
 /** What re-running the tests for one mutant costs before any test runs, in seconds. */
-export const mutantOverhead = 1;
+export const mutantOverhead = 8;
 /**
  * The share of a test set's time a mutant runs, on average: a killed mutant stops at its first
- * failing test, a surviving one runs them all; and the share of the shard's test files' time its
- * first, unmutated run takes. Fitted to the cold shards of acf89894 and 03c8bf0a (about 0.3 to 0.6).
+ * failing test. Fitted to the 22 longest mutation shards of 11 first-attempt pull request runs:
+ * a mutant took about 63 s on message's 461 s of tests, 24 s on combobox's 80 s and 12 s on
+ * inspector's 97 s, where the earlier 1 s and 0.5 overstated the large sets 1.2 to 4.6 times.
+ */
+export const mutantShare = 0.12;
+/**
+ * The share of the shard's test files' time its first, unmutated run takes, with the shard's
+ * setup: 849 message tests took 177 s of dry run and about 40 s of setup on 461 s of test time.
  */
 export const testShare = 0.5;
 
@@ -79,7 +85,7 @@ export function shardCost(paths, files, seconds) {
   const tests = new Set();
   for (const path of paths) {
     const { mutants, own, wider, path: source = path } = files[path];
-    total += mutants * (mutantOverhead + testShare * own.reduce((sum, file) => sum + time(file), 0));
+    total += mutants * (mutantOverhead + mutantShare * own.reduce((sum, file) => sum + time(file), 0));
     hangs += mutants * (hangRates[source] ?? timeoutRate);
     for (const file of [...own, ...wider]) tests.add(file);
   }
@@ -243,6 +249,28 @@ export function testFilesFor(paths, rootDir = root) {
     }
   }
   return { own: [...own].sort(), wider: [...wider].filter((file) => !own.has(file)).sort() };
+}
+
+/**
+ * The key a shard's dry run (Stryker's first, unmutated run of every test file the shard needs) is
+ * kept under: a hash of everything that run reads. The mutated files themselves, every test file
+ * collected for them, the harness and plugin (`harnessFiles`, which holds the lockfile), every lib/
+ * and theme file and each module any of these import, the shard's mutated ranges, and the runner's
+ * settings (`settings`, the Stryker configuration as JSON). A push that changes any of them gets a
+ * new key, so its dry run runs again.
+ * @param {string[]} mutated repository-relative runtime files the shard mutates
+ * @param {string[]} tests the test files collected for them
+ * @param {string[]} ranges the shard's mutated ranges
+ * @param {string} settings
+ */
+export function dryRunKey(mutated, tests, ranges, settings, options = {}) {
+  const files = new Set([...dependencyFiles(mutated, { ...options, tests }), ...mutated, ...tests]);
+  const read = options.read ?? ((path) => readFileSync(join(root, path), "utf8"));
+  const exists = options.exists ?? ((path) => existsSync(join(root, path)));
+  const hash = createHash("sha256");
+  hash.update(dependencyHash([...files].filter(exists), read));
+  hash.update(`\0${[...ranges].sort().join(",")}\0${settings}`);
+  return hash.digest("hex").slice(0, 32);
 }
 
 /** A short hash of the files' paths and contents. */

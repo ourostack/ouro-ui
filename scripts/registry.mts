@@ -808,8 +808,8 @@ export function buildRegistry(root: string): Registry {
       // tooltips. Any other app adds it by name (the README's Next.js steps do).
       if (entry.name === "lib-router-link" || entry.name === "tooltip") registryDeps.add("lib-ouro-provider");
       for (const specifier of importsOf(source)) {
-        // An ax file imports its siblings relatively, so Node runs the copied files as they are. The images and check tools,
-        // which Node runs too, import the kit the same way. A file that installs outside src imports the shared kit as
+        // Node build helpers and ax files import siblings relatively, so Node runs the copied files as they are.
+        // The images and check tools import the kit the same way. A file that installs outside src imports the shared kit as
         // #ouro-ax/<file>, since the shared files install beside the app's lib, and imports only files beside it relatively.
         if (specifier.startsWith(axImport)) {
           // The shadcn CLI rewrites a # import in a .ts, .tsx, .js or .jsx file it installs to the app's path alias
@@ -821,8 +821,8 @@ export function buildRegistry(root: string): Registry {
           if (dependency !== entry.name) registryDeps.add(dependency);
           continue;
         }
-        if ((path.startsWith(axDir) || path.startsWith(imagesDir) || path.startsWith(checkDir)) && specifier.startsWith(".")) {
-          const target = join(dirname(path), specifier).split("\\").join("/");
+        if ((path.startsWith(libDir) || path.startsWith(axDir) || path.startsWith(imagesDir) || path.startsWith(checkDir)) && specifier.startsWith(".")) {
+          const target = resolveRegistryImport(`@/${join(dirname(path), specifier).split("\\").join("/")}`, all);
           const dependency = owner.get(target);
           if (!dependency) throw new Error(`${path} imports ${specifier}, which no item ships.`);
           if (installsOutsideSrc(target) !== installsOutsideSrc(path)) throw new Error(`${path} imports ${specifier}, which installs in another folder. Import a shared Ouro AX file as ${axImport}<file>.`);

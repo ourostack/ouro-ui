@@ -4,11 +4,12 @@ import { readFileSync } from "node:fs";
 import { dirname, join, matchesGlob } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { changedLines, dryRunMinutes, inScope, mutationRunners, HEAVY_TEST_SECONDS, SHARD_TARGET_SECONDS, shardUnits, spanningMutants, splitRange, unitChanges, unitExclusions, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, mutates, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
+import { scratchDir } from "./scratch.mjs";
+import { changedLines, dryRunMinutes, runtimeIdentity, inScope, mutationRunners, HEAVY_TEST_SECONDS, SHARD_TARGET_SECONDS, shardUnits, spanningMutants, splitRange, unitChanges, unitExclusions, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, mutates, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
-import { ignoreReason, inOtherShard, isClassList, testPhases } from "./mutation/plugins.mjs";
-import { dependencyFiles, dependencyHash, harnessFiles, mergeReports, parseTestSeconds, planShards, pruneChangedFiles, recordSources, recordTests, scopeReport, shardCost, shardCount, strykerTimeout, hangRates, testSeconds, testsOf, timeoutRate, unmeasuredSeconds } from "./mutation/cache.mjs";
+import { ignoreReason, inOtherShard, isClassList, keepDryRun, storedDryRun, testPhases } from "./mutation/plugins.mjs";
+import { dependencyFiles, dependencyHash, dryRunKey, harnessFiles, mergeReports, parseTestSeconds, planShards, pruneChangedFiles, recordSources, recordTests, scopeReport, shardCost, shardCount, strykerTimeout, hangRates, testSeconds, testsOf, timeoutRate, unmeasuredSeconds } from "./mutation/cache.mjs";
 
 test("runtimeSource takes component and lib code, and leaves tests, stories, types and the test kit", () => {
   for (const path of ["registry/ouro/components/ouro/button/button.tsx", "registry/ouro/components/ouro/dialog/dialog-styles.ts", "registry/ouro/lib/ouro/cn.ts"]) assert.ok(runtimeSource(path), path);
@@ -259,17 +260,17 @@ test("planShards weighs each mutant by its own tests' measured time and each sha
   };
   // Each mutant may hang until Stryker's timeout, reckoned from every test file the shard needs.
   const hang = (mutants, testSeconds) => mutants * timeoutRate * strykerTimeout(testSeconds);
-  // 16 mutants x (1 + 0.5 x 60) + 0.5 x 60: the two slow files are each a shard's worth.
-  assert.equal(shardCost(["dialog.tsx"], files, seconds), 16 * 31 + 30 + hang(16, 60));
+  // 16 mutants x (8 + 0.12 x 60) + 0.5 x 60: a mutant's share of the tests is the fitted one, the first run's the larger.
+  assert.equal(shardCost(["dialog.tsx"], files, seconds), 16 * (8 + 0.12 * 60) + 30 + hang(16, 60));
   // The importers' tests count once, in the first run, not per mutant, but in every mutant's timeout.
-  assert.equal(shardCost(["handoff.ts"], files, seconds), 55 * 1.5 + 0.5 + 15 + hang(55, 31));
-  assert.deepEqual(planShards(files, 3, seconds), [["dialog.tsx"], ["sheet.tsx"], ["handoff.ts", "styles.ts"]]);
+  assert.equal(shardCost(["handoff.ts"], files, seconds), 55 * (8 + 0.12 * 1) + 0.5 + 15 + hang(55, 31));
+  assert.deepEqual(planShards(files, 3, seconds), [["handoff.ts"], ["dialog.tsx", "styles.ts"], ["sheet.tsx"]]);
   // A file whose tests were never timed counts as a few seconds of tests, not none.
   const list = "registry/ouro/components/ouro/message/message-list.tsx";
-  assert.equal(shardCost([list], { [list]: { mutants: 10, own: ["a.test.tsx"], wider: [] } }, { "a.test.tsx": 60 }), 10 * 31 + 30 + 10 * hangRates[list] * strykerTimeout(60));
+  assert.equal(shardCost([list], { [list]: { mutants: 10, own: ["a.test.tsx"], wider: [] } }, { "a.test.tsx": 60 }), 10 * (8 + 0.12 * 60) + 30 + 10 * hangRates[list] * strykerTimeout(60));
   // A unit of a changed range is keyed by its range, and its hang rate is its file's.
-  assert.equal(shardCost([`${list}:10-90`], { [`${list}:10-90`]: { path: list, mutants: 10, own: ["a.test.tsx"], wider: [] } }, { "a.test.tsx": 60 }), 10 * 31 + 30 + 10 * hangRates[list] * strykerTimeout(60));
-  assert.equal(shardCost(["new.tsx"], { "new.tsx": { mutants: 2, own: ["new.test.tsx"], wider: [] } }, {}), 2 * (1 + 0.5 * unmeasuredSeconds) + 0.5 * unmeasuredSeconds + hang(2, unmeasuredSeconds));
+  assert.equal(shardCost([`${list}:10-90`], { [`${list}:10-90`]: { path: list, mutants: 10, own: ["a.test.tsx"], wider: [] } }, { "a.test.tsx": 60 }), 10 * (8 + 0.12 * 60) + 30 + 10 * hangRates[list] * strykerTimeout(60));
+  assert.equal(shardCost(["new.tsx"], { "new.tsx": { mutants: 2, own: ["new.test.tsx"], wider: [] } }, {}), 2 * (8 + 0.12 * unmeasuredSeconds) + 0.5 * unmeasuredSeconds + hang(2, unmeasuredSeconds));
 });
 
 test("shardCount takes the fewest shards from the minimum that plan each at the target or under, at most the maximum", () => {
@@ -288,11 +289,10 @@ test("shardCount takes the fewest shards from the minimum that plan each at the 
   assert.ok(planShards(files, shardCount(files, seconds, { min: 6, max: 16, target: 0 }), seconds).every((shard) => shard.length > 0));
 });
 
-test("the shard target keeps a shard within ci-budget's 10-minute pull request budget at the worst measured ratio of time to estimate", () => {
+test("the shard target stays at 900 s, since a lower one only plans more shards", () => {
   assert.equal(SHARD_TARGET_SECONDS, 900);
-  // #287's thirteen shards at a 1500 s target took at most 0.62 times their estimates (run 41171948948).
-  assert.ok(SHARD_TARGET_SECONDS * 0.62 <= 10 * 60);
-  assert.ok(1500 * 0.62 > 15 * 60, "the old target's worst shard was past ci-budget's 15-minute ceiling");
+  // A lower target only plans more shards, and most large changes already plan the 24-shard cap.
+  assert.ok(SHARD_TARGET_SECONDS <= 15 * 60);
   assert.match(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../.github/workflows/ci.yml"), "utf8"), /node scripts\/mutation\.mjs HEAD\^1 --count "\$min\/24"/);
 });
 
@@ -637,4 +637,54 @@ test("the first run gets the minutes its test files take one after another, and 
   assert.equal(dryRunMinutes({ "x.ts": { own: ["unmeasured.test.tsx"], wider: [] } }, {}), 5);
   // cn.ts, which every component imports, names more than five minutes of tests.
   assert.ok(dryRunMinutes({ "registry/ouro/lib/ouro/cn.ts": testFilesFor(["registry/ouro/lib/ouro/cn.ts"]) }) > 5);
+});
+
+test("dryRunKey changes with a mutated file, a test file, the harness, a lib file, the ranges or the settings, so a push that changes any reruns the dry run", () => {
+  const sources = {
+    "registry/ouro/components/ouro/a/a.tsx": 'import { x } from "@/registry/ouro/lib/ouro/x";',
+    "registry/ouro/components/ouro/a/a.test.tsx": "test",
+    "registry/ouro/lib/ouro/x.ts": "x",
+    "pnpm-lock.yaml": "lock",
+    "app.css": "css",
+    "vitest.config.ts": "cfg",
+    "scripts/mutation/setup.ts": "setup",
+    "scripts/mutation/plugins.mjs": "plugin",
+  };
+  const mutated = ["registry/ouro/components/ouro/a/a.tsx"];
+  const tests = ["registry/ouro/components/ouro/a/a.test.tsx"];
+  const key = (changes = {}, ranges = ["a.tsx:1-2"], settings = "s") =>
+    dryRunKey(mutated, tests, ranges, settings, {
+      read: (path) => changes[path] ?? sources[path],
+      exists: (path) => path in sources,
+      list: () => ["registry/ouro/lib/ouro/x.ts"],
+    });
+  const base = key();
+  assert.equal(key(), base);
+  for (const path of Object.keys(sources)) assert.notEqual(key({ [path]: "changed" }), base, `${path} changes the key`);
+  assert.notEqual(key({}, ["a.tsx:1-3"]), base);
+  assert.notEqual(key({}, ["a.tsx:1-2"], "t"), base);
+});
+
+test("a stored dry run is used only under the key it was kept with, and a missing, other or unreadable file is a miss", () => {
+  const dir = scratchDir("dry-run-");
+  {
+    const file = join(dir, "sub", "dry.json");
+    assert.equal(storedDryRun("k", file), null);
+    assert.equal(storedDryRun(undefined, file), null);
+    keepDryRun([{ id: "t" }], "k", file);
+    keepDryRun([{ id: "ignored" }], undefined, file);
+    assert.deepEqual(storedDryRun("k", file), [{ id: "t" }]);
+    assert.equal(storedDryRun("other", file), null);
+    keepDryRun([{ id: "t" }], "k", file);
+    assert.equal(storedDryRun("k", join(dir, "sub")), null);
+  }
+});
+
+test("runtimeIdentity changes with the Node version, the runner image or a browser build, so the dry run's key does", () => {
+  const base = runtimeIdentity({ ImageVersion: "1" }, "v24.1.0", [["chromium", "1", "100"]]);
+  assert.notEqual(runtimeIdentity({ ImageVersion: "2" }, "v24.1.0", [["chromium", "1", "100"]]), base);
+  assert.notEqual(runtimeIdentity({ ImageVersion: "1" }, "v24.2.0", [["chromium", "1", "100"]]), base);
+  assert.notEqual(runtimeIdentity({ ImageVersion: "1" }, "v24.1.0", [["chromium", "1", "101"]]), base);
+  assert.notEqual(runtimeIdentity({}, "v24.1.0", null), base);
+  assert.match(runtimeIdentity(), /chromium/);
 });
