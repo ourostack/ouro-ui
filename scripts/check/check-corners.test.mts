@@ -206,6 +206,37 @@ test("corners-nest reads a root corner painted by an inverse squircle cutout", a
   }
 });
 
+test("corners-nest reports when cross-origin image pixels cannot be inspected", async () => {
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+    try {
+      const image = await tab.evaluate(() => {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = 40;
+        const pen = canvas.getContext("2d")!;
+        pen.fillStyle = "#789";
+        pen.fillRect(0, 0, 40, 40);
+        return canvas.toDataURL().split(",")[1]!;
+      });
+      await tab.route("https://images.invalid/picture.png", (route) => route.fulfill({
+        status: 200, contentType: "image/png", body: Buffer.from(image, "base64"),
+      }));
+      await tab.setContent(`<div style="position:relative;width:160px;height:120px;background:#345;border-radius:24px;corner-shape:squircle">
+        <img alt="" src="https://images.invalid/picture.png" style="position:absolute;inset:4px;width:152px;height:112px">
+      </div>`);
+      await tab.locator("img").evaluate((el) => el.decode());
+      assert.match((await tab.evaluate(findCornerIssues))[0]!.detail, /cannot inspect.*CORS/);
+      await tab.locator("img").evaluate((el) => { el.style.objectFit = "contain"; });
+      assert.deepEqual(await tab.evaluate(findCornerIssues), [], `${engine.name()}: letterboxing does not need image pixels`);
+      await tab.locator("img").evaluate((el) => { el.style.border = "1px solid red"; });
+      assert.match((await tab.evaluate(findCornerIssues))[0]!.detail, /expected 20px/);
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
 test("squircle-paint finds a descendant's square fill beyond a squircle, but passes the clipped surface", async () => {
   const css = await styles(`
     body { background: linear-gradient(110deg, #f8f3e7, #dce8f4); }

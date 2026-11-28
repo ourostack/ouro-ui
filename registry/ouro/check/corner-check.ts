@@ -80,9 +80,9 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
     canvas.fillRect(0, 0, 1, 1);
     return [...canvas.getImageData(0, 0, 1, 1).data];
   };
-  const painted = (el: Element) => {
+  const paintedBox = (el: Element) => {
     const s = getComputedStyle(el);
-    if (el.matches("img, video, canvas") || s.backgroundImage !== "none") return true;
+    if (s.backgroundImage !== "none") return true;
     const fill = rgba(s.backgroundColor);
     if (fill[3]! > 12) {
       let behind: number[] | undefined;
@@ -98,6 +98,79 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
       if (s[`border${side}Style`] !== "none" && parseFloat(s[`border${side}Width`]) > 0 && rgba(s[`border${side}Color`])[3]! > 12) return true;
     }
     return (s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0 && rgba(s.outlineColor)[3]! > 12) || s.boxShadow !== "none";
+  };
+  const painted = (el: Element) =>
+    paintedBox(el) || el.matches("video, canvas") || (el instanceof HTMLImageElement && el.complete && el.naturalWidth > 0 && el.naturalHeight > 0);
+  type CornerPaint = boolean | "cross-origin" | "position";
+  const imagePaint = new Map<HTMLImageElement, CornerPaint[]>();
+  const imageCorners = (image: HTMLImageElement): CornerPaint[] => {
+    const cached = imagePaint.get(image);
+    if (cached) return cached;
+    const style = getComputedStyle(image);
+    const left = parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft);
+    const right = parseFloat(style.borderRightWidth) + parseFloat(style.paddingRight);
+    const top = parseFloat(style.borderTopWidth) + parseFloat(style.paddingTop);
+    const bottom = parseFloat(style.borderBottomWidth) + parseFloat(style.paddingBottom);
+    const width = image.offsetWidth;
+    const height = image.offsetHeight;
+    const contentWidth = Math.max(0, width - left - right);
+    const contentHeight = Math.max(0, height - top - bottom);
+    const naturalWidth = image.naturalWidth;
+    const naturalHeight = image.naturalHeight;
+    const contain = Math.min(contentWidth / naturalWidth, contentHeight / naturalHeight);
+    const cover = Math.max(contentWidth / naturalWidth, contentHeight / naturalHeight);
+    const scale = style.objectFit === "cover" ? cover : style.objectFit === "contain" ? contain :
+      style.objectFit === "scale-down" ? Math.min(1, contain) : 1;
+    const drawnWidth = style.objectFit === "fill" ? contentWidth : naturalWidth * scale;
+    const drawnHeight = style.objectFit === "fill" ? contentHeight : naturalHeight * scale;
+    const position = document.createElement("div").style;
+    position.backgroundPosition = style.objectPosition;
+    const offset = (value: string, free: number): number | null => {
+      if (value === "left" || value === "top") return 0;
+      if (value === "right" || value === "bottom") return free;
+      if (value === "center") return free / 2;
+      const edge = /^(left|right|top|bottom)\s+(.+)$/.exec(value);
+      if (edge) {
+        const distance = offset(edge[2]!, free);
+        return distance === null ? null : /right|bottom/.test(edge[1]!) ? free - distance : distance;
+      }
+      const expression = value.replace(/^calc\((.*)\)$/, "$1");
+      const terms = expression.match(/[+-]?\s*(?:\d+\.?\d*|\.\d+)(?:px|%)/g);
+      if (!terms || expression.replace(/[+-]?\s*(?:\d+\.?\d*|\.\d+)(?:px|%)/g, "").trim()) return null;
+      return terms.reduce((sum, term) => sum + parseFloat(term.replace(/\s/g, "")) * (term.endsWith("%") ? free / 100 : 1), 0);
+    };
+    const x = offset(position.backgroundPositionX, contentWidth - drawnWidth);
+    const y = offset(position.backgroundPositionY, contentHeight - drawnHeight);
+    const pen = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+    const corners: CornerPaint[] = [[0.5, 0.5], [width - 0.5, 0.5], [width - 0.5, height - 0.5], [0.5, height - 0.5]].map(([px, py]): CornerPaint => {
+      const localX = px! - left;
+      const localY = py! - top;
+      if (localX < 0 || localY < 0 || localX >= contentWidth || localY >= contentHeight) return false;
+      if (x === null || y === null) return "position";
+      const sourceX = (localX - x) * naturalWidth / drawnWidth;
+      const sourceY = (localY - y) * naturalHeight / drawnHeight;
+      if (sourceX < 0 || sourceY < 0 || sourceX >= naturalWidth || sourceY >= naturalHeight) return false;
+      try {
+        pen.clearRect(0, 0, 1, 1);
+        pen.drawImage(image, Math.floor(sourceX), Math.floor(sourceY), 1, 1, 0, 0, 1, 1);
+        return pen.getImageData(0, 0, 1, 1).data[3]! > 12;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "SecurityError") return "cross-origin";
+        throw error;
+      }
+    });
+    imagePaint.set(image, corners);
+    return corners;
+  };
+  const paintedCorner = (surface: Surface, index: number): CornerPaint => {
+    const el = surface.el;
+    if (!(el instanceof HTMLImageElement)) return true;
+    let corners = imagePaint.get(el);
+    if (!corners) {
+      corners = paintedBox(el) ? [true, true, true, true] : imageCorners(el);
+      imagePaint.set(el, corners);
+    }
+    return corners[index]!;
   };
   const surface = (el: Element): Surface => {
     const rect = el.getBoundingClientRect();
@@ -221,6 +294,10 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
         const dy = top ? i.top - o.top : o.bottom - i.bottom;
         if (dx < -1 || dy < -1 || dx >= oc.x / 2 || dy >= oc.y / 2) continue;
         if (clippedCorner(inner, outer, index)) break;
+        const innerPaint = paintedCorner(inner, index);
+        if (innerPaint === false) break;
+        const outerPaint = paintedCorner(outer, index);
+        if (outerPaint === false) continue;
         const wantX = Math.max(0, oc.x - Math.max(0, dx));
         const wantY = Math.max(0, oc.y - Math.max(0, dy));
         const wrongRadius = Math.abs(corner.x - wantX) > 1 || Math.abs(corner.y - wantY) > 1;
@@ -229,7 +306,12 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
           const expected = Math.abs(wantX - wantY) < 0.5 ? `${Math.round(wantX)}px` : `${Math.round(wantX)}x${Math.round(wantY)}px`;
           const shape = corner.cutoutMismatch ? "; the painted cutout does not match its stated squircle radius" : !oc.squircle || !corner.squircle ? "; both corners must be squircles" : "";
           const details = failures.get(outer) ?? [];
-          details.push(`${corner.name}: ${actual}, expected ${expected}${shape}`);
+          const unknown = typeof innerPaint === "string" ? innerPaint : typeof outerPaint === "string" ? outerPaint : null;
+          details.push(unknown === "cross-origin"
+            ? `${corner.name}: cannot inspect the image's painted corner; serve the image with CORS and set crossorigin`
+            : unknown === "position"
+              ? `${corner.name}: cannot resolve the image's object-position to inspect its painted corner`
+              : `${corner.name}: ${actual}, expected ${expected}${shape}`);
           failures.set(outer, details);
         }
         break;
