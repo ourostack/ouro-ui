@@ -14,6 +14,8 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
   type Saved = { value: string; priority: string };
   type InlineElement = Element & { style: CSSStyleDeclaration };
   const capture = (window as unknown as { __ouroPaintCapture?: PaintCapture }).__ouroPaintCapture;
+  const diagnostic = (window as unknown as { __ouroPaintDiagnostic?: (data: { actual: string; hidden: string; masked: string; solo: string | null; restored: string; withoutEffects: string | null; rect: DOMRect; clip: PaintClip; point: object; html: string }) => Promise<void> }).__ouroPaintDiagnostic;
+  let pixelIndex = 0;
   if (!capture) throw new Error("squircle-paint needs a screenshot capture supplied by its host");
   const names = [
     { key: "tl", property: "TopLeft", shape: "top-left" },
@@ -292,6 +294,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           }
           if (outsideCorner && !attributable(px, py)) continue;
           if (delta >= 64 || (x > startX && row[x - 1]) || previous[x]) {
+            pixelIndex = index;
             return { corner: cornerIndex, x: Math.round(px - rect.left), y: Math.round(py - rect.top) };
           }
           row[x] = 1;
@@ -381,6 +384,8 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     .filter((el) => !el.closest("svg, script, style, template") && !optedOut(el) && visible(el));
   const svgLayers = [...document.querySelectorAll<SVGSVGElement>("svg")].filter((svg) => visible(svg) && !optedOut(svg));
   for (const el of targets) {
+    const selector = (window as unknown as { __ouroDiagnosticSelector?: string }).__ouroDiagnosticSelector;
+    if (selector && !el.matches(selector)) continue;
     const initial = geometry(el);
     if (!initial || inverseCutout(el, initial)) continue;
     const bounds = el.getBoundingClientRect();
@@ -840,12 +845,21 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               }
             }
             let changed = false;
+            let restoredFrame: string | null = null;
             if (differs) {
               const restored = await capture(clip);
+              restoredFrame = restored;
               differs = await compare(withoutBadges, badgeRects, withoutStrokes, restored, withoutEffects, roundedEffects);
               changed = !differs;
             }
-            if (differs) { found = differs; break; }
+            if (differs) {
+              const rgba = (await Promise.all([actual, masked, hidden, ...(solo ? [solo] : []), restoredFrame!, ...(withoutEffects ? [withoutEffects] : []), ...(withoutBadges ? [withoutBadges] : [])].map(pixels))).map((image) => [...image.data.slice(pixelIndex, pixelIndex + 4)]);
+              const computed = getComputedStyle(el);
+              console.log("CORNER-DIAGNOSTIC", JSON.stringify({ target: describe(el), point: differs, rgba, rect: r.toJSON(), clip, corners: initial.corners, fragments: fragments.map((fragment) => ({ ...fragment, rect: fragment.rect.toJSON() })), display: computed.display, decoration: computed.boxDecorationBreak, radius: computed.borderRadius, clipPath: computed.clipPath, background: computed.backgroundColor, backdropFilter: computed.backdropFilter, shadow: computed.boxShadow, outline: computed.outline, font: computed.font, roundedEffects, layers: active.map((layer) => ({html: layer.el.outerHTML.slice(0, 800), box: layer.el.getBoundingClientRect().toJSON()})), parent: el.parentElement?.outerHTML.slice(0, 4000), html: el.outerHTML.slice(0, 4000) }));
+              await diagnostic?.({ actual, hidden, masked, solo, restored: restoredFrame!, withoutEffects, rect: r.toJSON(), clip, point: differs, html: el.outerHTML });
+              found = differs;
+              break;
+            }
             if (!changed) break;
           }
           if (found) break;
