@@ -14,6 +14,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
   type Saved = { value: string; priority: string };
   type InlineElement = Element & { style: CSSStyleDeclaration };
   const capture = (window as unknown as { __ouroPaintCapture?: PaintCapture }).__ouroPaintCapture;
+  let pixelIndex = 0;
   if (!capture) throw new Error("squircle-paint needs a screenshot capture supplied by its host");
   const names = [
     { key: "tl", property: "TopLeft", shape: "top-left" },
@@ -290,6 +291,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           }
           if (outsideCorner && !attributable(px, py)) continue;
           if (delta >= 64 || (x > startX && row[x - 1]) || previous[x]) {
+            pixelIndex = index;
             return { corner: cornerIndex, x: Math.round(px - rect.left), y: Math.round(py - rect.top) };
           }
           row[x] = 1;
@@ -379,6 +381,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     .filter((el) => !el.closest("svg, script, style, template") && !optedOut(el) && visible(el));
   const svgLayers = [...document.querySelectorAll<SVGSVGElement>("svg")].filter((svg) => visible(svg) && !optedOut(svg));
   for (const el of targets) {
+    if (!el.matches('button[aria-label="Reply"]')) continue;
     const initial = geometry(el);
     if (!initial || inverseCutout(el, initial)) continue;
     const bounds = el.getBoundingClientRect();
@@ -842,7 +845,13 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               differs = await compare(withoutBadges, badgeRects, withoutStrokes, restored, withoutEffects, roundedEffects);
               changed = !differs;
             }
-            if (differs) { found = differs; break; }
+            if (differs) {
+              const rgba = (await Promise.all([actual, masked, hidden, ...(solo ? [solo] : [])].map(pixels))).map((image) => [...image.data.slice(pixelIndex, pixelIndex + 4)]);
+              const computed = getComputedStyle(el);
+              console.log("REPLY-CORNER", JSON.stringify({ point: differs, rgba, rect: r.toJSON(), clip, corners: initial.corners, display: computed.display, radius: computed.borderRadius, clipPath: computed.clipPath, background: computed.backgroundColor, html: el.outerHTML, parent: el.parentElement?.outerHTML, active: active.map((layer) => layer.el.outerHTML), sourceRects: sourceRects.map((rect) => rect.toJSON()) }));
+              found = differs;
+              break;
+            }
             if (!changed) break;
           }
           if (found) break;

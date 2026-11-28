@@ -1,4 +1,6 @@
+import { mkdirSync, writeFileSync } from "node:fs";
 import type {} from "@vitest/browser-playwright";
+let captureIndex = 0;
 import type { BrowserCommand } from "vitest/node";
 import type { PaintClip } from "../registry/ouro/check/squircle-paint.ts";
 
@@ -36,6 +38,8 @@ const squircleCapture: BrowserCommand<[PaintClip]> = async (ctx, clip) => {
     if (![1, viewport.dpr].some((scale) => Math.abs(actual.width - clip.width * scale) <= 1 && Math.abs(actual.height - clip.height * scale) <= 1)) {
       throw new Error(`Test-frame capture did not cover its clip: ${JSON.stringify({ clip, bounds, viewport, page, actual })}`);
     }
+    mkdirSync(".tmp/corner-reply-captures", { recursive: true });
+    writeFileSync(`.tmp/corner-reply-captures/capture-${String(++captureIndex).padStart(3, "0")}.png`, image);
     return `data:image/png;base64,${image.toString("base64")}`;
   } finally {
     if (scroll && (scroll.x || scroll.y)) {
