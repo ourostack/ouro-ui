@@ -592,6 +592,13 @@ test("squircle-paint accepts native antialiasing on a wrapped inline surface", a
     assert.equal(rects.length, 4);
     assert.equal(rects[0]!.top, 1334.53125);
     assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+    await tab.locator("code").evaluate((element) => {
+      const rect = element.getClientRects()[0]!;
+      const leak = document.createElement("span");
+      leak.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.bottom - 3}px;width:3px;height:3px;background:red`;
+      element.append(leak);
+    });
+    assert.equal((await tab.evaluate(findSquirclePaint)).length, 1);
   } finally {
     await browser.close();
   }
