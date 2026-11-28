@@ -382,6 +382,36 @@ describe("findDesignIssues: cut-off-edge", () => {
     ]);
   });
 
+  it("passes a single focusable picture pan without attributing its clipping to an enclosing carousel", () => {
+    render(`
+      <div style="width:340px;height:160px;background:#eee">
+        <div id="carousel" style="display:flex;position:relative;width:240px;height:120px;overflow:auto;background:#eee">
+          <div style="position:relative;flex:none;width:240px;height:120px">
+            <div role="group" aria-label="Pan picture" tabindex="0" style="position:absolute;inset:0;overflow:auto">
+              <img alt="Map" style="display:block;width:500px;height:300px">
+            </div>
+          </div>
+          <div style="flex:none;width:240px;height:120px;visibility:hidden">Next slide</div>
+        </div>
+      </div>`);
+    expect(of("cut-off-edge")).toEqual([]);
+  });
+
+  it("reports a nested clipped list once, on the scroller that actually clips it", () => {
+    render(`
+      <div style="width:340px;height:160px;background:#eee">
+        <div id="outer" style="display:flex;position:relative;width:240px;height:120px;overflow:auto;background:#eee">
+          <div style="position:relative;flex:none;width:240px;height:120px">
+            <div id="inner" style="position:absolute;inset:0;overflow:auto">
+              <div style="width:500px;height:100px">A long row of notes</div>
+            </div>
+          </div>
+          <div style="flex:none;width:240px;height:120px;visibility:hidden">Next slide</div>
+        </div>
+      </div>`);
+    expect(of("cut-off-edge").map((issue) => issue.element)).toEqual(["div#inner"]);
+  });
+
   it("passes a gradient fade drawn over the clipped edge", () => {
     render(`
       <div style="position:relative;width:340px;height:120px;background:#eee">
