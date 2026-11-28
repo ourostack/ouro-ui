@@ -25,7 +25,8 @@ test("squircle corners: a rounded rule gets a sibling that records its radii and
 test("squircle corners: pills, circles, half a set height and corner-shape: round stay round, and a mixed rule squares only its squircle corners", async () => {
   const out = await run(".a{border-radius:9999px}.b{border-radius:50%}.c{height:2rem;border-radius:1rem}.d{border-radius:8px;corner-shape:round}.e{border-top-left-radius:8px;border-bottom-right-radius:calc(infinity * 1px)}");
   assert.doesNotMatch(out, /\.[abcd]\{--sq/);
-  assert.match(out, /\.e\{--sq-tl:8px;--sq-tr:0px;--sq-br:0px;/);
+  assert.match(out, /\.e\{--sq-tl:8px;--sq-br:0px;/);
+  assert.doesNotMatch(out, /\.e\{--sq-tl:8px;[^}]*--sq-tr:/);
 });
 
 test("squircle corners: keyframes, nested rules, slash radii, longhands and var radii are handled, and CSS with no rounding is left alone", async () => {
@@ -105,7 +106,7 @@ test("squircle corners: separate longhand classes preserve each other's corners"
     try {
       await tab.setContent(`<style>${css}</style><div class="surface top bottom"></div>`);
       const corners = await tab.locator(".surface").evaluate((element) => {
-        const style = getComputedStyle(element);
+        const style = globalThis.getComputedStyle(element);
         return ["tl", "tr", "br", "bl"].map((corner) => parseFloat(style.getPropertyValue(`--sq-${corner}`)));
       });
       assert.deepEqual(corners, [20, 20, 12, 12], `${engine.name()}: opposite corners compose`);
@@ -120,6 +121,7 @@ test("squircle corners: logical corners follow the writing direction", async () 
     .surface { width: 120px; height: 80px; background: #dce5ef; }
     .start { border-start-start-radius: 20px; border-end-start-radius: 12px; }
     .end { border-start-end-radius: 16px; border-end-end-radius: 8px; }
+    .marker:before { content: ""; border-start-start-radius: 10px; }
   `);
   const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-native-corner-shape: squircle)");
   for (const engine of [chromium, webkit]) {
@@ -127,12 +129,17 @@ test("squircle corners: logical corners follow the writing direction", async () 
     const tab = await browser.newPage();
     try {
       for (const [direction, expected] of [["ltr", [20, 16, 8, 12]], ["rtl", [16, 20, 12, 8]]]) {
-        await tab.setContent(`<style>${css}</style><div dir="${direction}" class="surface start end"></div>`);
+        await tab.setContent(`<style>${css}</style><div dir="${direction}" class="surface start end"><span class="marker"></span></div>`);
         const corners = await tab.locator(".surface").evaluate((element) => {
-          const style = getComputedStyle(element);
+          const style = globalThis.getComputedStyle(element);
           return ["tl", "tr", "br", "bl"].map((corner) => parseFloat(style.getPropertyValue(`--sq-${corner}`)));
         });
         assert.deepEqual(corners, expected, `${engine.name()}: ${direction}`);
+        const pseudo = await tab.locator(".marker").evaluate((element) => {
+          const style = globalThis.getComputedStyle(element, "::before");
+          return ["tl", "tr"].map((corner) => parseFloat(style.getPropertyValue(`--sq-${corner}`)));
+        });
+        assert.deepEqual(pseudo, direction === "ltr" ? [10, 0] : [0, 10], `${engine.name()}: ${direction} pseudo-element`);
       }
     } finally {
       await browser.close();
@@ -154,10 +161,10 @@ test("squircle corners: grouping fallback rules preserves the source cascade", a
     const tab = await browser.newPage();
     try {
       await tab.setContent(`<style>${css}</style><div class="surface first middle last"></div>`);
-      const radius = await tab.locator(".surface").evaluate((element) => parseFloat(getComputedStyle(element).getPropertyValue("--sq-tl")));
+      const radius = await tab.locator(".surface").evaluate((element) => parseFloat(globalThis.getComputedStyle(element).getPropertyValue("--sq-tl")));
       assert.equal(radius, 8, `${engine.name()}: the last radius wins`);
       await tab.locator(".surface").evaluate((element) => { element.className = "surface first wide"; });
-      const wide = await tab.locator(".surface").evaluate((element) => parseFloat(getComputedStyle(element).getPropertyValue("--sq-tl")));
+      const wide = await tab.locator(".surface").evaluate((element) => parseFloat(globalThis.getComputedStyle(element).getPropertyValue("--sq-tl")));
       assert.equal(wide, 28, `${engine.name()}: the later media rule wins`);
     } finally {
       await browser.close();

@@ -15,6 +15,7 @@ interface Node {
   walkDecls?: (cb: (decl: Node) => void) => void;
   append: (node: object) => unknown;
   prepend: (node: object) => unknown;
+  after: (node: object) => unknown;
   walkRules: (cb: (rule: Node) => void) => void;
 }
 
@@ -25,11 +26,12 @@ const ENCLOSING_CIRCLE = 0.543;
 // controls and end, drawn from the corner's left edge to its top edge.
 const CORNER = [[0, 1], [0, 0.613, -0.0092, 0.3274, 0.1591, 0.1591], [0.3274, -0.0092, 0.613, 0, 1, 0]] as const;
 const KEYS = ["tl", "tr", "br", "bl"] as const;
-const LONGHANDS: Record<string, number> = {
-  "border-top-left-radius": 0, "border-start-start-radius": 0,
-  "border-top-right-radius": 1, "border-start-end-radius": 1,
-  "border-bottom-right-radius": 2, "border-end-end-radius": 2,
-  "border-bottom-left-radius": 3, "border-end-start-radius": 3,
+const RADIUS_PROPERTIES = ["border-top-left-radius", "border-top-right-radius", "border-bottom-right-radius", "border-bottom-left-radius"] as const;
+const LONGHANDS: Record<string, number | [number, number]> = {
+  "border-top-left-radius": 0, "border-start-start-radius": [0, 1],
+  "border-top-right-radius": 1, "border-start-end-radius": [1, 0],
+  "border-bottom-right-radius": 2, "border-end-end-radius": [2, 3],
+  "border-bottom-left-radius": 3, "border-end-start-radius": [3, 2],
 };
 
 /**
@@ -47,41 +49,52 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
     OnceExit(input: unknown) {
       const root = input as Node;
       const selectors = new Set<string>();
-      // Two rules in the same place (the same @media, @supports or layer) that round to the same radii need the
-      // same fallback declarations: grouped by parent and by those declarations, they share one sibling rule
-      // instead of each writing its own, which is the only duplication this pass can safely remove (a rule's own
-      // class is unique, so no other group ever claims its selector).
-      const groups = new Map<Node, Map<string, { vars: string[]; radii: string[]; selectors: string[] }>>();
+      type Group = { key: string; vars: string[]; radii: (string | null)[]; selectors: string[]; last: Node };
+      const groups = new Map<Node, Group[]>();
       root.walkRules((rule) => {
         if (skipped(rule)) return;
-        const corners = cornersOf(rule);
-        if (!corners.some((c) => c !== null && !isRound(c, rule))) return;
-        const vars: string[] = [];
-        const radii = corners.map((c, i) => {
-          const round = c === null || isRound(c, rule);
-          vars.push(`--sq-${KEYS[i]}: ${round ? "0px" : c}`);
-          return round ? (c ?? "0") : `calc(${c} * ${ENCLOSING_CIRCLE})`;
-        });
-        let byBody = groups.get(rule.parent!);
-        if (!byBody) groups.set(rule.parent!, (byBody = new Map()));
-        const key = `${vars.join(";")}|${radii.join(" ")}`;
-        let group = byBody.get(key);
-        if (!group) byBody.set(key, (group = { vars, radii, selectors: [] }));
-        group.selectors.push(rule.selector!);
-        for (const s of rule.selectors ?? []) selectors.add(s);
+        const logical = (rule.nodes ?? []).some((node) => node.type === "decl" && node.prop && Array.isArray(LONGHANDS[node.prop]));
+        let included = false;
+        for (const direction of logical ? ["ltr", "rtl"] as const : [undefined]) {
+          const corners = cornersOf(rule, direction === "rtl");
+          if (!corners.some((c) => c !== null && !isRound(c, rule))) continue;
+          included = true;
+          const vars: string[] = [];
+          const radii = corners.map((c, i) => {
+            if (c === null) return null;
+            const round = isRound(c, rule);
+            vars.push(`--sq-${KEYS[i]}: ${round ? "0px" : c}`);
+            return round ? c : `calc(${c} * ${ENCLOSING_CIRCLE})`;
+          });
+          let byParent = groups.get(rule.parent!);
+          if (!byParent) groups.set(rule.parent!, (byParent = []));
+          const key = `${vars.join(";")}|${radii.join(" ")}`;
+          const previous = byParent.at(-1);
+          const nodes = rule.parent!.nodes ?? [];
+          const between = previous ? nodes.slice(nodes.indexOf(previous.last) + 1, nodes.indexOf(rule)) : [];
+          const safe = between.every((node) => node.type === "comment" ||
+            (node.type === "rule" && cornersOf(node).every((corner) => corner === null)));
+          let group = previous && previous.key === key && safe ? previous : undefined;
+          if (!group) byParent.push((group = { key, vars, radii, selectors: [], last: rule }));
+          const list = rule.selectors ?? [rule.selector!];
+          group.selectors.push(...(direction ? list.map((selector) => directionSelector(selector, direction)) : list));
+          group.last = rule;
+        }
+        if (included) for (const s of rule.selectors ?? []) selectors.add(s);
       });
-      for (const [parent, byBody] of groups) {
-        for (const group of byBody.values()) {
-          for (const selector of selectorGroups(group.selectors)) {
+      if (selectors.size === 0) return;
+      for (const byParent of groups.values()) {
+        for (const group of byParent.reverse()) {
+          for (const selector of selectorGroups(group.selectors).reverse()) {
             const sibling = { selector, nodes: [] as object[] };
             for (const v of group.vars) sibling.nodes.push({ prop: v.split(": ")[0], value: v.split(": ")[1] });
-            sibling.nodes.push({ prop: "border-radius", value: group.radii.join(" ") });
+            if (group.radii.every((radius) => radius !== null)) sibling.nodes.push({ prop: "border-radius", value: group.radii.join(" ") });
+            else group.radii.forEach((value, i) => { if (value !== null) sibling.nodes.push({ prop: RADIUS_PROPERTIES[i], value }); });
             const wrap = { name: "supports", params: MISSING, nodes: [sibling] };
-            parent.append(wrap);
+            group.last.after(wrap);
           }
         }
       }
-      if (selectors.size === 0) return;
       const lists = selectorGroups([...selectors]);
       const layer = {
         name: "layer",
@@ -285,7 +298,7 @@ function skipped(rule: Node): boolean {
 }
 
 // The four corners' radii as written (top-left, top-right, bottom-right, bottom-left), or null for a corner the rule leaves alone.
-function cornersOf(rule: Node): (string | null)[] {
+function cornersOf(rule: Node, rtl = false): (string | null)[] {
   const out: (string | null)[] = [null, null, null, null];
   for (const decl of rule.nodes ?? []) {
     if (decl.type !== "decl") continue;
@@ -293,9 +306,18 @@ function cornersOf(rule: Node): (string | null)[] {
     if (decl.prop === "border-radius" && !value.includes("/")) {
       const [a, b = a, c = a, d = b] = splitTop(value);
       out.splice(0, 4, a ?? null, b ?? null, c ?? null, d ?? null);
-    } else if (decl.prop! in LONGHANDS) out[LONGHANDS[decl.prop!]!] = splitTop(value)[0] ?? null;
+    } else if (decl.prop! in LONGHANDS) {
+      const corner = LONGHANDS[decl.prop!]!;
+      out[Array.isArray(corner) ? corner[rtl ? 1 : 0]! : corner] = splitTop(value)[0] ?? null;
+    }
   }
   return out;
+}
+
+function directionSelector(selector: string, direction: "ltr" | "rtl"): string {
+  const pseudo = pseudoElementAt(selector);
+  const at = pseudo < 0 ? selector.length : pseudo;
+  return `${selector.slice(0, at)}:where(:dir(${direction}))${selector.slice(at)}`;
 }
 
 function splitTop(value: string): string[] {
