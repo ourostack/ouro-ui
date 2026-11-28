@@ -873,13 +873,15 @@ describe("findOverlaps", () => {
       `<section style="display:grid;width:100px"><img src="${url}" alt="${text}" style="grid-area:1/1;width:100px;height:100px;display:block"><div style="grid-area:1/1;align-self:end;display:grid"><div style="grid-area:1/1;z-index:1;${glass}"></div><span style="grid-area:1/1;z-index:2;padding:4px">${text}</span></div></section>`;
     render(
       band("background:rgba(255,255,255,0.78);backdrop-filter:blur(12px)", "Glass") +
+      band("background:color(srgb 0.1 0.2 0.3 / 0.78);backdrop-filter:blur(12px)", "Profiled glass") +
         band("background:rgba(255,255,255,0.95)", "Solid") +
         band("background:rgba(255,255,255,0.78)", "Faint") +
         band("background:rgba(255,255,255,0.4);backdrop-filter:blur(12px)", "Thin") +
+      band("background:color(display-p3 0.1 0.2 0.3 / 0.4);backdrop-filter:blur(12px)", "Profiled thin") +
         `<section style="position:relative"><img src="${url}" alt="Around" style="width:100px;height:100px;display:block"><span style="position:absolute;bottom:4px;left:4px;background:rgba(255,255,255,0.7);backdrop-filter:blur(8px);padding:2px">Glass chip</span></section>`,
     );
     await decodeImages();
-    expect(findOverlaps().map((issue) => issue.element)).toEqual(['span "Faint" × img "Faint"', 'span "Thin" × img "Thin"']);
+    expect(findOverlaps().map((issue) => issue.element)).toEqual(['span "Faint" × img "Faint"', 'span "Thin" × img "Thin"', 'span "Profiled thin" × img "Profiled thin"']);
   });
 
   it("reads a glass band only where it covers the whole overlap on the screen, never a picture's own box or a chip on it", async () => {
@@ -908,6 +910,9 @@ describe("findOverlaps", () => {
         over('role="dialog"', "background:rgb(30 30 30)"),
         over('data-popover=""', "", '<div style="background:#fff">On a box of its own</div>'),
         over("", "background:oklch(0.98 0 0 / 0.95)"),
+        over("", "background:color(srgb 0.1 0.2 0.3 / 0.95)"),
+        over("", "background:color(display-p3 0.1 0.2 0.3)"),
+        over("", "background:color-mix(in srgb, rgb(24 88 164) 90%, transparent)"),
       ].join(""),
     );
     expect(findOverlaps()).toEqual([]);
@@ -916,10 +921,12 @@ describe("findOverlaps", () => {
   it("finds page text under a see-through overlay, a small badge, or a floating box with no fill", () => {
     render(`
       <div style="position:relative"><p style="margin:0">Under a see-through menu</p><div role="menu" style="position:absolute;top:0;left:0;width:240px;height:60px;background:rgba(255,255,255,0.5)">A see-through menu</div></div>
+      <div style="position:relative"><p style="margin:0">Under a profiled menu</p><div role="menu" style="position:absolute;top:0;left:0;width:240px;height:60px;background:color(srgb 0.1 0.2 0.3 / 0.5)">A profiled menu</div></div>
       <div style="position:relative"><p style="margin:0">Under a badge</p><span style="position:absolute;top:0;left:0;width:40px;height:20px;background:#fff">99+</span></div>
       <div style="position:relative"><p style="margin:0">Under a clear panel</p><div style="position:absolute;top:0;left:0;width:240px;height:60px">A clear panel</div></div>`);
     expect(findOverlaps().map((issue) => issue.element)).toEqual([
       'p "Under a see-through menu" × div "A see-through menu"',
+      'p "Under a profiled menu" × div "A profiled menu"',
       'p "Under a badge" × span "99+"',
       'p "Under a clear panel" × div "A clear panel"',
     ]);
