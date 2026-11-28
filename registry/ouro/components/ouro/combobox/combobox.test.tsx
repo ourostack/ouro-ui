@@ -1396,6 +1396,7 @@ describe("Combobox keys", () => {
     expect(searched).toHaveBeenLastCalledWith("");
     expect(host.querySelectorAll("[data-ouro-combobox-chip]")).toHaveLength(2);
     expect(document.activeElement).toBe(input);
+    expect(input.getAttribute("aria-expanded")).toBe("true");
   });
 
   it("uses a current answer immediately without offering picked people again", async () => {
