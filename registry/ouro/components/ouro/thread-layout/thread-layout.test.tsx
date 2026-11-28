@@ -124,7 +124,7 @@ describe("ThreadLayout", () => {
     const thread = (
       <ThreadRail label="Thread" autoFocus={false} onClose={() => {}}>
         <MessageList label="Replies" className="min-h-0 flex-1">
-          <Message role="assistant">A reply</Message>
+          <Message role="assistant" name="Assistant">A reply</Message>
         </MessageList>
       </ThreadRail>
     );
@@ -141,7 +141,7 @@ describe("ThreadLayout", () => {
 
       await rerender(
         <ThreadLayout
-          conversation={<MessageList label="Conversation"><Message role="assistant">A note</Message></MessageList>}
+          conversation={<MessageList label="Conversation"><Message role="assistant" name="Assistant">A note</Message></MessageList>}
           thread={thread}
         />,
       );
