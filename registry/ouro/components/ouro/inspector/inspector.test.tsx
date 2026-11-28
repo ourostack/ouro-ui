@@ -196,12 +196,15 @@ describe("Inspector geometry", () => {
       await drawn(1);
       const curve = outlines()[0]!.querySelector("path")!;
       // The n=4 superellipse crosses the corner diagonal here, not at the square or circle's corner.
-      const diagonal = 40 * (1 - 2 ** -0.25) + 0.5;
+      const diagonal = 39.5 * (1 - 2 ** -0.25) + 0.5;
       expect(curve.isPointInStroke(new DOMPoint(diagonal, diagonal))).toBe(true);
+      expect(curve.isPointInStroke(new DOMPoint(diagonal - 0.3, diagonal - 0.3))).toBe(true);
       expect(curve.isPointInStroke(new DOMPoint(0.5, 0.5))).toBe(false);
       const circular = 40 * (1 - Math.SQRT1_2) + 0.5;
       expect(curve.isPointInStroke(new DOMPoint(circular, circular))).toBe(false);
-      expect(curve.isPointInStroke(new DOMPoint(0.5, 50))).toBe(true);
+      for (const [x, y] of [[0.5, 50], [100, 0.5], [199.5, 50], [100, 99.5]]) {
+        expect(curve.isPointInStroke(new DOMPoint(x, y))).toBe(true);
+      }
       if (fallback) {
         expect(document.elementFromPoint(100 + diagonal - 1, 200 + diagonal - 1)).not.toBe(surface);
         expect(document.elementFromPoint(100 + diagonal + 1, 200 + diagonal + 1)).toBe(surface);
@@ -209,17 +212,28 @@ describe("Inspector geometry", () => {
     });
 
     it(`clamps asymmetric corner radii together and keeps a zero corner square, ${fallback ? "fallback" : "native"}`, async () => {
-      const surface = component(100, 200, 100, 60);
-      surface.style.borderRadius = "80px 40px 0px 20px";
-      if (fallback) {
-        for (const [corner, radius] of [["tl", 80], ["tr", 40], ["br", 0], ["bl", 20]]) surface.style.setProperty(`--sq-${corner}`, `${radius}px`);
-      } else surface.style.setProperty("corner-shape", "squircle");
+      const cases = [
+        { width: 100, height: 60, radii: [80, 40, 0, 20] },
+        { width: 60, height: 100, radii: [20, 80, 40, 0] },
+        { width: 100, height: 60, radii: [0, 20, 80, 40] },
+        { width: 60, height: 100, radii: [40, 0, 20, 80] },
+      ];
+      for (const [index, { width, height, radii }] of cases.entries()) {
+        const surface = component(100, 200 + index * 110, width, height);
+        surface.style.borderRadius = radii.map((radius) => `${radius}px`).join(" ");
+        if (fallback) {
+          for (const [corner, radius] of radii.entries()) surface.style.setProperty(`--sq-${["tl", "tr", "br", "bl"][corner]}`, `${radius}px`);
+        } else surface.style.setProperty("corner-shape", "squircle");
+      }
       await xray();
-      await drawn(1);
-      const curve = outlines()[0]!.querySelector("path")!;
-      const diagonal = (radius: number) => (radius * 0.6 - 0.5) * (1 - 2 ** -0.25);
-      for (const [x, y] of [[0.5 + diagonal(80), 0.5 + diagonal(80)], [99.5 - diagonal(40), 0.5 + diagonal(40)], [0.5 + diagonal(20), 59.5 - diagonal(20)], [99.5, 59.5]]) {
-        expect(curve.isPointInStroke(new DOMPoint(x, y))).toBe(true);
+      await drawn(4);
+      const diagonal = (radius: number) => Math.max(0, radius * 0.6 - 0.5) * (1 - 2 ** -0.25);
+      for (const [index, { width, height, radii }] of cases.entries()) {
+        const curve = outlines()[index]!.querySelector("path")!;
+        const [tl, tr, br, bl] = radii.map(diagonal);
+        for (const [x, y] of [[0.5 + tl!, 0.5 + tl!], [width - 0.5 - tr!, 0.5 + tr!], [width - 0.5 - br!, height - 0.5 - br!], [0.5 + bl!, height - 0.5 - bl!]]) {
+          expect(curve.isPointInStroke(new DOMPoint(x, y))).toBe(true);
+        }
       }
     });
   }
@@ -268,12 +282,18 @@ describe("Inspector geometry", () => {
   it("keeps a subpixel corner axis on the straight edge", async () => {
     const surface = component(100, 200, 200, 100);
     surface.style.borderTopLeftRadius = "0.25px 20px";
+    surface.style.borderBottomRightRadius = "20px 0.25px";
     surface.style.setProperty("corner-shape", "squircle");
     await xray();
     await drawn(1);
     const curve = outlines()[0]!.querySelector("path")!;
     expect(curve.isPointInStroke(new DOMPoint(0.5, 5))).toBe(true);
     expect(curve.isPointInStroke(new DOMPoint(5, 0.5))).toBe(true);
+    const bounds = curve.getBBox();
+    expect(bounds.x).toBeCloseTo(0.5, 5);
+    expect(bounds.y).toBeCloseTo(0.5, 5);
+    expect(bounds.width).toBeCloseTo(199, 5);
+    expect(bounds.height).toBeCloseTo(99, 5);
   });
 
   it("avoids measuring the CSS math probe for already resolved radii", async () => {

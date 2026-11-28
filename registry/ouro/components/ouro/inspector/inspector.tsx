@@ -396,7 +396,7 @@ function roundedFrame(box: DOMRect, style: CSSStyleDeclaration, radiusLength: Ra
       squircle: squircle || /squircle|superellipse\(2\)/.test(style.getPropertyValue(`corner-${name}-shape`)),
     };
   });
-  if (!radii.some(({ x, y }) => x > 0 && y > 0)) return null;
+  if (!radii.some(({ x }) => x > 0)) return null;
   const [tl, tr, br, bl] = radii;
   // CSS reduces every radius by the same factor when adjacent corners overlap.
   const scale = Math.min(1, box.width / (tl!.x + tr!.x), box.width / (bl!.x + br!.x), box.height / (tl!.y + bl!.y), box.height / (tr!.y + br!.y));
