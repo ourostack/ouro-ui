@@ -453,6 +453,34 @@ async function bindCapture(tab: Page) {
   );
 }
 
+test("squircle-paint releases decoded canvas backing stores after reading their pixels", async () => {
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 400 } });
+    try {
+      await bindCapture(tab);
+      await tab.setContent(`<style>${await styles("body { margin: 0; background: white; } .surface { margin: 40px; width: 180px; height: 100px; border-radius: 24px; background: #557799; }")}</style><div class="surface"></div>`);
+      await tab.evaluate(() => {
+        const canvases = new Set<HTMLCanvasElement>();
+        const getImageData = CanvasRenderingContext2D.prototype.getImageData;
+        CanvasRenderingContext2D.prototype.getImageData = function (...args: Parameters<typeof getImageData>) {
+          if (args[2] > 1 || args[3] > 1) canvases.add(this.canvas);
+          return getImageData.call(this, ...args);
+        };
+        Object.assign(window, {
+          decodedPaintStats: () => ({ reads: canvases.size, pixels: [...canvases].reduce((sum, canvas) => sum + canvas.width * canvas.height, 0) }),
+        });
+      });
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+      const stats = await tab.evaluate<{ reads: number; pixels: number }>("window.decodedPaintStats()");
+      assert.ok(stats.reads >= 3, `${engine.name()}: real actual, masked and hidden PNGs were decoded`);
+      assert.equal(stats.pixels, 0, `${engine.name()}: decoded backing stores must not wait for garbage collection`);
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
 test("squircle-paint keeps fractional border boxes when masking a native corner", async () => {
   const browser = await chromium.launch({ headless: true });
   const tab = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });

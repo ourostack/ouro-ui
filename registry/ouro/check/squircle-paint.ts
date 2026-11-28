@@ -198,12 +198,18 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
     const image = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
     const canvas = document.createElement("canvas");
-    canvas.width = image.width;
-    canvas.height = image.height;
-    const context = canvas.getContext("2d", { willReadFrequently: true })!;
-    context.drawImage(image, 0, 0);
-    image.close();
-    return { width: canvas.width, height: canvas.height, data: context.getImageData(0, 0, canvas.width, canvas.height).data };
+    const { width, height } = image;
+    try {
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) throw new Error("squircle-paint needs a 2D context to decode its PNG captures");
+      context.drawImage(image, 0, 0);
+      return { width, height, data: context.getImageData(0, 0, width, height).data };
+    } finally {
+      image.close();
+      canvas.width = canvas.height = 0;
+    }
   };
   const differences = async (actual: string, masked: string, hidden: string, solo: string | null, withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, strokePads: { x: number; y: number }[], clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean, otherFragments: DOMRect[], fragmented: boolean, attributable: (x: number, y: number) => boolean, restored: string | null, withoutEffects: string | null, roundedEffects: boolean[], clippedEffects: boolean[]) => {
     const [a, b, c, own, noBadges, noStrokes, stable, noEffects] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null, withoutBadges ? pixels(withoutBadges) : null, withoutStrokes ? pixels(withoutStrokes) : null, restored ? pixels(restored) : null, withoutEffects ? pixels(withoutEffects) : null]);
