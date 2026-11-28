@@ -98,6 +98,20 @@ const preview = () => panel()!.lastElementChild!.textContent;
 const trigger = (host: Element) => host.querySelector<HTMLButtonElement>("button")!;
 const focused = () => document.activeElement as HTMLElement;
 
+describe("EmojiPicker surfaces", () => {
+  it("steps the scrolling grid away from the surrounding popup", async () => {
+    await open({ categories: many });
+    const scroller = cells()[0]!.closest<HTMLElement>(".overflow-y-auto")!;
+    const probe = document.createElement("div");
+    probe.style.backgroundColor = "var(--muted)";
+    panel()!.append(probe);
+    expect(getComputedStyle(scroller).backgroundColor).toBe(getComputedStyle(probe).backgroundColor);
+    const grid = scroller.querySelector('[role="grid"]')!;
+    const heading = document.getElementById(grid.getAttribute("aria-labelledby")!)!;
+    expect(getComputedStyle(heading).backgroundColor).toBe(getComputedStyle(scroller).backgroundColor);
+  });
+});
+
 /** Waits until the open popover has started its entrance, then ends the fade at once. */
 async function settled() {
   await expect

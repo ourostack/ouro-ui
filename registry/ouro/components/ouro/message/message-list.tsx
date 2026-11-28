@@ -3256,7 +3256,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
   };
 
   return (
-    <div {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col", hasFind && findMarks, className)}>
+    <div {...rest} data-ouro="message-list" className={cn("relative box-border flex min-h-0 flex-col [--ouro-message-list-bubble:var(--ouro-message-list-bubble-default,var(--background))]", hasFind && findMarks, className)}>
       {/* Holds the scroller and its focus ring, drawn over it, so content that sticks to an edge never covers the ring. */}
       <div className="relative flex min-h-0 flex-1 flex-col">
         {/* No browser scroll anchoring; the layout effect above keeps the reader's place instead. Positioned, so
