@@ -141,12 +141,12 @@ export function PlanApproval(props: PlanApprovalProps): JSX.Element {
     setFeedback("");
   }
   // Where focus goes once the person opens or cancels the field: the field, or back to Request changes.
-  const focusAfter = useRef<"field" | "request" | undefined>(undefined);
+  const focusAfter = useRef<{ current: HTMLElement | null } | undefined>(undefined);
   useLayoutEffect(() => {
     const target = focusAfter.current;
     if (target === undefined) return;
     focusAfter.current = undefined;
-    (target === "field" ? fieldRef : requestRef).current!.focus();
+    target.current!.focus();
   }, [editing]);
   // Whether focus was on a button or in the field as the answer removed them, read in the ref's cleanup, which React
   // runs before it takes them out; then focus moves to the answer's line.
@@ -193,7 +193,7 @@ export function PlanApproval(props: PlanApprovalProps): JSX.Element {
                         variant="plain"
                         disabledReason={busy}
                         onClick={() => {
-                          focusAfter.current = "request";
+                          focusAfter.current = requestRef;
                           setEditing(false);
                         }}
                       >
@@ -222,7 +222,7 @@ export function PlanApproval(props: PlanApprovalProps): JSX.Element {
                       loading={answering === "changes"}
                       disabledReason={answering === "approve" ? busy : undefined}
                       onClick={() => {
-                        focusAfter.current = "field";
+                        focusAfter.current = fieldRef;
                         setEditing(true);
                       }}
                     >

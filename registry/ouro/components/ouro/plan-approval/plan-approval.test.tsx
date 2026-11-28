@@ -141,6 +141,26 @@ describe("PlanApproval", () => {
     expect(view.button("approve")!.hasAttribute("aria-busy")).toBe(false);
   });
 
+  it("keeps the field while an answer is on its way: busy Send for changes, and the field and Send off for an approval", async () => {
+    const view = await render(<PlanApproval title={title}>{plan}</PlanApproval>);
+    await userEvent.click(view.button("request-changes")!);
+    await userEvent.fill(view.field!, "Less rice");
+    expect(view.field!.disabled).toBe(false);
+    await view.rerender(<PlanApproval title={title} answering="changes">{plan}</PlanApproval>);
+    expect(view.button("send")!.getAttribute("aria-busy")).toBe("true");
+    expect(view.button("send")!.hasAttribute("data-ouro-off")).toBe(false);
+    expect(view.button("cancel")!.getAttribute("aria-disabled")).toBe("true");
+    expect(view.field!.disabled).toBe(false);
+    await view.rerender(<PlanApproval title={title} answering="approve">{plan}</PlanApproval>);
+    expect(view.button("send")!.hasAttribute("aria-busy")).toBe(false);
+    expect(view.button("send")!.getAttribute("aria-disabled")).toBe("true");
+    expect(view.field!.disabled).toBe(true);
+    await expect.element(page.getByRole("button", { name: "Send" })).toHaveAccessibleDescription("Your answer is on its way");
+    await view.rerender(<PlanApproval title={title}>{plan}</PlanApproval>);
+    await userEvent.fill(view.field!, "");
+    await expect.element(page.getByRole("button", { name: "Send" })).toHaveAccessibleDescription("Say what should change first");
+  });
+
   it("gives way to who answered and from where, which a screen reader hears, with the feedback under it", async () => {
     const view = await render(<PlanApproval title={title}>{plan}</PlanApproval>);
     const heard = watchAnnouncements();
