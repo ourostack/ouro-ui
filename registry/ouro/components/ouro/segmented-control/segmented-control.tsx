@@ -148,7 +148,7 @@ function Segment(props: {
       )}
       {/* sr-only alone: beside relative, which sets position too, the hidden label could stay in the row and push the icon aside. */}
       <span data-slot="segmented-control-label" className={glass && !selected && item.icon !== undefined ? "sr-only" : "relative min-w-0 truncate"}>{item.label}</span>
-      {item.count !== undefined && (glass ? selected : true) && (
+      {item.count !== undefined && (!glass || selected) && (
         <span data-slot="segmented-control-count" className={countClass}>
           {item.count}
         </span>
@@ -352,9 +352,11 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
         }}
         onBlurCapture={(event) => {
           // Focus leaving the group (by pointer, say) ends the arrow key's move.
-          if (!event.currentTarget.contains(event.relatedTarget)) arrowed.current = false;
           // It also ends what the person asked for here: a check the app makes after this is its own.
-          if (!event.currentTarget.contains(event.relatedTarget)) asked.current.clear();
+          if (!event.currentTarget.contains(event.relatedTarget)) {
+            arrowed.current = false;
+            asked.current.clear();
+          }
         }}
         data-glass={glass ? "" : undefined}
         // Stryker disable next-line ConditionalExpression,LogicalOperator: fullWidth is tested on the plain group; the glass class sets its own look
