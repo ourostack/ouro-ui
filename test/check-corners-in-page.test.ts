@@ -52,6 +52,11 @@ it("compares painted corners against the actual browser pixels", async () => {
   expect(issues.find((issue) => issue.element === "div#surface")?.detail).toContain("top left");
 }, paintTimeout);
 
+it("detects visible paint outside a low-opacity surface", async () => {
+  render('<div id="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle;opacity:.04"><div style="position:absolute;inset:0;background:#000"></div></div>');
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#surface");
+}, paintTimeout);
+
 it("accepts a percent-encoded PNG capture as well as base64", async () => {
   const capture = state.__ouroPaintCapture!;
   state.__ouroPaintCapture = async (clip) => {
