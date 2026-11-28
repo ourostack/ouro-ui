@@ -583,6 +583,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const scrollY = /auto|scroll/.test(s.overflowY) && el.scrollHeight > el.clientHeight + 1;
     const mask = s.maskImage || "none";
     if ((!scrollX && !scrollY) || (mask !== "none" && (!/gradient\(/.test(mask) || gradientFades(mask)))) continue;
+    if (el.tabIndex >= 0 && el.children.length === 1 && el.firstElementChild?.matches("img, video, canvas")) continue;
     const surface = surfaceOf(el);
     if (!surface) continue;
     const box = el.getBoundingClientRect();
@@ -626,11 +627,29 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       const crosses = (r: DOMRect) => horizontal
         ? r.top < edge - 0.5 && r.bottom > edge + 0.5 && r.right > left && r.left < right
         : r.left < edge - 0.5 && r.right > edge + 0.5 && r.bottom > top && r.top < bottom;
+      const clippedBefore = (child: Element) => {
+        let escaping = getComputedStyle(child).position === "absolute";
+        for (let n = child.parentElement; n && n !== el; n = n.parentElement) {
+          const style = getComputedStyle(n);
+          const positioned = style.position !== "static";
+          const clips = !/^(inline|contents)$/.test(style.display) && (!escaping || positioned);
+          if (clips && (/paint|strict|content/.test(style.contain) || (horizontal ? style.overflowY : style.overflowX) !== "visible")) {
+            const r = n.getBoundingClientRect();
+            const scale = horizontal ? r.height / (n.offsetHeight || r.height) : r.width / (n.offsetWidth || r.width);
+            const near = horizontal ? r.top + n.clientTop * scale : r.left + n.clientLeft * scale;
+            const far = near + (horizontal ? n.clientHeight : n.clientWidth) * scale;
+            if (side === "top" || side === "left" ? near >= edge - 0.5 : far <= edge + 0.5) return true;
+          }
+          if (positioned) escaping = style.position === "absolute";
+          if (style.position === "fixed") break;
+        }
+        return false;
+      };
       const crossing = textRects.some(crosses) || content.some((child) => {
         const r = child.getBoundingClientRect();
         const d = drawnRect(child)!;
         if (d.width < 1 || d.height < 1) return false;
-        return crosses(r) && (horizontal ? d.top <= edge + 1 && d.bottom >= edge - 1 : d.left <= edge + 1 && d.right >= edge - 1);
+        return crosses(r) && !clippedBefore(child) && (horizontal ? d.top <= edge + 1 && d.bottom >= edge - 1 : d.left <= edge + 1 && d.right >= edge - 1);
       });
       if (!crossing) return false;
       const unclear = [0.25, 0.5, 0.75].some((share) => {

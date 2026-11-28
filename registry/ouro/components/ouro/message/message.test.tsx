@@ -972,6 +972,24 @@ describe("Message context", () => {
 });
 
 describe("Message chat", () => {
+  it.each(["light", "dark"])("keeps a wide table's scrolling surface distinct from its bubble in %s", async (scheme) => {
+    const root = document.documentElement;
+    const wasDark = root.classList.contains("dark");
+    root.classList.toggle("dark", scheme === "dark");
+    try {
+      const { message } = await render(
+        <Message variant="chat" role="assistant" name="Assistant">
+          <Table caption="Tasks" columns={[{ key: "task", header: "Task" }]} rows={[{ task: "A long task ".repeat(20) }]} />
+        </Message>,
+      );
+      const viewport = message.querySelector<HTMLElement>("[data-scroll-viewport]")!;
+      expect(viewport.scrollWidth).toBeGreaterThan(viewport.clientWidth);
+      expect(getComputedStyle(viewport).backgroundColor).not.toBe(getComputedStyle(bubbleOf(message)).backgroundColor);
+    } finally {
+      root.classList.toggle("dark", wasDark);
+    }
+  });
+
   it("shows that a wide table or a long line of code in a bubble scrolls sideways", async () => {
     const columns = ["Task", "Owner", "Status", "Due", "Notes"];
     const { message } = await render(
