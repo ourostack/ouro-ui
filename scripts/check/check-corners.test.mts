@@ -62,6 +62,12 @@ test("corners-nest finds a mismatched bottom corner through a wrapper in a clipp
   assert.deepEqual(sound, []);
 });
 
+test("corners-nest accepts the rounded surface in the nested-frame pass fixture", async () => {
+  const fixture = readFileSync(join(fixtures, "nested-frame-pass.html"), "utf8");
+  const report = await scan("nested-frame-corners", fixture);
+  assert.deepEqual(report.findings.filter((finding) => finding.rule === "corners-nest"), []);
+});
+
 test("corners-nest compares a surface with the native window only when its radius is supplied", async () => {
   const css = await styles(`
     .window-panel { position: fixed; inset: 4px; border-radius: 8px; background: #557799; }

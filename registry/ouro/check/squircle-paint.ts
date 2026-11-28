@@ -21,9 +21,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     { key: "bl", property: "BottomLeft", shape: "bottom-left" },
   ] as const;
   const counter = window as unknown as { __ouroCheckRef?: number };
+  const nextRef = () => counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
   const ref = (el: Element) => {
-    counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
-    const id = `p${counter.__ouroCheckRef}`;
+    const id = `p${nextRef()}`;
     el.setAttribute("data-ouro-check-ref", `${el.getAttribute("data-ouro-check-ref") ?? ""} ${id}`.trim());
     return id;
   };
@@ -72,7 +72,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
   const notchedBadges = (el: HTMLElement, siblings: HTMLElement[], bounds: DOMRect, initial: NonNullable<ReturnType<typeof geometry>>, hasOutline: boolean) => {
     const sameBox = (rect: DOMRect) =>
       [rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5);
-    const candidates = [...el.querySelectorAll<HTMLElement>("*"), ...siblings].filter((candidate) => {
+    const candidates = [...el.querySelectorAll("*"), ...siblings].filter((candidate): candidate is HTMLElement => {
       if (!(candidate instanceof HTMLElement)) return false;
       const rect = candidate.getBoundingClientRect();
       if (rect.width < 2 || Math.abs(rect.width - rect.height) > 0.5 || rect.width > Math.min(bounds.width, bounds.height) / 2) return false;
@@ -94,14 +94,8 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       });
     });
     if (candidates.length === 0) return [];
-    const standalone = candidates.every((candidate) =>
-      candidate.children.length === 0 && ["::before", "::after"].every((pseudo) => {
-        const content = getComputedStyle(candidate, pseudo).content;
-        return content === "none" || content === "normal";
-      }),
-    );
-    if (standalone && !hasOutline && !hasPaint(el) &&
-      ![...el.querySelectorAll("*"), ...siblings].some((other) => !candidates.some((candidate) => candidate === other) && visible(other) && hasPaint(other))) return candidates;
+    if (!hasOutline && !hasPaint(el) &&
+      ![...el.querySelectorAll("*"), ...siblings].some((other) => !candidates.some((candidate) => candidate.contains(other)) && visible(other) && hasPaint(other))) return candidates;
     const surfaces = [el, ...el.querySelectorAll<HTMLElement>("*")].flatMap((surface) => {
       if (!(surface instanceof HTMLElement) || !sameBox(surface.getBoundingClientRect()) || getComputedStyle(surface).clipPath === "none") return [];
       const shape = geometry(surface);
@@ -438,14 +432,29 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             // Compare with the surface alone to separate its own shadow or outline from another layer's paint.
             const attribute = "data-ouro-paint-solo";
             const previous = el.getAttribute(attribute);
-            counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
-            const marker = `p${counter.__ouroCheckRef}`;
+            const marker = `p${nextRef()}`;
             const probe = new CSSStyleSheet();
             probe.replaceSync(`[${attribute}="${marker}"] *, [${attribute}="${marker}"]::before, [${attribute}="${marker}"]::after { opacity: 0 !important; transition: none !important; }`);
             const originalStyle = el.getAttribute("style");
             const normalizedStyle = el.style.cssText;
             const radii = names.map(({ shape }) => ({ property: `border-${shape}-radius`, saved: save(el, `border-${shape}-radius`) }));
+            const overrides = [...el.querySelectorAll("[style]")].flatMap((node) => {
+              if (!(node instanceof HTMLElement || node instanceof SVGElement)) return [];
+              const opacity = node.style.getPropertyPriority("opacity") === "important";
+              const transition = node.style.getPropertyPriority("transition-property") === "important";
+              if (!opacity && !transition) return [];
+              return [{
+                node, opacity, style: node.getAttribute("style")!, normalized: node.style.cssText,
+                savedOpacity: save(node, "opacity"), savedTransition: save(node, "transition-property"),
+                temporary: "",
+              }];
+            });
             try {
+              for (const override of overrides) {
+                override.node.style.setProperty("transition-property", "none", "important");
+                if (override.opacity) override.node.style.setProperty("opacity", "0", "important");
+                override.temporary = override.node.getAttribute("style")!;
+              }
               el.setAttribute(attribute, marker);
               document.adoptedStyleSheets = [...document.adoptedStyleSheets, probe];
               if (!initial.native) {
@@ -472,6 +481,15 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               if (el.getAttribute("style") !== originalStyle && el.style.cssText === normalizedStyle) {
                 if (originalStyle === null) el.removeAttribute("style");
                 else el.setAttribute("style", originalStyle);
+              }
+              for (const override of overrides) {
+                if (override.node.getAttribute("style") === override.temporary) {
+                  override.node.setAttribute("style", override.style);
+                } else {
+                  if (override.opacity) restore(override.node, "opacity", override.savedOpacity);
+                  restore(override.node, "transition-property", override.savedTransition);
+                  if (override.node.style.cssText === override.normalized) override.node.setAttribute("style", override.style);
+                }
               }
               for (const layer of active.slice(1)) restore(layer.el, "opacity", layer.saved.get("opacity")!);
             }
