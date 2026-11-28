@@ -649,7 +649,7 @@ it("detects alpha-only paint against a transparent background", async () => {
     if (painted) canvas.getContext("2d")!.fillRect(0, 0, canvas.width, canvas.height);
     return canvas.toDataURL("image/png");
   };
-  const captures = [true, false, false];
+  const captures = [true, false, false, false, true];
   state.__ouroPaintCapture = async (clip) => image(captures.shift()!, clip);
   try {
     expect(await findSquirclePaint()).toHaveLength(1);
@@ -1194,7 +1194,7 @@ it("does not attribute changing background pixels outside the box to a surface",
     context.fillRect(0, 0, canvas.width, canvas.height);
     return canvas.toDataURL("image/png");
   };
-  const captures = ["red", "blue", "green", "purple", "orange"];
+  const captures = ["red", "blue", "green", "purple", "orange", "red", "blue", "green", "purple", "orange"];
   state.__ouroPaintCapture = async (clip) => image(captures.shift()!, clip);
   try {
     expect(await findSquirclePaint()).toEqual([]);
