@@ -799,6 +799,7 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
     // with the reader's scroll: a fling that a long frame gathered into one scroll event.
     const kick = isFlingKick(going, scrolling, scrolled, view.height) ? scrolled : 0;
     going = false;
+    const following = moving.size > 0;
     const band = nearby(view);
     const near = new Set(band.map(({ item }) => item));
     // A message that leaves the band is out of sight: it rests at once.
@@ -831,9 +832,9 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
       const next = springAt(state.value, 0, state.velocity, elapsed, SPRING);
       // Stryker disable next-line EqualityOperator: a spring lands exactly on the rest speed only by chance, and a frame later it rests either way.
       if (Math.abs(next.value) < REST && Math.abs(next.velocity) < REST_SPEED) {
-        // While the reader's scroll goes on, a message drawn away that comes back to its place waits there for the scroll's end,
+        // While the reader's scroll goes on, a message drawn away (even first reached in this frame) waits for the scroll's end,
         // asking for no frames: the next scroll event of a fling may come only after a long frame, and moves it again.
-        if (scrolling && shifts.has(item)) {
+        if (scrolling && (shifts.has(item) || (following && state.value !== 0))) {
           moving.set(item, { value: 0, velocity: 0 });
           draw(item, 0);
         } else rest(item);
