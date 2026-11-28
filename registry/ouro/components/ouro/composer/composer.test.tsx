@@ -97,7 +97,7 @@ function onPlatform(platform: "macOS" | "Windows") {
 describe("Composer conversation", () => {
   it("starts an uncontrolled draft over when conversation changes, and keeps it while it stays", async () => {
     const view = await render(<Composer label="Message" conversation="a" onSend={() => {}} />);
-    await userEvent.type(view.textarea, "half a thought");
+    await userEvent.fill(view.textarea, "half a thought");
     await view.rerender(<Composer label="Message" conversation="a" onSend={() => {}} />);
     expect(view.textarea.value).toBe("half a thought");
     await view.rerender(<Composer label="Message" conversation="b" defaultValue="Hi" onSend={() => {}} />);
@@ -1016,6 +1016,13 @@ const expandButton = () => document.querySelector<HTMLButtonElement>('[data-ouro
 const formatting = <Button variant="plain" aria-label="Bold">B</Button>;
 
 describe("Composer expanded", () => {
+  it("keeps the pressed expand control clearly inset from the frame's lower edge", async () => {
+    const { frame } = await render(<Composer label="Reply" defaultExpanded onSend={() => {}} />);
+    const button = expandButton()!;
+    const inset = frame.getBoundingClientRect().bottom - button.getBoundingClientRect().bottom - parseFloat(getComputedStyle(frame).borderBottomWidth);
+    expect(inset).toBeGreaterThanOrEqual(parseFloat(getComputedStyle(document.documentElement).fontSize) / 2);
+  });
+
   it("shows the expand button first among the actions, pressed while expanded, with the toolbar only while expanded", async () => {
     const onExpandedChange = vi.fn();
     const { root, textarea } = await render(
@@ -1418,6 +1425,45 @@ describe("Composer expanded motion", () => {
     expect(frameOf(root).hasAttribute("data-ouro-moving")).toBe(false);
   });
 
+  it("keeps the toolbar on screen for a collapse that turns an expand round mid-way, and takes it away at the end", async () => {
+    const { host, root } = await render(<Composer label="Reply" defaultExpanded={false} toolbar={<span>Tools</span>} onSend={() => {}} />);
+    const moves: ComposerMove[] = [];
+    host.addEventListener("ouro-composer-move", (event) => moves.push((event as CustomEvent<ComposerMove>).detail));
+    const toolbar = () => root.querySelector('[data-ouro-part="toolbar"]');
+    await act(async () => expandButton()!.click());
+    const animation = frameOf(root).getAnimations()[0]!;
+    animation.pause();
+    animation.currentTime = Number(animation.effect!.getTiming().duration) / 2;
+    await act(async () => expandButton()!.click());
+    expect(frameOf(root).getAttribute("data-ouro-moving")).toBe("shrink");
+    expect(toolbar()).not.toBeNull();
+    await moves[1]!.playing;
+    expect(toolbar()).toBeNull();
+  });
+
+  it("takes the collapsing toolbar out of the DOM in the same commit that clears data-ouro-moving, with no frame showing the full-height box and the toolbar together", async () => {
+    const { root } = await render(<Composer label="Reply" defaultExpanded toolbar={<span>Tools</span>} onSend={() => {}} />);
+    const frame = frameOf(root);
+    const toolbar = () => root.querySelector('[data-ouro-part="toolbar"]');
+    await act(async () => expandButton()!.click());
+    expect(frame.hasAttribute("data-ouro-moving")).toBe(true);
+    // flushSync forces the toolbar's unmount to commit before data-ouro-moving clears (see the comment
+    // on `end` in composer.tsx); without it, the unmount is a later, separately scheduled React commit,
+    // so a MutationObserver callback woken by the attribute clearing (a microtask, ahead of that
+    // scheduled commit) would still see the toolbar in the DOM.
+    let toolbarGoneWhenMovingCleared: boolean | null = null;
+    const observer = new MutationObserver(() => {
+      if (toolbarGoneWhenMovingCleared === null && !frame.hasAttribute("data-ouro-moving")) toolbarGoneWhenMovingCleared = toolbar() === null;
+    });
+    observer.observe(frame, { attributes: true, attributeFilter: ["data-ouro-moving"] });
+    try {
+      await expect.poll(() => toolbarGoneWhenMovingCleared).not.toBeNull();
+      expect(toolbarGoneWhenMovingCleared).toBe(true);
+    } finally {
+      observer.disconnect();
+    }
+  });
+
   it("takes the toolbar away at once when motion is reduced", async () => {
     const { root } = await render(<Composer label="Reply" defaultExpanded toolbar={<span>Tools</span>} onSend={() => {}} />);
     try {
@@ -1475,7 +1521,7 @@ describe("Composer expanded motion", () => {
           ]);
         } else {
           await Promise.all([
-            expectMotion(frameOf(root), { stem: "composer", state: "data-expanded", properties: { "clip-path": slow }, reduced }),
+            expectMotion(frameOf(root), { stem: "composer", state: "data-expanded", properties: { "--ouro-composer-inset": slow }, reduced }),
             expectMotion(toolbar(), { stem: "composer", state: "data-expanded", properties: { opacity: slow, transform: slow }, reduced }),
           ]);
         }

@@ -441,6 +441,20 @@ export const Expanded: Story = {
 };
 
 /**
+ * A long message under a blurred, translucent backdrop (`backdrop-filter`), where the box opens and
+ * closes as it does anywhere: one outline, and no frame of the old or the new size held over.
+ */
+export const BehindBackdrop: Story = {
+  render: () => (
+    <div style={{ padding: 24, background: "linear-gradient(135deg, var(--primary), var(--muted-foreground))" }}>
+      <div style={{ padding: 12, backdropFilter: "blur(20px) saturate(1.8)", background: "color-mix(in oklab, var(--background) 40%, transparent)" }}>
+        <LongMessage />
+      </div>
+    </div>
+  ),
+};
+
+/**
  * A chat app's reply box with a resize edge (`resizable`, named by `resizeLabel`): drag the top edge from the press, or focus it
  * and press ArrowUp and ArrowDown for a line, Home for the smallest and End for the largest. The text lands on whole lines, and
  * `onHeightChange` reports the height it holds, or `null` at its smallest, so the app can keep it (`height` or `defaultHeight`).

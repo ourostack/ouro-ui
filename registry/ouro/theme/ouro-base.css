@@ -452,31 +452,41 @@
     rotate: 1turn;
   }
 }
-/* Composer's expand and collapse: a clip over the frame opens or closes by --ouro-composer-gap, and the toolbar comes and goes. */
+/* Composer's expand and collapse: a clip over the frame opens or closes by --ouro-composer-gap, and the toolbar comes and goes.
+   The clip's inset is a registered length, so the animation runs on the main thread, which paints under a backdrop-filter;
+   a clip-path animation is composited, and Chromium leaves a clip like that unpainted for a while there. The toolbar's exit
+   plays its entrance backwards (animation-direction: reverse) rather than a mirrored keyframes block; the frame's own grow
+   and shrink keep separate keyframes, because a collapse the component turns round mid-flight measures the clip's current
+   position and restarts the animation under a new name, which an unchanged name (only reversed) would not force. The keyframes
+   read the gap through calc(): a bare var(--ouro-…) value is the shape of a v0.1.0 @theme inline leftover, which the upgrade test fails on. */
+@property --ouro-composer-inset {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0;
+}
+/* An arbitrary-value Tailwind class repeats this clip-path as its own escaped selector on
+   every page that links it; a shared utility writes it once (ouro-fade-end's comment above). */
+@utility ouro-composer-clip {
+  clip-path: inset(var(--ouro-composer-inset) 0 0 round var(--ouro-composer-radius));
+}
 @keyframes ouro-composer-reveal {
   from {
-    clip-path: inset(var(--ouro-composer-gap) 0 0 0 round var(--ouro-composer-radius));
+    --ouro-composer-inset: calc(var(--ouro-composer-gap));
   }
   to {
-    clip-path: inset(0 0 0 0 round var(--ouro-composer-radius));
+    --ouro-composer-inset: 0;
   }
 }
 @keyframes ouro-composer-conceal {
   from {
-    clip-path: inset(0 0 0 0 round var(--ouro-composer-radius));
+    --ouro-composer-inset: 0;
   }
   to {
-    clip-path: inset(var(--ouro-composer-gap) 0 0 0 round var(--ouro-composer-radius));
+    --ouro-composer-inset: calc(var(--ouro-composer-gap));
   }
 }
 @keyframes ouro-composer-toolbar-in {
   from {
-    opacity: 0;
-    transform: translateY(-0.5rem);
-  }
-}
-@keyframes ouro-composer-toolbar-out {
-  to {
     opacity: 0;
     transform: translateY(-0.5rem);
   }
