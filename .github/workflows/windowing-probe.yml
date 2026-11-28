@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kind: [kbd]
+        kind: [inline, kbd, stories]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -35,12 +35,12 @@ jobs:
             message) pnpm exec vitest run registry/ouro/components/ouro/message/message.test.tsx --project ouro-chromium --project ouro-webkit ;;
             inline) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium --project ouro-webkit -t '(wrapped inline surface|independent floating squircle)' ;;
             inline-device) node --test --test-name-pattern='wrapped inline fragments' scripts/check/check-corners.test.mts ;;
-            kbd) pnpm exec vitest run registry/ouro/components/ouro/kbd/kbd.test.tsx --project ouro-chromium --project ouro-webkit -t 'corner radius within half' ;;
+            kbd) pnpm exec vitest run registry/ouro/components/ouro/kbd/kbd.test.tsx --project ouro-chromium --project ouro-webkit ;;
             message-ring) pnpm exec vitest run registry/ouro/components/ouro/message/message.test.tsx --project ouro-chromium --project ouro-webkit -t 'keeps each focused action' ;;
             edge) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium --project ouro-webkit -t 'captures paint at the bottom edge' ;;
             priority) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium -t 'keeps a native shadow and its probe separate' ;;
             fixture) node --test --test-name-pattern='rounded surface in the nested-frame pass fixture' scripts/check/check-corners.test.mts ;;
-            stories) pnpm exec vitest run test/stories.test.tsx --project ouro-chromium --project ouro-webkit -t '(AppWindow/InContext|Avatar/Shapes|Button/Glass|Combobox/Tags|Message/ReplyActions|Command/SearchMatches) has no paint outside' ;;
+            stories) pnpm exec vitest run test/stories.test.tsx --project ouro-chromium --project ouro-webkit -t '(Menu/Items|Message/ReplyActions) has no paint outside' ;;
           esac 2>&1 | tee .tmp/corner-target.log
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
