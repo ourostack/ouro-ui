@@ -111,7 +111,8 @@ jobs:
           git commit -q -m "Point the $NAME pages at ouro-ui-$KIT $TAG"
           # The branch already holds this pin when main has not moved since its last push: then it is not pushed again, so an
           # hourly run does not restart CI on an unchanged pull request.
-          if git fetch -q origin "$BRANCH" 2>/dev/null && git diff --quiet FETCH_HEAD HEAD; then
+          # A branch that already pins this release or a newer one (rebuilt by hand under the attributed account) is never overwritten (#4116).
+          if git fetch -q origin "$BRANCH" 2>/dev/null && { git diff --quiet FETCH_HEAD HEAD || node scripts/branch-holds-pin.mjs "$KIT" "$TAG"; }; then
             echo "::notice::$BRANCH already holds this pin on main, so it is not pushed again."
             echo "sha=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_OUTPUT"
           else

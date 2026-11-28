@@ -3652,7 +3652,7 @@ test("Kit pin pushes a kit's branch only when main has moved since its last push
   const script = stepScript(workflow("kit-pin.yml").split("\n  pin:\n")[1], "Commit the pages and push their branch, unless the branch already holds this pin");
   for (const [unchanged, pushed] of [[true, false], [false, true]]) {
     const dir = scratchDir("ouro-kit-pin-");
-    const git = `git() {\n  printf 'git %s\\n' "$*" >> "$LOG"\n  case "$1" in\n    fetch) return 0 ;;\n    diff) return ${unchanged ? 0 : 1} ;;\n    rev-parse) echo abc123 ;;\n  esac\n}`;
+    const git = `git() {\n  printf 'git %s\\n' "$*" >> "$LOG"\n  case "$1" in\n    fetch) return 0 ;;\n    diff) return ${unchanged ? 0 : 1} ;;\n    rev-parse) echo abc123 ;;\n  esac\n}\nnode() { return 1; }`;
     const result = runStep(`${git}\n${script}`, { TAG: "v0.11.0", KIT: "windows", NAME: "Windows", BRANCH: "docs/point-at-windows", LOG: join(dir, "git.log") });
     assert.equal(result.status, 0, result.stdout + result.calls);
     const calls = readFileSync(join(dir, "git.log"), "utf8");
@@ -4171,4 +4171,12 @@ test("the ci check's judge is asked only about the parts that failed, since judg
   assert.deepEqual(runStep(parts, { ...passed, SUBSETS: "failure" }).output, { ids: "subsets" });
   assert.deepEqual(runStep(parts, { ...passed, SUBSETS: "failure", COVERAGE: "failure", FALLBACK: "true", BROWSER_FALLBACK: "failure" }).output, { ids: "subsets coverage browser-fallback" });
   assert.match(jobs.ci, /^ {8}run: node scripts\/quarantine\.mjs judge "\$GITHUB_RUN_ID" \$\{\{ steps\.parts\.outputs\.ids \}\}$/m);
+});
+
+test("each pin workflow leaves a branch that already pins its release or a newer one alone, never pushing over it", () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..", ".github", "workflows");
+  for (const [file, kind] of [["docs-pin.yml", "docs"], ["core-pin.yml", "core"], ["kit-pin.yml", '"$KIT"']]) {
+    const text = readFileSync(join(root, file), "utf8");
+    assert.ok(text.includes(`node scripts/branch-holds-pin.mjs ${kind} "$TAG"`), `${file} checks whether the branch already holds the pin before it pushes`);
+  }
 });
