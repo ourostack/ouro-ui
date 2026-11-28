@@ -375,13 +375,17 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       return width > 0 && height > 0 &&
         [rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5);
     });
-    const fullBox = (other: Element) => {
+    const surfaceLayers = [...el.querySelectorAll("*"), ...siblings, ...outlines].filter(visible);
+    const suppliesCorner = (other: Element, corner: Corner, index: number) => {
       const rect = other.getBoundingClientRect();
-      return [rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5);
+      if ([rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5)) return true;
+      if (rect.left >= bounds.left - 0.5 && rect.top >= bounds.top - 0.5 && rect.right <= bounds.right + 0.5 && rect.bottom <= bounds.bottom + 0.5) return false;
+      const left = index === 0 || index === 3 ? bounds.left : bounds.right - corner.x * scaleX;
+      const top = index < 2 ? bounds.top : bounds.bottom - corner.y * scaleY;
+      return rect.left < left + corner.x * scaleX && rect.right > left && rect.top < top + corner.y * scaleY && rect.bottom > top;
     };
-    const surfaceLayers = [...el.querySelectorAll("*"), ...siblings, ...outlines].filter((other) => visible(other) && fullBox(other));
     for (const [index, corner] of initial.corners.entries()) {
-      if (corner.squircle && !hasPaint(el, index) && !surfaceLayers.some((other) => hasPaint(other, index))) corner.squircle = false;
+      if (corner.squircle && !hasPaint(el, index) && !surfaceLayers.some((other) => suppliesCorner(other, corner, index) && hasPaint(other, index))) corner.squircle = false;
     }
     if (!initial.corners.some((corner) => corner.squircle)) continue;
     const strokes = outlines.flatMap((svg) => [...svg.querySelectorAll<SVGGraphicsElement>("path, rect, circle, ellipse, line, polyline, polygon, use")].flatMap((node) => {
