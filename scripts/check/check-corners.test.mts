@@ -484,9 +484,11 @@ test("squircle-paint does not treat an inherited fallback token as a square chil
       assert.deepEqual(await tab.evaluate(findSquirclePaint), [], engine.name());
       await tab.locator(".child").evaluate((el) => {
         el.style.borderRadius = "16.29px";
+        for (const corner of ["tl", "tr", "br", "bl"]) el.style.setProperty(`--sq-${corner}`, "30px");
         el.insertAdjacentHTML("beforeend", '<div style="position:absolute;inset:0;background:#b44939"></div>');
       });
-      assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, `${engine.name()}: a real rounded surface still detects square paint`);
+      assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, `${engine.name()}: an explicit token equal to its parent's still detects square paint`);
+      assert.equal(await tab.locator(".outer").getAttribute("style"), null, `${engine.name()}: restores the parent's inline style`);
     } finally {
       await browser.close();
     }

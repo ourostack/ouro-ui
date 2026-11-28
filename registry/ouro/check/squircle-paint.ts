@@ -51,7 +51,21 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     if (width < 2 || height < 2) return null;
     const length = (value: string, dimension: number) => value.endsWith("%") ? parseFloat(value) * dimension / 100 : parseFloat(value) || 0;
     const corners = names.map(({ key, property, shape }) => {
-      const fallback = style.getPropertyValue(`--sq-${key}`).trim();
+      const token = `--sq-${key}`;
+      let fallback = style.getPropertyValue(token).trim();
+      const parent = el.parentElement;
+      if (parseFloat(fallback) > 0 && parent && hasInlineStyle(parent) && getComputedStyle(parent).getPropertyValue(token).trim() === fallback) {
+        const original = parent.getAttribute("style");
+        const normalized = parent.style.cssText;
+        const previous = save(parent, token);
+        try {
+          parent.style.setProperty(token, "0px", "important");
+          if (getComputedStyle(el).getPropertyValue(token).trim() !== fallback) fallback = "";
+        } finally {
+          restore(parent, token, previous);
+          restoreStyle(parent, original, normalized);
+        }
+      }
       const fallbackRadius = length(fallback, width);
       const values = (fallbackRadius > 0 ? fallback : style[`border${property}Radius`]).trim().split(/\s+/);
       const shapeValue = style.getPropertyValue(`corner-${shape}-shape`).trim();
