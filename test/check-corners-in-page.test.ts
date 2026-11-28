@@ -561,6 +561,15 @@ it("keeps a round badge in a cut-out distinct from leaking square paint", async 
     expect(await findSquirclePaint()).toEqual([]);
     expect(surface.hasAttribute("style")).toBe(false);
     expect(badge.hasAttribute("style")).toBe(false);
+    surface.setAttribute("style", "pointer-events : none !important; ");
+    const surfaceStyle = surface.getAttribute("style");
+    expect(await findSquirclePaint()).toEqual([]);
+    expect(surface.getAttribute("style")).toBe(surfaceStyle);
+    for (const element of [frame, surface]) {
+      element.style.setProperty("--sq-tl", "0px");
+      element.style.borderTopLeftRadius = "0";
+    }
+    expect(await findSquirclePaint()).toEqual([]);
     frame.insertAdjacentHTML("beforeend", '<div class="cut-leak"></div>');
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.cut-frame.rounded-[44%]");
     frame.lastElementChild!.remove();
@@ -738,6 +747,29 @@ it("checks surfaces larger than the viewport and leaves no temporary style attri
   const surface = root.querySelector(".surface")!;
   expect(await findSquirclePaint()).toEqual([]);
   expect(surface.hasAttribute("style")).toBe(false);
+}, paintTimeout);
+
+it("preserves an inline style removed while the painted layer is captured", async () => {
+  const restore = forceSquircleFallback();
+  const root = render('<style>.surface { width:160px; height:120px; background:#fff; }</style><div class="surface rounded-ouro-xl"></div>');
+  const surface = root.querySelector<HTMLElement>(".surface")!;
+  const capture = state.__ouroPaintCapture!;
+  let removed = false;
+  state.__ouroPaintCapture = async (clip) => {
+    const image = await capture(clip);
+    surface.removeAttribute("style");
+    removed = true;
+    state.__ouroPaintCapture = capture;
+    return image;
+  };
+  try {
+    expect(await findSquirclePaint()).toEqual([]);
+    expect(removed).toBe(true);
+    expect(surface.hasAttribute("style")).toBe(false);
+  } finally {
+    state.__ouroPaintCapture = capture;
+    restore();
+  }
 }, paintTimeout);
 
 it("checks a clipped squircle partly outside the viewport", async () => {
