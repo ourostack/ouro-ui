@@ -1203,6 +1203,26 @@ it("does not attribute changing background pixels outside the box to a surface",
   }
 });
 
+it("ignores an unpainted rounded focus wrapper around a smaller control", async () => {
+  const root = render(`<div class="wrapper" style="position:relative;width:160px;height:120px;border-radius:28px;corner-shape:squircle;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px">
+    <div style="position:absolute;right:0;bottom:0;width:24px;height:24px;background:#d11"></div>
+  </div>`);
+  const wrapper = root.querySelector<HTMLElement>(".wrapper")!;
+  expect(await findSquirclePaint()).toEqual([]);
+  wrapper.style.background = "#fff";
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.wrapper");
+}, paintTimeout);
+
+it("ignores a bottom corner when only the opposite border is painted", async () => {
+  const root = render(`<div class="wrapper" style="position:relative;width:160px;height:120px;border-top:2px solid #444;border-radius:0 0 28px 28px;corner-shape:squircle;--sq-br:28px;--sq-bl:28px">
+    <div style="position:absolute;left:0;bottom:0;width:24px;height:24px;background:#d11"></div>
+  </div>`);
+  const wrapper = root.querySelector<HTMLElement>(".wrapper")!;
+  expect(await findSquirclePaint()).toEqual([]);
+  wrapper.style.background = "#fff";
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.wrapper");
+}, paintTimeout);
+
 it("rejects a changed screenshot size after restoring the painted surface", async () => {
   const root = render('<div style="width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"></div>');
   const surface = root.firstElementChild!;
