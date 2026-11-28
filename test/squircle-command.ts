@@ -38,8 +38,14 @@ const squircleCapture: BrowserCommand<[PaintClip]> = async (ctx, clip) => {
     if (![1, viewport.dpr].some((scale) => Math.abs(actual.width - clip.width * scale) <= 1 && Math.abs(actual.height - clip.height * scale) <= 1)) {
       throw new Error(`Test-frame capture did not cover its clip: ${JSON.stringify({ clip, bounds, viewport, page, actual })}`);
     }
-    mkdirSync(".tmp/corner-reply-captures", { recursive: true });
-    writeFileSync(`.tmp/corner-reply-captures/capture-${String(++captureIndex).padStart(3, "0")}.png`, image);
+    const nearReply = await frame.evaluate((box) => {
+      const rect = document.querySelector('button[aria-label="Reply"]')?.getBoundingClientRect();
+      return rect && box.width < 160 && box.height < 160 && rect.left >= box.x && rect.right <= box.x + box.width && rect.top >= box.y && rect.bottom <= box.y + box.height;
+    }, clip);
+    if (nearReply) {
+      mkdirSync(".tmp/corner-reply-captures", { recursive: true });
+      writeFileSync(`.tmp/corner-reply-captures/capture-${String(++captureIndex).padStart(3, "0")}.png`, image);
+    }
     return `data:image/png;base64,${image.toString("base64")}`;
   } finally {
     if (scroll && (scroll.x || scroll.y)) {

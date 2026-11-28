@@ -381,7 +381,6 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     .filter((el) => !el.closest("svg, script, style, template") && !optedOut(el) && visible(el));
   const svgLayers = [...document.querySelectorAll<SVGSVGElement>("svg")].filter((svg) => visible(svg) && !optedOut(svg));
   for (const el of targets) {
-    if (!el.matches('button[aria-label="Reply"]')) continue;
     const initial = geometry(el);
     if (!initial || inverseCutout(el, initial)) continue;
     const bounds = el.getBoundingClientRect();
@@ -845,13 +844,14 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               differs = await compare(withoutBadges, badgeRects, withoutStrokes, restored, withoutEffects, roundedEffects);
               changed = !differs;
             }
-            if (differs) {
+            if (differs && el.matches('button[aria-label="Reply"]')) {
               const rgba = (await Promise.all([actual, masked, hidden, ...(solo ? [solo] : [])].map(pixels))).map((image) => [...image.data.slice(pixelIndex, pixelIndex + 4)]);
               const computed = getComputedStyle(el);
-              console.log("REPLY-CORNER", JSON.stringify({ point: differs, rgba, rect: r.toJSON(), clip, corners: initial.corners, display: computed.display, radius: computed.borderRadius, clipPath: computed.clipPath, background: computed.backgroundColor, html: el.outerHTML, parent: el.parentElement?.outerHTML, active: active.map((layer) => layer.el.outerHTML), sourceRects: sourceRects.map((rect) => rect.toJSON()) }));
-              found = differs;
-              break;
+              const before = getComputedStyle(el, "::before");
+              const after = getComputedStyle(el, "::after");
+              console.log("REPLY-CORNER", JSON.stringify({ point: differs, rgba, rect: r.toJSON(), clip, corners: initial.corners, display: computed.display, radius: computed.borderRadius, clipPath: computed.clipPath, background: computed.backgroundColor, hover: el.matches(":hover"), before: { opacity: before.opacity, background: before.backgroundColor, inset: before.inset, radius: before.borderRadius, clipPath: before.clipPath }, after: { opacity: after.opacity, background: after.backgroundColor, inset: after.inset, radius: after.borderRadius, clipPath: after.clipPath }, html: el.outerHTML, parent: el.parentElement?.outerHTML, active: active.map((layer) => layer.el.outerHTML), sourceRects: sourceRects.map((rect) => rect.toJSON()) }));
             }
+            if (differs) { found = differs; break; }
             if (!changed) break;
           }
           if (found) break;
