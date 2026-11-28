@@ -25,13 +25,13 @@ export {
 /**
  * The box with chips (`multiple`): Field's control look, but at least one control tall and
  * growing a row at a time as the chips wrap. The chips start past its corner's curve: the start
- * inset is the corner's radius (`--ouro-sq-r`, which its `rounded-ouro-control-md` sets), and at least 6px.
+ * inset is the corner's radius (`--ouro-sq-r`, which its `rounded-ouro-control-md` sets), and at least 8px.
  *
  * @internal
  * @claim "The chips start past its corner's curve" registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox chips clear the field's corner > starts one chip and wrapped rows of chips past %s, with a gap between the rows)
  */
 const chipsGroupClass =
-  "relative m-0 box-border flex w-full min-w-0 flex-wrap items-center gap-1.5 py-1.5 ps-[max(calc(var(--spacing)*1.5),var(--ouro-sq-r))] pe-3 cursor-text " +
+  "relative m-0 box-border flex w-full min-w-0 flex-wrap items-center gap-2 py-2 ps-[max(calc(var(--spacing)*2),var(--ouro-sq-r))] pe-3 cursor-text " +
   "min-h-(--ouro-control-h) [--ouro-control-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-control-h:calc(var(--spacing)*9)] " +
   "rounded-ouro-control-md border border-solid border-input bg-transparent text-base text-foreground sm:pointer-fine:text-sm " +
   "ouro-field-cue outline-ring outline-offset-2 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-solid " +
@@ -70,7 +70,7 @@ const chipClass =
 const chipRemoveClass =
   "press relative m-0 box-border inline-flex aspect-square h-full min-h-ouro-5 shrink-0 items-center justify-center rounded-ouro-sm border-0 p-0 " +
   "bg-transparent text-inherit cursor-pointer [-webkit-tap-highlight-color:transparent] pointer-fine:hover:bg-accent active:bg-accent motion-safe:active:scale-(--ouro-press-scale) " +
-  "focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-solid [&_svg]:size-ouro-3_5";
+  "focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-solid [&_svg]:pointer-events-none [&_svg]:size-ouro-3_5";
 
 /**
  * The popup: the input's width, on the popover surface. It opens at once and closes with a

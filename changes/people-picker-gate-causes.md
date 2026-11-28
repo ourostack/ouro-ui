@@ -1,0 +1,1 @@
+- Combobox: [leave a clear gap between the field and popup at the wide-screen type step](registry/ouro/components/ouro/combobox/combobox.test.tsx "verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox looks > leaves a clear gap between the field and the popup at the wide-screen type step)").
