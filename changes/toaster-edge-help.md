@@ -1,0 +1,1 @@
+- Clarified: [Toaster's introduction names the upward swipe at the top edge](registry/ouro/components/ouro/toast/toaster.test.tsx "verify:testExists(registry/ouro/components/ouro/toast/toaster.test.tsx::Toaster > hangs from the top and unfurls downward when its layout classes put it at the top)"), alongside the downward swipe at the bottom.

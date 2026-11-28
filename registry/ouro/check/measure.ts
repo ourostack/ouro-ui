@@ -37,8 +37,8 @@ interface Measures {
   paintNode: Element | null;
   events: { start: number; duration: number }[];
   painted: Map<Element, Painted>;
-  /** The first frames' controls still shown when the first input came, or null before any input. */
-  shownAtInput: Set<Element> | null;
+  /** The first frames' controls and their bounds when the first input came, or null before any input. */
+  shownAtInput: Map<Element, Painted["box"]> | null;
   /** Adds a layout-shift entry to the score: kept apart so a test can feed it shifts. */
   add: (entry: { value: number; startTime: number; hadRecentInput: boolean; sources: { node: Node | null; previousRect?: DOMRectReadOnly; currentRect?: DOMRectReadOnly }[] }) => void;
 }
@@ -129,7 +129,14 @@ function listenForMeasures(): void {
   const onInput = () => {
     if (input) return;
     input = true;
-    m.shownAtInput = new Set([...m.painted.keys()].filter((el) => el.isConnected && el.getClientRects().length > 0 && el.checkVisibility({ opacityProperty: true, visibilityProperty: true })));
+    m.shownAtInput = new Map(
+      [...m.painted.keys()]
+        .filter((el) => el.isConnected && el.getClientRects().length > 0 && el.checkVisibility({ opacityProperty: true, visibilityProperty: true }))
+        .map((el) => {
+          const { left, top, right, bottom } = el.getBoundingClientRect();
+          return [el, { left, top, right, bottom }];
+        }),
+    );
   };
   for (const type of ["pointerdown", "keydown", "wheel"]) window.addEventListener(type, onInput, { capture: true, passive: true });
   // A skeleton, or an element allowed first-paint-swap with a reason, around a control: no swap is judged for it.
@@ -218,10 +225,10 @@ async function findLoadingIssues(budgets: LoadingBudgets): Promise<PageIssue[]> 
   // between. The one that took the place is reported once. A skeleton or an opt-out on either is no swap; the same control
   // drawn again (same tag, role and words) is a re-render, not a swap.
   const shown = (el: Element) => el.isConnected && el.getClientRects().length > 0 && el.checkVisibility({ opacityProperty: true, visibilityProperty: true });
-  const overlaps = (box: Painted["box"], rect: DOMRect) => box.left < rect.right && rect.left < box.right && box.top < rect.bottom && rect.top < box.bottom;
-  // Where each control shown at rest is drawn, read once: a control with no entry here is gone.
-  const at = new Map<Element, DOMRect>();
-  for (const el of m.painted.keys()) if (shown(el)) at.set(el, el.getBoundingClientRect());
+  const overlaps = (box: Painted["box"], rect: Painted["box"]) => box.left < rect.right && rect.left < box.right && box.top < rect.bottom && rect.top < box.bottom;
+  // Input ends this interval: later layout must neither create nor hide a loading swap.
+  const at = m.shownAtInput ?? new Map<Element, Painted["box"]>();
+  if (!m.shownAtInput) for (const el of m.painted.keys()) if (shown(el)) at.set(el, el.getBoundingClientRect());
   const taken = new Set<Element>();
   // As readFrame cuts it, so the first frame's HTML and the HTML at rest compare, less the marks this check has put on
   // the page since (the other loading rules' data-ouro-check-ref), which the app never wrote.
@@ -230,7 +237,7 @@ async function findLoadingIssues(budgets: LoadingBudgets): Promise<PageIssue[]> 
     return html.length > 500 ? `${html.slice(0, 500)}…` : html;
   };
   for (const [gone, was] of m.painted) {
-    if (was.skipped || at.has(gone) || m.shownAtInput?.has(gone)) continue;
+    if (was.skipped || at.has(gone)) continue;
     for (const [taker, later] of m.painted) {
       const rect = at.get(taker);
       if (!rect || taken.has(taker) || later.skipped || later.frame <= was.frame || !overlaps(was.box, rect)) continue;

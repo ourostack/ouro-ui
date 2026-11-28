@@ -84,7 +84,7 @@ function findOverlaps({ slack = 2, maxSteps = 40 }: OverlapOptions = {}): PageIs
     for (let node: Element | null = el; node && node !== document.body; node = node.parentElement) {
       const style = getComputedStyle(node);
       const filled = style.backgroundColor !== "rgba(0, 0, 0, 0)" && style.backgroundColor !== "transparent";
-      const [, , , alpha = "1"] = style.backgroundColor.replace(/^[a-z]+\(|\)$/g, "").split(/[\s,/]+/);
+      const [, , , alpha = "1"] = style.backgroundColor.replace(/^color\([-\w]+\s+|^[a-z]+\(|\)$/g, "").split(/[\s,/]+/);
       opaque ||= filled && Number(alpha) >= 0.9;
       if ((style.position === "sticky" || style.position === "fixed") && filled) return node;
       const box = node.getBoundingClientRect();
@@ -134,8 +134,8 @@ function findOverlaps({ slack = 2, maxSteps = 40 }: OverlapOptions = {}): PageIs
   // they meet, as a card's glass band lies under its title.
   const backing = (node: Element) => {
     const style = getComputedStyle(node);
-    // A colour's channels and alpha, in any syntax the browser computes: rgb(r, g, b), rgba(r, g, b, a), oklch(l c h / a).
-    const [, , , alpha = "1"] = style.backgroundColor.replace(/^[a-z]+\(|\)$/g, "").split(/[\s,/]+/);
+    // A colour's channels and alpha, including color(profile r g b / a).
+    const [, , , alpha = "1"] = style.backgroundColor.replace(/^color\([-\w]+\s+|^[a-z]+\(|\)$/g, "").split(/[\s,/]+/);
     return Number(alpha) >= 0.9 || (Number(alpha) >= 0.6 && /blur\(/.test(style.backdropFilter));
   };
   const backed = (text: Item, picture: Item) => {

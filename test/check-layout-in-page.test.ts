@@ -292,10 +292,29 @@ describe("findLayoutIssues: near-miss", () => {
     const scroller = host.querySelector("#scroller")!;
     scroller.scrollTop = 174;
     expect(found()).toEqual([]);
+    // The same pair with the button first in the document, so the scrolling side is the second of the pair.
+    host.append(host.querySelector("#jump")!.cloneNode(true));
+    host.querySelector("#jump")!.remove();
+    host.prepend(host.lastElementChild!);
+    expect(found()).toEqual([]);
     host.innerHTML = `
       ${box("bubble2", 10, 136, 60, 30)}
       ${box("jump2", 10, 170, 60, 30)}`;
     expect(found()).toEqual([["div#bubble2 and div#jump2", "4px"]]);
+  });
+
+  it("finds content that scrolls a few pixels short of a bar that sits in the page after the scroller, since that bar does not float", () => {
+    render(`
+      <div id="pane" style="position:fixed;left:10px;top:10px;width:200px">
+        <div id="scroller" style="height:200px;overflow-y:auto;background:#eee">
+          <div style="height:300px"></div>
+          <div id="bubble" style="width:60px;height:30px;background:#cde"></div>
+          <div style="height:300px"></div>
+        </div>
+        <div id="bar" style="width:60px;height:30px;background:#cde"></div>
+      </div>`);
+    host.querySelector("#scroller")!.scrollTop = 134;
+    expect(found()).toContainEqual(["div#bubble and div#bar", "4px"]);
   });
 
   it("passes a surface a box around it clips wholly away, as one scrolled out of its pane, with what is outside that box, but finds two the box hides, one in a box with no box of its own, and a fixed or absolute one, or one in a fixed box, that escapes it", () => {

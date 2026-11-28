@@ -29,13 +29,16 @@ function useFindHighlights(options: {
   result: MessageFindResult;
   current: number;
   reduced: boolean;
+  /** Reserves the "Jump to latest" pill's room if the scroll lands away from the true bottom, the same as a reveal's own scroll. */
+  reserveJumpRoom: (room: boolean) => void;
 }): void {
-  const { scroller, content, slot, find, result, current, reduced } = options;
+  const { scroller, content, slot, find, result, current, reduced, reserveJumpRoom } = options;
   const target = find === undefined ? null : locateMatch(result, current);
   const hasTarget = target !== null;
   const query = find?.query ?? "";
   const fold = find?.fold;
   const locale = find?.locale;
+  // Stryker disable next-line ObjectLiteral: the layout effect below, the hook's first, fills this before any later effect or scroll reads it.
   const latest = useRef({ result, target, reduced });
   useLayoutEffect(() => {
     latest.current = { result, target, reduced };
@@ -51,7 +54,12 @@ function useFindHighlights(options: {
     const edge = view.getBoundingClientRect();
     const move = Math.min(0, match.top - edge.top - MARGIN) || Math.max(0, match.bottom - edge.bottom + MARGIN);
     if (move === 0) return true;
-    view.scrollTo({ top: view.scrollTop + move, behavior: latest.current.reduced ? "instant" : "smooth" });
+    const top = view.scrollTop + move;
+    view.scrollTo({ top, behavior: latest.current.reduced ? "instant" : "smooth" });
+    // A find's own scroll can land anywhere in the conversation, the same as a reveal, with no arrival ahead
+    // to earn the jump pill's room the usual way.
+    // Stryker disable next-line ConditionalExpression,EqualityOperator,ArithmeticOperator: a landing at the end needs no room, and reserving it there anyway is undone at once: the list's handlers read pinned back from the position and clear the room once pinned, so the pill never shows for it.
+    if (view.scrollHeight - view.clientHeight - top > 2) reserveJumpRoom(true);
     return false;
   };
   const scrollRef = useRef(scrollToCurrent);
