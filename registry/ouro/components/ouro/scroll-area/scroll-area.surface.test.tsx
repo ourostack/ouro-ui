@@ -106,6 +106,20 @@ describe("ScrollArea surface", () => {
     expect(background(viewportOf(host))).toBe("rgb(1, 2, 3)");
   });
 
+  it("keeps a plain primary action readable on its surface without changing the page action", async () => {
+    const host = await render(
+      <div style={{ "--primary": "#9b6834", "--foreground": "#28231d" } as React.CSSProperties}>
+        <Button variant="plain">Page</Button>
+        <ScrollArea label="Actions"><Button variant="plain">Scroll</Button></ScrollArea>
+        <i style={{ color: "var(--primary)" }} />
+        <b style={{ color: "color-mix(in oklab, var(--primary) 80%, var(--foreground))" }} />
+      </div>,
+    );
+    const [pageButton, scrollButton] = host.querySelectorAll("button");
+    expect(getComputedStyle(pageButton!).color).toBe(getComputedStyle(host.querySelector("i")!).color);
+    expect(getComputedStyle(scrollButton!).color).toBe(getComputedStyle(host.querySelector("b")!).color);
+  });
+
   it("uses the nested dark theme's muted surface without overriding an app's surface token", async () => {
     const root = document.documentElement;
     const wasDark = root.classList.contains("dark");

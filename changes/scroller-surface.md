@@ -2,4 +2,4 @@
 - Changed: A scrolling ToggleGroup and a table inside a message bubble use a distinct surface where their content is clipped.
 - Changed: Scrollers and sticky headers fall back to their local muted surface when `--ouro-scroller-surface` is unset, including in nested themes.
 - Changed: Message metadata and thread links remain readable on tinted lists, and Sidebar and ThreadRail keep distinct surfaces when theme tokens coincide.
-- Changed: Plain actions and quiet labels stay readable on tinted scrollers; ThreadLayout insets the conversation beside an open rail on wide layouts.
+- Changed: Plain actions, soft badges and quiet labels stay readable on tinted scrollers; ThreadLayout insets the conversation beside an open rail on wide layouts.
