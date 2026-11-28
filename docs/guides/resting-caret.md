@@ -1,6 +1,6 @@
 # Resting caret
 
-Let a native host quiet a focused editor while the person reads, without losing their place. Use the `restingCaret` policy on [TextField](../TextField.md), [TextArea](../TextArea.md) or [Composer](../Composer.md); leave it unset on ordinary web pages.
+Let a native host quiet a focused editor while the person reads, without losing their place. Install the separate `lib-use-resting-caret` helper for use with [TextField](../TextField.md), [TextArea](../TextArea.md) or [Composer](../Composer.md). Omit this helper on ordinary web pages.
 
 ## Permission comes from the host
 
@@ -10,24 +10,32 @@ Enable this only in a native host that can meet the whole contract below. Do not
 - Supply `subscribeWake(wake)`, returning an unsubscribe function. Call `wake()` synchronously before opening a native editing menu, delivering dictation, inserting from a character palette or forwarding other native input.
 - Supply `onHeld(held)`. While held, intercept native input-method keys before the engine receives them, request a wake and forward the keys only after `onHeld(false)`. Include dead keys, modifier keys and the Globe key.
 - Pass `occluded` when the host knows the window is covered or minimised.
-- Keep both callbacks stable. Keep the policy object present when disabling it: change `enabled`, rather than adding and removing the prop.
+- Keep both callbacks stable. Change `enabled` to revoke permission.
 
 Engines that support `caret-animation: manual` keep their own steady caret without changing editability.[^native-animation] Other engines temporarily change the editor's editability, not just its caret colour. That fallback is why a host bridge is required: input that bypasses page events needs to wake the editor first. A browser page cannot establish that contract by itself.
 
 ```tsx
-<TextArea
-  label="Draft"
-  autoGrow
-  restingCaret={{
+import { useState } from "react";
+import { TextArea } from "@/components/ouro/text-area";
+import { useRestingCaret } from "@/lib/ouro/use-resting-caret";
+
+function Draft({ readOnly, disabled }: { readOnly: boolean; disabled: boolean }) {
+  const [box, setBox] = useState<HTMLInputElement | HTMLTextAreaElement | HTMLDivElement | null>(null);
+  useRestingCaret(box, {
     enabled: host.caretRestPermitted,
     occluded: host.windowCovered,
     subscribeWake: host.subscribeCaretWake,
     onHeld: host.setCaretHeld,
-  }}
-/>
+  }, readOnly, disabled);
+  return <TextArea ref={setBox} label="Draft" autoGrow readOnly={readOnly} disabled={disabled} />;
+}
 ```
 
-These are methods supplied by your host, not browser APIs. For an app without this bridge, omit `restingCaret`.
+These are methods supplied by your host, not browser APIs. For an app without this bridge, omit `useRestingCaret`.
+
+Pass the same `readOnly` and `disabled` state to the hook and the field: while held, the hook's own read-only state cannot identify a new caller-owned restriction. Use the state setter as the callback ref, not an object ref, so the hook can follow a replacement editor. Pass `ref={setBox}` to TextField or Composer too; Composer's rich editor uses a div rather than a textarea.[^ref] When changing a TextField's native `type`, pass that value as the hook's fifth argument too.
+
+The helper is separate from the components' props. The item tests exercise the helper with each actual editor, including plain-to-rich replacement.[^ref]
 
 ## A quiet place to return to
 
@@ -52,3 +60,4 @@ Borrow the idle hold and host-wake contract from a consuming app, with permissio
 [^visibility]: registry/ouro/lib/ouro/use-resting-caret.ts verify:fileLine(registry/ouro/lib/ouro/use-resting-caret.ts, /if \(visible && foreground\)/)
 [^css]: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/caret-animation verify:urlOk(https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/caret-animation)
 [^native-animation]: registry/ouro/lib/ouro/use-resting-caret.test.tsx verify:testExists(registry/ouro/lib/ouro/use-resting-caret.test.tsx::resting caret host contract > uses the engine's steady caret when supported and restores the caller's animation)
+[^ref]: registry/ouro/components/ouro/composer/composer.resting-caret.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.resting-caret.test.tsx::Composer resting caret > reattaches to a rich editor without losing its insertion point after a held empty plain editor)

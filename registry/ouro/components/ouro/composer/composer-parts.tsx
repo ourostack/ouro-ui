@@ -21,7 +21,6 @@ import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { attachRef } from "@/registry/ouro/lib/ouro/refs";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
-import { useRestingCaret, type RestingCaretOptions } from "@/registry/ouro/lib/ouro/use-resting-caret";
 
 export { RichEditor };
 export type { RichEditorHandle, RichEditorProps };
@@ -40,7 +39,6 @@ interface RichEditorHandle {
 
 /** @internal */
 interface RichEditorProps {
-  restingCaret?: RestingCaretOptions | undefined;
   /** Whether the element answers its value and selection in Markdown offsets, read when asked. */
   markdownOffsets: boolean;
   /** The emoji whose `:shortcode:` tokens the editor draws as pictures. */
@@ -748,9 +746,8 @@ function definedOnly(props: HTMLAttributes<HTMLDivElement>) {
  *
  * @internal
  */
-function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, restingCaret, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, enterSends, composedRef, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue, highlights, onHighlightsChange, pasteText, comboboxProps, ownAttrs }: RichEditorProps): JSX.Element {
+function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, enterSends, composedRef, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue, highlights, onHighlightsChange, pasteText, comboboxProps, ownAttrs }: RichEditorProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
-  useRestingCaret(rootRef, restingCaret, readOnly === true, disabled);
   const editorRef = useRef<LexicalEditor | null>(null);
   // The Markdown the editor holds, and the callbacks as of the last render, which its listeners read.
   const held = useRef(value);

@@ -12,7 +12,6 @@ import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { FieldOwnerContext, type ReadonlyErrorMessages } from "@/registry/ouro/lib/ouro/use-field";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { useRestingCaret, type RestingCaretOptions } from "@/registry/ouro/lib/ouro/use-resting-caret";
 import {
   adornmentClass,
   controlSizeWarning,
@@ -31,8 +30,6 @@ import {
 
 /** The props TextField adds to the input attributes it passes through. */
 export interface TextFieldOwnProps {
-  /** A native host's resting-caret policy. Leave unset on ordinary web pages; native input types without a text selection keep their own caret. See the resting-caret guide. */
-  restingCaret?: RestingCaretOptions | undefined;
   /**
    * What the field is for, shown above it and read as its name. Required: every control
    * needs a name. To hide it visually, keep it and add `hideLabel`. A placeholder is not a label.
@@ -233,6 +230,8 @@ function Icon({ children }: { children: ReactNode }): JSX.Element {
  * `variant="plain"` draws no frame, and `size="lg"` sets 20px text: together they put the
  * field inside a row your app frames, such as a page's main search between two rules.
  *
+ * For native-host quiet reading, see the [Resting caret guide](https://ui.ouroboros.bot/docs/resting-caret/).
+ *
  * @group Forms
  * @see https://ui.ouroboros.bot/docs/text-field
  *
@@ -277,7 +276,6 @@ export function TextField(props: TextFieldProps): JSX.Element {
     defaultValue,
     onChange,
     readOnly,
-    restingCaret,
     inputMode,
     autoComplete,
     "aria-describedby": describedByProp,
@@ -410,7 +408,6 @@ export function TextField(props: TextFieldProps): JSX.Element {
   };
 
   const setRef = useMergedRef(ref, inputRef);
-  useRestingCaret(inputRef, restingCaret, readOnly === true, disabled === true, password && revealed ? "text" : type);
 
   const hasStart = startAdornment !== undefined && startAdornment !== null && startAdornment !== false;
   const hasEnd = endAdornment !== undefined && endAdornment !== null && endAdornment !== false;

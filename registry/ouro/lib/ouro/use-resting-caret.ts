@@ -1,6 +1,6 @@
 "use client";
 
-import { useInsertionEffect, useLayoutEffect, useRef, type RefObject } from "react";
+import { useInsertionEffect, useLayoutEffect, useRef } from "react";
 
 /**
  * A native host's permission and wake bridge for a resting caret.
@@ -10,7 +10,11 @@ import { useInsertionEffect, useLayoutEffect, useRef, type RefObject } from "rea
  * must leave this feature off. See the resting-caret guide for the host contract.
  *
  * @example
- * <TextArea label="Draft" restingCaret={hostCaretPolicy} />
+ * const policy: RestingCaretOptions = {
+ *   enabled: host.caretRestPermitted,
+ *   subscribeWake: host.subscribeCaretWake,
+ *   onHeld: host.setCaretHeld,
+ * };
  */
 export interface RestingCaretOptions {
   /** The host permits temporarily making the focused editor read-only. Set false for assistive technology, voice input or unknown accessibility state. */
@@ -108,12 +112,19 @@ function caretRect(box: Box): { left: number; top: number; height: number } | nu
 }
 
 /**
- * Drives the existing control's caret under a native host's explicit safety policy.
- * The control's parent must be positioned; no listeners or timers are installed without permission.
- * @internal
- * @claim "The control's parent must be positioned" registry/ouro/lib/ouro/use-resting-caret.test.tsx verify:testExists(registry/ouro/lib/ouro/use-resting-caret.test.tsx::resting caret host contract > stays inert without host permission)
+ * Rest an existing editor's caret under a native host's explicit safety policy.
+ *
+ * Install this helper separately; omit it on ordinary web pages. Pass the actual editor
+ * through a state callback ref, including when Composer changes between plain and rich text.
+ * Pass the same `readOnly` and `disabled` state to the hook and the editor. Pass `inputType`
+ * too when changing a TextField's native type.
+ *
+ * @example
+ * const [box, setBox] = useState<HTMLTextAreaElement | null>(null);
+ * useRestingCaret(box, hostCaretPolicy, readOnly, disabled);
+ * <TextArea ref={setBox} label="Draft" readOnly={readOnly} disabled={disabled} />
  */
-export function useRestingCaret(ref: RefObject<Box | null>, policy: RestingCaretOptions | undefined, readOnly: boolean, disabled: boolean, inputType?: string) {
+export function useRestingCaret(box: Box | null, policy: RestingCaretOptions | undefined, readOnly: boolean, disabled: boolean, inputType?: string) {
   const current = useRef<{ cover: (covered: boolean) => void; refresh: () => void } | null>(null);
   const enabled = policy?.enabled === true && !readOnly && !disabled;
   const subscribeWake = policy?.subscribeWake;
@@ -123,8 +134,7 @@ export function useRestingCaret(ref: RefObject<Box | null>, policy: RestingCaret
   // ownership first, so lifting our hold cannot overwrite that new caller-owned state.
   useInsertionEffect(() => { caller.current = { readOnly, disabled }; }, [readOnly, disabled]);
   useLayoutEffect(() => {
-    const box = ref.current;
-    if (!enabled || !box || !subscribeWake || !onHeld) return;
+    if (!enabled || !box || !box.isConnected || !subscribeWake || !onHeld) return;
     // Date, email and other native editors expose no selection to preserve.
     if (textBox(box) && box.selectionStart === null) return;
     const doc = box.ownerDocument;
@@ -149,8 +159,10 @@ export function useRestingCaret(ref: RefObject<Box | null>, policy: RestingCaret
       if (!caret) return;
       const rect = caretRect(box);
       const field = box.getBoundingClientRect();
-      const host = box.parentElement!;
-      const origin = host.getBoundingClientRect();
+      caret.hidden = false;
+      caret.style.left = "0px";
+      caret.style.top = "0px";
+      const origin = caret.getBoundingClientRect();
       const style = getComputedStyle(box);
       const visible = rect && rect.top >= field.top && rect.top + rect.height <= field.bottom + 1
         && rect.left >= field.left && rect.left <= field.right;
@@ -164,8 +176,8 @@ export function useRestingCaret(ref: RefObject<Box | null>, policy: RestingCaret
         const y = Math.floor(rect.top - field.top - fraction + 0.01) + fraction;
         const snap = (value: number) => Math.round(value * win.devicePixelRatio) / win.devicePixelRatio;
         Object.assign(caret.style, {
-          left: `${snap(field.left + x) - origin.left - host.clientLeft + host.scrollLeft}px`,
-          top: `${snap(field.top + y) - origin.top - host.clientTop + host.scrollTop}px`,
+          left: `${snap(field.left + x) - origin.left}px`,
+          top: `${snap(field.top + y) - origin.top}px`,
           height: `${Math.round(rect.height)}px`,
           backgroundColor: style.caretColor,
         });
@@ -295,7 +307,7 @@ export function useRestingCaret(ref: RefObject<Box | null>, policy: RestingCaret
       lift();
       delete box.dataset.caretRest;
     };
-  }, [ref, enabled, subscribeWake, onHeld, inputType]);
-  useLayoutEffect(() => current.current?.cover(policy?.occluded === true), [enabled, policy?.occluded]);
+  }, [box, enabled, subscribeWake, onHeld, inputType]);
+  useLayoutEffect(() => current.current?.cover(policy?.occluded === true), [box, enabled, policy?.occluded]);
   useLayoutEffect(() => current.current?.refresh());
 }
