@@ -1,0 +1,1 @@
+- Composer's `tallest` callback [limits resizing by the whole frame, including its action row](registry/ouro/components/ouro/composer/composer.resize.test.tsx "verify:testExists(registry/ouro/components/ouro/composer/composer.resize.test.tsx::Composer resizable edge > limits the whole frame with tallest, rereading the available space when the edge takes focus)").
