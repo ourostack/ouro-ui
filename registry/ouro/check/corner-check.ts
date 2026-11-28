@@ -40,7 +40,7 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
   if (windowBounds && (windowBounds.x > 1 || windowBounds.y > 1 || windowBounds.x + windowBounds.width < innerWidth - 1 || windowBounds.y + windowBounds.height < innerHeight - 1)) {
     throw new Error("native window bounds must contain the viewport; use windowInsets for a sweep of sizes");
   }
-  type Corner = { name: string; key: string; x: number; y: number; squircle: boolean; cutoutMismatch?: boolean };
+  type Corner = { name: string; key: string; x: number; y: number; squircle: boolean; cutout?: boolean; inverse?: boolean; cutoutMismatch?: boolean };
   type Surface = { el: Element | null; rect: DOMRect; corners: Corner[] };
   const names = [
     { name: "top left", key: "tl", property: "TopLeft", shape: "top-left" },
@@ -80,8 +80,7 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
     canvas.fillRect(0, 0, 1, 1);
     return [...canvas.getImageData(0, 0, 1, 1).data];
   };
-  const paintedBox = (el: Element) => {
-    const s = getComputedStyle(el);
+  const paintedFill = (el: Element, s: CSSStyleDeclaration) => {
     if (s.backgroundImage !== "none") return true;
     const fill = rgba(s.backgroundColor);
     if (fill[3]! > 12) {
@@ -94,10 +93,16 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
       }
       if (!behind || fill[3]! < 250 || Math.hypot(fill[0]! - behind[0]!, fill[1]! - behind[1]!, fill[2]! - behind[2]!) > 3) return true;
     }
-    for (const side of ["Top", "Right", "Bottom", "Left"] as const) {
-      if (s[`border${side}Style`] !== "none" && parseFloat(s[`border${side}Width`]) > 0 && rgba(s[`border${side}Color`])[3]! > 12) return true;
-    }
-    return (s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0 && rgba(s.outlineColor)[3]! > 12) || s.boxShadow !== "none";
+    return false;
+  };
+  type Side = "Top" | "Right" | "Bottom" | "Left";
+  const paintedSide = (s: CSSStyleDeclaration, side: Side) =>
+    s[`border${side}Style`] !== "none" && parseFloat(s[`border${side}Width`]) > 0 && rgba(s[`border${side}Color`])[3]! > 12;
+  const paintedEffect = (s: CSSStyleDeclaration) =>
+    (s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0 && rgba(s.outlineColor)[3]! > 12) || s.boxShadow !== "none";
+  const paintedBox = (el: Element) => {
+    const s = getComputedStyle(el);
+    return paintedFill(el, s) || (["Top", "Right", "Bottom", "Left"] as const).some((side) => paintedSide(s, side)) || paintedEffect(s);
   };
   const painted = (el: Element) =>
     paintedBox(el) || el.matches("video, canvas") || (el instanceof HTMLImageElement && el.complete && el.naturalWidth > 0 && el.naturalHeight > 0);
@@ -161,10 +166,15 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
   };
   const paintedCorner = (surface: Surface, index: number): CornerPaint => {
     const el = surface.el;
-    if (!(el instanceof HTMLImageElement)) return true;
+    if (!el) return true;
+    const s = getComputedStyle(el);
+    const horizontal = index === 0 || index === 3 ? "Left" : "Right";
+    const vertical = index < 2 ? "Top" : "Bottom";
+    if (paintedFill(el, s) || paintedSide(s, horizontal) || paintedSide(s, vertical) || paintedEffect(s) || el.matches("video, canvas")) return true;
+    if (!(el instanceof HTMLImageElement)) return false;
     let corners = imagePaint.get(el);
     if (!corners) {
-      corners = paintedBox(el) ? [true, true, true, true] : imageCorners(el);
+      corners = imageCorners(el);
       imagePaint.set(el, corners);
     }
     return corners[index]!;
@@ -221,16 +231,17 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
           );
           const outside = point(0.05, 0.05);
           const inside = point(0.5, 0.5);
-          if (!outside || !layer.contains(outside) || !inside || layer.contains(inside) || !root.contains(inside) || (inside !== root && painted(inside))) continue;
+          if (!outside || !layer.contains(outside) || !inside || layer.contains(inside) || !root.contains(inside)) continue;
           // Bracket the n=4 curve rather than trusting a radius the cutout may not draw.
           const x = 0.05;
           const edge = 1 - (1 - (1 - x) ** 4) ** 0.25;
           const tolerance = 0.75 / corner.y;
           const before = point(x, Math.max(0, edge - tolerance));
           const after = point(x, Math.min(1, edge + tolerance));
-          const matches = Boolean(before && after && layer.contains(before) && !layer.contains(after) && root.contains(after) && (after === root || !painted(after)));
-          inner.corners[index] = { ...corner, squircle: matches, cutoutMismatch: !matches };
+          const matches = Boolean(before && after && layer.contains(before) && !layer.contains(after) && root.contains(after));
+          inner.corners[index] = { ...corner, squircle: matches, cutout: matches, cutoutMismatch: !matches };
           corner.squircle = matches;
+          corner.inverse = matches;
         }
       } finally {
         for (const { el, style, normalized, value, priority } of previous) {
@@ -252,6 +263,7 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
     rect: new DOMRect(nativeBounds.x, nativeBounds.y, nativeBounds.width, nativeBounds.height),
     corners: names.map(({ name, key }) => ({ name, key, x: windowRadius, y: windowRadius, squircle: true })),
   };
+  const cutoutOwners = surfaces.filter((surface) => surface.corners.some((corner) => corner.cutout));
   const clippedCorner = (inner: Surface, outer: Surface, index: number) => {
     if (outer.el && !outer.el.contains(inner.el!)) return false;
     const i = inner.rect;
@@ -261,7 +273,13 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
     if (Math.abs(horizontal) > 1 || Math.abs(vertical) > 1) return false;
     if (outer.el) {
       const outside = getComputedStyle(outer.el);
-      if (!(/hidden|clip/.test(outside.overflowX) && /hidden|clip/.test(outside.overflowY)) && outside.clipPath === "none") return false;
+      const covered = cutoutOwners.some((owner) => {
+        if (!owner.corners[index]!.cutout || !owner.el?.contains(inner.el!) || owner === inner) return false;
+        const horizontal = index === 0 || index === 3 ? i.left - owner.rect.left : owner.rect.right - i.right;
+        const vertical = index < 2 ? i.top - owner.rect.top : owner.rect.bottom - i.bottom;
+        return Math.abs(horizontal) <= 1 && Math.abs(vertical) <= 1;
+      });
+      if (!covered && !(/hidden|clip/.test(outside.overflowX) && /hidden|clip/.test(outside.overflowY)) && outside.clipPath === "none") return false;
     }
     const own = getComputedStyle(inner.el!);
     return own.boxShadow === "none" && (own.outlineStyle === "none" || parseFloat(own.outlineWidth) === 0) &&
@@ -284,12 +302,17 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
       for (const outer of outers) {
         const o = outer.rect;
         const oc = outer.corners[index]!;
-        if (Math.min(oc.x, oc.y) < 6 || oc.x >= o.width / 2 - 0.5 || oc.y >= o.height / 2 - 0.5) continue;
+        if (oc.inverse || Math.min(oc.x, oc.y) < 6 || oc.x >= o.width / 2 - 0.5 || oc.y >= o.height / 2 - 0.5) continue;
         const left = index === 0 || index === 3;
         const top = index < 2;
         const dx = left ? i.left - o.left : o.right - i.right;
         const dy = top ? i.top - o.top : o.bottom - i.bottom;
         if (dx < -1 || dy < -1 || dx >= oc.x / 2 || dy >= oc.y / 2) continue;
+        // A small box well inside the curve is content, not a nested corner.
+        const exponent = oc.squircle ? 4 : 2;
+        const norm = ((1 - Math.max(0, dx) / oc.x) ** exponent + (1 - Math.max(0, dy) / oc.y) ** exponent) ** (1 / exponent);
+        const distanceInside = norm < 1 ? (1 / norm - 1) * Math.hypot(oc.x - dx, oc.y - dy) : 0;
+        if (distanceInside > 4) continue;
         if (clippedCorner(inner, outer, index)) break;
         const innerPaint = paintedCorner(inner, index);
         if (innerPaint === false) break;

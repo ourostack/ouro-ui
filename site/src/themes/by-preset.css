@@ -39,7 +39,7 @@ html:not([data-theme]) [data-presentation="popover"] [data-shows="pearl"] {
 /* As tall as the header's links on a fine pointer. */
 @media (min-width: 40rem) {
   [data-presentation="popover"] [data-ouro-part="trigger"] {
-    height: 2.25rem;
+    --ouro-tp-h: 2.25rem;
   }
 }
 /* Sky (Live) is Pearl under the reader's sky: its wordmark (in the header's popover too, which is outside the picker) shows Pearl at dusk, flat, so it differs from Pearl's. */
