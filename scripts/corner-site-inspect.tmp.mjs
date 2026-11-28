@@ -10,7 +10,7 @@ try {
   console.log(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll("code")].flatMap((el) => {
     const s = getComputedStyle(el);
     const r = el.getBoundingClientRect();
-    if (r.width < 600 || r.height < 50) return [];
+    if (r.height < 25) return [];
     return [{
       html: el.outerHTML.slice(0, 1000),
       bounds: r.toJSON(),
