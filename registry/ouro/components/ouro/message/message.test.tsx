@@ -2182,7 +2182,7 @@ const box = (element: Element) => element.getBoundingClientRect();
 
 describe("Message actions", () => {
   it("keeps each focused action's outline inside its raised bar", async () => {
-    const { message } = await render(
+    const { host, message } = await render(
       <>
         <button type="button">Before</button>
         <Message variant="chat" role="assistant" name="Friend" actions={actionsFor([])} menu={menu}>
@@ -2193,18 +2193,21 @@ describe("Message actions", () => {
     const bar = barOf(message);
     await act(async () => page.getByRole("button", { name: "Before" }).element().focus());
     await pressTab();
-    for (const button of bar.querySelectorAll<HTMLElement>("button")) {
-      expect(document.activeElement).toBe(button);
-      const style = getComputedStyle(button);
-      expect(style.outlineStyle).toBe("solid");
-      const outset = parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset);
-      const outer = box(bar);
-      const inner = box(button);
-      expect(inner.top - outset).toBeGreaterThanOrEqual(outer.top);
-      expect(inner.bottom + outset).toBeLessThanOrEqual(outer.bottom);
-      expect(inner.left - outset).toBeGreaterThanOrEqual(outer.left);
-      expect(inner.right + outset).toBeLessThanOrEqual(outer.right);
-      await userEvent.keyboard("{ArrowRight}");
+    for (const spacing of ["0.25rem", "0.2rem"]) {
+      host.style.setProperty("--spacing", spacing);
+      for (const button of bar.querySelectorAll<HTMLElement>("button")) {
+        expect(document.activeElement).toBe(button);
+        const style = getComputedStyle(button);
+        expect(style.outlineStyle).toBe("solid");
+        const outset = parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset);
+        const outer = box(bar);
+        const inner = box(button);
+        expect(inner.top - outset).toBeGreaterThanOrEqual(outer.top);
+        expect(inner.bottom + outset).toBeLessThanOrEqual(outer.bottom);
+        expect(inner.left - outset).toBeGreaterThanOrEqual(outer.left);
+        expect(inner.right + outset).toBeLessThanOrEqual(outer.right);
+        await userEvent.keyboard("{ArrowRight}");
+      }
     }
   });
 

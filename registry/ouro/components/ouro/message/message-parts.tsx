@@ -18,7 +18,7 @@ import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
 // hidden bar is over the message, which shows it; on a touch screen the hidden bar lets taps
 // through, so a tap on the message above never lands on it.
 const barClass =
-  "z-10 flex items-center gap-0.5 rounded-ouro-lg bg-popover p-0.5 text-popover-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid " +
+  "z-10 flex items-center gap-0.5 rounded-ouro-lg bg-popover p-[max(var(--spacing),4px)] text-popover-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid " +
   "opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] " +
   "pointer-fine:group-hover/message:opacity-100 group-focus-within/message:opacity-100 group-focus-within/message:transition-none " +
   "group-data-ouro-message-active/message:opacity-100 data-menu-open:opacity-100 " +
@@ -320,7 +320,7 @@ export function MessageActionBar({
 // Bars that have had their entrance, so one that moves between messages does not fade in again.
 const entered = new WeakSet<Element>();
 const layerClass =
-  "z-10 flex items-center gap-0.5 rounded-ouro-lg bg-popover p-0.5 text-popover-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid " +
+  "z-10 flex items-center gap-0.5 rounded-ouro-lg bg-popover p-[max(var(--spacing),4px)] text-popover-foreground ring-1 ring-border/60 shadow-(--shadow-lg) forced-colors:border forced-colors:border-solid " +
   // Fades in as it first shows (the layer marks it data-starting-style for its first frame) and out as the pointer leaves, which the layer waits for before it unmounts the bar. Opacity alone moves, so reduced motion keeps it.
   "transition-opacity duration-(--ouro-duration-fast) ease-(--ouro-ease-out) data-starting-style:opacity-0 data-ending-style:pointer-events-none data-ending-style:opacity-0";
 
