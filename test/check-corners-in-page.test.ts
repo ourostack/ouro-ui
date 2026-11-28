@@ -694,8 +694,8 @@ it("distinguishes a curved independent SVG stroke from a square one", async () =
       ["top right", `M ${160 - radius} 0 H 160 V ${radius}`],
       ["bottom right", `M 160 ${120 - radius} V 120 H ${160 - radius}`],
       ["bottom left", `M ${radius} 120 H 0 V ${120 - radius}`],
-    ]) {
-      path.setAttribute("d", d!);
+    ] as const) {
+      path.setAttribute("d", d);
       expect((await findSquirclePaint()).map((issue) => issue.detail)).toEqual(expect.arrayContaining([expect.stringContaining(corner)]));
     }
   } finally {
@@ -855,7 +855,22 @@ it("captures paint at the bottom edge of the test viewport", async () => {
   const root = render('<div id="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px"><div style="position:absolute;inset:0;background:#f40"></div></div>');
   root.style.top = "auto";
   root.style.bottom = "0";
-  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#surface");
+  const original = await commands.squircleHostScroll(null);
+  const capture = state.__ouroPaintCapture!;
+  state.__ouroPaintCapture = async (clip) => {
+    const scrolled = await commands.squircleHostScroll(6);
+    expect(scrolled.scroll).toBeGreaterThan(0);
+    expect(scrolled.top).toBeLessThan(0);
+    const image = await capture(clip);
+    expect(await commands.squircleHostScroll(null)).toEqual(scrolled);
+    return image;
+  };
+  try {
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#surface");
+  } finally {
+    state.__ouroPaintCapture = capture;
+    await commands.squircleHostScroll(original.scroll);
+  }
 }, paintTimeout);
 
 it("restores the surface when its screenshot capture fails", async () => {
