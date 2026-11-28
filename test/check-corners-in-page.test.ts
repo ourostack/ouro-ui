@@ -93,6 +93,10 @@ it("keeps explicitly declared fallback corners equal to a parent's tokens", asyn
 
 it("distinguishes inherited from declared nested corner tokens without changing the parent", () => {
   const root = render(`<style>
+    @property --sq-tl { syntax:"<length-percentage>"; inherits:true; initial-value:0px; }
+    @property --sq-tr { syntax:"<length-percentage>"; inherits:true; initial-value:0px; }
+    @property --sq-br { syntax:"<length-percentage>"; inherits:true; initial-value:0px; }
+    @property --sq-bl { syntax:"<length-percentage>"; inherits:true; initial-value:0px; }
     .outer { position:relative; width:200px; height:160px; background:#ddd;
       border-radius:17.376px; clip-path:inset(0); --sq-tl:32px; --sq-tr:32px; --sq-br:32px; --sq-bl:32px; }
     .wrapper { position:absolute; left:8px; top:8px; width:100px; height:100px;
@@ -112,6 +116,17 @@ it("distinguishes inherited from declared nested corner tokens without changing 
   expect(findCornerIssues()).toEqual([]);
   expect(wrapper.getAttribute("style")).toBe(original);
 });
+
+it("ignores an inherited paint token on a square descendant", async () => {
+  const root = render(`<style>
+    @property --sq-tl { syntax:"<length-percentage>"; inherits:true; initial-value:0px; }
+    .parent { position:relative; width:160px; height:120px; --sq-tl:28px; }
+    .child { position:absolute; inset:0; background:#c65; }
+  </style><div class="parent"><div class="child"></div></div>`);
+  const parent = root.querySelector(".parent")!;
+  expect(await findSquirclePaint()).toEqual([]);
+  expect(parent.hasAttribute("style")).toBe(false);
+}, paintTimeout);
 
 it("ignores a neighboring raster change while finding real paint beyond the box", async () => {
   const root = render('<div id="surface" style="position:relative;width:160px;height:120px;background:white;border-radius:28px;corner-shape:squircle;box-shadow:0 4px 12px #0008"></div>');
