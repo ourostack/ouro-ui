@@ -109,7 +109,7 @@ describe("ThreadLayout", () => {
   it("separates the rail with a surface step instead of a line at both widths", async () => {
     const { host, rail } = await render(<ThreadLayout conversation={<Conversation />} thread={<Thread />} />, 640);
     const surface = document.createElement("div");
-    surface.style.backgroundColor = "var(--muted)";
+    surface.style.backgroundColor = "var(--accent)";
     host.append(surface);
     expect(getComputedStyle(rail!).backgroundColor).toBe(getComputedStyle(surface).backgroundColor);
     expect(getComputedStyle(rail!).borderInlineStartWidth).toBe("0px");

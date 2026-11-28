@@ -50,9 +50,7 @@ function Conversation() {
           </Message>
         ))}
       </MessageList>
-      {/* With a thread open, the conversation pane sits flush against the rail's own border-s: an unwrapped
-          Composer's own end border would land on that same line, so this gives it the same inset the rail's
-          composer gets. */}
+      {/* Keep the composer inset like the one in the rail. */}
       <div className="border-t border-border p-2">
         <Composer label="Message the channel" onSend={() => {}} />
       </div>
