@@ -93,6 +93,8 @@ describe("PlanApproval", () => {
     const view = await render(<PlanApproval title={title} onRequestChanges={onRequestChanges}>{plan}</PlanApproval>);
     await userEvent.click(view.button("request-changes")!);
     expect(document.activeElement).toBe(view.field);
+    expect(view.button("send")!.textContent).toContain("Send");
+    expect(view.button("cancel")!.textContent).toContain("Cancel");
     await expect.element(page.getByRole("textbox", { name: "What should change?" })).toBeVisible();
     expect(view.button("send")!.getAttribute("aria-disabled")).toBe("true");
     await userEvent.fill(view.field!, "  Make it vegetarian.  ");
@@ -128,10 +130,13 @@ describe("PlanApproval", () => {
   it("shows the answer on its way as busy, and turns the other buttons off", async () => {
     const view = await render(<PlanApproval title={title} answering="approve">{plan}</PlanApproval>);
     expect(view.button("approve")!.getAttribute("aria-busy")).toBe("true");
+    // The busy button keeps its own look; only the others turn off.
+    expect(view.button("approve")!.hasAttribute("data-ouro-off")).toBe(false);
     expect(view.button("request-changes")!.getAttribute("aria-disabled")).toBe("true");
     expect(getComputedStyle(view.button("request-changes")!).opacity).toBe("0.5");
     await view.rerender(<PlanApproval title={title} answering="changes">{plan}</PlanApproval>);
     expect(view.button("request-changes")!.getAttribute("aria-busy")).toBe("true");
+    expect(view.button("request-changes")!.hasAttribute("data-ouro-off")).toBe(false);
     expect(view.button("approve")!.getAttribute("aria-disabled")).toBe("true");
     expect(view.button("approve")!.hasAttribute("aria-busy")).toBe(false);
   });
@@ -183,6 +188,9 @@ describe("PlanApproval", () => {
     const unfocused = await render(<PlanApproval title={title}>{plan}</PlanApproval>);
     await act(async () => (document.activeElement as HTMLElement).blur());
     await unfocused.rerender(<PlanApproval title={title} answer={{ decision: "approved", by: "Ana" }}>{plan}</PlanApproval>);
+    expect(document.activeElement).toBe(document.body);
+    // One that arrives already answered leaves focus alone too.
+    await render(<PlanApproval title={title} answer={{ decision: "approved", by: "Ana" }}>{plan}</PlanApproval>);
     expect(document.activeElement).toBe(document.body);
   });
 

@@ -137,10 +137,8 @@ export function PlanApproval(props: PlanApprovalProps): JSX.Element {
   const [wasAnswered, setWasAnswered] = useState(answered);
   if (answered !== wasAnswered) {
     setWasAnswered(answered);
-    if (answered) {
-      setEditing(false);
-      setFeedback("");
-    }
+    setEditing(false);
+    setFeedback("");
   }
   // Where focus goes once the person opens or cancels the field: the field, or back to Request changes.
   const focusAfter = useRef<"field" | "request" | undefined>(undefined);

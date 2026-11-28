@@ -4,6 +4,16 @@ import { PlanApproval, type PlanAnswer } from "@/registry/ouro/components/ouro/p
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
+/** Resolves with what `find` returns once it returns something, checking once a frame (a play function's wait). */
+async function frameUntil<T>(find: () => T | null | undefined): Promise<T> {
+  for (let frame = 0; frame < 600; frame++) {
+    const found = find();
+    if (found) return found;
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+  throw new Error("the story never reached the state it shows");
+}
+
 /** A themed panel. It follows the page's scheme (the `.dark` class on the root). */
 function Surface({ children }: { children: ReactNode }) {
   return <div style={{ background: "var(--background)", color: "var(--foreground)", padding: 16, display: "grid", gap: 12, maxWidth: 560 }}>{children}</div>;
@@ -37,6 +47,14 @@ type Story = StoryObj<typeof meta>;
 
 /** Try every prop. Request changes opens a field for what should change. */
 export const Playground: Story = {};
+
+/** Request changes opens a field for what should change, with Cancel and Send. The story presses Request changes. */
+export const RequestingChanges: Story = {
+  play: async ({ canvasElement }) => {
+    (await frameUntil(() => canvasElement.querySelector<HTMLButtonElement>('[data-ouro-part="request-changes"]'))).click();
+    await frameUntil(() => canvasElement.querySelector("textarea"));
+  },
+};
 
 /** Answered: approved from another app, and changes requested with the person's feedback under the line. */
 export const Answered: Story = {
