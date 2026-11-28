@@ -14,6 +14,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
   type Saved = { value: string; priority: string };
   type InlineElement = Element & { style: CSSStyleDeclaration };
   const capture = (window as unknown as { __ouroPaintCapture?: PaintCapture }).__ouroPaintCapture;
+  let pixelIndex = 0;
   if (!capture) throw new Error("squircle-paint needs a screenshot capture supplied by its host");
   const names = [
     { key: "tl", property: "TopLeft", shape: "top-left" },
@@ -292,6 +293,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           }
           if (outsideCorner && !attributable(px, py)) continue;
           if (delta >= 64 || (x > startX && row[x - 1]) || previous[x]) {
+            pixelIndex = index;
             return { corner: cornerIndex, x: Math.round(px - rect.left), y: Math.round(py - rect.top) };
           }
           row[x] = 1;
@@ -840,10 +842,28 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               }
             }
             let changed = false;
+            let restoredFrame: string | null = null;
             if (differs) {
               const restored = await capture(clip);
+              restoredFrame = restored;
               differs = await compare(withoutBadges, badgeRects, withoutStrokes, restored, withoutEffects, roundedEffects);
               changed = !differs;
+            }
+            if (differs && el.matches("[data-ouro-segment-thumb]")) {
+              const rgba = (await Promise.all([actual, masked, hidden, ...(solo ? [solo] : []), ...(restoredFrame ? [restoredFrame] : [])].map(pixels)))
+                .map((image) => [...image.data.slice(pixelIndex, pixelIndex + 4)]);
+              const computed = getComputedStyle(el);
+              const before = getComputedStyle(el, "::before");
+              console.log("THUMB-CORNER", JSON.stringify({
+                point: differs, rgba, rect: r.toJSON(), clip, corners: initial.corners,
+                width: initial.width, height: initial.height, scaleX, scaleY,
+                radius: computed.borderRadius, clipPath: computed.clipPath, overflow: computed.overflow,
+                overflowClipMargin: computed.overflowClipMargin, background: computed.backgroundColor,
+                shadow: computed.boxShadow, before: { content: before.content, shadow: before.boxShadow,
+                  radius: before.borderRadius, clipPath: before.clipPath, background: before.backgroundColor },
+                html: el.outerHTML, parent: el.parentElement?.outerHTML,
+                active: active.map((layer) => layer.el.outerHTML),
+              }));
             }
             if (differs) { found = differs; break; }
             if (!changed) break;
