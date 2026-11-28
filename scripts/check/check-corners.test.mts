@@ -44,13 +44,17 @@ async function scan(name: string, html: string, config: CornerOptions = {}) {
 }
 
 async function transparentClip({ clip = 24, own = 0, clipRound = false, ownRound = false, empty = false } = {}) {
-  const css = (await styles(`
+  const radius = (value: number, round: boolean) => round
+    ? `border-radius: ${value}px; corner-shape: round;`
+    : `border-radius: ${value * .543}px; ${["tl", "tr", "br", "bl"].map((key) => `--sq-${key}: ${value}px;`).join(" ")}
+       clip-path: path("${contour(100, 100, value)}");`;
+  return `<style>
     body { margin: 0; background: white; }
-    .outer { position: absolute; left: 80px; top: 80px; width: 200px; height: 160px; border-radius: 32px; box-shadow: 0 2px 6px #0002; }
-    .clip { position: absolute; left: 8px; top: 8px; width: 100px; height: 100px; overflow: hidden; border-radius: ${clip}px; ${clipRound ? "corner-shape: round;" : ""} }
-    .tile { position: absolute; inset: 0; background: #557799; border-radius: ${own}px; ${ownRound ? "corner-shape: round;" : ""} }
-  `)).replaceAll("(corner-shape: squircle)", "(ouro-check-native-shape: squircle)");
-  return `<style>${css} .outer { clip-path: none; }</style><div class="outer"><div class="clip">${empty ? "" : '<div class="tile"></div>'}</div></div>`;
+    .outer { position: absolute; left: 80px; top: 80px; width: 200px; height: 160px; box-shadow: 0 2px 6px #0002;
+      border-radius: ${32 * .543}px; --sq-tl: 32px; --sq-tr: 32px; --sq-br: 32px; --sq-bl: 32px; }
+    .clip { position: absolute; left: 8px; top: 8px; width: 100px; height: 100px; overflow: hidden; ${radius(clip, clipRound)} }
+    .tile { position: absolute; inset: 0; background: #557799; ${radius(own, ownRound)} }
+  </style><div class="outer"><div class="clip">${empty ? "" : '<div class="tile"></div>'}</div></div>`;
 }
 
 test("corners-nest checks the marked surface in the nested-frame pass fixture", async () => {
@@ -145,6 +149,37 @@ test("corners-nest keeps transparent fallback shadow envelopes as anchors", asyn
   }
 });
 
+test("corners-nest does not mistake an inherited radius for a clipped square", async () => {
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 400 } });
+    try {
+      await tab.setContent(`<style>
+        body { margin: 0; background: white; }
+        .outer { position:absolute; left:40px; top:40px; width:200px; height:160px; background:#ddd;
+          border-radius:17.376px; clip-path:path("${contour(200, 160, 32)}");
+          --sq-tl:32px; --sq-tr:32px; --sq-br:32px; --sq-bl:32px; }
+        .wrapper { position:absolute; left:8px; top:8px; width:100px; height:100px;
+          --sq-tl:24px; --sq-tr:24px; --sq-br:24px; --sq-bl:24px; }
+        .inner { position:absolute; inset:0; background:#557799; clip-path:inset(0); }
+      </style><div class="outer"><div class="wrapper"><div class="inner"></div></div></div>`);
+      const wrapperStyle = await tab.locator(".wrapper").getAttribute("style");
+      const issue = (await tab.evaluate(findCornerIssues))[0];
+      assert.match(issue?.detail ?? "", /0px, expected 24px/, engine.name());
+      assert.match(issue?.detail ?? "", /both corners must be squircles/);
+      assert.equal(await tab.locator(".wrapper").getAttribute("style"), wrapperStyle);
+      await tab.locator(".inner").evaluate((el, path) => {
+        el.style.borderRadius = "13.032px";
+        el.style.clipPath = `path("${path}")`;
+        for (const corner of ["tl", "tr", "br", "bl"]) el.style.setProperty(`--sq-${corner}`, "24px");
+      }, contour(100, 100, 24));
+      assert.deepEqual(await tab.evaluate(findCornerIssues), [], `${engine.name()}: explicitly declared matching tokens`);
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
 test("corners-nest finds a mismatched bottom corner through a wrapper in a clipping shell", async () => {
   const css = await styles(`
     .shell { position: relative; width: 240px; height: 180px; overflow: hidden; border-radius: 32px; background: #dce5ef; }
@@ -163,6 +198,12 @@ test("corners-nest finds a mismatched bottom corner through a wrapper in a clipp
   assert.match(broken[0]!.detail, /28px/);
   const sound = (await scan("corners-sound", fixture(true))).findings.filter((finding) => finding.rule === "corners-nest");
   assert.deepEqual(sound, []);
+});
+
+test("corners-nest accepts the rounded surface in the nested-frame pass fixture", async () => {
+  const fixture = readFileSync(join(fixtures, "nested-frame-pass.html"), "utf8");
+  const report = await scan("nested-frame-corners", fixture);
+  assert.deepEqual(report.findings.filter((finding) => finding.rule === "corners-nest"), []);
 });
 
 test("corners-nest compares a surface with the native window only when its radius is supplied", async () => {
@@ -345,6 +386,7 @@ test("squircle-paint finds a descendant's square fill beyond a squircle, but pas
     body { background: linear-gradient(110deg, #f8f3e7, #dce8f4); }
     .surface { position: relative; width: 220px; height: 140px; border-radius: 32px; background: #557799; }
     .broken { clip-path: none !important; }
+    .square-clip { clip-path: inset(0) !important; }
     .sound { overflow: hidden; }
     .fill { position: absolute; inset: 0; background: #cc6655; }
   `);
@@ -411,37 +453,6 @@ async function bindCapture(tab: Page) {
   );
 }
 
-test("squircle-paint keeps fractional border boxes when masking a native corner", async () => {
-  const browser = await chromium.launch({ headless: true });
-  const tab = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
-  let checkNative = true;
-  try {
-    await tab.exposeBinding("__ouroPaintCapture", async ({ page: current }, clip: PaintClip) => {
-      const intact = !checkNative || await current.evaluate(() => {
-        const el = document.querySelector<HTMLElement>(".surface")!;
-        if (!el.style.clipPath.startsWith("path(")) return true;
-        const r = el.getBoundingClientRect();
-        return el.contains(document.elementFromPoint(r.right - .625, r.bottom - 1.625));
-      });
-      assert.equal(intact, true, "the ideal mask must retain a point inside the native corner");
-      return (await current.screenshot({ clip, scale: "device", animations: "disabled" })).toString("base64");
-    });
-    await tab.setContent('<style>body{margin:0;background:white}.surface{position:absolute;left:17px;top:349.875px;box-sizing:border-box;width:145.375px;height:31px;border:1px solid #bbb;background:#e8e4dc;border-radius:5px;corner-shape:squircle}</style><div class="surface"></div>');
-    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
-    checkNative = false;
-    await tab.locator(".surface").evaluate((el) => {
-      el.style.borderRadius = "16px";
-      el.style.height = "64px";
-      const leak = document.createElement("span");
-      leak.style.cssText = "position:absolute;inset:-1px;background:red";
-      el.append(leak);
-    });
-    assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, "a real square child still leaks");
-  } finally {
-    await browser.close();
-  }
-});
-
 test("squircle-paint measures fills, borders, outlines, shadows and pseudo-elements on the actual background", async () => {
   const css = await styles(`
     body { margin: 0; background: linear-gradient(110deg, #f8f3e7, #dce8f4); }
@@ -487,6 +498,125 @@ test("squircle-paint passes a clipped surface at fractional layout coordinates",
   try {
     await tab.setContent(readFileSync(join(fixtures, "squircle-paint-pass.html"), "utf8"));
     assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("squircle-paint does not treat an inherited fallback token as a square child's corner", async () => {
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+    await bindCapture(tab);
+    try {
+      await tab.setContent(`<style>
+        body { margin: 0; background: #eee; }
+        .outer { position: absolute; left: 40px; top: 40px; width: 300px; height: 200px; background: white;
+          border-radius: 30px; clip-path: inset(0 round 30px);
+          --sq-tl: 30px; --sq-tr: 30px; --sq-br: 30px; --sq-bl: 30px; }
+        .child { position: absolute; left: 50px; top: 50px; width: 100px; height: 100px; background: #557799; }
+      </style><div class="outer"><div class="child"></div></div>`);
+      assert.equal(await tab.locator(".child").evaluate((el) => getComputedStyle(el).getPropertyValue("--sq-tl").trim()), "30px");
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], engine.name());
+      await tab.locator(".child").evaluate((el) => {
+        el.style.borderRadius = "16.29px";
+        for (const corner of ["tl", "tr", "br", "bl"]) el.style.setProperty(`--sq-${corner}`, "30px");
+        el.insertAdjacentHTML("beforeend", '<div style="position:absolute;inset:0;background:#b44939"></div>');
+      });
+      assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, `${engine.name()}: an explicit token equal to its parent's still detects square paint`);
+      assert.equal(await tab.locator(".outer").getAttribute("style"), null, `${engine.name()}: restores the parent's inline style`);
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
+test("squircle-paint treats wrapped inline fragments as separate painted boxes", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+  const tab = await context.newPage();
+  await bindCapture(tab);
+  try {
+    await tab.setContent(`<style>
+      body { margin: 0; background: white; }
+      .line { position: absolute; left: 424px; top: 1202.453125px; width: 723px; font: 16px/21px sans-serif; }
+      .prefix { display: inline-block; width: 613.75px; }
+      a { color: #1d1d1f; text-decoration: underline; text-decoration-color: #1d1d1f66; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+      code { font: 14px/20px monospace; background: #f5f5f7; border-radius: 4.806px; corner-shape: squircle; padding: 0.1em 0.3em; overflow-wrap: break-word; }
+    </style><div class="line"><span class="prefix"></span><a href="#example"><code><span>example/</span><span>parts/<wbr></span><span>documents/<wbr></span><span>AnotherInput.tsx</span></code></a></div>`);
+    const rects = await tab.locator("code").evaluate((el) => [...el.getClientRects()].map((rect) => rect.toJSON()));
+    assert.equal(rects.length, 2);
+    assert.ok(rects[0]!.left > rects[1]!.left);
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+    await tab.locator("code").evaluate((el) => {
+      const line = el.closest(".line")!.getBoundingClientRect();
+      const fragment = el.getClientRects()[1]!;
+      el.insertAdjacentHTML("beforeend", `<span class="probe" style="position:absolute;left:${fragment.left - line.left}px;top:${fragment.bottom - line.top - 4}px;width:4px;height:4px;background:#b44939"></span>`);
+    });
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), [], "the continuation's flat edge is not a squircle corner");
+    await tab.locator("code").evaluate((el) => {
+      const line = el.closest(".line")!.getBoundingClientRect();
+      const fragment = el.getClientRects()[0]!;
+      const probe = el.querySelector<HTMLElement>(".probe")!;
+      probe.style.left = `${fragment.left - line.left}px`;
+      probe.style.top = `${fragment.top - line.top}px`;
+    });
+    assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, "the first fragment's curved start still catches paint");
+  } finally {
+    await browser.close();
+  }
+});
+
+test("squircle-paint separates distant fractional inline fragments and still finds a leaking end", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: 390, height: 300 }, deviceScaleFactor: 2 });
+  const tab = await context.newPage();
+  await bindCapture(tab);
+  try {
+    await tab.setContent(`<style>
+      body { margin: 0; background: #fffaf7; }
+      .line { position: absolute; left: 16px; top: 100.609375px; width: 350px; font: 16px/21px sans-serif; }
+      .prefix { display: inline-block; width: 301.375px; }
+      code { font: 14px/20px monospace; background: #f5f5f7; border-radius: 4.806px; corner-shape: squircle; padding: 0.1em 0.3em; }
+    </style><div class="line"><span class="prefix"></span><code>alpha beta</code></div>`);
+    const rects = await tab.locator("code").evaluate((el) => [...el.getClientRects()].map((rect) => rect.toJSON()));
+    assert.equal(rects.length, 2);
+    assert.ok(rects[0]!.left - rects[1]!.right > 200);
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+    await tab.locator("code").evaluate((el) => {
+      const line = el.closest(".line")!.getBoundingClientRect();
+      const fragment = el.getClientRects()[0]!;
+      el.insertAdjacentHTML("beforeend", `<span style="position:absolute;left:${fragment.left - line.left}px;top:${fragment.top - line.top}px;width:5px;height:5px;background:#b44939"></span>`);
+    });
+    assert.equal((await tab.evaluate(findSquirclePaint)).length, 1);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("squircle-paint does not hide a neighbor in a wrapped inline's bounding gap", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: 390, height: 300 }, deviceScaleFactor: 2 });
+  const tab = await context.newPage();
+  await bindCapture(tab);
+  try {
+    await tab.setContent(`<style>
+      body { margin: 0; background: #fffaf7; }
+      .line { position: absolute; left: 16px; top: 100.609375px; width: 350px; font: 16px/21px sans-serif; }
+      .neighbor { position: absolute; left: 0; top: 0; width: 30px; height: 18px; background: #b44939; }
+      .prefix { display: inline-block; width: 39px; }
+      code { font: 14px/20px monospace; background: #f5f5f7; border-radius: 16px; corner-shape: squircle; padding: 0.1em 0.3em; }
+    </style><div class="line"><span class="neighbor"></span><span class="prefix"></span><code>one two three four five six seven eight nine ten eleven twelve</code></div>`);
+    const rects = await tab.locator("code").evaluate((el) => [...el.getClientRects()].map((rect) => rect.toJSON()));
+    assert.equal(rects.length, 2);
+    assert.ok(rects[0]!.left > rects[1]!.left);
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+    await tab.locator(".neighbor").evaluate((el) => {
+      const line = el.parentElement!.getBoundingClientRect();
+      const fragment = el.nextElementSibling!.nextElementSibling!.getClientRects()[0]!;
+      el.setAttribute("style", `left:${fragment.left - line.left}px;top:${fragment.top - line.top}px;width:8px;height:8px`);
+    });
+    assert.equal((await tab.evaluate(findSquirclePaint)).length, 1);
   } finally {
     await browser.close();
   }
@@ -658,6 +788,36 @@ test("squircle-paint checks coincident rounded siblings without treating their s
   }
 });
 
+test("squircle-paint attributes a distant shadow separately from an overlapping overlay", async () => {
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+    await bindCapture(tab);
+    try {
+      await tab.setContent(`<style>
+        body { margin: 0; background: #e8edf2; }
+        .surface { position: absolute; left: 60px; top: 100px; width: 300px; height: 44px;
+          background: #cdd7df; border-radius: 9.774px;
+          --sq-tl: 18px; --sq-tr: 18px; --sq-br: 18px; --sq-bl: 18px;
+          clip-path: path("M -500 -500 H 800 V 500 H -500 Z M 0 0 V 44 H 300 V 0 Z ${contour(300, 44, 18)}"); }
+        .selected { position: absolute; left: 110px; top: 2px; width: 90px; height: 40px;
+          background: white; box-shadow: 0 1px 3px #0008; }
+        .overlay { position: absolute; left: 60px; top: 90px; width: 50px; height: 14px;
+          z-index: 1; background: #1d1d1f; }
+        .stage:has(.surface[style*="clip-path"]) + .overlay, .stage:has(.surface[data-ouro-paint-solo]) + .overlay { background: #2e2e30; }
+        .stage:has(.surface[style*="opacity: 0"]) + .overlay { background: #272729; }
+      </style><div class="stage"><div class="surface"><div class="selected"></div></div></div><div class="overlay"></div>`);
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: an unrelated overlay is not the distant shadow`);
+      await tab.locator(".surface").evaluate((el) => {
+        el.insertAdjacentHTML("beforeend", '<div style="position:absolute;left:0;bottom:-6px;width:10px;height:10px;background:#b44939"></div>');
+      });
+      assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, `${engine.name()}: a nearby leaking layer is still found`);
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
 test("squircle-paint finds a leaking child under a strict content policy", async () => {
   for (const engine of [chromium, webkit]) {
     const browser = await engine.launch({ headless: true });
@@ -806,7 +966,7 @@ test("squircle-paint does not attribute changing background pixels to a surface"
   const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
   try {
     await tab.setContent('<div style="position:absolute;left:60px;top:60px;width:160px;height:120px;background:white;border-radius:28px;corner-shape:squircle"></div>');
-    const captures = await tab.evaluate(() => ["red", "blue", "green"].map((color) => {
+    const captures = await tab.evaluate(() => ["red", "blue", "green", "purple", "orange", "red", "blue", "green", "purple", "orange"].map((color) => {
       const canvas = document.createElement("canvas");
       canvas.width = 224;
       canvas.height = 184;
@@ -948,6 +1108,7 @@ test("squircle-paint finds a fallback surface's own square outline and hard shad
     body { margin: 0; background: #eef4fa; }
     .surface { position: absolute; left: 60px; top: 60px; width: 200px; height: 140px; border-radius: 32px; background: #557799; }
     .broken { clip-path: none !important; }
+    .square-clip { clip-path: inset(0) !important; }
     .outline { outline: 6px solid #cc6655; }
     .shadow { box-shadow: 0 0 0 6px #cc6655; }
     .control { position: absolute; width: 8px; height: 8px; background: #149b55; }
@@ -960,10 +1121,10 @@ test("squircle-paint finds a fallback surface's own square outline and hard shad
     await bindCapture(tab);
     try {
       for (const effect of ["outline", "shadow"]) {
-        for (const broken of [true, false]) {
-          await tab.setContent(`<style>${css}</style><div id="surface" class="surface ${effect}${broken ? " broken" : ""}"></div>`);
+        for (const clip of ["square-clip", "broken", ""]) {
+          await tab.setContent(`<style>${css}</style><div id="surface" class="surface ${effect} ${clip}"></div>`);
           const found = await tab.evaluate(findSquirclePaint);
-          assert.equal(found.length, broken ? 1 : 0, `${engine.name()} ${effect}: ${broken ? "unclipped" : "clipped"}`);
+          assert.equal(found.length, clip ? 1 : 0, `${engine.name()} ${effect}: ${clip || "clipped"}`);
         }
         for (const leaking of [false, true]) {
           const position = leaking ? "left:73px;top:54px" : "left:100px;top:80px";
