@@ -6,8 +6,28 @@ const regions = () => document.querySelectorAll<HTMLElement>("[data-ouro-announc
 afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
   for (const region of regions()) region.remove();
 });
+
+function clock() {
+  const callbacks = new Map<number, () => void>();
+  let next = 0;
+  return {
+    setTimeout: (callback: () => void) => {
+      const id = ++next;
+      callbacks.set(id, callback);
+      return id;
+    },
+    clearTimeout: (id: number) => { callbacks.delete(id); },
+    run: () => {
+      for (const [id, callback] of callbacks) {
+        callbacks.delete(id);
+        callback();
+      }
+    },
+  };
+}
 
 describe("announce", () => {
   it("creates one polite, visually hidden status region at the end of body", async () => {
@@ -70,6 +90,35 @@ describe("announce", () => {
     expect(regions()).toHaveLength(1);
     vi.advanceTimersByTime(100);
     expect(regions()[0]!.textContent).toBe("Two");
+  });
+
+  it("replaces a pending message even when the clock changes between calls", () => {
+    const first = clock();
+    const second = clock();
+    const written: string[] = [];
+    vi.stubGlobal("setTimeout", first.setTimeout);
+    vi.stubGlobal("clearTimeout", first.clearTimeout);
+    announce("Old", { onWrite: () => written.push("Old") });
+    vi.stubGlobal("setTimeout", second.setTimeout);
+    vi.stubGlobal("clearTimeout", second.clearTimeout);
+    announce("New", { onWrite: () => written.push("New") });
+    first.run();
+    second.run();
+    expect(written).toEqual(["New"]);
+  });
+
+  it("cancels a pending message even when the clock changes before cleanup", () => {
+    const first = clock();
+    const second = clock();
+    const written: string[] = [];
+    vi.stubGlobal("setTimeout", first.setTimeout);
+    vi.stubGlobal("clearTimeout", first.clearTimeout);
+    const cancel = announce("Old", { onWrite: () => written.push("Old") });
+    vi.stubGlobal("setTimeout", second.setTimeout);
+    vi.stubGlobal("clearTimeout", second.clearTimeout);
+    cancel!();
+    first.run();
+    expect(written).toEqual([]);
   });
 
   it("can cancel a pending message without cancelling a later caller's message", () => {
