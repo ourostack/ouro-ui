@@ -301,10 +301,42 @@ test("squircle-paint finds a surface's own square paint outside its fallback cor
     try {
       await tab.setContent(`<style>${css}</style><div class="surface"></div>`);
       assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: a curved shadow`);
-      for (const paint of ["background:#b44939", "border:6px solid #b44939", "outline:6px solid #b44939", "box-shadow:0 0 0 6px #b44939"]) {
+      for (const paint of [
+        "background:#b44939",
+        "border:6px solid #b44939",
+        "outline:6px solid #b44939",
+        "outline:2px solid #b44939;outline-offset:6px",
+        "box-shadow:0 0 0 6px #b44939",
+      ]) {
         await tab.locator(".surface").evaluate((el, value) => { el.style.cssText = `border-radius:0;clip-path:none;box-shadow:none;${value}`; }, paint);
         assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, `${engine.name()}: ${paint}`);
       }
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
+test("squircle-paint distinguishes inherited fallback radii from a child's own corners", async () => {
+  const generated = await styles(`
+    body { margin: 0; background: white; }
+    .outer { position: absolute; left: 60px; top: 60px; width: 200px; height: 140px; background: #dce5ef; border-radius: 32px; }
+    .inner { position: absolute; left: 45px; top: 40px; width: 80px; height: 60px; background: #b44939; }
+    .rounded { border-radius: 32px; }
+  `);
+  const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-check-native-shape: squircle)");
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+    await bindCapture(tab);
+    try {
+      await tab.setContent(`<style>${css}</style><div class="outer"><div class="inner"></div></div>`);
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: a square child is not a squircle`);
+      await tab.locator(".inner").evaluate((el) => {
+        el.classList.add("rounded");
+        el.style.cssText = "border-radius:0;clip-path:none";
+      });
+      assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, `${engine.name()}: the child's own fallback is broken`);
     } finally {
       await browser.close();
     }
