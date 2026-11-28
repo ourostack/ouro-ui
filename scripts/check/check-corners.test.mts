@@ -62,6 +62,12 @@ test("corners-nest finds a mismatched bottom corner through a wrapper in a clipp
   assert.deepEqual(sound, []);
 });
 
+test("corners-nest accepts the rounded surface in the nested-frame pass fixture", async () => {
+  const fixture = readFileSync(join(fixtures, "nested-frame-pass.html"), "utf8");
+  const report = await scan("nested-frame-corners", fixture);
+  assert.deepEqual(report.findings.filter((finding) => finding.rule === "corners-nest"), []);
+});
+
 test("corners-nest compares a surface with the native window only when its radius is supplied", async () => {
   const css = await styles(`
     .window-panel { position: fixed; inset: 4px; border-radius: 8px; background: #557799; }
@@ -672,7 +678,7 @@ test("squircle-paint does not attribute changing background pixels to a surface"
   const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
   try {
     await tab.setContent('<div style="position:absolute;left:60px;top:60px;width:160px;height:120px;background:white;border-radius:28px;corner-shape:squircle"></div>');
-    const captures = await tab.evaluate(() => ["red", "blue", "green"].map((color) => {
+    const captures = await tab.evaluate(() => ["red", "blue", "green", "purple", "orange", "red", "blue", "green", "purple", "orange"].map((color) => {
       const canvas = document.createElement("canvas");
       canvas.width = 224;
       canvas.height = 184;
