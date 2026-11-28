@@ -520,6 +520,30 @@ describe("ThemePicker", () => {
 });
 
 describe("ThemePicker popover", () => {
+  it("nests the chosen wordmark's corners inside the trigger", async () => {
+    const previous = html.style.getPropertyValue("--radius");
+    const priority = html.style.getPropertyPriority("--radius");
+    html.style.setProperty("--radius", "18px");
+    try {
+      const el = await render(<ThemePicker presets={presets} presentation="popover" />);
+      const trigger = el.querySelector<HTMLButtonElement>('[data-ouro-part="trigger"]')!;
+      const wordmark = trigger.querySelector<HTMLElement>('[data-shows]:not([hidden]) [data-slot="theme-picker-wordmark"]')!;
+      const radius = (node: HTMLElement) => {
+        const style = getComputedStyle(node);
+        return parseFloat(style.getPropertyValue("--sq-tl")) || parseFloat(style.borderTopLeftRadius);
+      };
+      const outer = trigger.getBoundingClientRect();
+      const inner = wordmark.getBoundingClientRect();
+      const difference = radius(trigger) - radius(wordmark);
+      expect(Math.abs(difference - (inner.left - outer.left))).toBeLessThanOrEqual(1);
+      expect(Math.abs(difference - (inner.top - outer.top))).toBeLessThanOrEqual(1);
+      expect(Math.abs(difference - (outer.bottom - inner.bottom))).toBeLessThanOrEqual(1);
+    } finally {
+      if (previous) html.style.setProperty("--radius", previous, priority);
+      else html.style.removeProperty("--radius");
+    }
+  });
+
   it("shows the chosen wordmark, opens the looks, and closes on Escape with focus back on the button", async () => {
     const el = await render(
       <ThemePicker presets={three} presentation="popover" defaultPreset="dusk">
