@@ -1425,6 +1425,22 @@ describe("Composer expanded motion", () => {
     expect(frameOf(root).hasAttribute("data-ouro-moving")).toBe(false);
   });
 
+  it("keeps the toolbar on screen for a collapse that turns an expand round mid-way, and takes it away at the end", async () => {
+    const { host, root } = await render(<Composer label="Reply" defaultExpanded={false} toolbar={<span>Tools</span>} onSend={() => {}} />);
+    const moves: ComposerMove[] = [];
+    host.addEventListener("ouro-composer-move", (event) => moves.push((event as CustomEvent<ComposerMove>).detail));
+    const toolbar = () => root.querySelector('[data-ouro-part="toolbar"]');
+    await act(async () => expandButton()!.click());
+    const animation = frameOf(root).getAnimations()[0]!;
+    animation.pause();
+    animation.currentTime = Number(animation.effect!.getTiming().duration) / 2;
+    await act(async () => expandButton()!.click());
+    expect(frameOf(root).getAttribute("data-ouro-moving")).toBe("shrink");
+    expect(toolbar()).not.toBeNull();
+    await moves[1]!.playing;
+    expect(toolbar()).toBeNull();
+  });
+
   it("takes the collapsing toolbar out of the DOM in the same commit that clears data-ouro-moving, with no frame showing the full-height box and the toolbar together", async () => {
     const { root } = await render(<Composer label="Reply" defaultExpanded toolbar={<span>Tools</span>} onSend={() => {}} />);
     const frame = frameOf(root);

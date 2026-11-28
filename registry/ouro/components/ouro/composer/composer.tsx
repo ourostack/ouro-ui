@@ -930,13 +930,11 @@ export function Composer(props: ComposerProps): JSX.Element {
       // frame at its full natural height with the toolbar still mounted for one frame before it goes.
       // flushSync forces that commit now, while the frame is still clipped and pinned, so the
       // toolbar is already gone by the time either property is cleared. The two callers that pass
-      // duringEffect run from inside a React lifecycle already — a move interrupted by another
-      // render (running?.end() above) runs from this very layout effect, and a move cut short by
-      // the box unmounting runs from a useEffect's own cleanup — where a plain setLeaving already
-      // lands before the next paint on its own; flushSync there, from inside React's own render
-      // or teardown, is the call React warns against.
-      if (duringEffect) setLeaving(false);
-      else flushSync(() => setLeaving(false));
+      // duringEffect leave leaving alone: a move interrupted by another render (running?.end(true)
+      // above) runs after that render already set leaving for the move that replaces it, true for a
+      // collapse, so the toolbar stays while it closes, and a move cut short by the box unmounting
+      // has nothing left to draw. flushSync from inside React's own lifecycle is the call React warns against.
+      if (!duringEffect) flushSync(() => setLeaving(false));
       frame.removeAttribute("data-ouro-moving");
       frame.style.minHeight = "";
       frame.style.removeProperty("--ouro-composer-gap");
