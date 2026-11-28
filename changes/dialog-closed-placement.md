@@ -1,0 +1,1 @@
+- Closed, kept-mounted Dialog popups [skip placement measurements until they open](registry/ouro/components/ouro/dialog/dialog.test.tsx "verify:testExists(registry/ouro/components/ouro/dialog/dialog.test.tsx::Dialog's top edge while its content changes > skips placement measurements while a kept-mounted popup is closed)").
