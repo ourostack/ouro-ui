@@ -43,7 +43,7 @@ const sidebar = (
     currentPath="/recipes"
     header={
       <Text>
-        <strong style={{ fontWeight: 600 }}>Spoonjoy</strong>
+        <strong style={{ fontWeight: 600 }}>Workspace</strong>
       </Text>
     }
   />
@@ -72,6 +72,6 @@ export const Playground: Story = {};
 
 /** An app's shell: the sidebar beside the page, and a top bar with its menu button on a phone. */
 export const InContext: Story = {
-  args: { header: <Text tone="muted">Kitchen of Ari</Text> },
+  args: { header: <Text tone="muted">My kitchen</Text> },
   parameters: { screenshot: { name: "sidebar-layout" } },
 };

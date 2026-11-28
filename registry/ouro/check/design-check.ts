@@ -23,6 +23,8 @@ import type { PageIssue } from "./size-check.ts";
 //   doubled-line       two dividing lines side by side where one would separate: a divider (a border on some sides of
 //                      a box, an hr, a separator or a hairline fill) within a few pixels of another line, or of a
 //                      frame's edge, along most of its length, such as a list's last row's border over its card's
+//   cut-off-edge       scrollable content cut off before the window edge into the same surface, without a visible edge
+//   pane-edge          large adjoining panes split by a line, with no surface step, or with a notch in that step
 //   count-badge        a count on a small filled pill laid over an icon: clipped by a box around it, its numerals'
 //                      ink off the pill's middle by more than `badgeSlackPx`, or at another offset from its icon than
 //                      the page's other count badges on icons of that size
@@ -261,6 +263,13 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     if (!/none|hidden/.test(s.outlineStyle) && px(s.outlineWidth) >= 0.5 && Math.abs(px(s.outlineOffset)) <= 1 && visibleInk(s.outlineColor, surface)) return true;
     const ring = /(?:^|,\s*)([a-z]+\([^)]*\))\s+0px 0px 0px ([\d.]+)px/.exec(s.boxShadow);
     return ring !== null && px(ring[2]!) >= 0.5 && visibleInk(ring[1]!, surface);
+  };
+  const gradientFades = (image: string) => {
+    if (!/gradient\(/.test(image)) return false;
+    const stops = image.match(/(?:rgba?|hsla?|oklch|lab|lch|color)\([^()]*\)|#[0-9a-f]{3,8}\b|\btransparent\b/gi) ?? [];
+    if (stops.length < 2) return false;
+    const alphas = stops.map((stop) => rgba(stop)[3]);
+    return Math.max(...alphas) - Math.min(...alphas) > 0.05;
   };
   const pictureLike = (el: Element) => el.matches("img, video, canvas, picture, svg, [role=img]") || (getComputedStyle(el).backgroundImage.includes("url(") && !el.textContent!.trim());
   // A page behind a gradient or a picture has no one colour to differ from, so no fill is judged against it.
@@ -635,6 +644,289 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
         const [first, second] = a.el.compareDocumentPosition(b.el) & Node.DOCUMENT_POSITION_FOLLOWING ? [a.el, b.el] : [b.el, a.el];
         paired.add(a.el).add(b.el);
         issues.push({ ref: ref(second), rule: "doubled-line", element: `${describe(first)} and ${describe(second)}`, detail: `two ${across ? "horizontal" : "vertical"} lines ${Math.round(gap)}px apart where one separates: keep one, or space them apart` });
+      }
+    }
+  }
+
+  // cut-off-edge: a scrollable row that crosses the scrollport's edge into an indistinguishable surface. Read the
+  // current position without scrolling it, and judge only an edge the viewport and clipping ancestors actually show.
+  for (const el of visible) {
+    if (!(el instanceof HTMLElement) || optedOut(el, "cut-off-edge")) continue;
+    const s = getComputedStyle(el);
+    const scrollX = /auto|scroll/.test(s.overflowX) && el.scrollWidth > el.clientWidth + 1;
+    const scrollY = /auto|scroll/.test(s.overflowY) && el.scrollHeight > el.clientHeight + 1;
+    const mask = s.maskImage || "none";
+    if ((!scrollX && !scrollY) || (mask !== "none" && (!/gradient\(/.test(mask) || gradientFades(mask)))) continue;
+    if (el.tabIndex >= 0 && el.children.length === 1 && el.firstElementChild?.matches("img, video, canvas")) continue;
+    const surface = surfaceOf(el);
+    if (!surface) continue;
+    const box = el.getBoundingClientRect();
+    const drawn = drawnRect(el)!;
+    const scaleX = box.width / (el.offsetWidth || box.width);
+    const scaleY = box.height / (el.offsetHeight || box.height);
+    const left = box.left + el.clientLeft * scaleX;
+    const top = box.top + el.clientTop * scaleY;
+    const right = left + el.clientWidth * scaleX;
+    const bottom = top + el.clientHeight * scaleY;
+    const content = [...el.querySelectorAll("*")].filter((child) => {
+      if (!child.checkVisibility({ opacityProperty: true, visibilityProperty: true })) return false;
+      const cs = getComputedStyle(child);
+      return hasText(child) || child.matches("img, video, canvas, svg, input, textarea, button, [role=row], li") || rgba(cs.backgroundColor)[3] > 0 || frameOf(child) !== null;
+    });
+    const textRects = [...el.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim()).flatMap((node) => {
+      const range = document.createRange();
+      range.selectNode(node);
+      return [...range.getClientRects()];
+    });
+    const enclosingEdge = (side: typeof sideNames[number], edge: number) => {
+      for (let n = el.parentElement; n; n = n.parentElement) {
+        const r = n.getBoundingClientRect();
+        const sx = r.width / (n.offsetWidth || r.width);
+        const sy = r.height / (n.offsetHeight || r.height);
+        const x = r.left + n.clientLeft * sx;
+        const y = r.top + n.clientTop * sy;
+        const onEdge = side === "top" ? y : side === "bottom" ? y + n.clientHeight * sy : side === "left" ? x : x + n.clientWidth * sx;
+        if (Math.abs(onEdge - edge) <= 1 && visibleEdge(n, side, surfaceOf(n) ?? surface)) return true;
+      }
+      return false;
+    };
+    const cut = sideNames.filter((side) => {
+      const horizontal = side === "top" || side === "bottom";
+      if (horizontal ? !scrollY : !scrollX) return false;
+      const edge = side === "top" ? top : side === "right" ? right : side === "bottom" ? bottom : left;
+      const limit = horizontal ? innerHeight : innerWidth;
+      if (edge <= 1 || edge >= limit - 1 || visibleEdge(el, side, surface) || enclosingEdge(side, edge)) return false;
+      if ((side === "top" && drawn.top > edge + 1) || (side === "bottom" && drawn.bottom < edge - 1)
+        || (side === "left" && drawn.left > edge + 1) || (side === "right" && drawn.right < edge - 1)) return false;
+      const crosses = (r: DOMRect) => horizontal
+        ? r.top < edge - 0.5 && r.bottom > edge + 0.5 && r.right > left && r.left < right
+        : r.left < edge - 0.5 && r.right > edge + 0.5 && r.bottom > top && r.top < bottom;
+      const clippedBefore = (child: Element) => {
+        let escaping = getComputedStyle(child).position === "absolute";
+        for (let n = child.parentElement; n && n !== el; n = n.parentElement) {
+          const style = getComputedStyle(n);
+          const positioned = style.position !== "static";
+          const clips = !/^(inline|contents)$/.test(style.display) && (!escaping || positioned);
+          if (clips && (/paint|strict|content/.test(style.contain) || (horizontal ? style.overflowY : style.overflowX) !== "visible")) {
+            const r = n.getBoundingClientRect();
+            const scale = horizontal ? r.height / (n.offsetHeight || r.height) : r.width / (n.offsetWidth || r.width);
+            const near = horizontal ? r.top + n.clientTop * scale : r.left + n.clientLeft * scale;
+            const far = near + (horizontal ? n.clientHeight : n.clientWidth) * scale;
+            if (side === "top" || side === "left" ? near >= edge - 0.5 : far <= edge + 0.5) return true;
+          }
+          if (positioned) escaping = style.position === "absolute";
+          if (style.position === "fixed") break;
+        }
+        return false;
+      };
+      const crossing = textRects.some(crosses) || content.some((child) => {
+        const r = child.getBoundingClientRect();
+        const d = drawnRect(child)!;
+        if (d.width < 1 || d.height < 1) return false;
+        return crosses(r) && !clippedBefore(child) && (horizontal ? d.top <= edge + 1 && d.bottom >= edge - 1 : d.left <= edge + 1 && d.right >= edge - 1);
+      });
+      if (!crossing) return false;
+      const unclear = [0.25, 0.5, 0.75].some((share) => {
+        const along = horizontal ? left + (right - left) * share : top + (bottom - top) * share;
+        const direction = side === "top" || side === "left" ? -1 : 1;
+        const [ix, iy] = horizontal ? [along, edge - direction * 2] : [edge - direction * 2, along];
+        const [ox, oy] = horizontal ? [along, edge + direction * 2] : [edge + direction * 2, along];
+        const inside = document.elementFromPoint(ix, iy);
+        const outside = document.elementFromPoint(ox, oy);
+        if (!inside || !el.contains(inside) || !outside || el.contains(outside)) return false;
+        let painted: Element = inside;
+        while (painted !== el) {
+          const r = painted.getBoundingClientRect();
+          const width = horizontal ? r.width : r.height;
+          const span = horizontal ? right - left : bottom - top;
+          const style = getComputedStyle(painted);
+          if (width >= span * 0.9 && (rgba(style.backgroundColor)[3] > 0 || style.backgroundImage !== "none")) break;
+          painted = painted.parentElement!;
+        }
+        const within = surfaceOf(painted);
+        const beyond = surfaceOf(outside);
+        return within !== null && beyond !== null && colourDistance(within, beyond) <= 12;
+      });
+      if (!unclear) return false;
+      const fade = visible.some((candidate) => {
+        if (candidate === el || candidate.contains(el) || !el.parentElement?.contains(candidate)) return false;
+        const cs = getComputedStyle(candidate);
+        if (!/absolute|fixed|sticky/.test(cs.position) || (!gradientFades(cs.backgroundImage) && !gradientFades(cs.maskImage))) return false;
+        const z = Number.parseFloat(cs.zIndex);
+        const scrollZ = Number.parseFloat(s.zIndex);
+        if (z < 0 || (!(el.compareDocumentPosition(candidate) & Node.DOCUMENT_POSITION_FOLLOWING) && !(z > (Number.isFinite(scrollZ) ? scrollZ : 0)))) return false;
+        const r = drawnRect(candidate)!;
+        const overlap = horizontal ? Math.min(r.right, right) - Math.max(r.left, left) : Math.min(r.bottom, bottom) - Math.max(r.top, top);
+        if (overlap < (horizontal ? right - left : bottom - top) / 2) return false;
+        if (side === "top") return r.top <= edge + 1 && r.bottom > edge + 1;
+        if (side === "bottom") return r.top < edge - 1 && r.bottom >= edge - 1;
+        if (side === "left") return r.left <= edge + 1 && r.right > edge + 1;
+        return r.left < edge - 1 && r.right >= edge - 1;
+      });
+      const pseudoFade = (() => {
+        for (let owner = el.parentElement; owner; owner = owner.parentElement) {
+          if (getComputedStyle(owner).position === "static") continue;
+          const box = owner.getBoundingClientRect();
+          const sx = box.width / (owner.offsetWidth || box.width);
+          const sy = box.height / (owner.offsetHeight || box.height);
+          for (const pseudo of ["::before", "::after"]) {
+            const style = getComputedStyle(owner, pseudo);
+            if (style.content === "none" || style.display === "none" || style.visibility !== "visible"
+              || style.position !== "absolute" || Number(style.opacity) <= 0.05 || !gradientFades(style.backgroundImage)) continue;
+            const z = Number.parseFloat(style.zIndex);
+            const scrollZ = Number.parseFloat(s.zIndex);
+            if (z < 0 || (Number.isFinite(scrollZ) && !(z > scrollZ))) continue;
+            const x = box.left + px(style.left) * sx;
+            const y = box.top + px(style.top) * sy;
+            const r = { left: x, right: x + px(style.width) * sx, top: y, bottom: y + px(style.height) * sy };
+            const overlap = horizontal ? Math.min(r.right, right) - Math.max(r.left, left) : Math.min(r.bottom, bottom) - Math.max(r.top, top);
+            if (overlap < (horizontal ? right - left : bottom - top) / 2) continue;
+            if (side === "top" && r.top <= edge + 1 && r.bottom > edge + 1) return true;
+            if (side === "bottom" && r.top < edge - 1 && r.bottom >= edge - 1) return true;
+            if (side === "left" && r.left <= edge + 1 && r.right > edge + 1) return true;
+            if (side === "right" && r.left < edge - 1 && r.right >= edge - 1) return true;
+          }
+        }
+        return false;
+      })();
+      return !fade && !pseudoFade;
+    });
+    if (cut.length) {
+      issues.push({
+        ref: ref(el),
+        rule: "cut-off-edge",
+        element: describe(el),
+        detail: `content is clipped at the ${cut.join(" and ")} into the same surface: use a step between theme surface tokens`,
+      });
+    }
+  }
+
+  // pane-edge: sibling regions with a shared edge, not small controls or cards spaced apart. A separator can be a
+  // border on either pane or a hairline between them; a colour step without that line is the intended separation.
+  for (const parent of [document.body, ...visible]) {
+    const ps = getComputedStyle(parent);
+    const children = [...parent.children].filter((el) => visibleSet.has(el) && !isLayer(el));
+    if (children.length < 2 || parent.matches("ul, ol, table, thead, tbody, tfoot, tr, [role=list], [role=row]")) continue;
+    const panes = children.flatMap((el) => {
+      const box = el.getBoundingClientRect();
+      if (box.width < 80 || box.height < 80 || el.matches("button, input, select, textarea, [role=button]")) return [];
+      const r = drawnRect(el)!;
+      return r.width >= 80 && r.height >= 80 ? [{ el, r }] : [];
+    });
+    if (panes.length < 2) continue;
+    if (!/flex|grid/.test(ps.display) && !panes.some(({ el }) => el.matches("aside, main, nav, [role=main], [role=complementary], [role=navigation]")) && !panes.some(({ el }) => {
+      const style = getComputedStyle(el);
+      return rgba(style.backgroundColor)[3] > 0 || style.backgroundImage !== "none"
+        || sideNames.some((side) => px(style.getPropertyValue(`border-${side}-width`)) >= 0.5);
+    })) continue;
+    const gridPeers = /grid/.test(ps.display) ? children.map((el) => el.getBoundingClientRect()) : [];
+    for (const [index, { el: a, r: ar }] of panes.entries()) {
+      for (const { el: b, r: br } of panes.slice(index + 1)) {
+        if (optedOut(a, "pane-edge") || optedOut(b, "pane-edge")) continue;
+        const directions = [
+          { first: a, second: b, f: ar, s: br, side: "right" as const, other: "left" as const, across: false },
+          { first: b, second: a, f: br, s: ar, side: "right" as const, other: "left" as const, across: false },
+          { first: a, second: b, f: ar, s: br, side: "bottom" as const, other: "top" as const, across: true },
+          { first: b, second: a, f: br, s: ar, side: "bottom" as const, other: "top" as const, across: true },
+        ];
+        const seam = directions.find(({ f, s, across }) => {
+          const gap = across ? s.top - f.bottom : s.left - f.right;
+          const overlap = across ? Math.min(f.right, s.right) - Math.max(f.left, s.left) : Math.min(f.bottom, s.bottom) - Math.max(f.top, s.top);
+          return gap >= -0.5 && gap <= 3 && overlap >= 160;
+        });
+        if (!seam) continue;
+        if (gridPeers.length) {
+          const aBox = a.getBoundingClientRect();
+          const bBox = b.getBoundingClientRect();
+          const column = aBox.width >= bBox.width ? aBox : bBox;
+          const matchesColumn = (r: DOMRect) => Math.abs(r.width - column.width) <= 1 && Math.abs(r.height - column.height) <= 1;
+          const isGutter = (r: DOMRect) => r.width < column.width / 2 && Math.abs(r.height - column.height) <= 1;
+          const columns = gridPeers.filter(matchesColumn).length;
+          const gutter = gridPeers.some(isGutter);
+          const gutterPair = (a.matches('[aria-hidden="true"]') && isGutter(aBox) && matchesColumn(bBox))
+            || (b.matches('[aria-hidden="true"]') && isGutter(bBox) && matchesColumn(aBox));
+          if (columns >= 3 && gutter && ((matchesColumn(aBox) && matchesColumn(bBox)) || gutterPair)) continue;
+        }
+        const { first, second, f, s, side, other, across } = seam;
+        const at = across ? f.bottom : f.right;
+        const from = across ? Math.max(f.left, s.left) : Math.max(f.top, s.top);
+        const to = across ? Math.min(f.right, s.right) : Math.min(f.bottom, s.bottom);
+        const gap = across ? s.top - f.bottom : s.left - f.right;
+        const separator = lines.some((line) => line.across === across && line.el.parentElement === parent
+          && line.el !== first && line.el !== second && line.near >= at - 1 && line.far <= at + gap + 1
+          && Math.min(line.to, to) - Math.max(line.from, from) >= 160);
+        const samples = [0.25, 0.5, 0.75].flatMap((share) => {
+          const along = from + (to - from) * share;
+          const [fx, fy] = across ? [along, at - 2] : [at - 2, along];
+          const [sx, sy] = across ? [along, at + gap + 2] : [at + gap + 2, along];
+          const firstHit = document.elementFromPoint(fx, fy);
+          const secondHit = document.elementFromPoint(sx, sy);
+          if (!firstHit || !secondHit || !first.contains(firstHit) || !second.contains(secondHit)
+            || optedOut(firstHit, "pane-edge") || optedOut(secondHit, "pane-edge")) return [];
+          return [{ firstHit, secondHit, firstSurface: surfaceOf(firstHit), secondSurface: surfaceOf(secondHit) }];
+        });
+        if (samples.length < 2) continue;
+        const ownsSurface = (hit: Element, pane: Element) => {
+          const box = pane.getBoundingClientRect();
+          for (let node: Element | null = hit; node && pane.contains(node); node = node.parentElement) {
+            const r = node.getBoundingClientRect();
+            const fills = r.left <= box.left + 1 && r.right >= box.right - 1
+              && r.top <= box.top + 1 && r.bottom >= box.bottom - 1;
+            if (fills && (rgba(getComputedStyle(node).backgroundColor)[3] > 0 || frameOf(node) !== null)) return true;
+            if (node === pane) break;
+          }
+          return false;
+        };
+        const flexiblePanes = /flex/.test(ps.display) && ps.flexDirection.startsWith("column")
+          && [first, second].every((pane) => Number(getComputedStyle(pane).flexGrow) > 0);
+        const complementaryPane = [first, second].some((pane) => pane.matches("aside, [role=complementary]"));
+        if (across && !flexiblePanes && !complementaryPane && !samples.some(({ firstHit, secondHit }) =>
+          ownsSurface(firstHit, first) && ownsSurface(secondHit, second))) continue;
+        const borderAt = (hit: Element, pane: Element, edge: number, borderSide: typeof side | typeof other, surface: number[] | null) => {
+          if (!surface) return false;
+          for (let node: Element | null = hit; node && pane.contains(node); node = node.parentElement) {
+            const r = drawnRect(node)!;
+            const onEdge = borderSide === "right" ? r.right : borderSide === "left" ? r.left : borderSide === "bottom" ? r.bottom : r.top;
+            const length = across ? Math.min(r.right, to) - Math.max(r.left, from) : Math.min(r.bottom, to) - Math.max(r.top, from);
+            if (Math.abs(onEdge - edge) <= 1 && length >= 160 && visibleEdge(node, borderSide, surface)) return true;
+            if (node === pane) break;
+          }
+          return false;
+        };
+        const line = separator || samples.some(({ firstHit, secondHit, firstSurface, secondSurface }) =>
+          borderAt(firstHit, first, at, side, firstSurface) || borderAt(secondHit, second, at + gap, other, secondSurface));
+        const sameSurface = samples.filter(({ firstSurface, secondSurface }) =>
+          firstSurface && secondSurface && colourDistance(firstSurface, secondSurface) <= 12).length >= 2;
+        const notch = !line && !sameSurface && gap <= 0.5 && (() => {
+          const count = Math.min(80, Math.ceil((to - from) / 8));
+          let run = 0;
+          for (let index = 0; index < count; index++) {
+            const along = from + (to - from) * (index + 0.5) / count;
+            const changed = [
+              { pane: first, near: at - 2, deep: at - 16 },
+              { pane: second, near: at + gap + 2, deep: at + gap + 16 },
+            ].some(({ pane, near, deep }) => {
+              const edgeHit = across ? document.elementFromPoint(along, near) : document.elementFromPoint(near, along);
+              const innerHit = across ? document.elementFromPoint(along, deep) : document.elementFromPoint(deep, along);
+              if (!edgeHit || !innerHit || !pane.contains(edgeHit) || !pane.contains(innerHit)
+                || optedOut(edgeHit, "pane-edge") || optedOut(innerHit, "pane-edge")) return false;
+              const control = innerHit.closest("button, input, select, textarea, [role=button], [role=textbox], [contenteditable=true]");
+              if (control && pane.contains(control)) return false;
+              const [edgeSurface, innerSurface] = [surfaceOf(edgeHit), surfaceOf(innerHit)];
+              return edgeSurface !== null && innerSurface !== null && colourDistance(edgeSurface, innerSurface) > 12;
+            });
+            run = changed ? run + 1 : 0;
+            if (run >= 2) return true;
+          }
+          return false;
+        })();
+        if (!line && (gap > 0.5 || (!sameSurface && !notch))) continue;
+        const detail = line
+          ? "large panes are split by a drawn line: remove the border and use a step between theme surface tokens"
+          : notch
+            ? "a pane's surface changes at its edge: keep a consistent step between theme surface tokens, without a border"
+            : "large panes share the same surface: use a step between theme surface tokens, without a border";
+        issues.push({ ref: ref(second), rule: "pane-edge", element: `${describe(first)} and ${describe(second)}`, detail });
       }
     }
   }

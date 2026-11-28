@@ -13,17 +13,17 @@ function portrait(background: string, skin: string): string {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
-const ana = { name: "Ana Lind", src: portrait("#c7d2fe", "#8d5524") };
-const grace = { name: "Grace Hopper" };
-const alan = { name: "Alan Turing", src: portrait("#bbf7d0", "#f1c27d") };
-const kate = { name: "Katherine Johnson" };
-const edsger = { name: "Edsger Dijkstra" };
+const readerA = { name: "Reader A", src: portrait("#c7d2fe", "#8d5524") };
+const readerB = { name: "Reader B" };
+const readerC = { name: "Reader C", src: portrait("#bbf7d0", "#f1c27d") };
+const readerD = { name: "Reader D" };
+const readerE = { name: "Reader E" };
 
 const meta = {
   title: "Chat/ReadReceipt",
   component: ReadReceipt,
   parameters: { layout: "padded" },
-  args: { readers: [ana, grace] },
+  args: { readers: [readerA, readerB] },
 } satisfies Meta<typeof ReadReceipt>;
 export default meta;
 
@@ -35,13 +35,13 @@ export const InAChat: Story = {
   render: () => (
     <div style={{ background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", borderRadius: "calc(var(--radius) + 4px)", maxWidth: 480 }}>
       <MessageList label="Messages" style={{ height: 320 }}>
-        <Message variant="chat" role="assistant" name="Ana Lind" avatar={ana.src}>
+        <Message variant="chat" role="assistant" name="Reader A" avatar={readerA.src}>
           Is the launch still at ten?
         </Message>
-        <Message variant="chat" role="user" name="You" footer={<ReadReceipt readers={[grace, kate]} />}>
+        <Message variant="chat" role="user" name="You" footer={<ReadReceipt readers={[readerB, readerD]} />}>
           Yes, ten sharp.
         </Message>
-        <Message variant="chat" role="user" name="You" footer={<ReadReceipt readers={[ana, alan, edsger, { name: "Radia Perlman" }]} />}>
+        <Message variant="chat" role="user" name="You" footer={<ReadReceipt readers={[readerA, readerC, readerE, { name: "Reader F" }]} />}>
           Bring the engine notes.
         </Message>
       </MessageList>

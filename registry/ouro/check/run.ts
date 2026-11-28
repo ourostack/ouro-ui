@@ -275,6 +275,8 @@ const LABELS: Record<string, string> = {
   "cramped-heading": "cramped heading",
   "nested-frame": "frame in a frame",
   "doubled-line": "line drawn twice",
+  "cut-off-edge": "content cut off mid-surface",
+  "pane-edge": "pane edge without a surface step",
   "count-badge": "count badge out of place",
   "off-centre-text": "text off centre",
   "off-centre-ink": "icon or glyph off centre",
@@ -346,6 +348,8 @@ const HINTS: Record<string, string> = {
   "cramped-heading": "give the heading room: more space above it than between it and what follows",
   "nested-frame": "drop the inner border and use a step between theme surface tokens; for mismatched corners, make the inner radius the outer one less the inset",
   "doubled-line": "keep one line: drop the inner divider where a frame or another divider already separates, or give the two room apart",
+  "cut-off-edge": "separate the scroll surface from what surrounds it with a step between theme surface tokens",
+  "pane-edge": "remove the dividing line and give the panes different theme surface tokens",
   "off-centre-text": "even the padding above and below the words, or centre the row with align-items: center rather than end, and centre a line on its cap height (text-box: trim-both cap alphabetic) where the font sits it high or low",
   "off-centre-ink": "centre the control's content with flex and align-items: center, give the icon an even box, and draw a more or overflow control as an icon, never a typed \u2026, which rests on the text's baseline",
   "count-badge": "lay the badge over the icon, outside any box that clips, centre its numerals on their cap height (text-box: trim-both cap alphabetic) rather than their line box, and give every badge one offset from its icon",
@@ -1561,6 +1565,7 @@ interface Args {
 
 const ABOUT = [
   "ouro-check: checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken, blurry and stretched pictures and videos, pictures that fade into the page, pages that fail to load or draw, serious accessibility problems, and design problems: a banner where content belongs, a cramped heading, a frame inside a frame, a recording's own corner inside its frame, too many text sizes, weights or shadows, running text drawn too large to read, grey text on colour and a heading larger than the one above it; text that leaks a value (undefined, NaN, [object Object], an id, a translation key, TODO) or shows a time no one should read (Invalid Date, 1 January 1970, a raw timestamp); errors and warnings in the console and requests to the page's own server that fail; content the screen cuts off, the same control twice in view and a region that scrolls by a few pixels; a control that shows no keyboard focus and a light surface left on a dark page; a disabled control with no reason given; a linked card that a click on some spot of opens nothing, and a card whose revealed part moves the page; a first run's dead ends: a blank screen with no progress, a dialog that can be put away onto a blank or signed-out page, and an empty state shown while signed out; text that wraps by accident (a lone last word, a tall h1, a one-word line in big text, a heading broken by hand or held narrow) and hero art with no night twin; long lines only where ouro-check.json declares a measure; and narrow text, prose held by a max-width to under three quarters of a column at least 900px wide.",
+  "It also finds content cut off mid-surface and panes without a surface step.",
   "A site on the web must move http:// to https:// and ask for HSTS. It measures layout shift, first content, the presses the app lists and jank as it walks each page (hovering cards, opening popups, scrolling and panning) against their budgets, and finds a control the first frames draw that a later frame swaps for another, with no input. It writes report.json, summary.md (with --handoff, handoff.md too), a contact sheet per page and a captioned close-up per finding. merge joins the out folders of a sharded run into one.",
 ];
 
