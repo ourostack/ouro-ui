@@ -52,6 +52,13 @@ afterEach(async () => {
 });
 
 describe("Kbd", () => {
+  it("keeps the corner radius within half the key's height at small text sizes", async () => {
+    const { kbd } = await render(<span style={{ fontSize: 14 }}><Kbd keys={["mod", "e"]} /></span>);
+    const style = getComputedStyle(kbd);
+    const radius = parseFloat(style.getPropertyValue("--sq-tl")) || parseFloat(style.borderTopLeftRadius);
+    expect(radius).toBeLessThanOrEqual(kbd.getBoundingClientRect().height / 2);
+  });
+
   it.each([
     ["macOS", true],
     ["macOS", false],

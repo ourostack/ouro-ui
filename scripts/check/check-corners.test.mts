@@ -364,6 +364,28 @@ test("squircle-paint passes a clipped surface at fractional layout coordinates",
   }
 });
 
+test("squircle-paint treats wrapped inline fragments as separate painted boxes", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+  const tab = await context.newPage();
+  await bindCapture(tab);
+  try {
+    await tab.setContent(`<style>
+      body { margin: 0; background: white; }
+      .line { position: absolute; left: 424px; top: 1202.453125px; width: 723px; font: 16px/21px sans-serif; }
+      .prefix { display: inline-block; width: 613.75px; }
+      a { color: #1d1d1f; text-decoration: underline; text-decoration-color: #1d1d1f66; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+      code { font: 14px/20px monospace; background: #f5f5f7; border-radius: 4.806px; corner-shape: squircle; padding: 0.1em 0.3em; overflow-wrap: break-word; }
+    </style><div class="line"><span class="prefix"></span><a href="#example"><code><span>example/</span><span>parts/<wbr></span><span>documents/<wbr></span><span>AnotherInput.tsx</span></code></a></div>`);
+    const rects = await tab.locator("code").evaluate((el) => [...el.getClientRects()].map((rect) => rect.toJSON()));
+    assert.equal(rects.length, 2);
+    assert.ok(rects[0]!.left > rects[1]!.left);
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+  } finally {
+    await browser.close();
+  }
+});
+
 test("squircle-paint passes adjacent native buttons at a fractional edge", async () => {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
@@ -678,7 +700,7 @@ test("squircle-paint does not attribute changing background pixels to a surface"
   const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
   try {
     await tab.setContent('<div style="position:absolute;left:60px;top:60px;width:160px;height:120px;background:white;border-radius:28px;corner-shape:squircle"></div>');
-    const captures = await tab.evaluate(() => ["red", "blue", "green"].map((color) => {
+    const captures = await tab.evaluate(() => ["red", "blue", "green", "purple", "orange", "red", "blue", "green", "purple", "orange"].map((color) => {
       const canvas = document.createElement("canvas");
       canvas.width = 224;
       canvas.height = 184;

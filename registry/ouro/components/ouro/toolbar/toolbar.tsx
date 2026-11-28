@@ -17,7 +17,7 @@ import { useDisabledReason, type DisabledReasonWiring } from "@/registry/ouro/li
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
 import { useDevWarnings, type DevWarning } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { fitCount, splitEntries, toolbarSizes, toolbarTones, toolbarToneClass, type ToolbarSize } from "@/registry/ouro/components/ouro/toolbar/toolbar-styles";
+import { fitCount, splitEntries, toolbarSizes, type ToolbarSize } from "@/registry/ouro/components/ouro/toolbar/toolbar-styles";
 
 /** An icon component, such as one from `lucide-react` or `@heroicons/react`: `icon: BoldIcon`. */
 export type ToolbarIcon = ComponentType<SVGProps<SVGSVGElement>>;
@@ -29,15 +29,6 @@ export type ToolbarShortcut = readonly string[] | (string & { 'Use an array: sho
 interface ToolbarControlEntry {
   /** The control's name, shown unless `hideLabel` is set, and its text in the overflow menu. Unique within the toolbar. */
   label: string;
-  /**
-   * `secondary` keeps the quiet default. `inverse` fills with the foreground over the background
-   * colour, `primary` with the theme's primary pair, and `destructive` with its destructive pair.
-   * For a toggle, the fill applies only while pressed; keep its label unchanged. For a button
-   * whose label names the next action, change its label and tone together instead of adding a pressed state.
-   * @default "secondary"
-   * @claim "For a toggle, the fill applies only while pressed" registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx verify:testExists(registry/ouro/components/ouro/toolbar/toolbar.floating.test.tsx::Toolbar floating > uses item tones for pressed toggles and state-named buttons, in %s)
-   */
-  tone?: "secondary" | "inverse" | "primary" | "destructive" | (string & { 'brand is "primary"; use "secondary", "inverse", "primary" or "destructive"': never }) | undefined;
   /** Icon before the label, or alone with `hideLabel`. Pass the component: `icon: BoldIcon`. */
   icon?: ToolbarIcon | undefined;
   /** Shows only the icon; the label stays the control's name, and shows in its tooltip. */
@@ -366,7 +357,6 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
       onKeyDown={onKeys}
       className={cn(
         "box-border flex min-w-0 flex-nowrap items-center gap-0.5",
-        toolbarToneClass,
         floating && floatingClass,
         hidden && faded && "backdrop-blur-none",
         delay !== undefined && fadeClass,
@@ -457,9 +447,7 @@ function entryWarnings(items: readonly ToolbarEntry[]): DevWarning[] {
   const bare = controls.find((entry) => entry.hideLabel && !entry.icon);
   const stringShortcut = controls.find((entry) => typeof entry.shortcut === "string");
   const unnamedGroup = items.some((entry) => entry.type === "group" && !entry.label);
-  const badTone = controls.find((entry) => entry.tone !== undefined && !toolbarTones.some((tone) => tone === entry.tone));
   return [
-    badTone && [`"${badTone.label}" has tone="${badTone.tone}", which is not a tone`, '{ tone: "secondary" }; use "inverse", "primary" or "destructive" for a filled state'],
     bare && [`"${bare.label}" hides its label without an icon`, `{ label: "${bare.label}", icon: ${bare.label.replace(/\W/g, "")}Icon, hideLabel: true }`],
     stringShortcut && [
       `"${stringShortcut.label}" has shortcut="${String(stringShortcut.shortcut)}", a string; shortcut takes an array`,
@@ -907,10 +895,7 @@ function plainControl(entry: ToolbarButtonEntry | ToolbarToggleEntry, context: C
   const iconOnly = Boolean(entry.hideLabel && Icon);
   const shortcut = keysOf(entry);
   const off = Boolean(disabled || entry.disabled || reason?.off);
-  const tone = toolbarTones.find((tone) => tone === entry.tone);
-  const toned = entry.type !== "toggle" || toggles.pressedOf(entry);
   const shared = {
-    "data-ouro-toolbar-tone": toned ? tone : undefined,
     "aria-describedby": reason?.describedBy,
     ...rowStop(entry.label, stop === entry.label, off),
     "data-ouro-toolbar-entry": index,
@@ -989,7 +974,7 @@ function asMenuEntry(entry: ToolbarEntry, toggles: Toggles): MenuEntry {
       axAction: entry.axAction,
     };
   }
-  return { label: entry.label, onClick: entry.onClick, shortcut, disabled: entry.disabled, disabledReason: entry.disabledReason, axAction: entry.axAction, tone: entry.tone === "destructive" ? "destructive" : undefined };
+  return { label: entry.label, onClick: entry.onClick, shortcut, disabled: entry.disabled, disabledReason: entry.disabledReason, axAction: entry.axAction };
 }
 
 // The button that opens what does not fit. A disabled toolbar has no menu to open.

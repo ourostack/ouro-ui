@@ -1,1 +1,0 @@
-- MediaTile: [report `(false, 0, 0)` to the latest visibility callback on unmount](registry/ouro/components/ouro/media-tile/media-tile.test.tsx "verify:testExists(registry/ouro/components/ouro/media-tile/media-tile.test.tsx::MediaTile visibility > stops watching when it unmounts)") so an app can stop receiving the picture.

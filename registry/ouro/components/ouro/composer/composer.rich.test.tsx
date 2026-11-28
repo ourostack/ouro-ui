@@ -734,7 +734,7 @@ describe("Composer rich mode", () => {
   it("keeps the loaded value out of the undo history, so undoing never empties the box", async () => {
     const { editor } = await render(rich({ defaultValue: "hello" }));
     editor.focus();
-    await userEvent.keyboard(`{${nativeMod}>}z{/${nativeMod}}`);
+    await userEvent.keyboard("{Control>}z{/Control}");
     await expect.poll(() => editor.textContent).toBe("hello");
   });
 

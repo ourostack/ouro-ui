@@ -26,7 +26,6 @@ test("the docs' shell sources are current: run node site/scripts/page-css.mts wh
 test("the docs' shell leaves out the demos and the components only a demo renders, and keeps the shell's own", () => {
   const css = generateDocsShell();
   assert.match(css, /@source not "demos";/);
-  assert.match(css, /@source not "call-surface\.tsx";/);
   assert.match(css, /@source not "\.\.\/\.\.\/\.\.\/registry\/ouro\/components\/ouro\/porthole";/);
   assert.doesNotMatch(css, /components\/ouro\/(button|link|text)";/);
 });
