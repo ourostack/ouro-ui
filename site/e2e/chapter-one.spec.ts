@@ -25,6 +25,25 @@ async function open(page: Page): Promise<void> {
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await page.locator("#chapter-one").scrollIntoViewIfNeeded();
   await expect(page.locator("#chapter-one[data-chapter-ready]")).toBeAttached();
+  await scrollSettled(page);
+}
+
+/** Waits until the page stops scrolling: the site scrolls smoothly, and the sticky header moves with it until it lands, so a press that starts mid-scroll ends on the header's wrapper, not the control. */
+async function scrollSettled(page: Page): Promise<void> {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        let last = scrollY;
+        let still = 0;
+        const frame = () => {
+          still = scrollY === last ? still + 1 : 0;
+          last = scrollY;
+          if (still >= 30) resolve();
+          else requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+      }),
+  );
 }
 
 const shipyard = (page: Page) => page.locator("[data-composition='shipyard']");

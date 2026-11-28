@@ -103,4 +103,23 @@ describe("withLoad", () => {
       if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
     }
   });
+
+  it("reaps its workers at its own deadline while the caller blocks the process on a synchronous child", async () => {
+    const code = `
+      import("${loadMjsUrl}").then(({ withLoad }) => {
+        withLoad(async () => {
+          (await import("node:child_process")).spawnSync("sleep", ["30"]);
+        }, { workers: 2, seconds: 2 });
+      });
+    `;
+    const child = spawn("node", ["--input-type=module", "-e", code], { stdio: "ignore" });
+    try {
+      await waitForWorkers();
+      await sleep(3500);
+      assert.equal(child.exitCode, null, "the caller was meant to still be blocked");
+      assert.equal(await loadWorkersRemain(), false, "a worker outlived the deadline while its caller was blocked");
+    } finally {
+      child.kill("SIGKILL");
+    }
+  });
 });

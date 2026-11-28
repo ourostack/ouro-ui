@@ -80,20 +80,20 @@ export type AlertProps = Omit<HTMLAttributes<HTMLDivElement>, keyof AlertOwnProp
 
 const tones = {
   primary: {
-    root: "border-primary/30 bg-primary/5",
+    root: "bg-primary/10",
     accent: "text-[color-mix(in_oklab,var(--primary)_80%,var(--foreground))]",
   },
-  secondary: { root: "border-border bg-card", accent: "text-foreground" },
+  secondary: { root: "bg-muted", accent: "text-foreground" },
   destructive: {
-    root: "border-destructive/30 bg-destructive/5",
+    root: "bg-destructive/10",
     accent: "text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]",
   },
   success: {
-    root: "border-success/30 bg-success/5",
+    root: "bg-success/10",
     accent: "text-[color-mix(in_oklab,var(--success)_80%,var(--foreground))]",
   },
   warning: {
-    root: "border-warning/30 bg-warning/5",
+    root: "bg-warning/10",
     accent: "text-[color-mix(in_oklab,var(--warning)_80%,var(--foreground))]",
   },
 } as const;
@@ -261,7 +261,7 @@ export function Alert(props: AlertProps): JSX.Element {
       data-ouro="alert"
       data-tone={tone}
       className={cn(
-        "box-border flex w-full items-start gap-3 rounded-ouro-lg border border-solid p-4 text-foreground",
+        "box-border flex w-full items-start gap-3 rounded-ouro-lg border-0 p-4 text-foreground forced-colors:outline forced-colors:outline-1 forced-colors:-outline-offset-1 forced-colors:outline-[CanvasText]",
         tones[tone].root,
         className,
       )}

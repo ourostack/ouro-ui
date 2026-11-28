@@ -203,7 +203,9 @@ export function MessageActionBar({
       data-ending-style={ending ? "" : undefined}
       onKeyDown={keyDown}
       onFocus={focus}
-      className={cn(layered ? layerClass : barClass, beside === undefined ? ["absolute", start ? "start-2" : "end-2", post ? "-top-5" : "-top-8"] : "pointer-events-auto")}
+      // The chat bar's rise leaves a fixed 2px of extra clearance above the run gap: at a scaled root font the two
+      // otherwise land a sub-pixel under the minimum gap from the message above, since both scale by the same ratio.
+      className={cn(layered ? layerClass : barClass, beside === undefined ? ["absolute", start ? "start-2" : "end-2", post ? "-top-5" : "-top-[calc(2rem-2px)]"] : "pointer-events-auto")}
       // A little way from the bubble while there is room; with none, the auto margin goes and the bar ends at the message's edge.
       // Stryker disable next-line ConditionalExpression: a bar over the corner is placed by one inset, so these margins would move it nowhere.
       style={beside === undefined ? undefined : { marginInline: start ? "auto 0.25rem" : "0.25rem auto" }}

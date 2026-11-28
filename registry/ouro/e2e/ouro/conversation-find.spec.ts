@@ -5,13 +5,15 @@ test("Enter steps through the matches and Escape closes the bar, with focus stay
   await openStory(page, "chat-conversationfind--with-message-list");
   const box = page.getByRole("searchbox", { name: "Find in conversation" });
   await box.focus();
+  // The story starts on the match nearest the list's newest message, the third of four.
+  await expect(page.locator("[data-ouro-conversation-find-result]")).toHaveText("3 of 4");
   await page.keyboard.press("Enter");
   await expect(box).toBeFocused();
-  await expect(page.locator("[data-ouro-conversation-find-result]")).toHaveText("2 of 4");
+  await expect(page.locator("[data-ouro-conversation-find-result]")).toHaveText("4 of 4");
   await page.keyboard.press("Shift+Enter");
-  await expect(page.locator("[data-ouro-conversation-find-result]")).toHaveText("1 of 4");
+  await expect(page.locator("[data-ouro-conversation-find-result]")).toHaveText("3 of 4");
   await page.keyboard.press("F3");
-  await expect(page.locator("[data-ouro-conversation-find-result]")).toHaveText("2 of 4");
+  await expect(page.locator("[data-ouro-conversation-find-result]")).toHaveText("4 of 4");
   await page.keyboard.press("Escape");
   await expect(box).toHaveValue("");
 });

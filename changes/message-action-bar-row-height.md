@@ -1,0 +1,1 @@
+- Fix: Message reserves enough height for its action bar beside a short bubble, so the bar no longer overflows past the row's own bottom edge and crowds the next row or the list's own edge

@@ -104,7 +104,9 @@ const titleRowClass = "flex min-w-0 max-w-full items-center gap-2 font-normal te
  *
  * @internal
  */
-const callClass = "box-border grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-2";
+const callClass =
+  "box-border grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-2 " +
+  "[&_[data-slot=tool-call-output]]:border-transparent forced-colors:[&_[data-slot=tool-call-output]]:border-[CanvasText]";
 
 /**
  * The status column: as tall as the row, so the icon sits in the middle of its first line.
