@@ -1,7 +1,7 @@
 "use client";
 
 import { Toggle } from "@base-ui/react/toggle";
-import { useEffect, useId, useRef, useState, type CSSProperties, type JSX, type KeyboardEvent, type ReactNode, type Ref } from "react";
+import { useEffect, useId, useRef, useState, type JSX, type KeyboardEvent, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
@@ -321,9 +321,6 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
     // Stryker disable next-line OptionalChaining: target is always inside segments
     segments[target]?.focus();
   };
-  const thumbStyle = {
-    opacity: index === -1 ? 0 : undefined,
-  } as CSSProperties;
   return (
     <div data-ouro="segmented-control" className={cn(rootClass, fullWidth && "justify-items-stretch", revealOnHover && revealClass, className)}>
       <span id={labelId} className={cn(labelClass, hideLabel && "sr-only")}>
@@ -358,7 +355,7 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
         // Stryker disable next-line ConditionalExpression,LogicalOperator: fullWidth is tested on the plain group; the glass class sets its own look
         className={cn(groupClass, glass && glassGroupClass, fullWidth && "grid w-full")}
       >
-        <span aria-hidden="true" data-ouro-segment-thumb="" className={thumbClass} style={thumbStyle} />
+        <span aria-hidden="true" data-ouro-segment-thumb="" className={thumbClass} style={index === -1 ? { opacity: 0 } : undefined} />
         {items.map((item) => (
           <Segment
             key={item.value}

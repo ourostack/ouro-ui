@@ -57,7 +57,7 @@ const groupClass =
  * @claim "no measuring, and server HTML already has it right" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > keeps the label id and pressed state in server HTML and hydrates without a mismatch)
  */
 const thumbClass =
-  "pointer-events-none absolute top-0.5 bottom-0.5 -z-1 overflow-clip [overflow-clip-margin:calc(var(--spacing)*0.5)] " +
+  "pointer-events-none absolute inset-y-0.5 -z-1 overflow-clip [overflow-clip-margin:calc(var(--spacing)*0.5)] " +
   "rounded-ouro-control rounded-[max(0px,calc(var(--ouro-control-r)-var(--spacing)*0.5))] " +
   "[position-anchor:--ouro-segment] start-[anchor(start)] end-[anchor(end)] " +
   "bg-background dark:bg-[color-mix(in_oklab,var(--foreground)_16%,var(--muted))] " +
