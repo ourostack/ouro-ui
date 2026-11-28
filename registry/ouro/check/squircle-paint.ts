@@ -231,9 +231,10 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             const pixelRadius = Math.hypot(clip.width / a.width, clip.height / a.height) / 2;
             return dx * dx + dy * dy <= (radius + pixelRadius) ** 2;
           })) continue;
-          // A pixel straddling the box edge can contain the surface's own antialiasing.
-          if ((outsideX && Math.min(Math.abs(px - rect.left), Math.abs(px - rect.right)) <= clip.width / a.width / 2 + 0.001) ||
-              (outsideY && Math.min(Math.abs(py - rect.top), Math.abs(py - rect.bottom)) <= clip.height / a.height / 2 + 0.001)) continue;
+          // A pixel straddling the box edge can contain the surface's own antialiasing, even when its centre is inside.
+          const edgeX = Math.min(Math.abs(px - rect.left), Math.abs(px - rect.right)) <= clip.width / a.width / 2 + 0.001;
+          const edgeY = Math.min(Math.abs(py - rect.top), Math.abs(py - rect.bottom)) <= clip.height / a.height / 2 + 0.001;
+          if ((outsideX && edgeX) || (outsideY && edgeY) || (own && difference(a.data, own.data, index) < 2 && (edgeX || edgeY))) continue;
           const delta = difference(a.data, own && (native || outsideCorner) ? own.data : outsideCorner ? c.data : b.data, index);
           const behind = difference(b.data, c.data, index);
           if (delta < 2 || (!outsideCorner && behind > 4)) continue;
@@ -457,6 +458,10 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const clip = { x, y, width: Math.min(Math.ceil(r.right + margin), innerWidth) - x, height: Math.min(Math.ceil(r.bottom + margin), innerHeight) - y };
           if (clip.width < 1 || clip.height < 1) continue;
           const active = layers.filter((layer) => layer.el === el || !(layer.el instanceof HTMLElement) || !covers(layer.el, r));
+          const effectLayers = active.filter((layer) => {
+            const computed = getComputedStyle(layer.el);
+            return computed.boxShadow !== "none" || computed.outlineStyle !== "none";
+          });
           const rectangles = style.display === "inline" ? [...el.getClientRects()].filter((rect) => rect.width >= 2 && rect.height >= 2) : [];
           const fragmented = rectangles.length > 1;
           const horizontal = style.writingMode.startsWith("horizontal");
@@ -583,25 +588,38 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             }
             let withoutEffects: string | null = null;
             let roundedEffects: boolean[] = [];
-            if (differs && ownEffects) {
+            if (differs && effectLayers.length) {
               const computed = getComputedStyle(el);
               const length = (value: string, dimension: number) => value.endsWith("%") ? parseFloat(value) * dimension / 100 : parseFloat(value) || 0;
-              roundedEffects = initial.corners.map((corner, index) => {
-                if (corner.native) return true;
-                const raw = computed.getPropertyValue(`--sq-${names[index]!.key}`).trim();
-                const [x, y = x] = computed[`border${names[index]!.property}Radius`].split(/\s+/);
-                return Math.abs(length(x!, initial.width) - length(raw, initial.width) * 0.543) < 0.5 &&
-                  Math.abs(length(y!, initial.height) - length(raw, initial.height) * 0.543) < 0.5;
-              });
-              const shadow = save(el, "box-shadow");
-              const outline = save(el, "outline");
+              roundedEffects = initial.corners.map((corner, index) => effectLayers.every((layer) => {
+                if (layer.el === el) {
+                  if (corner.native) return true;
+                  const raw = computed.getPropertyValue(`--sq-${names[index]!.key}`).trim();
+                  const [x, y = x] = computed[`border${names[index]!.property}Radius`].split(/\s+/);
+                  return Math.abs(length(x!, initial.width) - length(raw, initial.width) * 0.543) < 0.5 &&
+                    Math.abs(length(y!, initial.height) - length(raw, initial.height) * 0.543) < 0.5;
+                }
+                const rect = layer.el.getBoundingClientRect();
+                if (![rect.left - r.left, rect.top - r.top, rect.right - r.right, rect.bottom - r.bottom].every((distance) => Math.abs(distance) < 0.5)) return false;
+                const layerStyle = getComputedStyle(layer.el);
+                const width = layer.el instanceof HTMLElement ? layer.el.offsetWidth : parseFloat(layerStyle.width);
+                const height = layer.el instanceof HTMLElement ? layer.el.offsetHeight : parseFloat(layerStyle.height);
+                if (!(width > 0 && height > 0)) return false;
+                const [x, y = x] = layerStyle[`border${names[index]!.property}Radius`].split(/\s+/);
+                return length(x!, width) * rect.width / width + 0.5 >= corner.x * scaleX * 0.543 &&
+                  length(y!, height) * rect.height / height + 0.5 >= corner.y * scaleY * 0.543;
+              }));
               try {
-                el.style.setProperty("box-shadow", "none", "important");
-                el.style.setProperty("outline", "none", "important");
+                for (const layer of effectLayers) {
+                  layer.el.style.setProperty("box-shadow", "none", "important");
+                  layer.el.style.setProperty("outline", "none", "important");
+                }
                 withoutEffects = await capture(clip);
               } finally {
-                restore(el, "box-shadow", shadow);
-                restore(el, "outline", outline);
+                for (const layer of effectLayers) {
+                  restore(layer.el, "box-shadow", layer.saved.get("box-shadow")!);
+                  restore(layer.el, "outline", layer.saved.get("outline")!);
+                }
               }
               differs = await compare(null, [], null, null, withoutEffects, roundedEffects);
             }
