@@ -21,6 +21,7 @@ import { useResize, type ResizeRange } from "@/registry/ouro/lib/ouro/use-resize
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
+import type { RestingCaretOptions } from "@/registry/ouro/lib/ouro/use-resting-caret";
 
 /** What sent the message: the Enter key in the box, or a press of the send button. */
 export type ComposerSendEvent = KeyboardEvent<HTMLTextAreaElement | HTMLDivElement> | MouseEvent<HTMLButtonElement>;
@@ -98,6 +99,8 @@ export interface ComposerEditor {
 
 /** The props Composer adds to the `<textarea>` attributes it passes through. */
 export interface ComposerOwnProps {
+  /** A native host's resting-caret policy, for plain and rich text. Leave unset on ordinary web pages; see the resting-caret guide for accessibility and native-input requirements. */
+  restingCaret?: RestingCaretOptions | undefined;
   /**
    * What the message box is for, read as its name: "Message Mia", "Reply in thread". Required:
    * the box shows `placeholder`, which is not a label.
@@ -651,6 +654,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     replyTo,
     expandable: expandableHint,
     resize: resizeHint,
+    restingCaret,
     ...rest
   } = props;
   const [initialQuote, setInitialQuote] = useState(quote);
@@ -1068,6 +1072,7 @@ export function Composer(props: ComposerProps): JSX.Element {
               placeholder={placeholder}
               disabled={disabled}
               readOnly={rest.readOnly}
+              restingCaret={restingCaret}
               describedBy={describedBy}
               rows={rows}
               maxRows={maxRows}
@@ -1096,6 +1101,7 @@ export function Composer(props: ComposerProps): JSX.Element {
           ) : (
           <TextArea
             {...rest}
+            restingCaret={restingCaret}
             ref={setRef}
             label={label}
             hideLabel
