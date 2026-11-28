@@ -48,6 +48,14 @@
     "summary": "In an engine without corner-shape (an app's WKWebView), a drawn surface rounded under half its size by a plain circular radius, not clipped to a squircle; the fix is to add squircleCorners() to the build's PostCSS plugins, or clip the surface to a squircle with clip-path. Run it with --engine webkit."
   },
   {
+    "rule": "corners-nest",
+    "summary": "A painted surface near an outer corner whose radius is not the outer radius less its inset, or whose corner or outer corner is not a squircle. Set windowRadius in ouro-check.json to check against a native window's edge."
+  },
+  {
+    "rule": "squircle-paint",
+    "summary": "Paint showing outside a squircle's corner curve; clip the painted layer to the squircle."
+  },
+  {
     "rule": "doubled-line",
     "summary": "Two dividing lines side by side where one would separate, such as a list's last row's border against its card's; each finding names both elements."
   },

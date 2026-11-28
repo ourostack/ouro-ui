@@ -77,7 +77,7 @@ export const runsAll = {
     "__screenshots__/", "check-known.ts", "check-story.ts", "check-sweep.ts", "conformance/", "control-suite.tsx", "controls.ts", "fixtures/", "form-answer-fixture/",
     "form-answer.config.ts", "form-answer.probe.tsx", "incumbent-fixture/", "ax-standalone-fixture/", "install-fixture-next/", "install-fixture-tests/",
     "install-fixture-themes/", "install-fixture-upgrade/", "install-fixture/", "mcp-app/", "motion.ts", "scroll-rest.ts", "shadcn-stock.css", "slice-core.ts", "slice.ts", "stories.tsx",
-    "story-axe.ts", "story-costs.json", "story-selection.ts", "theme-fixtures.ts", "theme-fixtures/", "themes/", "warm-stories.ts",
+    "squircle-command.ts", "squircle-fallback.ts", "story-axe.ts", "story-costs.json", "story-selection.ts", "theme-fixtures.ts", "theme-fixtures/", "themes/", "warm-stories.ts",
   ],
   ".github": ["actions/", "copilot/", "dependabot.yml", "ouro-check.json", "ouro-current.json", "quarantine.json", "repeat-red-quarantine.json", "required-checks.json", "workflows/ci.yml", "workflows/screens.yml"],
 };
