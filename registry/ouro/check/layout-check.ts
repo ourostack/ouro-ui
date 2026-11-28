@@ -205,22 +205,24 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
     for (let n: Element | null = el; n; n = n.parentElement) if (controlPieceRoles.has(roleOf(n))) return true;
     return false;
   };
-  // The box around a surface that clips its overflow with the surface wholly outside it (a pane it scrolled out of): the
-  // surface is drawn nowhere outside that box, though its own box sits wherever the scroll left it, under a header's
-  // button beside the pane, say. A fixed box escapes every box around it, an absolute one every static box below its
-  // containing block, and a box with display: contents has no box of its own to clip with.
-  const hiddenBy = (el: Element) => {
-    const r = el.getBoundingClientRect();
+  // Read clipping boxes once. Positioned descendants escape boxes below their containing block.
+  const clippingBoxes = (el: Element) => {
+    const boxes: { element: Element; rect: DOMRect; x: boolean; y: boolean }[] = [];
     let { position } = getComputedStyle(el);
-    for (let n = el.parentElement!; n !== document.body; n = n.parentElement!) {
-      if (position === "fixed") return null;
+    for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) {
       const s = getComputedStyle(n);
-      if (s.display === "contents" || (position === "absolute" && s.position === "static")) continue;
-      const c = n.getBoundingClientRect();
-      if ((s.overflowX !== "visible" && (r.right <= c.left || r.left >= c.right)) || (s.overflowY !== "visible" && (r.bottom <= c.top || r.top >= c.bottom))) return n;
+      const containing = s.transform !== "none" || s.perspective !== "none" || s.filter !== "none" || /layout|paint|strict|content/.test(s.contain);
+      if (/^(inline|contents)$/.test(s.display) || (!containing && (position === "fixed" || (position === "absolute" && s.position === "static")))) continue;
+      const paint = /paint|strict|content/.test(s.contain);
+      const x = paint || s.overflowX !== "visible";
+      const y = paint || s.overflowY !== "visible";
+      if (x || y) {
+        const c = n.getBoundingClientRect();
+        boxes.push({ element: n, rect: new DOMRect(c.left + n.clientLeft, c.top + n.clientTop, n.clientWidth, n.clientHeight), x, y });
+      }
       position = s.position;
     }
-    return null;
+    return boxes;
   };
   const surfaces = [...document.body.querySelectorAll("*")].filter((el) => {
     if (el instanceof SVGElement || getComputedStyle(el).display === "inline" || optedOut(el, "near-miss") || !drawn(el)) return false;
@@ -229,7 +231,22 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
   });
   const rects = new Map(surfaces.map((el) => [el, el.getBoundingClientRect()]));
   const planes = new Map(surfaces.map((el) => [el, el.closest('[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"], dialog:modal')]));
-  const hidden = new Map(surfaces.map((el) => [el, hiddenBy(el)]));
+  const clips = new Map(surfaces.map((el) => [el, clippingBoxes(el)]));
+  const hidden = new Map(surfaces.map((el) => {
+    const r = rects.get(el)!;
+    const clip = clips.get(el)!.find(({ rect: c, x, y }) => (x && (r.right <= c.left || r.left >= c.right)) || (y && (r.bottom <= c.top || r.top >= c.bottom)));
+    return [el, clip?.element];
+  }));
+  // Inside a shared pane retain design geometry; only its outside neighbours see the clipped edges.
+  const outsideRect = (el: Element, other: Element) => {
+    let { left, top, right, bottom } = rects.get(el)!;
+    for (const { element, rect, x, y } of clips.get(el)!) {
+      if (element.contains(other)) continue;
+      if (x) [left, right] = [Math.max(left, rect.left), Math.min(right, rect.right)];
+      if (y) [top, bottom] = [Math.max(top, rect.top), Math.min(bottom, rect.bottom)];
+    }
+    return { left, top, right, bottom };
+  };
   // A surface hidden wholly is near nothing outside the box that hides it; two it hides, such as two scrolled out of
   // the same pane, are still apart by their design.
   const hiddenFrom = (a: Element, b: Element) => {
@@ -277,8 +294,9 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
     return (aScrolls && !bScrolls && floats(b, container)) || (bScrolls && !aScrolls && floats(a, container));
   };
   const apart = (a: Element, b: Element) => {
-    const ra = rects.get(a)!;
-    const rb = rects.get(b)!;
+    const ra = outsideRect(a, b);
+    const rb = outsideRect(b, a);
+    if (ra.right <= ra.left || ra.bottom <= ra.top || rb.right <= rb.left || rb.bottom <= rb.top) return 0;
     for (const { axis, start, end, sideStart, sideEnd } of axes) {
       const gap = Math.max(ra[start] - rb[end], rb[start] - ra[end]);
       const along = Math.min(ra[sideEnd], rb[sideEnd]) - Math.max(ra[sideStart], rb[sideStart]);
