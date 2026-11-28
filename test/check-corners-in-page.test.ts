@@ -1502,7 +1502,7 @@ it("rejects a changed screenshot size after restoring the painted surface", asyn
   const captures = [
     { color: "red", extra: 0 },
     { color: "blue", extra: 0 },
-    { color: "green", extra: 0 },
+    { color: "blue", extra: 0 },
     { color: "purple", extra: 0 },
     { color: "orange", extra: 2 },
   ];

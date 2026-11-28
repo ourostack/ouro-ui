@@ -480,49 +480,59 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           if (clip.width < 1 || clip.height < 1) continue;
           const active = layers.filter((layer) => layer.el === el || !(layer.el instanceof HTMLElement) || !covers(layer.el, r));
           const sources = [...new Set(active.flatMap((layer) => [layer.el, ...layer.el.querySelectorAll("*")]))].filter(visible);
+          const sourceRects = sources.map((source) => source.getBoundingClientRect());
           let hasEscapingEffect: boolean | undefined;
+          let hasPseudo = false;
+          let blockedHit = false;
+          let stopHit: (() => void) | undefined;
           const attributable = (px: number, py: number) => {
-            if (sources.some((source) => {
-              const rect = source.getBoundingClientRect();
+            if (sourceRects.some((rect) => {
               return px >= rect.left - 0.5 && px < rect.right + 0.5 && py >= rect.top - 0.5 && py < rect.bottom + 0.5;
             })) return true;
             const escaping = (computed: CSSStyleDeclaration) =>
               computed.boxShadow !== "none" || computed.outlineStyle !== "none" ||
               (computed.filter || "none") !== "none" || (computed.textShadow || "none") !== "none" ||
               computed.borderImageOutset.split(/\s+/).some((value) => parseFloat(value) > 0);
-            hasEscapingEffect ??= sources.some((source) => {
-              const computed = getComputedStyle(source);
-              if (computed.display === "list-item" || escaping(computed)) return true;
-              return ["::before", "::after"].some((pseudo) => {
-                const style = getComputedStyle(source, pseudo);
-                return style.content !== "none" && style.content !== "normal" && escaping(style);
-              });
-            });
+            if (hasEscapingEffect === undefined) {
+              hasEscapingEffect = false;
+              for (const source of sources) {
+                const computed = getComputedStyle(source);
+                if (computed.display === "list-item" || escaping(computed)) hasEscapingEffect = true;
+                for (const pseudo of ["::before", "::after"]) {
+                  const style = getComputedStyle(source, pseudo);
+                  if (style.content === "none" || style.content === "normal") continue;
+                  hasPseudo = true;
+                  if (escaping(style)) hasEscapingEffect = true;
+                }
+              }
+            }
             if (hasEscapingEffect) return true;
-            const attribute = "data-ouro-paint-hit";
-            const marker = `h${nextRef()}`;
-            const saved = active.map(({ el }) => ({ el, value: el.getAttribute(attribute) }));
-            const selector = `[${attribute}="${marker}"]`;
-            const sheet = new CSSStyleSheet();
-            sheet.replaceSync(`${selector}, ${selector} *, ${selector}::before, ${selector}::after, ${selector} *::before, ${selector} *::after { pointer-events: auto !important; }`);
-            try {
+            if (!hasPseudo) return false;
+            if (!stopHit) {
+              const attribute = "data-ouro-paint-hit";
+              const marker = `h${nextRef()}`;
+              const saved = active.map(({ el }) => ({ el, value: el.getAttribute(attribute) }));
+              const selector = `[${attribute}="${marker}"]`;
+              const sheet = new CSSStyleSheet();
+              sheet.replaceSync(`${selector}, ${selector} *, ${selector}::before, ${selector}::after, ${selector} *::before, ${selector} *::after { pointer-events: auto !important; }`);
+              stopHit = () => {
+                document.adoptedStyleSheets = document.adoptedStyleSheets.filter((current) => current !== sheet);
+                for (const { el, value } of saved) {
+                  if (value === null) el.removeAttribute(attribute);
+                  else el.setAttribute(attribute, value);
+                }
+              };
               for (const { el } of saved) el.setAttribute(attribute, marker);
               document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
-              if (sources.some((source) => {
+              blockedHit = sources.some((source) => {
                 if (getComputedStyle(source).pointerEvents === "none") return true;
                 return ["::before", "::after"].some((pseudo) => {
                   const style = getComputedStyle(source, pseudo);
                   return style.content !== "none" && style.content !== "normal" && style.pointerEvents === "none";
                 });
-              })) return true;
-              return document.elementsFromPoint(px, py).some((node) => active.some((layer) => layer.el.contains(node)));
-            } finally {
-              document.adoptedStyleSheets = document.adoptedStyleSheets.filter((current) => current !== sheet);
-              for (const { el, value } of saved) {
-                if (value === null) el.removeAttribute(attribute);
-                else el.setAttribute(attribute, value);
-              }
+              });
             }
+            return blockedHit || document.elementsFromPoint(px, py).some((node) => active.some((layer) => layer.el.contains(node)));
           };
           const effectLayers = active.filter((layer) => {
             const computed = getComputedStyle(layer.el);
@@ -642,12 +652,17 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               restore(layer.el, "clip-path", layer.saved.get("clip-path")!);
             }
             const compare = async (withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, restored: string | null = null, withoutEffects: string | null = null, roundedEffects: boolean[] = []) => {
-              for (const fragment of fragments) {
-                const otherFragments = fragments.filter((other) => other !== fragment).map((other) => other.rect);
-                const result = await differences(actual, masked, hidden, solo, withoutBadges, badges, withoutStrokes, strokes, clip, fragment.rect, fragment.width, fragment.height, fragment.corners, initial.native, otherFragments, fragmented, attributable, restored, withoutEffects, roundedEffects);
-                if (result) return { ...result, x: Math.round(result.x + fragment.rect.left - r.left), y: Math.round(result.y + fragment.rect.top - r.top) };
+              try {
+                for (const fragment of fragments) {
+                  const otherFragments = fragments.filter((other) => other !== fragment).map((other) => other.rect);
+                  const result = await differences(actual, masked, hidden, solo, withoutBadges, badges, withoutStrokes, strokes, clip, fragment.rect, fragment.width, fragment.height, fragment.corners, initial.native, otherFragments, fragmented, attributable, restored, withoutEffects, roundedEffects);
+                  if (result) return { ...result, x: Math.round(result.x + fragment.rect.left - r.left), y: Math.round(result.y + fragment.rect.top - r.top) };
+                }
+                return null;
+              } finally {
+                stopHit?.();
+                stopHit = undefined;
               }
-              return null;
             };
             let differs = await compare(null, [], null);
             if (differs && !solo) {
