@@ -9,7 +9,8 @@
 //   dependency files (DEPENDENCY_FILES), may carry its own Signed-off-by trailer, and, as the squash's
 //   author, its own Co-authored-by trailer (DEPENDABOT_CREDIT), or the project's own app, Ouro Current,
 //   whose commit may only be GitHub's revert of a pull request (REVERT_SUBJECT), as screen-reader-revert.yml
-//   opens it;
+//   opens it, or whose commit only merges main into a pull request's branch (queue-unmergeable.yml's update-branch):
+//   two parents, the second already on the base, and a tree equal to the clean merge of its parents, so it adds nothing main lacks;
 // - is committed by anyone but those two or GitHub (noreply@github.com, which commits the merge
 //   queue's squash commits and the web editor's);
 // - carries AI attribution in its message: a `*-by:` trailer (Co-authored-by, Assisted-by, ...)
@@ -90,9 +91,11 @@ export function problems(commits, { messages = true } = {}) {
     const bump = dependabot && files.length > 0 && files.every((file) => DEPENDENCY_FILES.test(file));
     const stray = files.filter((file) => !DEPENDENCY_FILES.test(file));
     if (dependabot && (files.length === 0 || stray.length > 0)) report("files", files.length === 0 ? "Dependabot's commit changes no file the check could read" : `Dependabot may change only dependency files (package.json, pnpm-lock.yaml, workflows and actions), not ${stray.join(", ")}`, REAUTHOR);
-    const revert = commit.authorEmail.toLowerCase() === OURO_CURRENT && REVERT_SUBJECT.test(commit.message);
-    if (!AUTHORS.includes(commit.authorEmail.toLowerCase()) && !revert) report("author", `${commit.authorName} <${commit.authorEmail}> may not author here (only ${AUTHORS.join(" or ")}, or ${OURO_CURRENT} for a revert)`, REAUTHOR);
-    if (!COMMITTERS.includes(commit.committerEmail.toLowerCase())) report("committer", `${commit.committerName} <${commit.committerEmail}> may not commit here (only ${COMMITTERS.join(", ")})`, REAUTHOR);
+    const current = commit.authorEmail.toLowerCase() === OURO_CURRENT;
+    const revert = current && REVERT_SUBJECT.test(commit.message);
+    const mainMerge = current && commit.mainMerge === true;
+    if (!AUTHORS.includes(commit.authorEmail.toLowerCase()) && !revert && !mainMerge) report("author", `${commit.authorName} <${commit.authorEmail}> may not author here (only ${AUTHORS.join(" or ")}, or ${OURO_CURRENT} for a revert or a merge of main that adds nothing main lacks)`, REAUTHOR);
+    if (!COMMITTERS.includes(commit.committerEmail.toLowerCase()) && !(mainMerge && commit.committerEmail.toLowerCase() === OURO_CURRENT)) report("committer", `${commit.committerName} <${commit.committerEmail}> may not commit here (only ${COMMITTERS.join(", ")})`, REAUTHOR);
     // A line is read with its hidden characters removed and as spaces. NEL is a line terminator and a hidden character at once, so a message is read split at it and, when it holds one, again whole.
     const read = (raw, field) => {
       for (const line of [raw.replace(INVISIBLE, ""), raw.replace(FILLER, " ").replace(INVISIBLE, "")]) {
@@ -122,6 +125,19 @@ const runGit = (args) => execFileSync("git", args, { encoding: "utf8", stdio: ["
 /** How many times the log is tried: the checkout is a partial clone, so reading the trees a log lists fetches them from the remote, and one dropped connection must not fail the job. */
 export const LOG_TRIES = 3;
 const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+/** Whether a commit only merges the base into a branch: two parents, the second an ancestor of the base, and a tree equal to the clean merge of its parents. Any git failure says no. */
+export function isMainMerge(sha, base, git = runGit) {
+  try {
+    const parents = git(["rev-list", "--parents", "-n", "1", sha]).trim().split(/\s+/).slice(1);
+    if (parents.length !== 2) return false;
+    git(["merge-base", "--is-ancestor", parents[1], base]);
+    const merged = git(["merge-tree", "--write-tree", parents[0], parents[1]]).split("\n")[0].trim();
+    return merged !== "" && merged === git(["rev-parse", `${sha}^{tree}`]).trim();
+  } catch {
+    return false;
+  }
+}
 
 /** The commits in base..head, newest first. Throws when either end is missing or unknown, or the range is empty. */
 export function readCommits(base, head, git = runGit, pause = sleep) {
@@ -153,6 +169,7 @@ export function readCommits(base, head, git = runGit, pause = sleep) {
       return { sha, authorName, authorEmail, committerName, committerEmail, message: message.trimEnd(), files: names.split("\n").filter(Boolean) };
     });
   if (commits.length === 0) throw new Error(`${base}..${head} holds no commits, so there is nothing that could pass.`);
+  for (const commit of commits) if (commit.authorEmail.toLowerCase() === OURO_CURRENT) commit.mainMerge = isMainMerge(commit.sha, base, git);
   return commits;
 }
 
