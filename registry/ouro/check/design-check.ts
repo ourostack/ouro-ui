@@ -180,6 +180,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
   const px = (value: string) => parseFloat(value) || 0;
   const all = [...document.body.querySelectorAll("*")].filter((el) => !el.closest("svg, script, style, template, head") || el.tagName === "svg");
   const visible = all.filter(shown);
+  const visibleSet = new Set(visible);
   const hasText = (el: Element) => [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent!.trim());
 
   // Colours as the browser resolves them, through a canvas, so every syntax (color-mix, oklch, a keyword) reads alike.
