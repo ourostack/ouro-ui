@@ -9,7 +9,7 @@ node scripts/ouro/ax/flows.ts run <suite module> [--out report] [--flows a,b] [-
 ```
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-flows#v1.3.570
+npx shadcn@latest add ourostack/ouro-ui/ax-flows#v1.3.650
 ```
 
 It installs `scripts/ouro/ax/flows.kit.mts` and `scripts/ouro/ax/flows.ts`, with `ax-cli`, `ax-command`, `ax-outcome`, `ax-problem`. Its tests are `ax-flows-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`, and the shared kit as `#ouro-ax/<file>`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
