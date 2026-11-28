@@ -114,7 +114,6 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             return dx <= 0 || dy <= 0 || dx ** 4 + dy ** 4 <= 1;
           });
         };
-        if (!inside(cx, cy)) return false;
         const points = [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1], [-0.707, -0.707], [0.707, -0.707], [0.707, 0.707], [-0.707, 0.707]]
           .map(([x, y]) => [cx + x! * radius, cy + y! * radius] as const)
           .filter(([x, y]) => x >= 0 && y >= 0 && x < innerWidth && y < innerHeight && inside(x, y));
@@ -327,34 +326,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const clip = { x, y, width: Math.min(Math.ceil(r.right + margin), innerWidth) - x, height: Math.min(Math.ceil(r.bottom + margin), innerHeight) - y };
           if (clip.width < 1 || clip.height < 1) continue;
           const active = layers.filter((layer) => layer.el === el || !covers(layer.el, r));
-          const badges = notchedBadges(el, siblings, r, initial);
           const actual = await capture(clip);
-          let withoutBadges: string | null = null;
-          if (badges.length) {
-            const saved = badges.map((badge) => ({
-              badge,
-              style: badge.getAttribute("style"),
-              normalized: badge.style.cssText,
-              opacity: save(badge, "opacity"),
-              transition: save(badge, "transition"),
-            }));
-            try {
-              for (const { badge } of saved) {
-                badge.style.setProperty("transition", "none", "important");
-                badge.style.setProperty("opacity", "0", "important");
-              }
-              withoutBadges = await capture(clip);
-            } finally {
-              for (const { badge, style, normalized, opacity, transition } of saved) {
-                restore(badge, "opacity", opacity);
-                restore(badge, "transition", transition);
-                if (badge.getAttribute("style") !== style && badge.style.cssText === normalized) {
-                  if (style === null) badge.removeAttribute("style");
-                  else badge.setAttribute("style", style);
-                }
-              }
-            }
-          }
           for (const layer of active) {
             const layerRect = layer.el.getBoundingClientRect();
             const offsetX = (r.left - layerRect.left) / scaleX;
@@ -389,10 +361,40 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             }
           };
           let solo = ownEffects ? await captureSolo() : null;
-          let differs = await differences(actual, masked, hidden, solo, withoutBadges, badges.map((badge) => badge.getBoundingClientRect()), clip, r, initial.width, initial.height, initial.corners, initial.native);
+          let differs = await differences(actual, masked, hidden, solo, null, [], clip, r, initial.width, initial.height, initial.corners, initial.native);
           if (differs && !solo) {
             solo = await captureSolo();
-            differs = await differences(actual, masked, hidden, solo, withoutBadges, badges.map((badge) => badge.getBoundingClientRect()), clip, r, initial.width, initial.height, initial.corners, initial.native);
+            differs = await differences(actual, masked, hidden, solo, null, [], clip, r, initial.width, initial.height, initial.corners, initial.native);
+          }
+          if (differs) {
+            const badges = notchedBadges(el, siblings, r, initial);
+            if (badges.length) {
+              const saved = badges.map((badge) => ({
+                badge,
+                style: badge.getAttribute("style"),
+                normalized: badge.style.cssText,
+                opacity: save(badge, "opacity"),
+                transition: save(badge, "transition"),
+              }));
+              let withoutBadges: string;
+              try {
+                for (const { badge } of saved) {
+                  badge.style.setProperty("transition", "none", "important");
+                  badge.style.setProperty("opacity", "0", "important");
+                }
+                withoutBadges = await capture(clip);
+              } finally {
+                for (const { badge, style, normalized, opacity, transition } of saved) {
+                  restore(badge, "opacity", opacity);
+                  restore(badge, "transition", transition);
+                  if (badge.getAttribute("style") !== style && badge.style.cssText === normalized) {
+                    if (style === null) badge.removeAttribute("style");
+                    else badge.setAttribute("style", style);
+                  }
+                }
+              }
+              differs = await differences(actual, masked, hidden, solo, withoutBadges, badges.map((badge) => badge.getBoundingClientRect()), clip, r, initial.width, initial.height, initial.corners, initial.native);
+            }
           }
           if (differs) { found = true; break; }
         }
