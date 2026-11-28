@@ -1074,7 +1074,7 @@ describe("Composer expanded", () => {
     expect(onExpandedChange).toHaveBeenCalledWith(true);
     await rerender(<Composer label="Reply" expanded={false} toolbar={formatting} onSend={() => {}} />);
     expect(expandButton()).toBeNull();
-    expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
+    await expect.poll(() => root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
   });
 
   it("gives the expanded text the whole width, with the buttons on a row under it", async () => {
