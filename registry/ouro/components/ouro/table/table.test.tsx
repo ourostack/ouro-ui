@@ -249,6 +249,7 @@ describe("Table scrolling", () => {
     const top = viewport.getBoundingClientRect().top;
     const header = table.querySelector<HTMLElement>("thead th:nth-child(2)")!;
     expect(Math.abs(header.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
+    expect(getComputedStyle(header).backgroundColor).toBe(getComputedStyle(viewport).backgroundColor);
     // The header scrolls sideways with its column.
     const cell = table.querySelector("tbody tr td:nth-child(2)")!;
     expect(Math.abs(header.getBoundingClientRect().left - cell.getBoundingClientRect().left)).toBeLessThanOrEqual(1);

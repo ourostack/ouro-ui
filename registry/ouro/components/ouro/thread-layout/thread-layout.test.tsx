@@ -106,9 +106,13 @@ describe("ThreadLayout", () => {
     expect(rail!.getBoundingClientRect().left).toBeCloseTo(conversation.getBoundingClientRect().left, 0);
   });
 
-  it("drops the rail's own border-s below 32rem, where it would double the box's own edge, and keeps it from 32rem up", async () => {
+  it("separates the rail with a surface step instead of a line at both widths", async () => {
     const { host, rail } = await render(<ThreadLayout conversation={<Conversation />} thread={<Thread />} />, 640);
-    expect(getComputedStyle(rail!).borderInlineStartWidth).not.toBe("0px");
+    const surface = document.createElement("div");
+    surface.style.backgroundColor = "var(--muted)";
+    host.append(surface);
+    expect(getComputedStyle(rail!).backgroundColor).toBe(getComputedStyle(surface).backgroundColor);
+    expect(getComputedStyle(rail!).borderInlineStartWidth).toBe("0px");
     host.style.width = "360px";
     await expect.poll(() => getComputedStyle(rail!).borderInlineStartWidth).toBe("0px");
   });

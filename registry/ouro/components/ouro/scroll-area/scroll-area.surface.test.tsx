@@ -52,10 +52,10 @@ describe("ScrollArea surface", () => {
   it.each([
     ["the theme's own fills", {}],
     ["a theme whose page, card and popover fills differ", distinct],
-  ])("paints its viewport with the page's background, opaque, on the page (%s)", async (_name, style) => {
+  ])("paints its viewport with the muted surface, opaque, on the page (%s)", async (_name, style) => {
     const host = await render(<ScrollArea label="Steps">x</ScrollArea>, style);
     const viewport = viewportOf(host);
-    expect(background(viewport)).toBe(fill("--background"));
+    expect(background(viewport)).toBe(fill("--muted"));
     expect(background(viewport)).not.toMatch(/rgba|transparent/);
   });
 

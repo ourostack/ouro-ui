@@ -403,6 +403,21 @@ describe("findDesignIssues: cut-off-edge", () => {
     expect(of("cut-off-edge")).toEqual([]);
   });
 
+  it("judges the scrolling surface rather than a narrow bubble crossing its edge", () => {
+    render(`
+      <div style="width:340px;height:120px;background:#fff">
+        <div id="stepped" style="width:320px;height:80px;overflow:auto;background:#ddd">
+          <div style="width:70%;height:130px;background:#fff">A clipped bubble</div>
+        </div>
+      </div>
+      <div style="width:340px;height:120px;background:#ddd">
+        <div id="painted" style="width:320px;height:80px;overflow:auto;background:#fff">
+          <div style="width:100%;height:130px;background:#ddd">A clipped painted surface</div>
+        </div>
+      </div>`);
+    expect(of("cut-off-edge").map((issue) => issue.element)).toEqual(["div#painted"]);
+  });
+
   it("recognizes a visible pseudo-element fade but not one hidden at the current scroll position", () => {
     render(`
       <style>

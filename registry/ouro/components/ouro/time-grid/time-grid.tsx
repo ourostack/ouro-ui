@@ -1286,7 +1286,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
             <>
               <div aria-hidden="true" />
               {days.map((day) => (
-                <div key={day} role="group" aria-label={[formats.fullDay.format(utcDate(day)), markOf(day)?.label].filter(Boolean).join(", ")} data-ouro-time-grid-summary="" className={`min-w-0 border-0 border-s border-solid border-border px-2 pb-1 text-xs ${markOf(day) ? markedMutedClass : "text-muted-foreground"}`} style={markOf(day)?.style}>
+                <div key={day} role="group" aria-label={[formats.fullDay.format(utcDate(day)), markOf(day)?.label].filter(Boolean).join(", ")} data-ouro-time-grid-summary="" className={`min-w-0 border-0 border-s border-solid border-border px-2 pb-1 text-xs ${markedMutedClass}`} style={markOf(day)?.style}>
                   {renderDaySummary(day)}
                 </div>
               ))}
@@ -1350,7 +1350,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
           ) : null}
           <div aria-hidden="true" className="relative">
             {hourLabels.map((hour) => (
-              <span key={hour} data-slot="time-grid-hour-label" className="absolute end-2 -translate-y-1/2 text-[11px] leading-4 whitespace-nowrap text-muted-foreground tabular-nums" style={{ top: minutesTall(hour * 60) }}>
+              <span key={hour} data-slot="time-grid-hour-label" className={`absolute end-2 -translate-y-1/2 text-[11px] leading-4 whitespace-nowrap tabular-nums ${markedMutedClass}`} style={{ top: minutesTall(hour * 60) }}>
                 <bdi dir="ltr" data-slot="time-grid-hour-text">{formats.hour.format(Date.UTC(2026, 0, 1, hour))}</bdi>
               </span>
             ))}
@@ -1434,7 +1434,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                         data-slot="time-grid-cursor"
                         data-ouro-time-grid-slot=""
                         data-ouro-time-grid-cursor=""
-                        className="pointer-events-none absolute inset-x-0.5 box-border rounded-ouro-md border-2 border-dashed border-primary px-1.5 text-[11px] leading-4 text-muted-foreground forced-colors:border-[Highlight]"
+                        className={`pointer-events-none absolute inset-x-0.5 box-border rounded-ouro-md border-2 border-dashed border-primary px-1.5 text-[11px] leading-4 forced-colors:border-[Highlight] ${markedMutedClass}`}
                         style={{ top: minutesTall(cursor.minutes), height: minutesTall(slotMinutes) }}
                       >
                         {formats.time.format(formats.clock.instant(day, cursor.minutes))}
@@ -1454,7 +1454,7 @@ export function TimeGrid(props: TimeGridProps): JSX.Element {
                       <span
                         data-ouro-time-grid-slot=""
                         className={cn(
-                          "pointer-events-none absolute box-border rounded-ouro-md border border-dashed border-primary px-1.5 text-[11px] leading-4 text-muted-foreground",
+                          `pointer-events-none absolute box-border rounded-ouro-md border border-dashed border-primary px-1.5 text-[11px] leading-4 ${markedMutedClass}`,
                           behind[index]!.some((back) => back.top < hover.minutes + slotMinutes && back.bottom > hover.minutes) ? "start-(--ouro-time-grid-lane) ms-0.5 end-0.5" : "inset-x-0.5",
                         )}
                         style={{ top: minutesTall(hover.minutes), height: minutesTall(slotMinutes) }}

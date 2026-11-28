@@ -165,7 +165,7 @@ const positioner =
   "box-border h-(--positioner-height) w-(--positioner-width) max-w-(--available-width) " +
   "motion-safe:transition-[left,right] motion-safe:duration-(--ouro-duration-slow) ease-(--ouro-ease-out) data-instant:transition-none";
 const popup = cn(
-  "relative box-border h-(--popup-height) w-(--popup-width) origin-(--transform-origin) rounded-ouro-lg bg-popover text-popover-foreground [--ouro-scroller-surface:var(--popover)] outline-none " +
+  "relative box-border h-(--popup-height) w-(--popup-width) origin-(--transform-origin) rounded-ouro-lg bg-popover text-popover-foreground [--ouro-scroller-surface:var(--popover)] [--ouro-message-list-bubble-default:var(--muted)] outline-none " +
   "ring-1 ring-border/60 shadow-(--shadow-lg) " +
   "transition-opacity duration-(--ouro-duration-base) data-starting-style:opacity-0 data-ending-style:opacity-0 data-ending-style:duration-(--ouro-duration-fast) " +
     "motion-safe:[transition:opacity_var(--ouro-duration-base)_var(--ouro-ease-out),scale_var(--ouro-duration-base)_var(--ouro-ease-out),width_var(--ouro-duration-slow)_var(--ouro-ease-out),height_var(--ouro-duration-slow)_var(--ouro-ease-out)] " +
