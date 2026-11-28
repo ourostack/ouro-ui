@@ -809,6 +809,12 @@ test("install-github runs its add with the raw fetch retry preloaded into shadcn
   assert.ok(add[0].endsWith(` [--import=${join(root, "scripts/raw-fetch-retry-preload.mjs")}]`), add[0]);
 });
 
+test("Form answer proof uses a supported Ubuntu image for browser dependencies", () => {
+  const proof = readFileSync(join(dir, "form-answer-proof.yml"), "utf8");
+  assert.match(proof, /  form-answer:\n    runs-on: ubuntu-24\.04\n/);
+  assert.match(proof, /uses: \.\/\.github\/actions\/playwright-browsers/);
+});
+
 test("Form answer proof propagates a failing test command through both logged pipelines", () => {
   const proof = readFileSync(join(dir, "form-answer-proof.yml"), "utf8");
   const browser = proof.match(/- name: Shipped Form, constructor and Link regressions with focused coverage\n(?:\s+if: [^\n]+\n)?\s+run: \|\n([\s\S]+?)\n\s+- if: always\(\)/)?.[1];
