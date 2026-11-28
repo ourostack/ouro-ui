@@ -811,7 +811,7 @@ test("install-github runs its add with the raw fetch retry preloaded into shadcn
 
 test("Form answer proof uses a supported Ubuntu image for browser dependencies", () => {
   const proof = readFileSync(join(dir, "form-answer-proof.yml"), "utf8");
-  assert.match(proof, /  form-answer:\n    runs-on: ubuntu-24\.04\n/);
+  assert.match(proof, / {2}form-answer:\n {4}runs-on: ubuntu-24\.04\n/);
   assert.match(proof, /uses: \.\/\.github\/actions\/playwright-browsers/);
 });
 
