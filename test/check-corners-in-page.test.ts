@@ -696,9 +696,25 @@ it("keeps a round badge in a painted cutout but finds an uncovered corner", asyn
   </div>`);
   const frame = root.querySelector<HTMLElement>(".frame")!;
   const surface = root.querySelector<HTMLElement>(".surface")!;
+  const badge = root.querySelector<HTMLElement>(".badge")!;
+  frame.insertAdjacentHTML("afterbegin", '<div style="position:absolute;inset:0;clip-path:inset(0);pointer-events:none"></div>');
   expect(await findSquirclePaint()).toEqual([]);
+  for (const element of [frame, surface]) {
+    element.style.setProperty("--sq-tl", "0px");
+    element.style.borderTopLeftRadius = "0";
+  }
+  expect(await findSquirclePaint()).toEqual([]);
+  for (const element of [frame, surface]) {
+    element.style.setProperty("--sq-tl", "32px");
+    element.style.borderTopLeftRadius = "17.376px";
+  }
   frame.insertAdjacentHTML("beforeend", '<div style="position:absolute;left:-6px;top:-6px;width:8px;height:8px;background:#b44939"></div>');
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.frame");
+  badge.style.right = "-19px";
+  badge.style.bottom = "-19px";
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.frame");
+  badge.style.right = "-5px";
+  badge.style.bottom = "-5px";
   frame.lastElementChild!.remove();
   surface.style.clipPath = `path("${shape}")`;
   expect(await findSquirclePaint()).not.toEqual([]);
@@ -984,6 +1000,17 @@ it("checks a single squircle corner, accepts raw PNG data, and restores existing
   } finally {
     state.__ouroPaintCapture = (clip) => commands.squircleCapture(clip);
   }
+}, paintTimeout);
+
+it("detects an outline on a percentage-radius fallback corner", async () => {
+  const root = render('<div class="surface" style="width:160px;height:120px;--sq-tl:50%;outline:6px solid #c65"></div>');
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+  expect(root.querySelector<HTMLElement>(".surface")!.style.getPropertyValue("--sq-tl")).toBe("50%");
+}, paintTimeout);
+
+it("skips a fixed painted corner entirely outside the viewport", async () => {
+  render('<div style="position:fixed;left:-1000px;top:-1000px;width:160px;height:120px;background:#fff;border-radius:28px;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px;clip-path:inset(0)"></div>');
+  expect(await findSquirclePaint()).toEqual([]);
 }, paintTimeout);
 
 it("checks surfaces larger than the viewport and leaves no temporary style attribute", async () => {
