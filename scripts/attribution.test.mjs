@@ -4,7 +4,7 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { LOG_TRIES, AUTHORS, isMainMerge, isPinCommit, DEPENDABOT, DEPENDABOT_TRAILER, COMMITTERS, GITHUB, MAINTAINER, main, OURO_CURRENT, problems, readCommits, textProblems, RELEASE_BOT, REAUTHOR, REWORD, UNCREDIT } from "./attribution.mjs";
+import { LOG_TRIES, AUTHORS, isMainMerge, isPinCommit, DEPENDABOT, DEPENDABOT_TRAILER, COMMITTERS, GITHUB, MAINTAINER, main, OURO_CURRENT, OURO_CURRENT_CREDIT, problems, readCommits, textProblems, RELEASE_BOT, REAUTHOR, REWORD, UNCREDIT } from "./attribution.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 const script = join(dirname(fileURLToPath(import.meta.url)), "attribution.mjs");
@@ -367,6 +367,14 @@ test("on a pull request attribution still fails a branch commit the No AI co-aut
   assert.deepEqual(found.map(({ field }) => field), ["message line 3"]);
   assert.equal(found[0].fix, UNCREDIT);
   assert.equal(problems([app]).length, 1, "the merge queue's squash message is judged in full");
+});
+
+test("the squash credit for Ouro Current passes, a bot trailer naming an AI tool or another bot still fails, and the ruleset's pattern is AI identities only", () => {
+  const squash = (trailer) => commit({ message: `Fix\n\nCo-authored-by: ${trailer}` });
+  assert.equal(problems([squash(OURO_CURRENT_CREDIT)]).length, 0);
+  assert.equal(problems([squash(`ouro-current[bot] <${OURO_CURRENT}>`)], { messages: false }).length, 0, "the ruleset lets the app's credit through");
+  assert.equal(problems([squash("someone[bot] <1+someone[bot]@users.noreply.github.com>")]).length, 1);
+  assert.equal(problems([squash("Claude <noreply@anthropic.com>")], { messages: false }).length, 1, "an AI credit still fails the ruleset's pattern");
 });
 
 test("attribution passes the app's commit that only merges main into a branch, and fails one that adds content", () => {
