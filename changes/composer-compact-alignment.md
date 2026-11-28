@@ -1,0 +1,1 @@
+- Composer [centres a compact expandable draft beside its actions after typing](registry/ouro/components/ouro/composer/composer.test.tsx "verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer text at rest > centres a compact expandable %s draft beside its actions after typing)").

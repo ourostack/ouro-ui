@@ -1112,7 +1112,7 @@ export function Composer(props: ComposerProps): JSX.Element {
           </div>
         )}
         {/* The text's padding is the textarea's own, out to the frame's edge, so a press anywhere around the text takes the caret where it lands. At rest the padding makes the text row as tall as the actions' (the send button, lg, and its padding), so one line sits centred beside the icons; the actions stay at the bottom as the text grows. */}
-        <div data-ouro-composer-body="" className={cn("flex min-w-0 flex-wrap items-end [--ouro-composer-action-h:calc(var(--spacing)*11)] [--ouro-composer-lh:1.5rem] [--ouro-composer-py:calc((var(--ouro-composer-action-h)+var(--spacing)*2-var(--ouro-composer-lh))/2)] [&_:is(textarea,[data-ouro-composer-editor],[data-ouro-composer-placeholder])]:[--ouro-text-area-py:var(--ouro-composer-py)] sm:[--ouro-composer-action-h:calc(var(--spacing)*9)] sm:pointer-fine:[--ouro-composer-lh:1.25rem]", canExpand && !expanded && text === "" && "items-center")}>
+        <div data-ouro-composer-body="" className={cn("flex min-w-0 flex-wrap items-end [--ouro-composer-action-h:calc(var(--spacing)*11)] [--ouro-composer-lh:1.5rem] [--ouro-composer-py:calc((var(--ouro-composer-action-h)+var(--spacing)*2-var(--ouro-composer-lh))/2)] [&_:is(textarea,[data-ouro-composer-editor],[data-ouro-composer-placeholder])]:[--ouro-text-area-py:var(--ouro-composer-py)] sm:[--ouro-composer-action-h:calc(var(--spacing)*9)] sm:pointer-fine:[--ouro-composer-lh:1.25rem]", canExpand && !blockLayout && "[--ouro-composer-py:calc((var(--ouro-composer-action-h)+var(--spacing)*4-var(--ouro-composer-lh))/2)]", canExpand && !expanded && text === "" && "items-center")}>
           {ActiveEditor ? (
             <ActiveEditor
               handleRef={richRef}

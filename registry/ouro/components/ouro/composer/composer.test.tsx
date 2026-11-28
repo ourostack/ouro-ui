@@ -2118,7 +2118,7 @@ describe("Composer text at rest", () => {
   });
 
   /** Where the placeholder's capital letters centre: the line's baseline from the font's ascent and descent, less half a cap height. */
-  function capCentre(textarea: HTMLTextAreaElement) {
+  function capCentre(textarea: HTMLElement) {
     const style = getComputedStyle(textarea);
     const context = document.createElement("canvas").getContext("2d")!;
     context.font = style.font;
@@ -2137,6 +2137,15 @@ describe("Composer text at rest", () => {
     const { frame, textarea, send } = await render(<Composer label="Reply" placeholder="Message Mia" onSend={() => {}} />);
     expect(Math.abs(capCentre(textarea) - middle(frame))).toBeLessThanOrEqual(0.75);
     expect(Math.abs(middle(send) - middle(frame))).toBeLessThanOrEqual(0.75);
+  });
+
+  it.each(["plain", "rich"] as const)("centres a compact expandable %s draft beside its actions after typing", async (format) => {
+    const view = await render(<Composer label="Reply" format={format} defaultExpanded={false} onSend={() => {}} />);
+    if (format === "rich") await expect.poll(() => view.host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+    const editor = view.host.querySelector<HTMLElement>("textarea, [data-ouro-composer-editor]")!;
+    await userEvent.fill(editor, "Hi there");
+    expect(Math.abs(capCentre(editor) - middle(view.frame))).toBeLessThanOrEqual(0.75);
+    expect(Math.abs(middle(view.send) - middle(view.frame))).toBeLessThanOrEqual(0.75);
   });
 
   it("keeps the actions at the bottom when the text takes three lines", async () => {
