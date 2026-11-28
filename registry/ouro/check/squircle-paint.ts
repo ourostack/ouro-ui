@@ -483,7 +483,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
                 else el.setAttribute("style", originalStyle);
               }
               for (const override of overrides) {
-                if (override.node.getAttribute("style") === override.temporary) {
+                if (override.node.getAttribute("style") === override.temporary || override.node.getAttribute("style") === override.style) {
                   override.node.setAttribute("style", override.style);
                 } else {
                   if (override.opacity) restore(override.node, "opacity", override.savedOpacity);

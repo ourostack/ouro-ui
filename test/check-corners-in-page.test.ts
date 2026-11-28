@@ -595,6 +595,10 @@ it("keeps a round badge in a cut-out distinct from leaking square paint", async 
       element.style.borderTopLeftRadius = "0";
     }
     expect(await findSquirclePaint()).toEqual([]);
+    for (const element of [frame, surface]) {
+      element.style.removeProperty("--sq-tl");
+      element.style.removeProperty("border-top-left-radius");
+    }
     frame.insertAdjacentHTML("beforeend", '<div class="cut-leak"></div>');
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.cut-frame.rounded-[44%]");
     frame.lastElementChild!.remove();
@@ -886,14 +890,14 @@ it("restores the surface when its screenshot capture fails", async () => {
   }
 });
 
-it("checks coincident rounded siblings with different corners, not a smaller neighboring squircle", async () => {
+it("checks coincident rounded siblings with different corners, and a contained squircle", async () => {
   const root = render(`<div style="position:relative;width:160px;height:120px">
     <div class="outer" style="position:absolute;inset:0;background:white;border-radius:28px;corner-shape:squircle;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px"></div>
     <div class="inner" style="position:absolute;inset:0;background:#b44939;border-radius:12px;corner-shape:squircle;--sq-tl:12px;--sq-tr:12px;--sq-br:12px;--sq-bl:12px"></div>
   </div>`);
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.outer");
   const inner = root.querySelector<HTMLElement>(".inner")!;
-  inner.style.inset = "0 auto auto 0";
+  inner.style.inset = "40px auto auto 60px";
   inner.style.width = "20px";
   inner.style.height = "20px";
   expect(await findSquirclePaint()).toEqual([]);
