@@ -467,6 +467,32 @@ test("squircle-paint passes a clipped surface at fractional layout coordinates",
   }
 });
 
+test("squircle-paint does not treat an inherited fallback token as a square child's corner", async () => {
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+    await bindCapture(tab);
+    try {
+      await tab.setContent(`<style>
+        body { margin: 0; background: #eee; }
+        .outer { position: absolute; left: 40px; top: 40px; width: 300px; height: 200px; background: white;
+          border-radius: 30px; clip-path: inset(0 round 30px);
+          --sq-tl: 30px; --sq-tr: 30px; --sq-br: 30px; --sq-bl: 30px; }
+        .child { position: absolute; left: 50px; top: 50px; width: 100px; height: 100px; background: #557799; }
+      </style><div class="outer"><div class="child"></div></div>`);
+      assert.equal(await tab.locator(".child").evaluate((el) => getComputedStyle(el).getPropertyValue("--sq-tl").trim()), "30px");
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], engine.name());
+      await tab.locator(".child").evaluate((el) => {
+        el.style.borderRadius = "16.29px";
+        el.insertAdjacentHTML("beforeend", '<div style="position:absolute;inset:0;background:#b44939"></div>');
+      });
+      assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, `${engine.name()}: a real rounded surface still detects square paint`);
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
 test("squircle-paint treats wrapped inline fragments as separate painted boxes", async () => {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
