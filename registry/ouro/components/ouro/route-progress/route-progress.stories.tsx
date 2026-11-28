@@ -27,8 +27,11 @@ export const Playground: Story = {
   ),
   play: async ({ canvasElement, args }) => {
     if (!args.active) return;
-    const bar = canvasElement.querySelector('[data-ouro-part="bar"]')!;
-    while (!bar.hasAttribute("data-open")) await new Promise((resolve) => requestAnimationFrame(resolve));
+    for (let frame = 0; frame < 600; frame++) {
+      if (canvasElement.querySelector('[data-ouro-part="bar"][data-open]')) return;
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    throw new Error("RouteProgress did not open.");
   },
 };
 
