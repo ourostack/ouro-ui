@@ -145,7 +145,7 @@ describe("ScrollArea surface", () => {
 
   // Chromium on Windows promotes a scroller to the compositor only when it is opaque or the display scales
   // 150% or more (ourostack/ouro-ui#2891); an opaque viewport is promoted everywhere, so this holds on every host.
-  it.skipIf(server.browser !== "chromium")("is a layer of its own that the compositor scrolls, the page's background behind it", async () => {
+  it.skipIf(server.browser !== "chromium")("is a layer of its own that the compositor scrolls on the muted surface", async () => {
     const host = await render(
       <ScrollArea label="Steps" className="h-48">
         <div style={{ height: 1200 }}>x</div>
