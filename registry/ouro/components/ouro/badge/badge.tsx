@@ -293,7 +293,9 @@ export function Badge(props: BadgeProps): JSX.Element {
 
   const look = cn(looks[variant][tone], count && countClass, count && overlay && countOverlayClass);
   // The icon and the label go in as siblings of the surface, not in a fragment, which would be a component of its own.
-  const icon = Icon && <Icon aria-hidden="true" className="relative -ms-0.5 size-ouro-3_5 shrink-0" />;
+  // The icon tucks toward its edge to balance a label after it; with no label to see (a name only
+  // screen readers hear) it stays in the badge's middle.
+  const icon = Icon && <Icon aria-hidden="true" className="relative -ms-0.5 size-ouro-3_5 shrink-0 [&:has(+.sr-only)]:ms-0" />;
   const statusDot = dot && <span data-slot="badge-dot" data-ouro-dot="" aria-hidden="true" className="relative size-ouro-1_5 shrink-0 rounded-full bg-current" />;
 
   if (rest.href !== undefined) {

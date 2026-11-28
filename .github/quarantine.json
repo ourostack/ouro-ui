@@ -46,5 +46,13 @@
     "issue": "https://github.com/ourostack/ouro-ui/issues/3962",
     "owner": "drain-6-backlog",
     "expiry": "2026-11-28T07:00:00Z"
+  },
+  {
+    "project": "ouro-touch",
+    "file": "registry/ouro/components/ouro/message/message-list.springs.touch.test.tsx",
+    "title": "follows the whole of a fling through a long frame, and settles only once it stops",
+    "issue": "https://github.com/ourostack/ouro-ui/issues/3736",
+    "owner": "shipper",
+    "expiry": "2026-11-29T00:00:00Z"
   }
 ]

@@ -117,6 +117,7 @@
 @source not "../current";
 @source not "calendar-demo.tsx";
 @source not "call-demo.tsx";
+@source not "call-surface.tsx";
 @source not "chat-demo.tsx";
 @source not "demos";
 @source not "spot-art.tsx";
