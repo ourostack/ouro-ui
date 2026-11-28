@@ -416,7 +416,7 @@ it("reports an inverse cutout whose curve is partly covered by paint", () => {
   render(`<div style="width:160px;height:120px;background:#eef4fa;border-top-left-radius:17.376px;--sq-tl:32px;clip-path:inset(0)">
     <div style="position:relative;margin:4px;width:152px;height:112px;background:#789">
       <div style='position:absolute;inset:0;background:#eef4fa;--sq-tl:28px;clip-path:path(evenodd, "M 0 0 H 152 V 112 H 0 Z M 0 28 C 0 17.164 -.2576 9.1672 4.4548 4.4548 C 9.1672 -.2576 17.164 0 28 0 H 152 V 112 H 0 Z")'></div>
-      <div style="position:absolute;left:1px;top:10px;width:3px;height:2px;background:#b44939"></div>
+      <div style="position:absolute;left:1px;top:8px;width:3px;height:4px;background:#b44939"></div>
     </div>
   </div>`);
   expect(findCornerIssues().map((issue) => issue.detail)).toContainEqual(expect.stringContaining("cutout does not match"));
