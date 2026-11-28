@@ -102,6 +102,30 @@ export async function latestRelease({ fetch = globalThis.fetch, token, attempts 
   throw new ReleaseUnreadable(`The newest release of ${repository} could not be read: ${last}`);
 }
 
+/**
+ * When the pin's lag began: the publication time of the oldest release newer than the oldest version a behind statement
+ * states (`releases` as { version, publishedAt }), so a newer release never resets the clock. Falls back to `fallback`.
+ */
+export function lagStart(releases, stale, fallback) {
+  const behind = stale.filter((item) => item.kind === "behind" && parse(item.version)).map((item) => item.version);
+  if (behind.length === 0) return fallback;
+  const oldest = behind.reduce((a, b) => (compare(a, b) <= 0 ? a : b));
+  const newer = releases.filter((r) => parse(r.version) && Date.parse(r.publishedAt) && compare(r.version, oldest) > 0);
+  if (newer.length === 0) return fallback;
+  return newer.reduce((a, b) => (compare(a.version, b.version) <= 0 ? a : b)).publishedAt;
+}
+
+/** ouro-ui-apple's published releases as { version, publishedAt }; [] when they cannot be read. */
+export async function listReleases({ fetch = globalThis.fetch, token, repository = REPOSITORY } = {}) {
+  try {
+    const response = await fetch(`https://api.github.com/repos/${repository}/releases?per_page=50`, { headers: { accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28", ...(token ? { authorization: `Bearer ${token}` } : {}) } });
+    if (!response.ok) return [];
+    return (await response.json()).filter((r) => !r.draft && !r.prerelease).map((r) => ({ version: String(r.tag_name ?? "").replace(/^v/, ""), publishedAt: r.published_at }));
+  } catch {
+    return [];
+  }
+}
+
 /** How long a behind pin may stay a warning after the newest release came out, on a pull request and on main. */
 export const LAG_LIMIT_MS = 2 * 60 * 60 * 1000;
 
@@ -160,7 +184,7 @@ async function main(args) {
       console.log(`::notice::The base branch's pages could not be read (${error.message}), so every stale statement is held against this pull request.`);
     }
   }
-  const verdict = judge({ event: process.env.GITHUB_EVENT_NAME, latest, stale, baseStale, publishedAt: release.publishedAt, now: Date.now() });
+  const verdict = judge({ event: process.env.GITHUB_EVENT_NAME, latest, stale, baseStale, publishedAt: lagStart(await listReleases({ token: process.env.GH_TOKEN }), stale, release.publishedAt), now: Date.now() });
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `behind=${verdict.fail}\n`);
   for (const message of verdict.messages) console.log(`::${message.level}::${message.text}`);
   if (verdict.fail) return 1;
