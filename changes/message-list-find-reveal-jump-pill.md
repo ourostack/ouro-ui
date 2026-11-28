@@ -1,0 +1,1 @@
+- Fix: MessageList no longer leaves the "Jump to latest" pill hidden, nor overlapping the revealed message, after a code-driven reveal (search or deep link) that scrolls to a message away from the list's true bottom

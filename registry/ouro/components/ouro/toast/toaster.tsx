@@ -92,7 +92,7 @@ export interface ToasterProps {
  * bottom of the screen, full width on phones by default; `className` adjusts viewport
  * layout/clearance, not each toast's appearance. Up to three show, and later ones wait their
  * turn, a `destructive` toast ahead of the others. They pause while the pointer is over them or a toast has focus, F6 moves focus to
- * them, newest first, and a swipe down or sideways dismisses one: a toast follows the
+ * them, newest first, and a swipe up at the top, down at the bottom, or sideways dismisses one: a toast follows the
  * finger, a quick flick is enough, and one let go short of that springs back. Each toast is read to
  * screen readers once, its message and description: politely, and a `destructive` toast
  * assertively, so it interrupts. Every toast and its buttons stay reachable by screen readers, a

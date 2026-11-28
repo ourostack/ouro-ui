@@ -9,7 +9,7 @@ const lines = ["Lunch at noon?", "Nothing to add.", "Café for lunch, or LUNCH o
 
 export default function ConversationFindDemo(): JSX.Element {
   const [query, setQuery] = useState("lunch");
-  const [current, setCurrent] = useState<number | null>(0);
+  const [current, setCurrent] = useState<number | null>(2);
   const [report, setReport] = useState<MessageListFindReport>({ count: 0, current: null, partial: false });
   return (
     <div className="grid w-full gap-3">
