@@ -803,9 +803,9 @@ test("squircle-paint attributes a distant shadow separately from an overlapping 
           background: white; box-shadow: 0 1px 3px #0008; }
         .overlay { position: absolute; left: 60px; top: 90px; width: 50px; height: 14px;
           z-index: 1; background: #1d1d1f; }
-        .surface[style*="clip-path"] + .overlay, .surface[data-ouro-paint-solo] + .overlay { background: #2e2e30; }
-        .surface[style*="opacity: 0"] + .overlay { background: #272729; }
-      </style><div class="surface"><div class="selected"></div></div><div class="overlay"></div>`);
+        .stage:has(.surface[style*="clip-path"]) + .overlay, .stage:has(.surface[data-ouro-paint-solo]) + .overlay { background: #2e2e30; }
+        .stage:has(.surface[style*="opacity: 0"]) + .overlay { background: #272729; }
+      </style><div class="stage"><div class="surface"><div class="selected"></div></div></div><div class="overlay"></div>`);
       assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: an unrelated overlay is not the distant shadow`);
       await tab.locator(".surface").evaluate((el) => {
         el.insertAdjacentHTML("beforeend", '<div style="position:absolute;left:0;bottom:-6px;width:10px;height:10px;background:#b44939"></div>');
