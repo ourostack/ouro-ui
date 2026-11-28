@@ -372,10 +372,11 @@ test("squircle-paint treats wrapped inline fragments as separate painted boxes",
   try {
     await tab.setContent(`<style>
       body { margin: 0; background: white; }
-      .line { position: absolute; left: 424px; top: 202.453125px; width: 723px; font: 16px/21px sans-serif; }
+      .line { position: absolute; left: 424px; top: 1202.453125px; width: 723px; font: 16px/21px sans-serif; }
       .prefix { display: inline-block; width: 613.75px; }
-      code { font: 14px monospace; background: #e8e8e8; border-radius: 4.806px; corner-shape: squircle; padding: 0.1em 0.3em; overflow-wrap: break-word; }
-    </style><div class="line"><span class="prefix"></span><code><span>example/</span><span>parts/<wbr></span><span>documents/<wbr></span><span>AnotherInput.tsx</span></code></div>`);
+      a { color: #1d1d1f; text-decoration: underline; text-decoration-color: #1d1d1f66; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+      code { font: 14px/20px monospace; background: #f5f5f7; border-radius: 4.806px; corner-shape: squircle; padding: 0.1em 0.3em; overflow-wrap: break-word; }
+    </style><div class="line"><span class="prefix"></span><a href="#example"><code><span>example/</span><span>parts/<wbr></span><span>documents/<wbr></span><span>AnotherInput.tsx</span></code></a></div>`);
     const rects = await tab.locator("code").evaluate((el) => [...el.getClientRects()].map((rect) => rect.toJSON()));
     assert.equal(rects.length, 2);
     assert.ok(rects[0]!.left > rects[1]!.left);
