@@ -1,11 +1,11 @@
 "use client";
 
 import "@/registry/ouro/lib/ouro/last-input";
-import { Children, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import { Children, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ClipboardEvent, FocusEventHandler, FormEventHandler, JSX, KeyboardEvent, MouseEvent, ReactElement, ReactNode, Ref, TextareaHTMLAttributes } from "react";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import type { RichEditor, RichEditorHandle } from "@/registry/ouro/components/ouro/composer/composer-parts";
-import { composerDrafts, composerShortcuts, formatEdit, isApple, markFormats, pressed, richShortcuts } from "@/registry/ouro/components/ouro/composer/composer-styles";
+import { composerDrafts, composerShortcuts, formatEdit, isApple, loadRich, markFormats, pressed, richEditorModule, richShortcuts } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { emojiTextToTokens } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
@@ -22,17 +22,6 @@ import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
 
 /** What sent the message: the Enter key in the box, or a press of the send button. */
 export type ComposerSendEvent = KeyboardEvent<HTMLTextAreaElement | HTMLDivElement> | MouseEvent<HTMLButtonElement>;
-
-type RichModule = typeof import("@/registry/ouro/components/ouro/composer/composer-parts");
-
-let richLoading: Promise<RichModule> | undefined;
-// The module itself, once the import above has settled, so a later mount in the same page draws it straight away instead of a plain box that swaps a tick later.
-let richModule: RichModule | undefined;
-
-// Loads the rich editor once, by a dynamic import, so Lexical stays out of a plain page's build.
-function loadRich(): Promise<RichModule> {
-  return (richLoading ??= import("@/registry/ouro/components/ouro/composer/composer-parts").then((loaded) => (richModule = loaded)));
-}
 
 /**
  * What the bubbling `ouro-composer-move` event carries while the box expands or collapses, so the
@@ -484,6 +473,13 @@ function ownAttrsOf(rest: object): Record<string, unknown> {
   return picked;
 }
 
+// Nothing changes whether this is a client render after hydration, so nothing is subscribed to.
+// Stryker disable next-line ArrowFunction: React ignores what the unsubscribe returns, so an unsubscribe that returns undefined is the same.
+const subscribeNothing = () => () => {};
+const onClient = () => true;
+// Stryker disable next-line ArrowFunction: undefined is as false as false in the state initializer's test, so a server snapshot of undefined is no different there.
+const onServer = () => false;
+
 /**
  * A chat message box: text that grows from one line as the person writes, a send button, and
  * room for the rest of a composer, in one frame with one focus outline. Enter sends and
@@ -596,15 +592,8 @@ export function Composer(props: ComposerProps): JSX.Element {
     expandable: expandableHint,
     ...rest
   } = props;
-  const [mounted, setMounted] = useState(false);
-  useEffect(
-    () => {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setMounted(true);
-    },
-    // Stryker disable next-line ArrayDeclaration: an effect that only sets a flag to true runs the same whatever its list holds.
-    [],
-  );
+  const [initialQuote, setInitialQuote] = useState(quote);
+  if (initialQuote && quote === undefined) setInitialQuote(undefined);
   const [ownExpanded, setOwnExpanded] = useState(defaultExpanded ?? false);
   const expandable = expandedProp !== undefined || defaultExpanded !== undefined || onExpandedChange !== undefined;
   // The person can expand and collapse it: the composer holds the state, or the app listens.
@@ -664,32 +653,25 @@ export function Composer(props: ComposerProps): JSX.Element {
   const richRef = useRef<RichEditorHandle | null>(null);
   // Some sequences commit an input method's word as a plain insertText with no compositionend (ourostack/ouro-ui#3843): the rich editor sets this once it sees that happen, so a later Enter whose isComposing still reads true (the browser's own composition session never closed) is trusted as composing only until then.
   const richComposed = useRef(false);
-  const [rich, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>();
-  useLayoutEffect(
-    () => {
-      // A page that already loaded the editor's module (an earlier Composer, or a swap in this same box) draws it before the paint that follows, so this mount never flashes the plain box: the server always renders plain, and this never runs there, so hydration still matches.
-      // Stryker disable next-line ConditionalExpression,LogicalOperator: a plain mount, or one whose module has not loaded yet, is drawn by the effect below instead, exactly as before.
-      if (!(formatMode === "rich" && richModule)) return;
-      // Once this fills rich, a render this same mount triggers later (even one that retests the list below with a changed array) finds it already drawn and fills nothing twice.
-      // Stryker disable next-line ConditionalExpression: rich starts undefined and nothing else fills it before this effect's first run, so this still lets that first fill through.
-      /* istanbul ignore if @preserve -- the empty dependency array below means this body runs once per mount, so nothing has filled rich by its own first run to make this true */
-      if (rich !== undefined) return;
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-time fill before the first paint, as live-captions.demo.tsx's does
-      setRich({ Editor: richModule.RichEditor, focus: rest.autoFocus === true });
-    },
-    // Only the warm cache at this mount is read here; a later format change or a cold load is the effect below's job. `rich` is read only to skip a repeat of this same fill, never to decide whether to run at all.
-    // Stryker disable next-line ArrayDeclaration: a changed dependency array still finds rich already set, from this same fill, and stops at the check above.
-    [], // eslint-disable-line react-hooks/exhaustive-deps
-  );
+  // A page that already loaded the editor's module (an earlier Composer on it, or preloadRichEditor()) draws a client-only
+  // mount with the editor from its very first render, with no plain box and no swap, so it takes focus once. The module is
+  // read once, here, at mount: a cold box whose load settles later keeps to the effect below, which leaves a box the person
+  // is in alone until they leave it. A mount that hydrates server HTML draws the plain box the server drew (the server
+  // snapshot is false), and the effect below swaps it, so hydration matches.
+  const clientRender = useSyncExternalStore(subscribeNothing, onClient, onServer);
+  const [rich, setRich] = useState<{ Editor: typeof RichEditor; focus: boolean } | undefined>(() => {
+    const warm = clientRender && formatMode === "rich" ? richEditorModule() : undefined;
+    return warm ? { Editor: warm.RichEditor, focus: rest.autoFocus === true } : undefined;
+  });
   useEffect(() => {
+    const richModule = richEditorModule();
     // Stryker disable next-line ConditionalExpression,EqualityOperator,StringLiteral,BlockStatement: loading the editor in plain mode changes nothing a person or a test can read, as richOn below also needs the rich format.
     if (formatMode !== "rich") return;
-    // Stryker disable next-line ConditionalExpression: the layout effect above already drew the editor for this same mount, from a module that was already loaded; loading it again would only replace a correct focus flag with a wrong one.
+    // Stryker disable next-line ConditionalExpression: the state initializer above already drew the editor for this same mount, from a module that was already loaded; loading it again would only replace a correct focus flag with a wrong one.
     /* istanbul ignore if @preserve -- this closure is the one React commits from the mount that set rich, so a test never observes rich already set when this runs */
     if (rich !== undefined) return;
     // An app that turns rich on with the editor already loaded gets it at once, focus and all (its own change, not the load's).
     if (richModule) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- the format the app just chose, drawn in this same pass
       setRich({ Editor: richModule.RichEditor, focus: textareaRef.current === document.activeElement });
       return () => setRich(undefined);
     }
@@ -697,20 +679,22 @@ export function Composer(props: ComposerProps): JSX.Element {
     void loadRich().then(({ RichEditor: Editor }) => {
       // Stryker disable next-line ConditionalExpression: only a load that outlives an unmount skips this, and the dynamic import settles before a test can unmount in between.
       if (!live) return;
-      const swap = () => void (live && setRich({ Editor, focus: false }));
       // A box the person is in stays theirs until they leave it: the editor replacing it under them would move their
-      // focus (a screen reader says the box's name again) and their caret. The plain box takes their typing meanwhile.
-      // After the swap the plain box is gone, and after cleanup `live` is false, so the listener needs no removing.
-      const box = textareaRef.current;
-      if (box && box === document.activeElement) box.addEventListener("blur", swap);
-      else swap();
+      // focus (a screen reader says the box's name again) and their caret, and drop the keys they type next. The plain box
+      // takes their typing meanwhile. Reaching in after the swap is asked for and before it is drawn counts too: the swap
+      // waits again. Once replaced or unmounted, the detached plain box receives no focus or blur.
+      const box = textareaRef.current!;
+      const swap = () => setRich({ Editor, focus: false });
+      const stay = () => setRich(undefined);
+      box.addEventListener("focus", stay);
+      box.addEventListener("blur", swap);
+      if (box !== document.activeElement) swap();
     });
     return () => {
       // Stryker disable next-line BooleanLiteral: a load that settles after the cleanup is ignored only by this flag, and no test can unmount in between.
       live = false;
       setRich(undefined);
     };
-    // `rich` is read only to skip a redundant load the layout effect above already did for this same mount, never to decide whether to re-run.
   }, [formatMode]); // eslint-disable-line react-hooks/exhaustive-deps
   // Stryker disable next-line LogicalOperator,ConditionalExpression: the effect clears the loaded editor when the format changes, so only one render between them could tell.
   const richOn = formatMode === "rich" && rich !== undefined;
@@ -789,6 +773,15 @@ export function Composer(props: ComposerProps): JSX.Element {
     // A render that leaves the box expanded or collapsed as it was lets the move run on.
     // Stryker disable next-line ConditionalExpression,OptionalChaining: a render that changes nothing during a move and one that restarts it with the same result differ only in frames a test cannot sample.
     if (running && height.current?.expanded === expanded) return;
+    // Let the browser take the initial layout in its own frame, without forcing it in the commit.
+    if (height.current === null) {
+      const first = { expanded, px: Number.NaN };
+      height.current = first;
+      requestAnimationFrame(() => {
+        if (height.current === first) first.px = frame.offsetHeight;
+      });
+      return;
+    }
     const shown = running ? running.full - clipTop(frame) : frame.offsetHeight;
     running?.end();
     const toolbarElement = frame.querySelector<HTMLElement>("[data-ouro-composer-toolbar]");
@@ -799,7 +792,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     if (toolbarElement) toolbarElement.style.display = "";
     const before = height.current;
     height.current = { expanded, px };
-    if (before === null || before.expanded === expanded) return;
+    if (before.expanded === expanded || Number.isNaN(before.px)) return;
     const reduced = matchMedia(reducedQuery).matches;
     if (reduced && !expanded) return;
     const from = running ? shown : before.px;
@@ -943,7 +936,7 @@ export function Composer(props: ComposerProps): JSX.Element {
         )}
         {quote && (
           <div className="px-2 pt-2">
-            <div data-ouro-composer-quote="" className={cn(quoteBoxClass, mounted && quoteFadeClass)}>
+            <div data-ouro-composer-quote="" className={cn(quoteBoxClass, !initialQuote && quoteFadeClass)}>
               {quote.onActivate ? (
                 <button type="button" data-ouro-control="composer" data-ouro-part="quote" onClick={quote.onActivate} className={quoteButtonClass}>
                   <QuoteBody quote={quote} id={id} />

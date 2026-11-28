@@ -1,16 +1,18 @@
 import { createRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
-import { createRoot, type Root } from "react-dom/client";
+import { createRoot, hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
 import { Composer, type ComposerEditor } from "@/registry/ouro/components/ouro/composer/composer";
+import { forgetRichEditor, preloadRichEditor } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import type { EmojiCatalogue, EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { $getRoot, type ElementNode } from "lexical";
 
 const roots: Root[] = [];
 let mounted: HTMLElement[] = [];
+const nativeMod = /Mac/.test(navigator.platform) ? "Meta" : "Control";
 
 /** Renders and waits for the rich editor, which loads after the first render. */
 async function render(node: ReactNode) {
@@ -69,8 +71,31 @@ describe("Composer rich mode", () => {
     expect(host.textContent).toContain("Write a message");
   });
 
+  it("hydrates server HTML with the plain box, then draws the editor, though the page has already loaded its module", async () => {
+    // A render anywhere on the page warms the module cache the state initializer reads from.
+    await render(rich());
+    const node = rich({ placeholder: "Write a message" });
+    const host = document.createElement("div");
+    host.innerHTML = renderToString(node);
+    // The server draws the plain box, however warm this page's module cache is: a real server never loads the editor.
+    expect(host.querySelector("textarea")).not.toBeNull();
+    expect(host.querySelector("[data-ouro-composer-editor]")).toBeNull();
+    document.body.append(host);
+    mounted.push(host);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const recoverable = vi.fn();
+    let root!: Root;
+    await act(async () => {
+      root = hydrateRoot(host, node, { onRecoverableError: recoverable });
+    });
+    roots.push(root);
+    expect(recoverable).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    await expect.poll(() => host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+  });
+
   it("draws the editor directly, with no plain box first, once a page has already loaded its module", async () => {
-    // A render anywhere on the page warms the module cache the layout effect below reads from.
+    // A render anywhere on the page warms the module cache the state initializer below reads from.
     await render(rich());
     const host = document.createElement("div");
     document.body.append(host);
@@ -83,21 +108,85 @@ describe("Composer rich mode", () => {
   });
 
   it("draws the editor within the same commit as the warm mount, before the usual async load could ever run", async () => {
-    // A render anywhere on the page warms the module cache the layout effect below reads from.
+    // A render anywhere on the page warms the module cache the state initializer below reads from.
     await render(rich());
     const host = document.createElement("div");
     document.body.append(host);
     mounted.push(host);
     const root = createRoot(host);
     roots.push(root);
-    // flushSync forces the synchronous layout effect to commit without giving the later, async
-    // effect a chance to resolve first, so this catches a plain-then-swap flash the eventual
-    // state alone cannot: the async effect would draw the same editor a tick later regardless.
+    // flushSync renders synchronously, with no chance for any effect or async load to run first, so this confirms the editor
+    // comes from the component's own first render, not drawn in afterward by an effect: the async effect would draw the same
+    // editor a tick later regardless.
     flushSync(() => root.render(rich({ placeholder: "Write a message" })));
     expect(host.querySelector("textarea")).toBeNull();
     expect(host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
     // Let the later effect settle before the next test unmounts this root.
     await act(async () => {});
+  });
+
+  it("draws the editor from its first render and focuses once, for a rich box mounted after preloadRichEditor() resolves", async () => {
+    forgetRichEditor();
+    const loading = preloadRichEditor();
+    // A second call joins the first load instead of starting another.
+    expect(preloadRichEditor()).toBeInstanceOf(Promise);
+    await loading;
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    let focusMoves = 0;
+    const onFocusIn = () => {
+      focusMoves += 1;
+    };
+    document.addEventListener("focusin", onFocusIn);
+    try {
+      flushSync(() => root.render(rich({ autoFocus: true })));
+      expect(host.querySelector("textarea")).toBeNull();
+      expect(host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+      await act(async () => {});
+    } finally {
+      document.removeEventListener("focusin", onFocusIn);
+    }
+    expect(host.querySelector("textarea")).toBeNull();
+    expect(focusMoves).toBe(1);
+  });
+
+  it("loads the editor once however often preloadRichEditor() is called", async () => {
+    forgetRichEditor();
+    const first = preloadRichEditor();
+    const second = preloadRichEditor();
+    await Promise.all([first, second]);
+    await expect(preloadRichEditor()).resolves.toBeUndefined();
+    // One shared load: the module instance a later mount reads is the one both calls waited on.
+    const { richEditorModule, loadRich } = await import("@/registry/ouro/components/ouro/composer/composer-styles");
+    expect(richEditorModule()).toBe(await loadRich());
+    forgetRichEditor();
+    expect(richEditorModule()).toBeUndefined();
+    await preloadRichEditor();
+  });
+
+  it("focuses once, not twice, mounting a box that asks for focus once a page has already loaded the module", async () => {
+    // A render anywhere on the page warms the module cache the state initializer below reads from.
+    await render(rich());
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    let focusMoves = 0;
+    const onFocusIn = () => {
+      focusMoves += 1;
+    };
+    document.addEventListener("focusin", onFocusIn);
+    try {
+      await act(async () => root.render(rich({ autoFocus: true })));
+    } finally {
+      document.removeEventListener("focusin", onFocusIn);
+    }
+    expect(host.querySelector("textarea")).toBeNull();
+    expect(focusMoves).toBe(1);
   });
 
   it("carries the caret over when the person was already typing in the plain box", async () => {
@@ -144,7 +233,7 @@ describe("Composer rich mode", () => {
   ])("round-trips %s unchanged: %s", async (_label, markdown, expected) => {
     const seen: string[] = [];
     const { editor } = await render(rich({ defaultValue: markdown, onValueChange: (value) => void seen.push(value) }));
-    editor.focus();
+    await act(() => editor.focus());
     await userEvent.keyboard("{End}!");
     await expect.poll(() => seen.at(-1)).toBe(expected);
   });
@@ -170,7 +259,7 @@ describe("Composer rich mode", () => {
     const seen: string[] = [];
     const { editor } = await render(rich({ defaultValue: "trailing word_", onValueChange: (value) => void seen.push(value) }));
     editor.focus();
-    await userEvent.keyboard("{Control>}a{/Control}Xtrailing word_");
+    await userEvent.keyboard(`{${nativeMod}>}a{/${nativeMod}}Xtrailing word_`);
     await expect.poll(() => seen.at(-1)).toBe("Xtrailing word\\_");
   });
 
@@ -281,7 +370,7 @@ describe("Composer rich mode", () => {
     const seen: string[] = [];
     const { editor } = await render(rich({ editorRef: handle, defaultValue: "__bold__", onValueChange: (value) => void seen.push(value) }));
     editor.focus();
-    await userEvent.keyboard("{Control>}a{/Control}");
+    await userEvent.keyboard(`{${nativeMod}>}a{/${nativeMod}}`);
     await act(async () => handle.current!.format("italic"));
     await expect.poll(() => seen.at(-1)).toBe("**_bold_**");
   });
@@ -482,9 +571,9 @@ describe("Composer rich mode", () => {
     editor.focus();
     await userEvent.keyboard("bc");
     await expect.poll(() => editor.textContent).toBe("abc");
-    await userEvent.keyboard("{Control>}z{/Control}");
+    await userEvent.keyboard(`{${nativeMod}>}z{/${nativeMod}}`);
     await expect.poll(() => editor.textContent).toBe("a");
-    await userEvent.keyboard("{Control>}{Shift>}z{/Shift}{/Control}");
+    await userEvent.keyboard(`{${nativeMod}>}{Shift>}z{/Shift}{/${nativeMod}}`);
     await expect.poll(() => editor.textContent).toBe("abc");
   });
 
@@ -501,7 +590,7 @@ describe("Composer rich mode", () => {
     await new Promise((resolve) => setTimeout(resolve, 350));
     await userEvent.keyboard("c");
     await expect.poll(() => editor.textContent).toBe("abc");
-    await userEvent.keyboard("{Control>}z{/Control}");
+    await userEvent.keyboard(`{${nativeMod}>}z{/${nativeMod}}`);
     await expect.poll(() => editor.textContent).toBe("a");
   });
 
@@ -645,7 +734,7 @@ describe("Composer rich mode", () => {
   it("keeps the loaded value out of the undo history, so undoing never empties the box", async () => {
     const { editor } = await render(rich({ defaultValue: "hello" }));
     editor.focus();
-    await userEvent.keyboard("{Control>}z{/Control}");
+    await userEvent.keyboard(`{${nativeMod}>}z{/${nativeMod}}`);
     await expect.poll(() => editor.textContent).toBe("hello");
   });
 
@@ -1204,6 +1293,40 @@ describe("Composer rich mode highlights", () => {
     expect(Math.abs(box.top - bold.top)).toBeLessThan(2);
     expect(layer(host)!.getAttribute("aria-hidden")).toBe("true");
     expect(getComputedStyle(layer(host)!).pointerEvents).toBe("none");
+  });
+
+  it("marks only the words a run covers, never a blank line or a list's empty space beside them", async () => {
+    const text = "Hi **all**:\n\n- one\n- two\n\nDone.";
+    const { host, editor } = await render(rich({ defaultValue: text, highlights: [{ start: 0, end: text.length, label: "Suggested" }] }));
+    await expect.poll(() => boxes(host).length).toBeGreaterThan(0);
+    const words: DOMRect[] = [];
+    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      words.push(...[...range.getClientRects()].filter((rect) => rect.width > 0));
+    }
+    const onWords = (box: DOMRect) => words.some((w) => w.top < box.bottom && box.top < w.bottom && w.left <= box.left + 0.5 && box.right <= w.right + 0.5);
+    expect(boxes(host).map((box) => box.getBoundingClientRect()).filter((box) => !onWords(box))).toEqual([]);
+    // And to the end of the last line's words.
+    const done = words.at(-1)!;
+    expect(boxes(host).some((box) => Math.abs(box.getBoundingClientRect().right - done.right) < 1)).toBe(true);
+  });
+
+  it("trims both ends of a highlight that crosses formatting partway through its first and last words", async () => {
+    const { host, editor } = await render(rich({ defaultValue: "Hello **bold** world", highlights: [{ start: 2, end: 17, label: "Suggested" }] }));
+    await expect.poll(() => boxes(host).length).toBe(3);
+    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+    const first = walker.nextNode()!;
+    walker.nextNode();
+    const last = walker.nextNode()!;
+    const range = document.createRange();
+    range.setStart(first, 2);
+    range.setEnd(last, 3);
+    const expected = [...range.getClientRects()].filter((rect) => rect.width > 0);
+    const drawn = boxes(host).map((box) => box.getBoundingClientRect());
+    expect(Math.abs(drawn[0]!.left - expected[0]!.left)).toBeLessThan(1);
+    expect(Math.abs(drawn.at(-1)!.right - expected.at(-1)!.right)).toBeLessThan(1);
   });
 
   it("describes the marks to a screen reader, with their label and the words, beside the description the app gave", async () => {

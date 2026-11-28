@@ -105,6 +105,72 @@ afterAll(async () => {
 });
 
 describe("Toolbar floating", () => {
+  it.each(["light", "dark"])("uses item tones for pressed toggles and state-named buttons, in %s", async (theme) => {
+    const root = document.documentElement;
+    const wasDark = root.classList.contains("dark");
+    try {
+      root.classList.toggle("dark", theme === "dark");
+      const { toolbar, rerender } = await render(<Toolbar label="Call controls" floating items={[
+        { type: "toggle", label: "Mute", tone: "inverse", pressed: true },
+        { type: "toggle", label: "Share", tone: "primary", pressed: true },
+        { label: "Unmute microphone", tone: "inverse" },
+        { type: "separator" },
+        { label: "Leave", tone: "destructive" },
+      ]} />);
+      const buttons = toolbar.querySelectorAll("button");
+      for (const [index, background, foreground] of [[0, "--foreground", "--background"], [1, "--primary", "--primary-foreground"], [2, "--foreground", "--background"], [3, "--destructive", "--destructive-foreground"]] as const) {
+        expect(getComputedStyle(buttons[index]!).backgroundColor).toBe(computedBackground(`var(${background})`));
+        expect(getComputedStyle(buttons[index]!).color).toBe(computedBackground(`var(${foreground})`));
+      }
+      expect(buttons[0]!.getAttribute("aria-pressed")).toBe("true");
+      expect(buttons[2]!.hasAttribute("aria-pressed")).toBe(false);
+      expect(buttons[3]!.previousElementSibling?.getAttribute("role")).toBe("separator");
+      await rerender(<Toolbar label="Call controls" floating items={[{ type: "toggle", label: "Mute", tone: "inverse", pressed: false }]} />);
+      expect(getComputedStyle(toolbar.querySelector("button")!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+    } finally {
+      root.classList.toggle("dark", wasDark);
+    }
+  });
+
+  it("keeps a destructive trailing action destructive in More", async () => {
+    const leave = vi.fn();
+    const { toolbar } = await render(<Toolbar label="Call controls" className="w-40" items={[
+      { label: "Unmute microphone", tone: "inverse" },
+      { label: "Share screen", tone: "primary" },
+      { type: "separator" },
+      { label: "Leave", tone: "destructive", onClick: leave },
+    ]} />);
+    await userEvent.click(toolbar.querySelector("[data-ouro-toolbar-more]")!);
+    await expect.element(page.getByRole("menuitem", { name: "Share screen", exact: true })).not.toHaveAttribute("data-tone");
+    const item = page.getByRole("menuitem", { name: "Leave", exact: true });
+    await expect.element(item).toHaveAttribute("data-tone", "destructive");
+    await item.click();
+    expect(leave).toHaveBeenCalledOnce();
+  });
+
+  it("keeps system colours for a toned pressed toggle under forced colours", async () => {
+    const { toolbar } = await render(<Toolbar label="Call controls" floating items={[{ type: "toggle", label: "Mute", tone: "inverse", pressed: true }]} />);
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      const style = getComputedStyle(toolbar.querySelector("button")!);
+      expect(style.backgroundColor).toBe(computedBackground("Highlight"));
+      expect(style.color).toBe(computedBackground("HighlightText"));
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it("names the valid item tones for an unknown tone and keeps the quiet default", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // @ts-expect-error a brand fill uses the primary theme token.
+    const items: ToolbarEntry[] = [{ label: "Share", tone: "brand" }];
+    const { toolbar } = await render(<Toolbar label="Call controls" items={items} />);
+    expect(warn.mock.calls.map((call) => String(call[0]))).toEqual([
+      '[ouro-ui] Toolbar: "Share" has tone="brand", which is not a tone. Fix: { tone: "secondary" }; use "inverse", "primary" or "destructive" for a filled state.',
+    ]);
+    expect(getComputedStyle(toolbar.querySelector("button")!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+  });
+
   it("is translucent glass from the theme, with a blur, a hairline, a shadow and rounded corners, and stays in the flow", async () => {
     const { toolbar } = await render(<Toolbar label="Call controls" floating items={controls} />);
     const style = getComputedStyle(toolbar);

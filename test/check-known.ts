@@ -149,6 +149,13 @@ export const knownFindings: KnownFinding[] = [
       "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
   },
   {
+    story: "Combobox/Highlighted",
+    rule: "near-miss",
+    issue: 3286,
+    reason:
+      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
     story: "Combobox/PhoneTags",
     rule: "near-miss",
     issue: 3286,
@@ -171,13 +178,6 @@ export const knownFindings: KnownFinding[] = [
   },
   {
     story: "Composer/Expanded",
-    rule: "near-miss",
-    issue: 3286,
-    reason:
-      "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
-  },
-  {
-    story: "ConversationFind/WithMessageList",
     rule: "near-miss",
     issue: 3286,
     reason:
@@ -348,6 +348,14 @@ export const knownFindings: KnownFinding[] = [
     theme: "nova",
     reason:
       "Two surfaces in the story sit closer than the minimum gap without touching (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
+  },
+  {
+    story: "ConversationFind/WithMessageList",
+    rule: "near-miss",
+    issue: 3286,
+    theme: "nova",
+    reason:
+      "Under nova's 9px minimum gap, a surface in the story sits 8px inside the one around it (a demo's own spacing); the story shows exactly that until the demo's spacing is fixed.",
   },
   {
     story: "NavigationRail/IconsOnly",

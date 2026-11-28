@@ -105,18 +105,6 @@
     "owner": "drain-3"
   },
   {
-    "test": "* site/src/site.test.tsx > docs > opens a random component with a trick to try from the docs index, rolling the names past first",
-    "reason": "Measured at 8.8 s against a 15 s budget on a loaded browser shard (CI run 45731877765, shard 5/22). It is in this pull request's HEADROOM_CHANGED scope only because the revert removes a different test from site.test.tsx; this test is unchanged and its cost is not one the revert added or can cut. Make it faster or give it a larger timeout, then remove this entry.",
-    "owner": "ouro-ui-revert-3743"
-  },
-  {
-    "test": "site (chromium) site/src/site.test.tsx > docs > opens a random component with a trick to try from the docs index, rolling the names past first",
-    "reason": "Breaches main's Headroom budget (#3032), one of the repeat-red quarantine job's three named failures. No FAIL line is ever printed for a Headroom breach (the test itself passes in Vitest; a separate reporter judges the timing), so quarantine.mjs's FAIL-line retry gate cannot see or retry it. This is the mechanism that actually judges the breach, so its issue and expiry live here instead of in .github/quarantine.json.",
-    "owner": "lane-hang-windowing",
-    "issue": "https://github.com/ourostack/ouro-ui/issues/3032",
-    "expiry": "2026-11-28T01:50:00Z"
-  },
-  {
     "test": "* registry/ouro/lib/ouro/testing/commands.touch.test.ts > a touch on a ::before box inside a frame waits for that frame",
     "reason": "Waits out the kit's own TOUCH_HANDLED_TIMEOUT_MS = 5000 refusal wait, which commands.ts's claims require to hold a real 5 seconds however long Node is starved (#3845), so it takes half its timeout by design.",
     "owner": "drain-5",

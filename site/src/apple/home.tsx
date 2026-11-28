@@ -83,8 +83,8 @@ export default function AppleHome(): JSX.Element {
               </a>
             </h3>
             <p className="apple-door-body">
-              Jank comes in genres, from a missing way back to a switch that drops your second tap. Feel checks them from a UI test, and you can duel a twitchy switch
-              on its page.
+              Good feel keeps its promises, from a way back off the screen you're on to a switch that keeps your second tap. Feel checks them from a UI test, and you
+              can duel a twitchy switch on its page.
             </p>
           </li>
           <li className="apple-door">
