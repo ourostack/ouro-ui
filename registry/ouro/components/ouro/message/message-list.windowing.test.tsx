@@ -1412,6 +1412,31 @@ describe("MessageList windowing", () => {
     expect(content.offsetTop).toBe(0);
   });
 
+  it("leaves a pixel carried near the top for the rest while the wheel's own scroll goes on, as writing it would stop that scroll short", async () => {
+    const items = (first: number) => conversation(30).map((item) => ({ ...item, tall: item.id === 0 ? first : 150 }));
+    const { scroller, rerender } = await render(<Chat items={items(150)} springy={false} windowing={false} />);
+    await scrollTo(scroller, 80);
+    const clock = { now: 1_000_000 };
+    vi.spyOn(performance, "now").mockImplementation(() => clock.now);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    // The wheel turns up, and the browser scrolls for it: the wheel's own scroll goes on, near the top.
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+    scroller.scrollTop = 60;
+    await frame();
+    const reading = firstVisible(scroller);
+    // The first message, above the reader, comes in a pixel taller, as a row drawn rounds.
+    await rerender(<Chat items={items(151)} springy={false} windowing={false} />);
+    // Held by drawing, the scroll position unwritten.
+    expect(scroller.scrollTop).toBe(60);
+    expect(content.style.translate).not.toBe("");
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
+    // Once the scroll has ended and the wheel rests, it is paid.
+    scroller.dispatchEvent(new Event("scrollend"));
+    clock.now += 10_000;
+    await expect.poll(() => content.style.translate).toBe("");
+    expect(scroller.scrollTop).toBe(61);
+  });
+
   it("keeps the space above the first message while the wheel turns, and lets it go without moving anything once the reader is past it and the wheel rests", async () => {
     const { scroller, content, clock } = await wheelToTheTop();
     await frame();
@@ -1460,6 +1485,73 @@ describe("MessageList windowing", () => {
     const asked = vi.spyOn(window, "requestAnimationFrame");
     await new Promise((resolve) => setTimeout(resolve, 400));
     expect(asked).not.toHaveBeenCalled();
+  });
+
+  /**
+   * A header over twelve messages, each drawn in a box of its own while it is the first, as an app that draws the conversation's
+   * first message with what goes above it: one no longer first is drawn anew, bare. `older` messages go in before the first.
+   */
+  function UnderHeader({ header, older = 0 }: { header: number; older?: number }) {
+    const items = [...conversation(older, -older), ...conversation(12)];
+    return (
+      <MessageList label="Conversation" style={{ height: 400, width: 360 }} springy={false} windowing={false}>
+        <div style={{ height: header }} />
+        {items.map((item, index) => {
+          const message = (
+            <Message key={item.id} id={`m${item.id}`} role="user" name="Ana">
+              <div style={{ height: 150 }} />
+            </Message>
+          );
+          return index === 0 ? <div key={item.id}>{message}</div> : message;
+        })}
+      </MessageList>
+    );
+  }
+
+  /**
+   * The first message 350px down the view, the only one whose top is in it; the header above shrinks from 600px to 20px while the
+   * wheel turns, by more than the scroll position can take, so what the top stops is space above the first message, and the
+   * first message is all it leaves in view.
+   */
+  async function spaceOverFirst() {
+    const { scroller, rerender } = await render(<UnderHeader header={600} />);
+    const first = document.getElementById("m0")!;
+    await scrollTo(scroller, scroller.scrollTop + first.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 350);
+    const clock = { now: 1_000_000 };
+    vi.spyOn(performance, "now").mockImplementation(() => clock.now);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+    await rerender(<UnderHeader header={20} />);
+    expect(scroller.scrollTop).toBe(0);
+    expect(Math.abs(first.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 350)).toBeLessThanOrEqual(1);
+    expect(content.offsetTop).toBeGreaterThan(200);
+    expect(document.getElementById("m1")!.getBoundingClientRect().top).toBeGreaterThanOrEqual(scroller.getBoundingClientRect().bottom);
+    return { scroller, content, clock, rerender };
+  }
+
+  it("lets the space above the first message go as soon as the wheel's scroll has ended at the top, though a slow wheel's turns come far apart", async () => {
+    const { scroller, content, clock } = await spaceOverFirst();
+    // The wheel turns again at the top 300ms later, a gap that would keep it counted as turning for 600ms after that turn.
+    clock.now += 300;
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -100 }));
+    // Its scroll has ended, as the browser says, and 200ms pass with no more turns: past the rest, short of twice the gap.
+    scroller.dispatchEvent(new Event("scrollend"));
+    clock.now += 200;
+    await expect.poll(() => content.offsetTop).toBe(0);
+    expect(scroller.scrollTop).toBe(0);
+  });
+
+  it("holds the reader's place by the messages the view shows once the space at the top goes, when older messages go in above and the first is drawn anew", async () => {
+    const { scroller, content, clock, rerender } = await spaceOverFirst();
+    await restWheel(scroller, clock);
+    expect(content.offsetTop).toBe(0);
+    const reading = document.getElementById("m1")!;
+    const top = reading.getBoundingClientRect().top;
+    expect(top).toBeLessThan(scroller.getBoundingClientRect().bottom);
+    await rerender(<UnderHeader header={20} older={3} />);
+    expect(document.getElementById("m-3")).not.toBeNull();
+    expect(document.getElementById("m1")).toBe(reading);
+    expect(Math.abs(reading.getBoundingClientRect().top - top)).toBeLessThanOrEqual(1);
   });
 
   /**

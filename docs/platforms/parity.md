@@ -10,11 +10,11 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 |---|---|---|---|---|
 | Kit | this repository | [ourostack/ouro-ui-apple v1.12.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.12.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v1.12.0") | [ourostack/ouro-ui-android v0.12.1](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.12.1 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.12.1") | [ourostack/ouro-ui-windows v0.12.1](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.12.1 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.12.1") |
 
-Components: Web has 139 of 143, Apple has 21 of 143, Android has 27 of 143, Windows has 30 of 143.[^matrix]
+Components: Web has 140 of 144, Apple has 21 of 144, Android has 27 of 144, Windows has 30 of 144.[^matrix]
 
 Claims covered: Web 7 of 14, Apple 14 of 14, Android 7 of 14, Windows 7 of 14.[^matrix]
 
-Gap cells: 376.[^matrix]
+Gap cells: 379.[^matrix]
 
 ### Components
 
@@ -156,6 +156,7 @@ Gap cells: 376.[^matrix]
 | [freshness](https://ui.ouroboros.bot/docs/freshness/) | `freshness` | Not yet | Not yet | Not yet |
 | [preview-bar](https://ui.ouroboros.bot/docs/preview-bar/) | `preview-bar` | Not yet | Not yet | Not yet |
 | [build-chip](https://ui.ouroboros.bot/docs/build-chip/) | `build-chip` | Not yet | Not yet | Not yet |
+| [thinking-block](https://ui.ouroboros.bot/docs/thinking-block/) | `thinking-block` | Not yet | Not yet | Not yet |
 | [tool-call](https://ui.ouroboros.bot/docs/tool-call/) | `tool-call` | Not yet | Not yet | Not yet |
 | [tool-call-group](https://ui.ouroboros.bot/docs/tool-call-group/) | `tool-call-group` | Not yet | Not yet | Not yet |
 | [permission-prompt](https://ui.ouroboros.bot/docs/permission-prompt/) | `permission-prompt` | Not yet | Not yet | Not yet |

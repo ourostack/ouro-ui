@@ -4,7 +4,7 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { LOG_TRIES, AUTHORS, isMainMerge, DEPENDABOT, DEPENDABOT_TRAILER, COMMITTERS, GITHUB, MAINTAINER, main, OURO_CURRENT, problems, readCommits, textProblems, RELEASE_BOT, REAUTHOR, REWORD, UNCREDIT } from "./attribution.mjs";
+import { LOG_TRIES, AUTHORS, isMainMerge, isPinCommit, DEPENDABOT, DEPENDABOT_TRAILER, COMMITTERS, GITHUB, MAINTAINER, main, OURO_CURRENT, problems, readCommits, textProblems, RELEASE_BOT, REAUTHOR, REWORD, UNCREDIT } from "./attribution.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 const script = join(dirname(fileURLToPath(import.meta.url)), "attribution.mjs");
@@ -408,4 +408,39 @@ test("attribution passes the app's commit that only merges main into a branch, a
   assert.equal(isMainMerge(git(["rev-parse", "HEAD"]), base, (args) => git(args)), false);
   assert.equal(isMainMerge(pure, git(["rev-parse", "feature~3"]), (args) => git(args)), false);
   assert.equal(isMainMerge(pure, base, () => { throw new Error("git failed"); }), false);
+});
+
+test("a pin the app commits passes when it changes only version literals, and fails when it changes anything else", () => {
+  const dir = scratchDir("ouro-pin-commit-");
+  const bot = { GIT_AUTHOR_NAME: "ouro-current[bot]", GIT_AUTHOR_EMAIL: OURO_CURRENT, GIT_COMMITTER_NAME: "ouro-current[bot]", GIT_COMMITTER_EMAIL: OURO_CURRENT };
+  const git = (args, env = {}) => execFileSync("git", args, { cwd: dir, encoding: "utf8", env: { ...process.env, ...env } }).trim();
+  const write = (name, text) => writeFileSync(join(dir, name), text);
+  git(["init", "-q", "-b", "main"]);
+  git(["config", "user.name", MAINTAINER.name]);
+  git(["config", "user.email", MAINTAINER.email]);
+  write("package.json", JSON.stringify({ name: "x", description: "pin v1.0.0", ouro: { latestRelease: "v1.0.0" } }));
+  write("README.md", "install ouro-ui#v1.0.0\n");
+  git(["add", "."]);
+  git(["commit", "-qm", "Start"]);
+  const base = git(["rev-parse", "HEAD"]);
+  write("package.json", JSON.stringify({ name: "x", description: "pin v1.0.1", ouro: { latestRelease: "v1.0.1" } }));
+  write("README.md", "install ouro-ui#v1.0.1\n");
+  git(["add", "."]);
+  git(["commit", "-qm", "Point the docs at v1.0.1"], bot);
+  const pin = git(["rev-parse", "HEAD"]);
+  assert.equal(isPinCommit(pin, (args) => git(args)), true);
+  assert.deepEqual(problems(readCommits(base, pin, (args) => git(args))), []);
+  // The same pin with a change beyond a version literal is not a pin.
+  write("README.md", "install ouro-ui#v1.0.1 and more\n");
+  git(["add", "."]);
+  git(["commit", "-q", "--amend", "--no-edit"], bot);
+  const loaded = git(["rev-parse", "HEAD"]);
+  assert.equal(isPinCommit(loaded, (args) => git(args)), false);
+  assert.deepEqual(fieldsOf(readCommits(base, loaded, (args) => git(args))), ["author", "committer"]);
+  // A file no pin changes fails too, and a git failure says no.
+  write("src.ts", "x\n");
+  git(["add", "."]);
+  git(["commit", "-qm", "Other"], bot);
+  assert.equal(isPinCommit(git(["rev-parse", "HEAD"]), (args) => git(args)), false);
+  assert.equal(isPinCommit(pin, () => { throw new Error("git failed"); }), false);
 });

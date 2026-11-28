@@ -1,5 +1,7 @@
 import { commonTokens, declareClassPlugin, declareValuePlugin, PluginKind } from "@stryker-mutator/api/plugin";
 import { DryRunStatus, MutantRunStatus, TestStatus } from "@stryker-mutator/api/test-runner";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { clearTimeout, setTimeout } from "node:timers";
 import { createVitest } from "vitest/node";
 
@@ -67,6 +69,29 @@ export function results(modules) {
   return tests;
 }
 
+/**
+ * The tests of a dry run kept under the key scripts/mutation.mjs set (`OURO_MUTATION_DRYRUN_KEY`,
+ * `OURO_MUTATION_DRYRUN_FILE`), or null. The unmutated run passed for that exact key, which
+ * `dryRunKey` (scripts/mutation/cache.mjs) takes from everything the run reads, so a run that
+ * finds it need not repeat it.
+ */
+export function storedDryRun(key = process.env["OURO_MUTATION_DRYRUN_KEY"], file = process.env["OURO_MUTATION_DRYRUN_FILE"]) {
+  if (!key || !file || !existsSync(file)) return null;
+  try {
+    const kept = JSON.parse(readFileSync(file, "utf8"));
+    return kept.key === key && Array.isArray(kept.tests) ? kept.tests : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Keeps a passing dry run's tests under the key, for the next run with the same one. */
+export function keepDryRun(tests, key = process.env["OURO_MUTATION_DRYRUN_KEY"], file = process.env["OURO_MUTATION_DRYRUN_FILE"]) {
+  if (!key || !file) return;
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, JSON.stringify({ key, tests }));
+}
+
 class VitestBrowserRunner {
   static inject = [commonTokens.logger];
 
@@ -112,12 +137,15 @@ class VitestBrowserRunner {
 
   async dryRun({ timeout }) {
     globalThis.__ouroMutant = undefined;
+    const stored = storedDryRun();
+    if (stored) return { status: DryRunStatus.Complete, tests: stored };
     const run = await this.run(timeout, unique(this.phases("").flat()));
     if (run.timeout) return { status: DryRunStatus.Timeout };
     const failed = run.tests.filter((test) => test.status === TestStatus.Failed);
     if (failed.length > 0 || run.errors.length > 0) {
       return { status: DryRunStatus.Error, errorMessage: [...failed.map((test) => `${test.name}: ${test.failureMessage}`), ...run.errors.map(String)].join("\n") };
     }
+    keepDryRun(run.tests);
     return { status: DryRunStatus.Complete, tests: run.tests };
   }
 
