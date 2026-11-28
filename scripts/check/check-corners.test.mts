@@ -381,6 +381,20 @@ test("squircle-paint treats wrapped inline fragments as separate painted boxes",
     assert.equal(rects.length, 2);
     assert.ok(rects[0]!.left > rects[1]!.left);
     assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+    await tab.locator("code").evaluate((el) => {
+      const line = el.closest(".line")!.getBoundingClientRect();
+      const fragment = el.getClientRects()[1]!;
+      el.insertAdjacentHTML("beforeend", `<span class="probe" style="position:absolute;left:${fragment.left - line.left}px;top:${fragment.bottom - line.top - 4}px;width:4px;height:4px;background:#b44939"></span>`);
+    });
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), [], "the continuation's flat edge is not a squircle corner");
+    await tab.locator("code").evaluate((el) => {
+      const line = el.closest(".line")!.getBoundingClientRect();
+      const fragment = el.getClientRects()[0]!;
+      const probe = el.querySelector<HTMLElement>(".probe")!;
+      probe.style.left = `${fragment.left - line.left}px`;
+      probe.style.top = `${fragment.top - line.top}px`;
+    });
+    assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, "the first fragment's curved start still catches paint");
   } finally {
     await browser.close();
   }
