@@ -195,9 +195,8 @@
     position: relative;
     overflow: hidden;
     border-radius: var(--apple-screen-radius);
+    border: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
     background: var(--apple-stage);
-    outline: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
-    outline-offset: -1px;
   }
   .apple-loop-video,
   .apple-loop-still {

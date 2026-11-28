@@ -175,6 +175,12 @@
     border-radius: calc(var(--radius) * 1.5);
     box-shadow: 0 0 0 4px color-mix(in oklab, var(--destructive) 25%, transparent);
   }
+  .feel-flip-layer:first-child .feel-flip-ring {
+    --feel-ring-tail: calc(var(--radius) * 2 + 8px);
+  }
+  .feel-flip-layer:first-child .feel-flip-ring-label {
+    right: var(--feel-ring-tail);
+  }
   .feel-flip-layer:last-child .feel-flip-ring {
     border-color: var(--success, var(--primary));
     box-shadow: 0 0 0 4px color-mix(in oklab, var(--success, var(--primary)) 25%, transparent);
