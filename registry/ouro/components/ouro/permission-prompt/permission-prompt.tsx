@@ -5,7 +5,7 @@ import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
-import { riskBadges, risks, settledClass, type PermissionRisk } from "@/registry/ouro/components/ouro/permission-prompt/permission-prompt-styles";
+import { riskBadges, settledClass, type PermissionRisk } from "@/registry/ouro/components/ouro/permission-prompt/permission-prompt-styles";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
@@ -108,7 +108,8 @@ export function PermissionPrompt(props: PermissionPromptProps): JSX.Element {
     description,
     status,
   } = props;
-  const risk = riskProp !== undefined && (risks as readonly string[]).includes(riskProp) ? (riskProp as PermissionRisk) : undefined;
+  // A risk that is not one of PermissionPrompt's (a type error) shows no badge and names the fix in development.
+  const badge = Object.hasOwn(riskBadges, String(riskProp)) ? riskBadges[riskProp as PermissionRisk] : undefined;
   useAppearanceClassNameCheck(
     "PermissionPrompt",
     className,
@@ -121,10 +122,10 @@ export function PermissionPrompt(props: PermissionPromptProps): JSX.Element {
     "PermissionPrompt",
     process.env.NODE_ENV !== "production"
       ? () => [
-          riskProp !== undefined && risk === undefined && [`risk="${String(riskProp)}" is not a risk; use "low", "medium" or "high"`, '<PermissionPrompt risk="medium">'],
+          riskProp !== undefined && badge === undefined && [`risk="${String(riskProp)}" is not a risk; use "low", "medium" or "high"`, '<PermissionPrompt risk="medium">'],
           onApprove !== undefined && ["onApprove is not a prop", "<PermissionPrompt onAllow={allow}>"],
           onReject !== undefined && ["onReject is not a prop", "<PermissionPrompt onDeny={deny}>"],
-          command !== undefined && ["command is not a prop; what it would run is detail", `<PermissionPrompt detail=${JSON.stringify(typeof command === "string" ? command : "npm install")}>`],
+          command !== undefined && ["command is not a prop; what it would run is detail", '<PermissionPrompt detail="npm install">'],
           description !== undefined && ["description is not a prop; why it asks is reason", '<PermissionPrompt reason="To add the package">'],
           status !== undefined && ["status is not a prop; the person's answer is answer", '<PermissionPrompt answer={{ decision: "allowed", by: "Ana" }}>'],
         ]
@@ -137,11 +138,13 @@ export function PermissionPrompt(props: PermissionPromptProps): JSX.Element {
   const actionsHeldFocus = useRef(false);
   const actionsRef = useCallback((element: HTMLDivElement | null) => {
     // React 19 calls a ref that returns a cleanup with the element only; the cleanup replaces the call with null.
+    // Stryker disable next-line ConditionalExpression: never called with null, as above.
     /* istanbul ignore if @preserve -- never called with null */
     if (element === null) return;
     return () => {
       actionsHeldFocus.current = element.contains(document.activeElement);
     };
+    // Stryker disable next-line ArrayDeclaration: the callback reads only refs, so any fixed list keeps it the same.
   }, []);
   const answered = answer !== undefined;
   useLayoutEffect(() => {
@@ -151,7 +154,6 @@ export function PermissionPrompt(props: PermissionPromptProps): JSX.Element {
     const active = document.activeElement;
     if (active === null || active === document.body) settledRef.current?.focus();
   }, [answered]);
-  const badge = risk !== undefined ? riskBadges[risk] : undefined;
   return (
     <div ref={ref} data-ouro="permission-prompt" data-slot="permission-prompt" data-decision={answer?.decision} className={cn("grid min-w-0", className)}>
       <Card
@@ -183,9 +185,7 @@ export function PermissionPrompt(props: PermissionPromptProps): JSX.Element {
                   variant="outline"
                   disabledReason={answering === "allow" ? "Your answer is on its way" : undefined}
                   loading={answering === "deny"}
-                  onClick={() => {
-                    if (answering === undefined) onDeny?.();
-                  }}
+                  onClick={onDeny}
                 >
                   {denyLabel}
                 </Button>
@@ -195,9 +195,7 @@ export function PermissionPrompt(props: PermissionPromptProps): JSX.Element {
                   data-ax-action="allow"
                   disabledReason={answering === "deny" ? "Your answer is on its way" : undefined}
                   loading={answering === "allow"}
-                  onClick={() => {
-                    if (answering === undefined) onAllow?.();
-                  }}
+                  onClick={onAllow}
                 >
                   {allowLabel}
                 </Button>

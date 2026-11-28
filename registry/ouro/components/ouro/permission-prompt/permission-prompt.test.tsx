@@ -99,6 +99,13 @@ describe("PermissionPrompt", () => {
     expect(view.button("deny")!.hasAttribute("aria-disabled")).toBe(false);
   });
 
+  it("presses safely with no handlers", async () => {
+    const view = await render(<PermissionPrompt {...ask} />);
+    await userEvent.click(view.button("allow")!);
+    await userEvent.click(view.button("deny")!);
+    expect(view.button("allow")).not.toBeNull();
+  });
+
   it("calls onAllow and onDeny from Allow once and Deny", async () => {
     const onAllow = vi.fn();
     const onDeny = vi.fn();
@@ -152,8 +159,10 @@ describe("PermissionPrompt", () => {
     expect(getComputedStyle(icon()).color).toBe(shade("var(--success)"));
     expect(getComputedStyle(view.part("answer")!).color).toBe(shade("var(--muted-foreground)"));
     expect((icon().firstElementChild as SVGGraphicsElement).getBBox().width).toBeGreaterThan(0);
+    const tick = icon().firstElementChild!.getAttribute("d");
     await view.rerender(<PermissionPrompt {...ask} answer={{ decision: "denied", by: "you" }} />);
     expect(view.part("answer-text")!.textContent).toBe("Denied by you");
+    expect(icon().firstElementChild!.getAttribute("d")).not.toBe(tick);
     expect(getComputedStyle(icon()).color).toBe(shade("var(--destructive)"));
     expect((icon().firstElementChild as SVGGraphicsElement).getBBox().width).toBeGreaterThan(0);
     expect(view.prompt.getAttribute("data-decision")).toBe("denied");
@@ -178,6 +187,11 @@ describe("PermissionPrompt", () => {
     expect(document.activeElement).toBe(view.button("allow"));
     await userEvent.keyboard("{Enter}");
     expect(document.activeElement).toBe(view.part("answer"));
+    expect(view.part("answer")!.tabIndex).toBe(-1);
+    // A prompt that arrives already answered leaves focus alone.
+    await act(async () => (document.activeElement as HTMLElement).blur());
+    await render(<PermissionPrompt {...ask} answer={{ decision: "allowed", by: "Ana" }} />);
+    expect(document.activeElement).toBe(document.body);
     // Focus on a button and then off it, to nowhere, before an answer from elsewhere: it stays where the person left it.
     const left = await render(<Prompt />);
     await act(async () => left.button("deny")!.focus());
@@ -201,10 +215,13 @@ describe("PermissionPrompt", () => {
       ["deny", true],
     ]);
     expect(permissionPromptAx.reads.map((read) => read.id)).toEqual(["request"]);
+    // Each says what it does in a sentence, for the agent that reads the declaration.
+    for (const entry of [...permissionPromptAx.reads, ...permissionPromptAx.actions]) expect(entry.summary).toMatch(/^[A-Z].{8,}\.$/);
   });
 
   it("says nothing in development for a prompt with only its own props", async () => {
     await render(<PermissionPrompt {...ask} onAllow={() => {}} onDeny={() => {}} allowLabel="Allow" denyLabel="Not now" className="max-w-xl" />);
+    await render(<PermissionPrompt title="Your agent wants to read your calendar" />);
     expect(warn).not.toHaveBeenCalled();
   });
 

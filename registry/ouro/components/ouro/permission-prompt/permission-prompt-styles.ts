@@ -1,4 +1,4 @@
-export { permissionPromptAx, riskBadges, risks, settledClass };
+export { permissionPromptAx, riskBadges, settledClass };
 export type { PermissionRisk };
 
 import { defineComponentAx } from "@/registry/ouro/ax/component";
@@ -9,15 +9,13 @@ import { defineComponentAx } from "@/registry/ouro/ax/component";
 /** How much could go wrong if the person allows it. */
 type PermissionRisk = "low" | "medium" | "high";
 
-/** @internal */
-const risks: readonly PermissionRisk[] = ["low", "medium", "high"];
-
 /**
  * The risk badge's words and tone: quiet for low, warning for medium, destructive for high.
  *
  * @internal
  */
 const riskBadges: Readonly<Record<PermissionRisk, { words: string; tone: "secondary" | "warning" | "destructive" }>> = {
+  // Stryker disable next-line StringLiteral: secondary is Badge's own default tone, named here so the three read alike.
   low: { words: "Low risk", tone: "secondary" },
   medium: { words: "Medium risk", tone: "warning" },
   high: { words: "High risk", tone: "destructive" },
