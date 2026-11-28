@@ -121,7 +121,10 @@ export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
         aria-label={conversationLabel}
         tabIndex={-1}
         data-ouro-thread-layout-conversation=""
-        className={cn("min-w-0 flex-1 outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid", open && "@max-lg:hidden")}
+        className={cn(
+          "min-w-0 flex-1 outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid",
+          open && "@max-lg:hidden @lg:bg-muted @lg:has-[[data-ouro=message-list]]:bg-background",
+        )}
         onFocus={remember}
       >
         <div className="flex h-full min-h-0 min-w-0 flex-col">{conversation}</div>
