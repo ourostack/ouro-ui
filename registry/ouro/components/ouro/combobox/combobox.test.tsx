@@ -1279,6 +1279,25 @@ const people: ComboboxItem[] = [
 ];
 
 describe("Combobox rich items", () => {
+  it("names the whole-field clear action visibly, apart from each chip's remove action", async () => {
+    const changed = vi.fn();
+    const { input, host, button } = await render(
+      <Combobox label="To" multiple items={people} defaultValue={["iris", "rowan"]} clearLabel="Clear recipients" onValueChange={changed} />,
+    );
+    const clear = button("Clear recipients")!;
+    const text = document.createTreeWalker(clear, NodeFilter.SHOW_TEXT);
+    let node = text.nextNode();
+    while (node && node.textContent !== "Clear recipients") node = text.nextNode();
+    expect(node).not.toBeNull();
+    expect(node!.parentElement!.getBoundingClientRect().width).toBeGreaterThan(2 * parseFloat(getComputedStyle(clear).fontSize));
+    expect(parseFloat(getComputedStyle(node!.parentElement!).fontSize)).toBeLessThan(parseFloat(getComputedStyle(input).fontSize));
+    expect(Number(getComputedStyle(node!.parentElement!).fontWeight)).toBeLessThanOrEqual(Number(getComputedStyle(input).fontWeight));
+    await userEvent.click(clear);
+    expect(host.querySelectorAll("[data-ouro-combobox-chip]")).toHaveLength(0);
+    expect(changed).toHaveBeenLastCalledWith([]);
+    expect(document.activeElement).toBe(input);
+  });
+
   it("keeps the input and its clear button on one row as people chips wrap", async () => {
     const { input, host } = await render(<Combobox label="To" multiple
       items={[{ value: "iris", label: "Iris Okafor", media: <Avatar name="Iris Okafor" alt="" size="xs" /> }, { value: "rowan", label: "Rowan Vale", media: <Avatar name="Rowan Vale" alt="" size="xs" /> }]}
@@ -1624,6 +1643,20 @@ describe("Combobox keys", () => {
     expect(input.value).toBe("");
     await userEvent.keyboard("{Enter}");
     expect(done).toHaveBeenCalledOnce();
+  });
+
+  it("highlights the first server result when its answer arrives before Enter", async () => {
+    const changed = vi.fn();
+    const props = { label: "To", multiple: true as const, autoHighlight: true, onValueChange: changed, onInputChange: vi.fn() };
+    const { input, rerender } = await render(<Combobox {...props} items={[]} resultsFor="" />);
+    await userEvent.type(input, "ro");
+    await rerender(<Combobox {...props} items={["Rosemary", "Rose"]} resultsFor="ro" />);
+    await expect.poll(options).toEqual(["Rosemary", "Rose"]);
+    const first = document.querySelector<HTMLElement>('[role="option"]')!;
+    await expect.poll(() => input.getAttribute("aria-activedescendant")).toBe(first.id);
+    expect(first.hasAttribute("data-highlighted")).toBe(true);
+    await userEvent.keyboard("{Enter}");
+    expect(changed).toHaveBeenLastCalledWith(["Rosemary"]);
   });
 
   it("picks the first match on Enter with autoHighlight, and nothing without it", async () => {

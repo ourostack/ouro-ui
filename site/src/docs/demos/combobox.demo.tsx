@@ -7,7 +7,7 @@ import { TextArea } from "@/registry/ouro/components/ouro/text-field/text-area";
 // The live demo at the top of docs/combobox/: the component as an app would use it, with its props, nothing else.
 
 const people = [
-  { value: "rowan", label: "Rowan Vale", description: "Principal Engineer · Platform", media: <Avatar name="Rowan Vale" alt="" size="xs" />, meta: <Badge>1:1</Badge> },
+  { value: "rowan", label: "Rowan Vale", description: "Principal Engineer · Platform", media: <Avatar name="Rowan Vale" alt="" size="xs" />, meta: <Badge>Guest</Badge> },
   { value: "iris", label: "Iris Okafor", description: "Product Designer", media: <Avatar name="Iris Okafor" alt="" size="xs" /> },
   { value: "theo", label: "Theo Brandt", description: "Support Lead", media: <Avatar name="Theo Brandt" alt="" size="xs" /> },
 ];
@@ -35,6 +35,7 @@ export default function ComboboxDemo(): JSX.Element {
         loading={answer.query !== text}
         loadingLabel="Finding people…"
         emptyLabel="No one by that name"
+        clearLabel="Clear all"
         inputValue={text}
         onInputChange={setText}
         value={picked}

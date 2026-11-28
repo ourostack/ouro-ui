@@ -521,17 +521,27 @@ describe("ThemePicker", () => {
 
 describe("ThemePicker popover", () => {
   it("centres the trigger's wordmark by its cap height", async () => {
-    const el = await render(<ThemePicker presets={presets} presentation="popover" defaultPreset="pearl" />);
-    const trigger = el.querySelector<HTMLButtonElement>('[data-ouro-part="trigger"]')!;
-    const name = trigger.querySelector<HTMLElement>('[data-shows="pearl"] [data-slot="theme-picker-name"]')!;
-    const range = document.createRange();
-    range.selectNodeContents(name);
-    const style = getComputedStyle(name);
-    const canvas = document.createElement("canvas").getContext("2d")!;
-    canvas.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-    const capMiddle = range.getBoundingClientRect().top + canvas.measureText(name.textContent!).fontBoundingBoxAscent - canvas.measureText("H").actualBoundingBoxAscent / 2;
-    const box = trigger.getBoundingClientRect();
-    expect(Math.abs(capMiddle - (box.top + box.height / 2))).toBeLessThanOrEqual(2.5);
+    const before = html.style.fontSize;
+    html.style.fontSize = "18px";
+    try {
+      const el = await render(<>{three.map((preset) => <ThemePicker key={preset.name} presets={three} presentation="popover" value={preset.name} />)}</>);
+      for (const trigger of el.querySelectorAll<HTMLButtonElement>('[data-ouro-part="trigger"]')) {
+        const name = trigger.querySelector<HTMLElement>('[data-shows]:not([hidden]) [data-slot="theme-picker-name"]')!;
+        const range = document.createRange();
+        range.selectNodeContents(name);
+        const style = getComputedStyle(name);
+        const canvas = document.createElement("canvas").getContext("2d")!;
+        canvas.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+        const line = range.getBoundingClientRect();
+        const capMiddle = style.getPropertyValue("text-box-trim") === "trim-both"
+          ? (line.top + line.bottom) / 2
+          : line.top + canvas.measureText(name.textContent!).fontBoundingBoxAscent - canvas.measureText("H").actualBoundingBoxAscent / 2;
+        const box = trigger.getBoundingClientRect();
+        expect(Math.abs(capMiddle - (box.top + box.height / 2))).toBeLessThanOrEqual(2.5);
+      }
+    } finally {
+      html.style.fontSize = before;
+    }
   });
 
   it("shows the chosen wordmark, opens the looks, and closes on Escape with focus back on the button", async () => {

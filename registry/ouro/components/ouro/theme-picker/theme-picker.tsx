@@ -99,7 +99,7 @@ const tileSizes = {
 // the name's letters, so a page showing every look does not fetch every heading font), else its --font-heading. A face
 // with a small x-height (Cormorant) is scaled to the others' with font-size-adjust, so no look reads lighter than the rest.
 const nameClass =
-  "relative font-[family-name:var(--font-wordmark,var(--font-heading,inherit))] leading-none font-semibold tracking-[-0.01em] [font-size-adjust:ex-height_0.53]";
+  "relative font-[family-name:var(--font-wordmark,var(--font-heading,inherit))] leading-none font-semibold tracking-[-0.01em] [font-size-adjust:ex-height_0.53] [text-box:trim-both_cap_alphabetic]";
 
 // One flat square of the look's primary, a squircle too, sitting on the baseline after the name.
 const squareClass =

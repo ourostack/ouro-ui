@@ -46,7 +46,7 @@ const chipsGroupClass =
  * @internal
  */
 const chipsInputClass =
-  "m-0 box-border h-8 min-w-16 flex-1 border-0 bg-transparent ps-1.5 py-0 sm:pointer-fine:h-6 " +
+  "m-0 box-border h-8 w-0 min-w-16 flex-1 border-0 bg-transparent ps-1.5 py-0 sm:pointer-fine:h-6 " +
   "text-[length:inherit] text-inherit font-[inherit] outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed";
 
 /**

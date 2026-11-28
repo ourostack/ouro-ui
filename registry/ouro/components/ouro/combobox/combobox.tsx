@@ -165,10 +165,11 @@ export interface ComboboxBaseProps {
    */
   empty?: ReactNode;
   /**
-   * The name of the button that clears the field, as visually hidden text and not an
-   * `aria-label`, so a test's label lookup for the field finds the field alone. It shows while
-   * there is something to clear. Translate it with your app.
+   * The label of the button that clears the field: visible with `multiple`, visually hidden
+   * otherwise, not an `aria-label`, so a test's label lookup finds the field alone.
+   * It shows while there is something to clear. Translate it with your app.
    * @default "Clear"
+   * @claim "The label of the button that clears the field" registry/ouro/components/ouro/combobox/combobox.test.tsx verify:testExists(registry/ouro/components/ouro/combobox/combobox.test.tsx::Combobox rich items > names the whole-field clear action visibly, apart from each chip's remove action)
    */
   clearLabel?: string | undefined;
   /**
@@ -350,6 +351,11 @@ interface Option {
   /** The sheet's row that keeps the typed text (`allowCustomValue`): it shows `label` but picks `value`. */
   custom?: boolean | undefined;
 }
+
+// Base UI 1.8's shared root supports "always", but its Combobox facade narrows the type.
+const QueryComboboxRoot = BaseCombobox.Root as (
+  props: Omit<BaseCombobox.Root.Props<Option, boolean>, "autoHighlight"> & { autoHighlight?: boolean | "always" | undefined },
+) => JSX.Element;
 
 /** What the field shows inside it, from the props, for either way of picking. */
 interface ControlProps {
@@ -792,15 +798,14 @@ function Popup({ input, loading, children }: { input: RefObject<HTMLElement | nu
  * arrow keys open it from the keyboard. (Base UI gives a trigger button the input's id on the
  * server, so a server-rendered page would hold that id twice.)
  */
-function EndButtons({ clearLabel, readOnly }: { clearLabel: string; readOnly: boolean | undefined }): JSX.Element {
+function EndButtons({ clearLabel, readOnly, multiple = false }: { clearLabel: string; readOnly: boolean | undefined; multiple?: boolean }): JSX.Element {
   return (
     <span className={endSlotClass}>
       {!readOnly && (
       <BaseCombobox.Clear
         render={
-          <Button variant="plain" tone="secondary" size="sm" data-ouro-combobox-clear="" data-ouro-control="combobox" data-ouro-part="clear" className="aspect-square px-0">
-            <CrossIcon />
-            <span className="sr-only">{clearLabel}</span>
+          <Button variant="plain" tone="secondary" size="sm" data-ouro-combobox-clear="" data-ouro-control="combobox" data-ouro-part="clear" className={multiple ? undefined : "aspect-square px-0"}>
+            {multiple ? <span className="font-normal text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">{clearLabel}</span> : <><CrossIcon /><span className="sr-only">{clearLabel}</span></>}
           </Button>
         }
       />
@@ -1071,7 +1076,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
   );
 
   const directed = (
-    <BaseCombobox.Root
+    <QueryComboboxRoot
       items={listed}
       multiple={multiple}
       isItemEqualToValue={(item: Option, picked: Option) => item.value === picked.value}
@@ -1092,7 +1097,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
       onItemHighlighted={(option: Option | undefined) => setHighlighted(option !== undefined)}
       // Stryker disable next-line ConditionalExpression: the other modes' uncontrolled input shows the same text that onInputValueChange keeps in step.
       inputValue={tokens || (queryAware && multiple) ? currentText : inputValue}
-      autoHighlight={autoHighlight}
+      autoHighlight={queryAware && autoHighlight && currentText.trim() !== "" ? "always" : autoHighlight}
       readOnly={readOnly}
       required={required}
       inputRef={markInput}
@@ -1198,9 +1203,9 @@ function ComboboxControl(props: ControlProps): JSX.Element {
                   {(picked: Option[]) => (
                     <>
                       {picked.map(renderChip)}
-                      <div data-slot="combobox-input-row" className="flex min-w-32 flex-1 items-center">
+                      <div data-slot="combobox-input-row" className="flex min-w-min flex-1 items-center">
                         {input(chipsInputClass)}
-                        <EndButtons clearLabel={clearLabel} readOnly={readOnly} />
+                        <EndButtons clearLabel={clearLabel} readOnly={readOnly} multiple />
                       </div>
                     </>
                   )}
@@ -1214,7 +1219,7 @@ function ComboboxControl(props: ControlProps): JSX.Element {
           <Popup input={resetInputRef} loading={busy}>{body(listClass)}</Popup>
         </>
       )}
-    </BaseCombobox.Root>
+    </QueryComboboxRoot>
   );
   // The input decides the direction: a right-to-left page's arrow keys move between its chips from the right.
   return <PageDirection of={resetInputRef}>{directed}</PageDirection>;

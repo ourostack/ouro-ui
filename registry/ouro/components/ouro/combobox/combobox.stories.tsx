@@ -152,7 +152,7 @@ export const States: Story = {
 };
 
 const people = [
-  { id: "rowan", name: "Rowan Vale", title: "Principal Engineer, Platform Services and Developer Experience", direct: true },
+  { id: "rowan", name: "Rowan Vale", title: "Principal Engineer, Platform Services and Developer Experience", guest: true },
   { id: "iris", name: "Iris Okafor", title: "Product Designer" },
   { id: "mara", name: "Mara Quill", title: "Engineering Manager, Payments" },
   { id: "theo", name: "Theo Brandt", title: "Support Lead" },
@@ -164,11 +164,11 @@ const personItem = (person: (typeof people)[number]): ComboboxItem => ({
   label: person.name,
   description: person.title,
   media: <Avatar name={person.name} alt="" size="xs" />,
-  meta: person.direct ? <Badge>1:1</Badge> : null,
+  meta: person.guest ? <Badge>Guest</Badge> : null,
 });
 
 /**
- * A people picker: each person with their picture, job title and a "1:1" mark, and their picture
+ * A people picker: each person with their picture, job title and a guest mark, and their picture
  * on the chip. Type and press Enter before the search answers: `resultsFor` keeps the
  * pick with that query. The second field is read-only.
  */
