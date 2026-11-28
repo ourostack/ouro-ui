@@ -364,6 +364,27 @@ test("squircle-paint passes a clipped surface at fractional layout coordinates",
   }
 });
 
+test("squircle-paint treats wrapped inline fragments as separate painted boxes", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+  const tab = await context.newPage();
+  await bindCapture(tab);
+  try {
+    await tab.setContent(`<style>
+      body { margin: 0; background: white; }
+      .line { position: absolute; left: 424px; top: 202.453125px; width: 723px; font: 16px/21px sans-serif; }
+      .prefix { display: inline-block; width: 613.75px; }
+      code { font: 14px monospace; background: #e8e8e8; border-radius: 4.806px; corner-shape: squircle; padding: 0.1em 0.3em; overflow-wrap: break-word; }
+    </style><div class="line"><span class="prefix"></span><code><span>example/</span><span>parts/<wbr></span><span>documents/<wbr></span><span>AnotherInput.tsx</span></code></div>`);
+    const rects = await tab.locator("code").evaluate((el) => [...el.getClientRects()].map((rect) => rect.toJSON()));
+    assert.equal(rects.length, 2);
+    assert.ok(rects[0]!.left > rects[1]!.left);
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+  } finally {
+    await browser.close();
+  }
+});
+
 test("squircle-paint passes adjacent native buttons at a fractional edge", async () => {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
