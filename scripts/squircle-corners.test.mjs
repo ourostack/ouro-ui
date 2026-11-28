@@ -48,7 +48,11 @@ test("squircle corners: two rules in the same place that round to the same radii
 
 test("squircle corners: the same radii in different places (a media query, a different layer) keep their own fallback siblings", async () => {
   const out = await run("@layer utilities{.a{border-radius:8px}@media (width>=40rem){.b{border-radius:8px}}}");
-  assert.match(out, /@media \(width>=40rem\)\{\.b\{border-radius:8px\}@supports[^{]*\{\.b\{--sq-tl:8px/);
+  const media = postcss.parse(out).nodes.find((node) => node.name === "layer" && node.params === "utilities").nodes.find((node) => node.name === "media");
+  assert.equal(media.nodes[0].selector, ".b");
+  const fallback = media.nodes.find((node) => node.name === "supports" && node.params.includes("not"));
+  assert.equal(fallback.nodes[0].selector, ".b");
+  assert.equal(fallback.nodes[0].nodes.find((node) => node.prop === "--sq-tl").value, "8px");
   assert.match(out, /@supports[^{]*\{\.a\{--sq-tl:8px/);
   assert.equal((out.match(/--sq-tl:8px/g) ?? []).length, 2);
 });

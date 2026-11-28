@@ -101,8 +101,8 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
           for (const selector of selectorGroups(group.selectors).reverse()) {
             const sibling = { selector, nodes: group.declarations };
             const wrap = { name: "supports", params: MISSING, nodes: [sibling] };
-            group.last.after({ name: "supports", params: "(corner-shape: squircle)", nodes: [{ selector, nodes: group.shapes }] });
             group.last.after(wrap);
+            group.last.after({ name: "supports", params: "(corner-shape: squircle)", nodes: [{ selector, nodes: group.shapes }] });
           }
         }
       }
