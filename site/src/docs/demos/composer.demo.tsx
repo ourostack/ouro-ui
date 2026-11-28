@@ -62,7 +62,7 @@ export default function ComposerDemo(): JSX.Element {
           ref={input}
           editorRef={editor}
           label="Plan a Friday gathering"
-          placeholder="What's next?"
+          placeholder="Write..."
           format="rich"
           value={text}
           onValueChange={(next) => {

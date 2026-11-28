@@ -8,9 +8,9 @@ import ComposerDemo from "./composer.demo";
 let root: Root;
 let host: HTMLDivElement;
 
-async function render() {
+async function render(width = "480px") {
   host = document.body.appendChild(document.createElement("div"));
-  host.style.width = "480px";
+  host.style.width = width;
   root = createRoot(host);
   await act(async () => root.render(<ComposerDemo />));
   await expect.poll(() => host.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
@@ -23,12 +23,16 @@ afterEach(async () => {
 
 describe("ComposerDemo", () => {
   it("returns an emptied resized draft to its compact height", async () => {
-    await render();
+    await render("320px");
     const editor = host.querySelector<HTMLElement>("[data-ouro-composer-editor]")!;
     const frame = host.querySelector<HTMLElement>("[data-ouro-composer-frame]")!;
     await userEvent.click(host.querySelector<HTMLElement>('[data-ouro-part="expand"]')!);
     await expect.poll(() => host.querySelector("[data-ouro-moving]")).toBeNull();
     await userEvent.fill(editor, "");
+    const placeholder = host.querySelector<HTMLElement>("[data-ouro-composer-placeholder]")!;
+    const words = document.createRange();
+    words.selectNodeContents(placeholder);
+    expect(words.getClientRects()).toHaveLength(1);
     const compact = frame.getBoundingClientRect().height;
     await userEvent.fill(editor, "A little light");
     await act(async () => host.querySelector<HTMLElement>('[data-ouro-part="resize-edge"]')!.focus());
