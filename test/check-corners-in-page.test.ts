@@ -1252,6 +1252,22 @@ it("ignores an unpainted rounded focus wrapper around a smaller control", async 
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.wrapper");
 }, paintTimeout);
 
+it("keeps an independent floating squircle separate from an unpainted focus wrapper", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render(`<div id="focus" class="rounded-ouro-xl" style="position:relative;width:160px;height:120px">
+      <div id="floating" class="rounded-ouro-lg" style="position:absolute;left:142px;top:102px;width:50px;height:32px;background:#ddd">
+        <span style="position:absolute;inset:10px;background:#234"></span>
+      </div>
+    </div>`);
+    expect(await findSquirclePaint()).toEqual([]);
+    root.querySelector("#floating")!.insertAdjacentHTML("beforeend", '<span style="position:absolute;left:-5px;top:-5px;width:10px;height:10px;background:#d11"></span>');
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#floating.rounded-ouro-lg");
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
 it("ignores a bottom corner when only the opposite border is painted", async () => {
   const root = render(`<div class="wrapper" style="position:relative;width:160px;height:120px;border-top:2px solid #444;border-radius:0 0 28px 28px;corner-shape:squircle;--sq-br:28px;--sq-bl:28px">
     <div style="position:absolute;left:0;bottom:0;width:24px;height:24px;background:#d11"></div>
