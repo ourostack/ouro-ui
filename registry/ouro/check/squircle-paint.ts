@@ -14,6 +14,8 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
   type Saved = { value: string; priority: string };
   type InlineElement = Element & { style: CSSStyleDeclaration };
   const capture = (window as unknown as { __ouroPaintCapture?: PaintCapture }).__ouroPaintCapture;
+  const diagnostic = (window as unknown as { __ouroPaintDiagnostic?: (data: { actual: string; hidden: string; masked: string; solo: string | null; restored: string; rect: DOMRect; clip: PaintClip; point: object; html: string }) => Promise<void> }).__ouroPaintDiagnostic;
+  let pixelIndex = 0;
   if (!capture) throw new Error("squircle-paint needs a screenshot capture supplied by its host");
   const names = [
     { key: "tl", property: "TopLeft", shape: "top-left" },
@@ -256,6 +258,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             if (edge) continue;
           }
           if (delta >= 64 || (x > startX && row[x - 1]) || previous[x]) {
+            pixelIndex = index;
             return { corner: cornerIndex, x: Math.round(px - rect.left), y: Math.round(py - rect.top) };
           }
           row[x] = 1;
@@ -594,12 +597,24 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               }
             }
             let changed = false;
+            let restoredFrame: string | null = null;
             if (differs) {
               const restored = await capture(clip);
+              restoredFrame = restored;
               differs = await differences(actual, masked, hidden, solo, withoutBadges, badgeRects, withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native, restored);
               changed = !differs;
             }
-            if (differs) { found = differs; break; }
+            if (differs) {
+              const rgba = (await Promise.all([actual, masked, hidden, ...(solo ? [solo] : []), restoredFrame!].map(pixels))).map((image) => [...image.data.slice(pixelIndex, pixelIndex + 4)]);
+              const properties = (node: Element) => {
+                const s = getComputedStyle(node), before = getComputedStyle(node, "::before"), after = getComputedStyle(node, "::after");
+                return { html: node.outerHTML.slice(0, 800), rect: node.getBoundingClientRect().toJSON(), radius: s.borderRadius, shape: s.cornerShape, clip: s.clipPath, background: s.backgroundColor, shadow: s.boxShadow, outline: s.outline, backdrop: s.backdropFilter, opacity: s.opacity, before: [before.content, before.opacity, before.backgroundColor], after: [after.content, after.opacity, after.backgroundColor] };
+              };
+              console.log("SQUIRCLE-DIAGNOSTIC", JSON.stringify({ target: describe(el), point: differs, rgba, computed: properties(el), children: [...el.children].map(properties), rect: r.toJSON(), clip, corners: initial.corners }));
+              await diagnostic?.({ actual, hidden, masked, solo, restored: restoredFrame!, rect: r.toJSON(), clip, point: differs, html: el.outerHTML });
+              found = differs;
+              break;
+            }
             if (!changed) break;
           }
           if (found) break;
