@@ -127,9 +127,7 @@ export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
         <div className="flex h-full min-h-0 min-w-0 flex-col">{conversation}</div>
       </div>
       {open && (
-        // Below 32rem the conversation is hidden, so the rail is alone against this box's own
-        // edge: its border-s would double the frame's own edge, so this drops it there.
-        <div ref={threadBox} className="flex h-full min-h-0 w-full min-w-0 flex-col @lg:max-w-ouro-80 @max-lg:[&_[data-ouro=thread-rail]]:border-s-0">
+        <div ref={threadBox} className="flex h-full min-h-0 w-full min-w-0 flex-col @lg:max-w-ouro-80">
           {thread}
         </div>
       )}
