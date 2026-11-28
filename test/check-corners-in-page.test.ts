@@ -1641,6 +1641,18 @@ it("keeps a fractional-width segment thumb and its shadow inside its own corners
   }
 }, paintTimeout);
 
+it("measures a fractional content-box surface under a scale transform", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render('<div class="surface rounded-ouro-xl" style="position:relative;box-sizing:content-box;width:99.4375px;height:40.25px;padding:1px 2px;border:1px solid transparent;background:white;transform:scale(.8);transform-origin:top left"></div>');
+    const surface = root.querySelector<HTMLElement>(".surface")!;
+    expect(surface.getBoundingClientRect().width).toBeCloseTo((99.4375 + 6) * 0.8, 1);
+    expect((await findSquirclePaint()).map((issue) => issue.element)).not.toContain("div.surface.rounded-ouro-xl");
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
 it("ignores a bottom corner when only the opposite border is painted", async () => {
   const root = render(`<div class="wrapper" style="position:relative;width:160px;height:120px;border-top:2px solid #444;border-radius:0 0 28px 28px;corner-shape:squircle;--sq-br:28px;--sq-bl:28px">
     <div style="position:absolute;left:0;bottom:0;width:24px;height:24px;background:#d11"></div>
