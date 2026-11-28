@@ -478,12 +478,12 @@ export function Sidebar(props: SidebarProps): JSX.Element {
       </Button>
       {wide && (
         <nav aria-label={label} data-collapsed={collapsed ? "" : undefined} className={column}>
-          {header !== undefined && <div className="flex min-h-14 shrink-0 items-center overflow-hidden bg-muted px-3 py-2">{header}</div>}
-          <div data-ouro-sidebar-scroll="" className="grid grid-cols-1 min-h-0 flex-1 content-start gap-6 overflow-y-auto overscroll-contain bg-accent p-2">
+          {header !== undefined && <div className="flex min-h-14 shrink-0 items-center overflow-hidden bg-background px-3 py-2">{header}</div>}
+          <div data-ouro-sidebar-scroll="" className="grid grid-cols-1 min-h-0 flex-1 content-start gap-6 overflow-y-auto overscroll-contain bg-muted p-2">
             {renderSections("c", collapsed)}
           </div>
           {collapsible && (
-            <div className="shrink-0 bg-muted p-2 [--ouro-sidebar-hover:var(--accent)] [--ouro-sidebar-hover-text:var(--accent-foreground)]">
+            <div className="shrink-0 bg-background p-2 [--ouro-sidebar-hover:var(--accent)] [--ouro-sidebar-hover-text:var(--accent-foreground)]">
               <button type="button" aria-pressed={collapsed} data-ouro-control="sidebar" data-ouro-part="collapse" onClick={toggle} className={cn(row, collapsed && railRow)}>
                 <span aria-hidden="true" className={iconSlot}>
                   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="rtl:-scale-x-100">
@@ -496,7 +496,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
             </div>
           )}
           {footer !== undefined && (
-            <div className="flex min-h-14 shrink-0 items-center overflow-hidden bg-muted px-3 py-2">{footer}</div>
+            <div className="flex min-h-14 shrink-0 items-center overflow-hidden bg-background px-3 py-2">{footer}</div>
           )}
         </nav>
       )}

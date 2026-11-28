@@ -163,6 +163,27 @@ describe("Table", () => {
     expect(getComputedStyle(plain.querySelectorAll("tbody tr")[1]!).backgroundColor).toBe("rgba(0, 0, 0, 0)");
   });
 
+  it("keeps header and footer rows unstriped in a striped table", async () => {
+    const { table } = await render(
+      <TableRoot caption="Items" striped>
+        <TableHeader>
+          <TableRow><TableHead>First heading</TableHead></TableRow>
+          <TableRow><TableHead>Second heading</TableHead></TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow><TableCell>First</TableCell></TableRow>
+          <TableRow><TableCell>Second</TableCell></TableRow>
+        </TableBody>
+        <TableFooter>
+          <TableRow><TableCell>First total</TableCell></TableRow>
+          <TableRow><TableCell>Second total</TableCell></TableRow>
+        </TableFooter>
+      </TableRoot>,
+    );
+    expect(getComputedStyle(table.querySelector("tbody tr:nth-child(2)")!).backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+    for (const row of table.querySelectorAll("thead tr, tfoot tr")) expect(getComputedStyle(row).backgroundColor).toBe("rgba(0, 0, 0, 0)");
+  });
+
   it("tightens the cells with dense", async () => {
     const { table } = await render(<Table caption="Recipes" columns={[{ key: "name", header: "Recipe" }]} rows={recipes} />);
     const { table: dense } = await render(<Table caption="Recipes" dense columns={[{ key: "name", header: "Recipe" }]} rows={recipes} />);
