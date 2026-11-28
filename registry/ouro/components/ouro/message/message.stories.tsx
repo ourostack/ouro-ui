@@ -93,8 +93,7 @@ const launchTasks = [
 ];
 
 /**
- * A table and a line of code wider than the bubble scroll sideways, and fade out at the side
- * where they go on, so they never look cut off. Shown at a phone's width.
+ * A table and a line of code wider than the bubble scroll sideways. Shown at a phone's width.
  */
 export const WideContent: Story = {
   render: () => (
@@ -308,7 +307,7 @@ const repliers = [{ name: "Mara Quill" }, { name: "Theo Brandt" }, { name: "Priy
 /** A channel's own surface: posts run edge to edge on it, with no gap of the story's own between them. */
 function Channel({ children, label }: { children: ReactNode; label: string }) {
   return (
-    <div style={{ background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", borderRadius: "calc(var(--radius) + 4px)", padding: "4px 12px", maxWidth: 720 }}>
+    <div style={{ background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", borderRadius: "calc(var(--radius) + 4px)", padding: "8px 12px", maxWidth: 720 }}>
       <MessageList label={label}>{children}</MessageList>
     </div>
   );

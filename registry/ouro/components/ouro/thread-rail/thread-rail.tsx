@@ -171,9 +171,9 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
       tabIndex={-1}
       onKeyDownCapture={onKeyDownCapture}
       onKeyDown={onKeyDown}
-      className={cn("flex h-full min-h-0 flex-col bg-muted [--ouro-scroller-surface:var(--background)] [--ouro-message-list-bubble-default:var(--muted)] outline-none forced-colors:border-s forced-colors:border-solid forced-colors:border-[CanvasText]", className)}
+      className={cn("flex h-full min-h-0 flex-col bg-muted [--ouro-scroller-surface:var(--accent)] [--ouro-message-list-bubble-default:var(--background)] outline-none forced-colors:border-s forced-colors:border-solid forced-colors:border-[CanvasText]", className)}
     >
-      <div data-ouro-thread-rail-header="" className="flex min-w-0 shrink-0 items-start gap-2 bg-background px-4 py-3">
+      <div data-ouro-thread-rail-header="" className="flex min-w-0 shrink-0 items-start gap-2 bg-muted px-4 py-3">
         <div className="min-w-0 flex-1">
           <h2 id={headingId} className="m-0 truncate text-base leading-6 font-semibold font-[family-name:var(--font-heading,inherit)]">
             {title ?? label}
@@ -197,7 +197,7 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
           </Button>
         </Tooltip>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col ps-2">{children}</div>
     </aside>
   );
 }
