@@ -3650,7 +3650,7 @@ test("Kit pin pushes a kit's branch only when main has moved since its last push
   const script = stepScript(workflow("kit-pin.yml").split("\n  pin:\n")[1], "Commit the pages and push their branch, unless the branch already holds this pin");
   for (const [unchanged, pushed] of [[true, false], [false, true]]) {
     const dir = scratchDir("ouro-kit-pin-");
-    const git = `git() {\n  printf 'git %s\\n' "$*" >> "$LOG"\n  case "$1" in\n    fetch) return 0 ;;\n    diff) return ${unchanged ? 0 : 1} ;;\n    rev-parse) echo abc123 ;;\n  esac\n}`;
+    const git = `git() {\n  printf 'git %s\\n' "$*" >> "$LOG"\n  case "$1" in\n    fetch) return 0 ;;\n    diff) return ${unchanged ? 0 : 1} ;;\n    rev-parse) echo abc123 ;;\n  esac\n}\nnode() { return 1; }`;
     const result = runStep(`${git}\n${script}`, { TAG: "v0.11.0", KIT: "windows", NAME: "Windows", BRANCH: "docs/point-at-windows", LOG: join(dir, "git.log") });
     assert.equal(result.status, 0, result.stdout + result.calls);
     const calls = readFileSync(join(dir, "git.log"), "utf8");
