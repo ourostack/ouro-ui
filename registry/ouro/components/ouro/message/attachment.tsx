@@ -87,7 +87,7 @@ export interface AttachmentOwnProps {
 export type AttachmentProps = Omit<HTMLAttributes<HTMLDivElement>, keyof AttachmentOwnProps> & AttachmentOwnProps;
 
 const units = ["B", "kB", "MB", "GB", "TB"] as const;
-const oneDecimal = new Intl.NumberFormat("en", { maximumFractionDigits: 1 });
+let oneDecimal: Intl.NumberFormat | undefined;
 
 /**
  * "512 B", "2 kB", "1.2 MB": steps of 1024, at most one decimal.
@@ -102,7 +102,7 @@ function defaultFormatSize(bytes: number): string {
     value /= 1024;
     unit += 1;
   }
-  return `${oneDecimal.format(value)} ${units[unit]}`;
+  return `${(oneDecimal ??= new Intl.NumberFormat("en", { maximumFractionDigits: 1 })).format(value)} ${units[unit]}`;
 }
 
 const validSize = (size: number | undefined): size is number => typeof size === "number" && Number.isFinite(size) && size >= 0;
