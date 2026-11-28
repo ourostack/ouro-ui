@@ -3,7 +3,7 @@
 import { CodeNode } from "@lexical/code-core";
 import { createEmptyHistoryState, registerHistory } from "@lexical/history";
 import { $createLinkNode, $isLinkNode, $toggleLink, LinkNode } from "@lexical/link";
-import { $isListItemNode, $isListNode, ListItemNode, ListNode, registerList } from "@lexical/list";
+import { $isListItemNode, $isListNode, INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND, REMOVE_LIST_COMMAND, ListItemNode, ListNode, registerList } from "@lexical/list";
 import { $convertFromMarkdownString, $convertToMarkdownString, registerMarkdownShortcuts, BOLD_STAR, CODE, INLINE_CODE, ITALIC_UNDERSCORE, LINK, ORDERED_LIST, QUOTE, STRIKETHROUGH, UNORDERED_LIST, type ElementTransformer, type TextFormatTransformer, type TextMatchTransformer, type Transformer } from "@lexical/markdown";
 import { $isQuoteNode, QuoteNode, registerRichText } from "@lexical/rich-text";
 import { $findMatchingParent } from "@lexical/utils";
@@ -22,6 +22,7 @@ import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field
 import { attachRef } from "@/registry/ouro/lib/ouro/refs";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { controlRef } from "@/registry/ouro/lib/ouro/control-ref";
+import { safeHref } from "@/registry/ouro/components/ouro/composer/composer-styles";
 
 export { RichEditor };
 export type { RichEditorHandle, RichEditorProps };
@@ -419,17 +420,6 @@ function separateBlocks(markdown: string): string {
   return out.join("\n");
 }
 
-// Only these addresses become links: a pasted `javascript:` address never does.
-const safeHref = (text: string): string | undefined => {
-  try {
-    const url = new URL(text);
-    if (["http:", "https:", "mailto:"].includes(url.protocol)) return url.href;
-  } catch {
-    /* not an address */
-  }
-  return undefined;
-};
-
 const htmlFormats: Record<string, TextFormatType> = { B: "bold", STRONG: "bold", I: "italic", EM: "italic", U: "underline", S: "strikethrough", DEL: "strikethrough", STRIKE: "strikethrough", CODE: "code" };
 const htmlBlocks = new Set(["P", "DIV", "LI", "BLOCKQUOTE", "PRE", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "TR"]);
 const htmlSkipped = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "IFRAME", "OBJECT", "NOEMBED", "NOFRAMES", "TITLE", "SVG"]);
@@ -778,7 +768,39 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
   }, [track]);
   const frameRef = useRef<HTMLDivElement | null>(null);
   // ⌘K over words that aren't an address asks for one in the editor's own popover: the selection it links, and the address typed.
-  const [linking, setLinking] = useState<{ selection: RangeSelection; address: string } | null>(null);
+  const [linking, setLinking] = useState<{ selection: RangeSelection; address: string; range: Range } | null>(null);
+  const linkAnchor = useRef<HTMLSpanElement>(null);
+  const [linkRects, setLinkRects] = useState<DOMRectInit[]>([]);
+  const askLink = () => {
+    const range = document.getSelection()?.rangeCount ? document.getSelection()!.getRangeAt(0).cloneRange() : document.createRange();
+    if (!rootRef.current!.contains(range.commonAncestorContainer)) {
+      range.selectNodeContents(rootRef.current!);
+      range.collapse(false);
+    }
+    let ask: RangeSelection | null = null;
+    editorRef.current!.update(() => void (ask = toggleLinkOfSelection()), { discrete: true });
+    if (ask) setLinking({ selection: ask, address: "", range });
+  };
+  const linkingRange = linking?.range;
+  useLayoutEffect(() => {
+    if (!linkingRange) return;
+    const frame = frameRef.current!;
+    const measure = () => {
+      const origin = frame.getBoundingClientRect();
+      const rects = textRects(linkingRange);
+      const rect = linkingRange.getBoundingClientRect();
+      setLinkRects((rects.length ? rects : [rect.height ? rect : rootRef.current!.getBoundingClientRect()]).map((rect) => ({ x: rect.left - origin.left, y: rect.top - origin.top, width: rect.width, height: rect.height })));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(frame);
+    rootRef.current!.addEventListener("scroll", measure);
+    const root = rootRef.current!;
+    return () => {
+      observer.disconnect();
+      root.removeEventListener("scroll", measure);
+    };
+  }, [linkingRange]);
   const linkHref = linking ? safeHref(linking.address) : undefined;
   // Back to the words with the caret where it was, the link added or not. With no words to wrap (the caret alone asked),
   // the typed address becomes the new link's own text instead.
@@ -1105,6 +1127,20 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
 
   useImperativeHandle(handleRef, () => ({
     format: (format) => {
+      if (readOnly) return;
+      if (format === "link") {
+        askLink();
+        return;
+      }
+      if (format === "bullets" || format === "numbers") {
+        const editor = editorRef.current!;
+        const selected = editor.getEditorState().read(() => {
+          const selection = $getSelection();
+          return $isRangeSelection(selection) ? $findMatchingParent(selection.anchor.getNode(), $isListNode)?.getListType() : undefined;
+        });
+        editor.dispatchCommand(selected === (format === "bullets" ? "bullet" : "number") ? REMOVE_LIST_COMMAND : format === "bullets" ? INSERT_UNORDERED_LIST_COMMAND : INSERT_ORDERED_LIST_COMMAND, undefined);
+        return;
+      }
       const command = markCommands[format];
       // Stryker disable next-line ConditionalExpression,LogicalOperator: Lexical drops a format command whose type is missing, and a read-only box takes none.
       if (command && !readOnly) editorRef.current!.dispatchCommand(FORMAT_TEXT_COMMAND, command);
@@ -1169,10 +1205,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           if (mod && event.shiftKey && !event.altKey && event.key.toLowerCase() === "v") plainPaste.current = true;
           if (mod && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "k" && !readOnly) {
             event.preventDefault();
-            let ask: RangeSelection | null = null;
-            // Stryker disable next-line ObjectLiteral,BooleanLiteral: the updater runs synchronously either way, so `ask` holds its answer by the next line regardless; discrete only changes when the resulting render flushes, which a test polling for the popover afterwards cannot tell apart.
-            editorRef.current!.update(() => void (ask = toggleLinkOfSelection()), { discrete: true });
-            if (ask) setLinking({ selection: ask, address: "" });
+            askLink();
           }
           onKeyDown(event);
           if (event.defaultPrevented) event.stopPropagation();
@@ -1196,8 +1229,13 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
           {placeholder}
         </span>
       )}
-      {linking && (
-        <Popover title="Add a link" open onOpenChange={(open) => open || endLinking(undefined)} anchor={frameRef} side="top" align="start">
+      {linking && linkRects[0] && (
+        <>
+        <span ref={linkAnchor} aria-hidden="true" data-ouro-composer-link-anchor="" className="pointer-events-none absolute" style={{ left: linkRects[0].x, top: linkRects[0].y, width: linkRects[0].width, height: linkRects[0].height }} />
+        {!linking.range.collapsed && <div aria-hidden="true" data-ouro-composer-link-selection="" className="pointer-events-none absolute inset-0 overflow-hidden">
+          {linkRects.map((rect, index) => <span key={index} className="absolute bg-primary/15" style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }} />)}
+        </div>}
+        <Popover title="Add a link" hideTitle open onOpenChange={(open) => open || endLinking(undefined)} anchor={linkAnchor} side="bottom" align="start">
           <form
             data-slot="composer-link-form"
             data-ouro-composer-link=""
@@ -1213,6 +1251,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
             </Button>
           </form>
         </Popover>
+        </>
       )}
     </div>
   );

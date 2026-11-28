@@ -55,6 +55,40 @@ afterEach(async () => {
 const rich = (props: Partial<React.ComponentProps<typeof Composer>> = {}) => <Composer label="Message Mia" format="rich" onSend={() => {}} {...props} />;
 
 describe("Composer rich mode", () => {
+  it("opens link entry from its formatting API and keeps the selected words marked", async () => {
+    const handle = createRef<ComposerEditor>();
+    const { host, editor } = await render(rich({ defaultValue: "A little light", editorRef: handle }));
+    await userEvent.click(editor);
+    await userEvent.keyboard(`{${nativeMod}>}a{/${nativeMod}}`);
+    const range = document.createRange();
+    range.selectNodeContents(editor.querySelector("[data-lexical-text]")!);
+    const selected = range.getBoundingClientRect();
+    await act(async () => handle.current!.format("link"));
+    await expect.poll(() => document.querySelector('[data-ouro-composer-link]')).not.toBeNull();
+    expect(host.querySelector("[data-ouro-composer-link-selection]")).not.toBeNull();
+    const anchor = host.querySelector<HTMLElement>("[data-ouro-composer-link-anchor]")!;
+    expect(anchor.getBoundingClientRect().width).toBeGreaterThan(0);
+    expect(Math.abs(anchor.getBoundingClientRect().left - selected.left)).toBeLessThanOrEqual(1);
+    expect(Math.abs(anchor.getBoundingClientRect().top - selected.top)).toBeLessThanOrEqual(1);
+    await userEvent.fill(page.getByRole("textbox", { name: "Link address" }), "https://example.com/light");
+    await userEvent.click(page.getByRole("button", { name: "Add link", exact: true }));
+    await expect.poll(() => editor.querySelector("a")?.textContent).toBe("A little light");
+  });
+
+  it("applies and removes list formatting through its formatting API", async () => {
+    const handle = createRef<ComposerEditor>();
+    const { editor } = await render(rich({ defaultValue: "Lanterns", editorRef: handle }));
+    await userEvent.click(editor);
+    await act(async () => handle.current!.format("bullets"));
+    await expect.poll(() => editor.querySelector("ul li")?.textContent).toBe("Lanterns");
+    await act(async () => handle.current!.format("bullets"));
+    await expect.poll(() => editor.querySelector("ul")).toBeNull();
+    await act(async () => handle.current!.format("numbers"));
+    await expect.poll(() => editor.querySelector("ol li")?.textContent).toBe("Lanterns");
+    await act(async () => handle.current!.format("numbers"));
+    await expect.poll(() => editor.querySelector("ol")).toBeNull();
+  });
+
   it("renders the plain textarea on the server and until the editor has loaded, so the first render never touches the editor", () => {
     const html = renderToString(rich({ defaultValue: "hi", placeholder: "Write a message" }));
     expect(html).toContain("<textarea");

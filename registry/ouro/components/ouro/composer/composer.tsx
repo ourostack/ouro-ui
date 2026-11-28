@@ -85,9 +85,12 @@ export interface ComposerQuote {
 /**
  * A format Composer applies to the selected text, as light Markdown: `bold` (`**`), `italic`
  * (`_`), `underline` (`++`), `strike` (`~~`) and `code` (a backtick) wrap it in marks, `bullets`,
- * `numbers` and `quote` mark its lines, and `codeBlock` fences them.
+ * `numbers` and `quote` mark its lines, and `codeBlock` fences them. `link` opens rich link
+ * entry, or selects a Markdown link's address in a plain draft.
+ * @claim "`link` opens rich link entry" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > opens link entry from its formatting API and keeps the selected words marked)
+ * @claim "selects a Markdown link's address" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer text at rest > makes a plain draft's selected words a link and selects its address for editing)
  */
-export type ComposerFormat = "bold" | "italic" | "underline" | "strike" | "code" | "bullets" | "numbers" | "quote" | "codeBlock";
+export type ComposerFormat = "bold" | "italic" | "underline" | "strike" | "code" | "bullets" | "numbers" | "quote" | "codeBlock" | "link";
 
 /** What an app's formatting bar, emoji button or link dialog changes the text with: `editorRef`. */
 export interface ComposerEditor {
@@ -508,15 +511,6 @@ const reducedQuery = "(prefers-reduced-motion: reduce)";
 
 // The visible height a running move has left to clear: the frame's clip-path inset from the top, in px.
 const clipTop = (frame: HTMLElement) => Number(/inset\(([\d.]+)px/.exec(getComputedStyle(frame).clipPath)?.[1] ?? /* istanbul ignore next @preserve -- a move is only read while its clip runs, so the inset is always there; 0 only guards a clip the browser reports as none */ 0);
-
-/** Arrows: out to expand, in to collapse. */
-function ExpandIcon({ expanded }: { expanded: boolean }): JSX.Element {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="size-ouro-5 shrink-0">
-      <path d={expanded ? "M4 11h5v5M11 4v5h5M9 11l-5 5M11 9l5-5" : "M11 4h5v5M9 16H4v-5M16 4l-5 5M4 16l5-5"} />
-    </svg>
-  );
-}
 
 /** A paper plane. */
 function SendIcon(): JSX.Element {
@@ -1149,7 +1143,7 @@ export function Composer(props: ComposerProps): JSX.Element {
                 "aria-activedescendant": rest["aria-activedescendant"],
               }}
               data-slot="composer-rich"
-              className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 ps-3 pe-2", canExpand && !expanded && text === "" && "min-w-[min(6rem,100%)] basis-24", blockLayout && "w-full flex-auto")}
+              className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 ps-3 pe-2", canExpand && !expanded && "min-w-[min(6rem,100%)] basis-24", blockLayout && "w-full flex-auto")}
             />
           ) : (
           <TextArea
@@ -1171,11 +1165,11 @@ export function Composer(props: ComposerProps): JSX.Element {
             onKeyDown={keyDown}
             onPaste={paste}
             aria-describedby={describedBy}
-            className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 [&_textarea]:ps-3 [&_textarea]:pe-2", canExpand && !expanded && text === "" && "min-w-[min(6rem,100%)] basis-24", blockLayout && "w-full flex-auto")}
+            className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 [&_textarea]:ps-3 [&_textarea]:pe-2", canExpand && !expanded && "min-w-[min(6rem,100%)] basis-24", blockLayout && "w-full flex-auto")}
           />
           )}
           <div
-            className={cn("ms-auto flex shrink-0 items-center gap-0.5", canExpand ? "p-2" : "p-1", blockLayout && "box-border w-full justify-end border-t border-border")}
+            className={cn("ms-auto flex shrink-0 items-center gap-0.5", canExpand ? "p-2" : "p-1", blockLayout && "box-border w-full justify-end")}
             onMouseDown={(event) => {
               if (event.target !== event.currentTarget || disabled) return;
               event.preventDefault();
@@ -1195,8 +1189,8 @@ export function Composer(props: ComposerProps): JSX.Element {
                 <Button
                   data-ouro-control="composer"
                   data-ouro-part="expand"
-                  variant="plain"
-                  tone={expanded ? "primary" : "secondary"}
+                  variant={expanded ? "soft" : "plain"}
+                  tone="secondary"
                   aria-label={expandLabel}
                   aria-pressed={expanded}
                   aria-keyshortcuts={ariaKeyShortcuts(composerShortcuts.expand, platform)}
@@ -1205,7 +1199,7 @@ export function Composer(props: ComposerProps): JSX.Element {
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={toggleExpanded}
                 >
-                  <ExpandIcon expanded={expanded} />
+                  {expandLabel}
                 </Button>
               </Tooltip>
             )}

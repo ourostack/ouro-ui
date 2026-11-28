@@ -1,12 +1,23 @@
 import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
 
-export { clearComposerDrafts, forgetRichEditor, loadRich, preloadRichEditor, richEditorModule, composerDrafts, composerShortcuts, formatEdit, isApple, markFormats, pressed, richShortcuts };
+export { clearComposerDrafts, forgetRichEditor, loadRich, preloadRichEditor, richEditorModule, composerDrafts, composerShortcuts, formatEdit, isApple, markFormats, pressed, richShortcuts, safeHref };
 export type { ComposerEdit, RichModule };
 
 // The text edits and keys Composer's formatting uses, apart from the component so its file
 // exports only components and types (React Fast Refresh).
 
 type RichModule = typeof import("@/registry/ouro/components/ouro/composer/composer-parts");
+
+/** An address Composer may link to. @internal */
+const safeHref = (text: string): string | undefined => {
+  try {
+    const url = new URL(text);
+    if (["http:", "https:", "mailto:"].includes(url.protocol)) return url.href;
+  } catch {
+    /* not an address */
+  }
+  return undefined;
+};
 
 let richLoading: Promise<RichModule> | undefined;
 // The module itself, once the import has settled, so a later mount in the same page draws it straight away instead of a plain box that swaps a tick later.
@@ -117,6 +128,11 @@ interface ComposerEdit {
  * @internal
  */
 function formatEdit(value: string, start: number, end: number, format: ComposerFormat): ComposerEdit {
+  if (format === "link") {
+    const label = value.slice(start, end);
+    const address = start + label.length + 3;
+    return { from: start, to: end, text: `[${label}](https://)`, start: address, end: address + 8 };
+  }
   if (format === "codeBlock") return codeBlockEdit(value, start, end);
   if (format === "bullets" || format === "numbers" || format === "quote") return linesEdit(value, start, end, format);
   return markEdit(value, start, end, marks[format]);

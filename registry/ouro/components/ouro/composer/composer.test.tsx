@@ -1071,22 +1071,19 @@ describe("Composer expanded", () => {
     expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
     expect(root.hasAttribute("data-expanded")).toBe(false);
     expect(textarea.rows).toBe(1);
-    const iconPath = () => button.querySelector("svg[aria-hidden='true'] path")!.getAttribute("d");
-    const collapsedIcon = iconPath();
+    expect(button.textContent).toBe("Expand");
     await userEvent.click(button);
     expect(onExpandedChange).toHaveBeenCalledWith(true);
     expect(button.getAttribute("aria-pressed")).toBe("true");
     expect(root.getAttribute("data-expanded")).toBe("");
-    expect(iconPath()).toMatch(/^M\d/);
-    expect(collapsedIcon).toMatch(/^M\d/);
-    expect(iconPath()).not.toBe(collapsedIcon);
+    expect(button.textContent).toBe("Expand");
     expect(root.querySelector("[data-ouro-composer-toolbar]")!.textContent).toBe("B");
     expect(textarea.rows).toBe(6);
     await expect.poll(() => textarea.getBoundingClientRect().height).toBeGreaterThanOrEqual(6 * parseFloat(getComputedStyle(textarea).lineHeight));
     await userEvent.click(button);
     expect(onExpandedChange).toHaveBeenLastCalledWith(false);
     await expect.poll(() => root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
-    expect(iconPath()).toBe(collapsedIcon);
+    expect(button.textContent).toBe("Expand");
     expect(warn).not.toHaveBeenCalled();
   });
 
@@ -1095,13 +1092,13 @@ describe("Composer expanded", () => {
       <>
         <Composer label="Reply" defaultExpanded={false} onSend={() => {}} />
         <Button variant="plain" tone="secondary" aria-label="Plain" data-test-harness="plain">p</Button>
-        <Button variant="plain" tone="primary" aria-label="Selected" data-test-harness="selected">s</Button>
+        <Button variant="soft" tone="secondary" aria-label="Selected" data-test-harness="selected">s</Button>
       </>,
     );
     const look = (element: Element) => ["border-top-color", "color", "background-color"].map((property) => getComputedStyle(element).getPropertyValue(property));
     const plain = host.querySelector('[data-test-harness="plain"]')!;
     const selected = host.querySelector('[data-test-harness="selected"]')!;
-    expect(expandButton()!.textContent).toBe("");
+    expect(expandButton()!.textContent).toBe("Expand");
     expect(look(expandButton()!)).toEqual(look(plain));
     await userEvent.click(expandButton()!);
     await userEvent.hover(host);
@@ -2146,6 +2143,24 @@ describe("Composer text at rest", () => {
     await userEvent.fill(editor, "Hi there");
     expect(Math.abs(capCentre(editor) - middle(view.frame))).toBeLessThanOrEqual(0.75);
     expect(Math.abs(middle(view.send) - middle(view.frame))).toBeLessThanOrEqual(0.75);
+  });
+
+  it("names the long-compose mode visibly and gives Send the stronger tone", async () => {
+    const view = await render(<Composer label="Reply" defaultExpanded expandLabel="Long compose" onSend={() => {}} />);
+    const mode = view.host.querySelector<HTMLButtonElement>('[data-ouro-part="expand"]')!;
+    expect(mode.textContent).toBe("Long compose");
+    expect(mode.getAttribute("aria-pressed")).toBe("true");
+    expect(mode.getAttribute("data-tone")).toBe("secondary");
+  });
+
+  it("makes a plain draft's selected words a link and selects its address for editing", async () => {
+    const handle = createRef<ComposerEditor>();
+    const view = await render(<Composer label="Reply" defaultValue="A little light" editorRef={handle} onSend={() => {}} />);
+    view.textarea.focus();
+    view.textarea.setSelectionRange(2, 8);
+    await act(async () => handle.current!.format("link"));
+    expect(view.textarea.value).toBe("A [little](https://) light");
+    expect(view.textarea.value.slice(view.textarea.selectionStart, view.textarea.selectionEnd)).toBe("https://");
   });
 
   it("keeps the actions at the bottom when the text takes three lines", async () => {
