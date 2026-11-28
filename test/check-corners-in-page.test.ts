@@ -751,7 +751,7 @@ it("checks surfaces larger than the viewport and leaves no temporary style attri
 
 it("preserves an inline style removed while the painted layer is captured", async () => {
   const restore = forceSquircleFallback();
-  const root = render('<style>.surface { width:160px; height:120px; background:#fff; }</style><div class="surface rounded-ouro-xl"></div>');
+  const root = render('<style>.surface { width:160px; height:120px; background:#fff; box-shadow:0 2px 6px #0004; }</style><div class="surface rounded-ouro-xl"></div>');
   const surface = root.querySelector<HTMLElement>(".surface")!;
   const capture = state.__ouroPaintCapture!;
   let removed = false;
