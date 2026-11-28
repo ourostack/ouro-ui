@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { URL } from "node:url";
-import { commentEnv, conflictComment, conflictedPaths, logLine, mergeVerdict, pickUnmergeable } from "./queue-unmergeable.mjs";
+import { cleanCalls, commentEnv, conflictComment, conflictedPaths, logLine, mergeVerdict, pickUnmergeable } from "./queue-unmergeable.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 test("pickUnmergeable takes the first UNMERGEABLE entry in queue order, and nothing when none is", () => {
@@ -52,6 +52,17 @@ test("the log line and the ping say what was done and name the conflicting files
   assert.match(logLine({ number: 7, position: 1, verdict: "conflict", paths: ["a.txt"] }), /1 file\(s\): `a\.txt`/);
   assert.match(logLine({ number: 7, position: 1, verdict: "unknown" }), /could not run/);
   assert.match(conflictComment({ author: "me", paths: ["a.txt", "b.txt"] }), /^@me .*\n\n- `a\.txt`\n- `b\.txt`$/s);
+});
+
+test("a clean entry is only re-armed on auto-merge: nothing merges main into its branch, so no bot commit fails attribution", () => {
+  const calls = cleanCalls({ id: "PR_1" });
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].join(" "), /enablePullRequestAutoMerge/);
+  assert.match(calls[0].join(" "), /id=PR_1/);
+  const source = readFileSync(new URL("./queue-unmergeable.mjs", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /update-branch|updatePullRequestBranch|\["push"/);
+  assert.match(logLine({ number: 7, position: 1, verdict: "clean" }), /re-armed/);
+  assert.doesNotMatch(logLine({ number: 7, position: 1, verdict: "clean" }), /updated from main/);
 });
 
 test("the workflow runs every 10 minutes by hand or schedule, one run at a time, through the script", () => {

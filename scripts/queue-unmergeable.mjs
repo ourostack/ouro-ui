@@ -1,7 +1,9 @@
 // An UNMERGEABLE merge queue entry stalls every entry behind it until a lane rebases it
 // (.github/workflows/queue-unmergeable.yml runs this every 10 minutes). One entry per run:
 // dequeue it, check with `git merge-tree` whether main merges into it cleanly, and when it does,
-// update its branch from main and re-arm auto-merge, so it re-enters the queue at the back.
+// re-arm auto-merge, so it re-enters the queue at the back with its commits as they were. It never
+// merges main into the branch: the queue builds every group on main already, and a merge commit
+// written by the app's token is one the attribution check refuses (#4146).
 // When it does not merge cleanly the pull request stays out of the queue and its author is
 // pinged with the conflicting files. Each action is logged as a comment on #2469.
 //
@@ -37,7 +39,7 @@ export function conflictedPaths(output) {
 /** The log line for #2469, naming the pull request, what was done and why. */
 export function logLine({ number, position, verdict, paths = [] }) {
   const where = `#${number} (queue position ${position})`;
-  if (verdict === "clean") return `${where} was UNMERGEABLE: dequeued, updated from main (a clean merge) and re-armed on auto-merge.`;
+  if (verdict === "clean") return `${where} was UNMERGEABLE: dequeued and re-armed on auto-merge, since main merges into it cleanly.`;
   if (verdict === "conflict") return `${where} was UNMERGEABLE: dequeued and left out, main conflicts with ${paths.length} file(s): ${paths.map((path) => `\`${path}\``).join(", ") || "unknown"}.`;
   return `${where} was UNMERGEABLE: dequeued and left out, the merge check could not run.`;
 }
@@ -57,7 +59,15 @@ const git = (args) => {
   }
 };
 
-const QUEUE = `query($owner:String!,$name:String!){repository(owner:$owner,name:$name){mergeQueue{entries(first:100){nodes{state position pullRequest{id number headRefOid author{login}}}}}}}`;
+const QUEUE = `query($owner:String!,$name:String!){repository(owner:$owner,name:$name){mergeQueue{entries(first:100){nodes{state position pullRequest{id number author{login}}}}}}}`;
+
+/**
+ * The gh calls that put a clean entry back in the queue: re-arm auto-merge, and nothing that writes to its branch.
+ * Merging main into the branch would add a commit by the app's token, which the attribution check refuses (#4146).
+ */
+export function cleanCalls({ id }) {
+  return [["api", "graphql", "-f", `query=mutation($id:ID!){enablePullRequestAutoMerge(input:{pullRequestId:$id,mergeMethod:SQUASH}){clientMutationId}}`, "-F", `id=${id}`]];
+}
 
 function readQueue(repo) {
   const [owner, name] = repo.split("/");
@@ -81,7 +91,7 @@ export function commentEnv(env) {
 export function run(repo) {
   const entry = pickUnmergeable(readQueue(repo));
   if (!entry) return console.log("No UNMERGEABLE entry in the queue.");
-  const { number, id, headRefOid, author } = entry.pullRequest;
+  const { number, id, author } = entry.pullRequest;
   gh(["api", "graphql", "-f", `query=mutation($id:ID!){dequeuePullRequest(input:{id:$id}){clientMutationId}}`, "-F", `id=${id}`]);
   console.log(`Dequeued #${number}.`);
   git(["fetch", "--quiet", "origin", "main", `pull/${number}/head:refs/pr/${number}`]);
@@ -89,8 +99,7 @@ export function run(repo) {
   const verdict = mergeVerdict(merge.code);
   const paths = verdict === "conflict" ? conflictedPaths(merge.out) : [];
   if (verdict === "clean") {
-    gh(["api", "-X", "PUT", `repos/${repo}/pulls/${number}/update-branch`, "-f", `expected_head_sha=${headRefOid}`]);
-    gh(["api", "graphql", "-f", `query=mutation($id:ID!){enablePullRequestAutoMerge(input:{pullRequestId:$id,mergeMethod:SQUASH}){clientMutationId}}`, "-F", `id=${id}`]);
+    for (const call of cleanCalls({ id })) gh(call);
   } else if (verdict === "conflict") {
     comment(repo, number, conflictComment({ author: author?.login ?? "author", paths }));
   }
