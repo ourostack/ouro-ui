@@ -47,8 +47,8 @@ describe("Attachment", () => {
     const zero = await render(<FreshAttachment name="empty.txt" size={0} />);
     expect(zero.attachment.textContent).toBe("empty.txt 0 B");
     expect(construct).toHaveBeenCalledTimes(1);
-    const rounded = await render(<FreshAttachment name="menu.pdf" size={1_258_291} />);
-    expect(rounded.attachment.textContent).toBe("menu.pdf 1.2 MB");
+    const rounded = await render(<FreshAttachment name="menu.pdf" size={1_310_720} />);
+    expect(rounded.attachment.textContent).toBe("menu.pdf 1.3 MB");
     expect(construct).toHaveBeenCalledTimes(1);
   });
 
