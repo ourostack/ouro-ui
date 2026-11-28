@@ -363,6 +363,10 @@
     "status": 200,
     "checked": "2026-11-23"
   },
+  "https://github.com/ourostack/ouro-ui-apple/blob/45b1051ba818251b42b97aaa21065e057812ac29/core-provenance.json": {
+    "status": 200,
+    "checked": "2026-11-28"
+  },
   "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/decisions/2026-11-27-ouro-feel-principles.md": {
     "status": 200,
     "checked": "2026-11-27"
@@ -422,10 +426,6 @@
   "https://github.com/ourostack/ouro-ui-apple/blob/b0580c86da4d81e8d4e07bb8dcaf143a01454cd9/Tests/OuroA2UITests/ComposedTests.swift": {
     "status": 200,
     "checked": "2026-11-18"
-  },
-  "https://github.com/ourostack/ouro-ui-apple/blob/b2b4a079a35424fccd1884be28ee2f3708c25b93/core-provenance.json": {
-    "status": 200,
-    "checked": "2026-11-28"
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Package.swift#L1-L9": {
     "status": 200,
@@ -495,7 +495,7 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.12.0": {
+  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.12.1": {
     "status": 200,
     "checked": "2026-11-28"
   },
