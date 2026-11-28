@@ -60,11 +60,14 @@ it("checks a marked surface when it is inset from its parent", () => {
   }
 });
 
-it("does not treat a table row's dividing line as a painted corner", () => {
+it("distinguishes a clipped table row fill from an exposed painted corner", () => {
   const root = render('<div style="width:160px;height:120px;background:#eef4fa;border-radius:24px;corner-shape:squircle;overflow:hidden"><table style="border-collapse:collapse;width:100%"><tbody><tr style="border-bottom:1px solid #789"><td style="height:28px">Example</td></tr></tbody></table></div>');
   const row = root.querySelector<HTMLElement>("tr")!;
+  const outer = root.querySelector<HTMLElement>("div")!;
   expect(findCornerIssues().map((issue) => issue.element)).not.toContain("tr in div");
   row.style.background = "#789";
+  expect(findCornerIssues().map((issue) => issue.element)).not.toContain("tr in div");
+  outer.style.overflow = "visible";
   expect(findCornerIssues().map((issue) => issue.element)).toContain("tr in div");
 });
 
