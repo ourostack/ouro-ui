@@ -20,6 +20,7 @@ import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 
 const roots: Root[] = [];
 let mounted: HTMLElement[] = [];
+const nextFrame = requestAnimationFrame.bind(window);
 
 async function render(node: ReactNode, width = 480) {
   const host = document.createElement("div");
@@ -30,6 +31,7 @@ async function render(node: ReactNode, width = 480) {
   const root = createRoot(host);
   roots.push(root);
   await act(async () => root.render(node));
+  await new Promise<void>((resolve) => nextFrame(() => resolve()));
   return {
     host,
     rerender: (next: ReactNode) => act(async () => root.render(next)),
@@ -1072,7 +1074,7 @@ describe("Composer expanded", () => {
     expect(onExpandedChange).toHaveBeenCalledWith(true);
     await rerender(<Composer label="Reply" expanded={false} toolbar={formatting} onSend={() => {}} />);
     expect(expandButton()).toBeNull();
-    expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
+    await expect.poll(() => root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
   });
 
   it("gives the expanded text the whole width, with the buttons on a row under it", async () => {
@@ -1377,16 +1379,18 @@ describe("Composer expanded motion", () => {
     await act(async () => expandButton()!.click());
     expect(moves).toHaveLength(1);
     expect(frameOf(root).getAttribute("data-ouro-moving")).toBe("grow");
-    const clipped = getComputedStyle(frameOf(root)).clipPath;
-    await expect.poll(() => getComputedStyle(frameOf(root)).clipPath).not.toBe(clipped);
-    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const animation = frameOf(root).getAnimations()[0]!;
+    animation.pause();
+    animation.currentTime = Number(animation.effect!.getTiming().duration) / 2;
     await act(async () => expandButton()!.click());
     expect(moves).toHaveLength(2);
     expect(moves[1]!.from).toBeLessThan(moves[0]!.to - 1);
     expect(moves[1]!.from).toBeGreaterThan(moves[0]!.from - 2);
-    // The first move's own frames are over by now, and leave the second move running.
-    for (let i = 0; i < 6; i++) await new Promise((resolve) => requestAnimationFrame(resolve));
+    const closing = frameOf(root).getAnimations()[0]!;
+    closing.playbackRate = 0;
+    await expect.poll(() => frameOf(root).style.animationPlayState).toBe("");
     expect(frameOf(root).getAttribute("data-ouro-moving")).toBe("shrink");
+    closing.playbackRate = 1;
     await moves[1]!.playing;
   });
 
@@ -1395,9 +1399,9 @@ describe("Composer expanded motion", () => {
     const moves: ComposerMove[] = [];
     host.addEventListener("ouro-composer-move", (event) => moves.push((event as CustomEvent<ComposerMove>).detail));
     await act(async () => expandButton()!.click());
-    const clipped = getComputedStyle(frameOf(root)).clipPath;
-    await expect.poll(() => getComputedStyle(frameOf(root)).clipPath).not.toBe(clipped);
-    await new Promise((resolve) => requestAnimationFrame(resolve));
+    const animation = frameOf(root).getAnimations()[0]!;
+    animation.pause();
+    animation.currentTime = Number(animation.effect!.getTiming().duration) / 2;
     await act(async () => expandButton()!.click());
     expect(moves).toHaveLength(2);
     expect(moves[1]!.from).toBeGreaterThan(moves[0]!.to + 1);
@@ -1793,6 +1797,7 @@ describe("Composer development messages", () => {
     ["sendDisabled", { sendDisabled: true }, "sendDisabled is not a prop; say why sending is off", '<Composer sendDisabledReason="Sending is off">'],
     ["replyTo", { replyTo: "message-1" }, "replyTo is not a prop; the message a reply quotes is quote", '<Composer quote={{ author: "Ana", excerpt: "Lunch?", onRemove }}>'],
     ["expandable", { expandable: true }, "expandable is not a prop; defaultExpanded or onExpandedChange shows the expand button", "<Composer defaultExpanded={false}>"],
+    ["resize", { resize: true }, "resize is not a prop; a composer with a resize edge takes resizable", '<Composer resizable resizeLabel="Resize the box">'],
   ])("says what to use instead of %s", async (name, extra, problem, fix) => {
     const props = { label: "Message", onSend: () => {}, ...extra } as unknown as ComposerProps;
     const { host } = await render(<Composer {...props} />);

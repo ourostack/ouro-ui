@@ -40,11 +40,11 @@ export default function AppleHx(): JSX.Element {
         title="Feel it before you read about it."
         description={
           <>
-            {claim("The foundations ship today in 1.10.1: one spring, one press, eight named haptic moments and six themes.", {
-              source: { spec: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.10.1" },
+            {claim("The foundations ship today in 1.12.0: one spring, one press, eight named haptic moments and six themes.", {
+              source: { spec: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.12.0" },
               verify: [
-                { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.10.1" },
-                { equals: "site/src/apple/kit.json#release", is: "1.10.1" },
+                { urlOk: "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.12.0" },
+                { equals: "site/src/apple/kit.json#release", is: "1.12.0" },
                 { count: "site/src/apple/kit.json#haptics", is: 8 },
                 { count: "site/src/apple/kit.json#themes", is: 6 },
               ],
@@ -186,8 +186,8 @@ export default function AppleHx(): JSX.Element {
         title="Then Ouro Feel checks it stays that way."
         lede={
           <p>
-            A spring that feels lovely today can pick up a snap, a jump or a ghost copy tomorrow. Ouro Feel walks your app from a UI test and measures jank genre by
-            genre, so the manners on this page survive the next refactor.{" "}
+            A spring that feels lovely today can pick up a snap, a jump or a ghost copy tomorrow. Ouro Feel walks your app from a UI test and checks the promises good feel
+            makes, so the manners on this page survive the next refactor.{" "}
             <a className="apple-inline-link" href={href("/apple/feel/")}>
               Meet Ouro Feel
             </a>

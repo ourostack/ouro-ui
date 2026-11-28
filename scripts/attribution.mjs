@@ -9,7 +9,8 @@
 //   dependency files (DEPENDENCY_FILES), may carry its own Signed-off-by trailer, and, as the squash's
 //   author, its own Co-authored-by trailer (DEPENDABOT_CREDIT), or the project's own app, Ouro Current,
 //   whose commit may only be GitHub's revert of a pull request (REVERT_SUBJECT), as screen-reader-revert.yml
-//   opens it;
+//   opens it, or whose commit only merges main into a pull request's branch (queue-unmergeable.yml's update-branch):
+//   two parents, the second already on the base, and a tree equal to the clean merge of its parents, so it adds nothing main lacks, or whose commit is a docs pin that changes only version literals (scripts/pin-only.mjs);
 // - is committed by anyone but those two or GitHub (noreply@github.com, which commits the merge
 //   queue's squash commits and the web editor's);
 // - carries AI attribution in its message: a `*-by:` trailer (Co-authored-by, Assisted-by, ...)
@@ -27,6 +28,7 @@
 //   node scripts/attribution.mjs <base> <head>   checks the commits in base..head
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { pinProblems } from "./pin-only.mjs";
 
 /** The only person who commits to this repository. */
 export const MAINTAINER = { name: "Ari Mendelow", email: "16390116+arimendelow@users.noreply.github.com" };
@@ -90,9 +92,11 @@ export function problems(commits, { messages = true } = {}) {
     const bump = dependabot && files.length > 0 && files.every((file) => DEPENDENCY_FILES.test(file));
     const stray = files.filter((file) => !DEPENDENCY_FILES.test(file));
     if (dependabot && (files.length === 0 || stray.length > 0)) report("files", files.length === 0 ? "Dependabot's commit changes no file the check could read" : `Dependabot may change only dependency files (package.json, pnpm-lock.yaml, workflows and actions), not ${stray.join(", ")}`, REAUTHOR);
-    const revert = commit.authorEmail.toLowerCase() === OURO_CURRENT && REVERT_SUBJECT.test(commit.message);
-    if (!AUTHORS.includes(commit.authorEmail.toLowerCase()) && !revert) report("author", `${commit.authorName} <${commit.authorEmail}> may not author here (only ${AUTHORS.join(" or ")}, or ${OURO_CURRENT} for a revert)`, REAUTHOR);
-    if (!COMMITTERS.includes(commit.committerEmail.toLowerCase())) report("committer", `${commit.committerName} <${commit.committerEmail}> may not commit here (only ${COMMITTERS.join(", ")})`, REAUTHOR);
+    const current = commit.authorEmail.toLowerCase() === OURO_CURRENT;
+    const revert = current && REVERT_SUBJECT.test(commit.message);
+    const mainMerge = current && (commit.mainMerge === true || commit.pinOnly === true);
+    if (!AUTHORS.includes(commit.authorEmail.toLowerCase()) && !revert && !mainMerge) report("author", `${commit.authorName} <${commit.authorEmail}> may not author here (only ${AUTHORS.join(" or ")}, or ${OURO_CURRENT} for a revert a merge of main that adds nothing main lacks, or a pin that changes only version literals)`, REAUTHOR);
+    if (!COMMITTERS.includes(commit.committerEmail.toLowerCase()) && !(mainMerge && commit.committerEmail.toLowerCase() === OURO_CURRENT)) report("committer", `${commit.committerName} <${commit.committerEmail}> may not commit here (only ${COMMITTERS.join(", ")})`, REAUTHOR);
     // A line is read with its hidden characters removed and as spaces. NEL is a line terminator and a hidden character at once, so a message is read split at it and, when it holds one, again whole.
     const read = (raw, field) => {
       for (const line of [raw.replace(INVISIBLE, ""), raw.replace(FILLER, " ").replace(INVISIBLE, "")]) {
@@ -122,6 +126,38 @@ const runGit = (args) => execFileSync("git", args, { encoding: "utf8", stdio: ["
 /** How many times the log is tried: the checkout is a partial clone, so reading the trees a log lists fetches them from the remote, and one dropped connection must not fail the job. */
 export const LOG_TRIES = 3;
 const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+/** Whether a commit only merges the base into a branch: two parents, the second an ancestor of the base, and a tree equal to the clean merge of its parents. Any git failure says no. */
+export function isMainMerge(sha, base, git = runGit) {
+  try {
+    const parents = git(["rev-list", "--parents", "-n", "1", sha]).trim().split(/\s+/).slice(1);
+    if (parents.length !== 2) return false;
+    git(["merge-base", "--is-ancestor", parents[1], base]);
+    const merged = git(["merge-tree", "--write-tree", parents[0], parents[1]]).split("\n")[0].trim();
+    return merged !== "" && merged === git(["rev-parse", `${sha}^{tree}`]).trim();
+  } catch {
+    return false;
+  }
+}
+
+/** Whether a commit is a docs pin: one parent, and a diff scripts/pin-only.mjs accepts, which changes only version literals. Any git failure says no. */
+export function isPinCommit(sha, git = runGit) {
+  try {
+    const parents = git(["rev-list", "--parents", "-n", "1", sha]).trim().split(/\s+/).slice(1);
+    if (parents.length !== 1) return false;
+    const at = (rev, path) => {
+      try {
+        return git(["show", `${rev}:${path}`]);
+      } catch {
+        return null;
+      }
+    };
+    const paths = git(["diff", "--no-renames", "--name-only", "-z", parents[0], sha]).split("\0").filter(Boolean);
+    return paths.length > 0 && pinProblems(paths.map((path) => ({ path, before: at(parents[0], path), after: at(sha, path) }))).length === 0;
+  } catch {
+    return false;
+  }
+}
 
 /** The commits in base..head, newest first. Throws when either end is missing or unknown, or the range is empty. */
 export function readCommits(base, head, git = runGit, pause = sleep) {
@@ -153,6 +189,10 @@ export function readCommits(base, head, git = runGit, pause = sleep) {
       return { sha, authorName, authorEmail, committerName, committerEmail, message: message.trimEnd(), files: names.split("\n").filter(Boolean) };
     });
   if (commits.length === 0) throw new Error(`${base}..${head} holds no commits, so there is nothing that could pass.`);
+  for (const commit of commits) if (commit.authorEmail.toLowerCase() === OURO_CURRENT) {
+    commit.mainMerge = isMainMerge(commit.sha, base, git);
+    commit.pinOnly = isPinCommit(commit.sha, git);
+  }
   return commits;
 }
 

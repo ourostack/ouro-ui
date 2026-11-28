@@ -39,12 +39,15 @@ test.describe("restyle scope of an input switch", () => {
       expect(ouro, "the page has enough Ouro elements to tell a page-wide restyle from a local one").toBeGreaterThan(SCOPE * 2);
       // The events the tracker listens for, dispatched alone, so no hover, press or selection restyles anything: Tab,
       // with a text field focused, then a press, which moves focus nowhere. A restyle of the page the switch causes comes
-      // with every switch, and the page's own work (a late image, a font) with only some, so the fewest of three counts.
+      // with every switch, and the page's own work (a late image, a font) with only some, so the fewest of three counts, each net of the page's own restyles in an idle window.
       await page.locator("input").first().focus();
       const counts: number[] = [];
       for (let round = 0; round < 3; round++) {
         await page.evaluate(() => void document.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true })));
-        counts.push(await restyled(page, () => page.evaluate(() => void document.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })))));
+        // The page's own restyles over the same window with nothing dispatched, taken off the switch's count.
+        const idle = await restyled(page, async () => undefined);
+        const switched = await restyled(page, () => page.evaluate(() => void document.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }))));
+        counts.push(Math.max(0, switched - idle));
       }
       const count = Math.min(...counts);
       expect(count, `a press after Tab restyled ${counts.join(", ")} elements of a page with ${ouro} Ouro elements`).toBeLessThanOrEqual(SCOPE);

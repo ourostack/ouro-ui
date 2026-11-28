@@ -6,6 +6,15 @@ import { Toggle } from "@/registry/ouro/components/ouro/toggle/toggle";
 
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
+/** A stepper's minus or plus, drawn so its stroke sits in the button's middle, as a typed "−" or "+" doesn't. */
+function StepIcon({ plus, ...props }: SVGProps<SVGSVGElement> & { plus?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true" {...props}>
+      <path d={plus ? "M5 12h14M12 5v14" : "M5 12h14"} />
+    </svg>
+  );
+}
+
 function ChevronIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...props}>
@@ -101,11 +110,11 @@ export const Looks: Story = {
         </Button>
       </ButtonGroup>
       <ButtonGroup label="Servings">
-        <Button variant="soft" tone="secondary">
-          −
+        <Button variant="soft" tone="secondary" aria-label="Fewer servings">
+          <StepIcon style={{ width: "1.25em", height: "1.25em" }} />
         </Button>
-        <Button variant="soft" tone="secondary">
-          +
+        <Button variant="soft" tone="secondary" aria-label="More servings">
+          <StepIcon plus style={{ width: "1.25em", height: "1.25em" }} />
         </Button>
       </ButtonGroup>
       <ButtonGroup label="Formatting">

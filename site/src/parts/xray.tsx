@@ -135,9 +135,12 @@ const KIT = [
   },
   {
     name: "Ouro Feel",
-    body: claim("Measures how an app feels in use, genre by genre of jank: dropped taps, a double draw, controls outside the window and seven more.", {
-      source: { file: "site/src/apple/feel-genres.json" },
-      verify: [{ count: "site/src/apple/feel-genres.json#genres", is: 10 }],
+    body: claim("Checks how an app feels in use against the promises good feel makes, with a growing set of checks behind them: dropped taps, a page that drags sideways, controls outside the window and more.", {
+      source: { file: "site/src/apple/feel-checks.json" },
+      verify: [
+        { fileLine: "site/src/apple/feel-checks.json", pattern: "\"principles\" :" },
+        { fileLine: "site/src/apple/feel-checks.json", pattern: "\"name\" : \"viewport holds still\"" },
+      ],
     }),
     link: { label: "Ouro Feel", to: "/apple/feel/" },
   },

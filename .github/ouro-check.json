@@ -16,6 +16,7 @@
       "off-curve": "A rule new on this site (#3320): its transitions report without failing while their findings are fixed.",
       "opacity-step": "A rule new on this site (#3320): its transitions report without failing while their findings are fixed.",
       "label-clip": "A rule new on this site (#3320): its transitions report without failing while their findings are fixed.",
+      "off-centre-ink": "A rule new on this site: it reports without failing while its first findings are fixed (ourostack/ouro-ui#3257).",
       "off-centre-text": "A rule new on this site: it reports without failing while its first findings are fixed (ourostack/ouro-ui#3257)."
     },
     "/docs/patterns/": {

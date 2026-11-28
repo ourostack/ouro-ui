@@ -60,11 +60,13 @@
 @source not "../../../registry/ouro/components/ouro/swipe-actions";
 @source not "../../../registry/ouro/components/ouro/sync-status";
 @source not "../../../registry/ouro/components/ouro/tab-bar";
+@source not "../../../registry/ouro/components/ouro/thinking-block";
 @source not "../../../registry/ouro/components/ouro/thread-layout";
 @source not "../../../registry/ouro/components/ouro/thread-rail";
 @source not "../../../registry/ouro/components/ouro/time-grid";
 @source not "../../../registry/ouro/components/ouro/timer";
 @source not "../../../registry/ouro/components/ouro/toggle";
+@source not "../../../registry/ouro/components/ouro/tool-call";
 @source not "../../../registry/ouro/components/ouro/toolbar";
 @source not "../../../registry/ouro/census";
 @source not "../../../registry/ouro/check";
@@ -97,6 +99,7 @@
 @source not "../docs/agent-prompt.ts";
 @source not "../docs/calendar-demo.tsx";
 @source not "../docs/call-demo.tsx";
+@source not "../docs/call-surface.tsx";
 @source not "../docs/chat-demo.tsx";
 @source not "../docs/demos";
 @source not "../docs/demos.tsx";

@@ -404,7 +404,7 @@ describe("MessageList actions", () => {
     await ready("post");
     const post = getComputedStyle(barIn("post")!).top;
     await ready("chat");
-    expect([post, getComputedStyle(barIn("chat")!).top]).toEqual(["-20px", "-32px"]);
+    expect([post, getComputedStyle(barIn("chat")!).top]).toEqual(["-20px", "-30px"]);
   });
 
   it("makes a message with its bar beside it a size container only while the bar is on it, so a list opens without styling each one as it lays it out", async () => {

@@ -27,6 +27,7 @@ import type { MessageActionBar, MessageBarData } from "@/registry/ouro/component
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { RouterLink } from "@/registry/ouro/lib/ouro/router-link";
 import { RowLayerContext } from "@/registry/ouro/lib/ouro/row-hover";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 
@@ -84,9 +85,21 @@ export interface MessageQuote {
   /** The author's picture, before the name: an `Avatar` element, `<Avatar name="Ana" src={url} alt="" size="xs" />`. */
   avatar?: ReactElement | undefined;
   /**
-   * Makes the quote a button that shows the quoted message, as by scrolling to it. In a `MessageList`, which may not
-   * have drawn a message far up a long conversation, call its `actionsRef.current.reveal(id, { focus: true })`.
+   * Where the whole quote goes. With `onOpen`, an ordinary click or Enter opens it in place;
+   * modifier and middle clicks keep the browser's link navigation. Without a callback, it navigates normally.
+   * @claim "With `onOpen`, an ordinary click or Enter" registry/ouro/components/ouro/message/message.quote-link.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.quote-link.test.tsx::Message quote link > opens the whole quote in place on click and Enter, with its author, custom day and control markers)
+   * @claim "modifier and middle clicks keep" registry/ouro/components/ouro/message/message.quote-link.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.quote-link.test.tsx::Message quote link > leaves modifier and middle clicks to the browser and intercepts only an ordinary click)
+   * @claim "Without a callback, it navigates normally." registry/ouro/components/ouro/message/message.quote-link.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.quote-link.test.tsx::Message quote link > leaves navigation unprevented when href has no callback)
    */
+  href?: string | undefined;
+  /**
+   * Shows the quoted message, as by scrolling to it. Without `href`, makes the quote a button. Takes precedence over `onActivate`.
+   * In a `MessageList`, which may not
+   * have drawn a message far up a long conversation, call its `actionsRef.current.reveal(id, { focus: true })`.
+   * @claim "Takes precedence over `onActivate`." registry/ouro/components/ouro/message/message.quote-link.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.quote-link.test.tsx::Message quote link > uses onOpen for linked and button quotes, ahead of the legacy onActivate callback)
+   */
+  onOpen?: (() => void) | undefined;
+  /** Compatibility name for `onOpen`; use `onOpen` in new code. */
   onActivate?: (() => void) | undefined;
   /**
    * When the quoted message was sent, a `Date`, an ISO string or milliseconds. Drawn after the author as
@@ -97,7 +110,8 @@ export interface MessageQuote {
   atText?: string | undefined;
   /**
    * A line above the quote, such as "Replied in thread: " and a `Link` or `Button` with the thread's title. It
-   * is outside the quote, so the link is its own control even when the quote has `onActivate`.
+   * is outside the quote, so the link is its own control even when the quote has `href` or `onOpen`.
+   * @claim "is outside the quote, so the link" registry/ouro/components/ouro/message/message.quote-link.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.quote-link.test.tsx::Message quote link > keeps a linked thread context outside the linked quote and preserves a custom accessible label)
    */
   context?: ReactNode | undefined;
   /** What screen readers hear in place of "Reply to" and the author's name, before the excerpt. @default `Reply to ${author}, ${day}` */
@@ -143,7 +157,7 @@ export interface MessageOwnProps {
    * forced colors draw. In a run of `continued` messages from one sender, the corners where neighboring bubbles meet
    * are slightly less round (`--ouro-message-joined-radius`, `--radius-ouro-xl` unless set), on the side the bubbles sit (the end
    * for the user's own, the start for others', mirrored in right-to-left), and `MessageList` keeps
-   * `--ouro-message-run-gap` (`--ouro-size-1` unless set) between them. Inside the user's own bubble, the theme's colors follow the fill, so a
+   * `--ouro-message-run-gap` (`--ouro-size-2` unless set) between them. Inside the user's own bubble, the theme's colors follow the fill, so a
    * link (underlined), a mention, a quote, a button or a focus ring in it stays readable on it; on others', a link, a mention or muted text
    * follows the bubble's own text color instead of the page's, so it keeps 4.5:1 there too. `raised` is a workplace chat's: others' messages on a raised card with
    * a hairline and a small shadow, the user's own in a tint of the primary color. A `reply` with a
@@ -1016,14 +1030,14 @@ export function Message(props: MessageProps): JSX.Element {
             bubble
           )}
           {attachments !== undefined && attachments !== null && (
-            <div data-ouro-message-attachments="" className={cn("flex max-w-full flex-wrap gap-2", role === "user" && "justify-end")}>
+            <div data-ouro-message-attachments="" className={cn("mt-1 flex max-w-full flex-wrap gap-2", role === "user" && "justify-end")}>
               {attachments}
             </div>
           )}
           {notSent}
           {sending(role === "user" ? "absolute end-full bottom-0 me-2" : "absolute start-full bottom-0 ms-2")}
-          {extra("footer", role === "user", false, footer)}
-          {extra("thread", role === "user", false, thread)}
+          {extra("footer", role === "user", false, footer, true)}
+          {extra("thread", role === "user", false, thread, true)}
         </div>
       </article>
     );
@@ -1076,10 +1090,16 @@ export function Message(props: MessageProps): JSX.Element {
   const contentBox = (
     <div
       data-ouro-message-content=""
+      data-ouro-part="bubble"
       hidden={!worded}
       style={surfaceColors}
       className={cn(
         "relative box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]",
+        // MessageList marks a message that just arrived; its bubble grows from the corner at its tail, on the bounce tokens.
+        end
+          ? "[transform-origin:100%_100%] [[data-ouro=message][data-starting-style]_&]:motion-safe:[animation:ouro-message-sent_var(--ouro-duration-bounce)_var(--ouro-ease-bounce)] rtl:[transform-origin:0_100%]"
+          : "[transform-origin:0_100%] [[data-ouro=message][data-starting-style]_&]:motion-safe:[animation:ouro-message-received_var(--ouro-duration-bounce)_var(--ouro-ease-bounce)] rtl:[transform-origin:100%_100%]",
+        "[[data-ouro=message][data-starting-style]_&]:motion-reduce:[animation:ouro-message-fade_var(--ouro-duration-fast)_ease]",
         surface,
         marked ? "pb-6" : "has-[>[data-ouro=code-block]:last-child]:pb-3",
       )}
@@ -1154,9 +1174,9 @@ export function Message(props: MessageProps): JSX.Element {
         ref={post ? slot : undefined}
         data-ouro-message-body=""
         className={cn(
-          "relative flex min-w-0 gap-1",
+          "relative flex min-w-0 gap-2",
           // A post's rows wrap in a row, so an unanswered post's Reply ends its name line and the rest take a line each.
-          post ? "flex-row flex-wrap items-center gap-x-2" : "flex-col",
+          post ? "flex-row flex-wrap items-center gap-x-2 gap-y-1" : "flex-col",
           shape === "chat" ? "max-w-[min(85%,36rem)]" : "flex-1",
           !post && (end ? "items-end" : "items-start"),
           post && postHairline,
@@ -1166,7 +1186,18 @@ export function Message(props: MessageProps): JSX.Element {
         {!post && !room && worded ? (
           contentBox
         ) : (
-          <div ref={post ? undefined : slot} className={cn("relative box-border flex max-w-full min-w-0 flex-col", end ? "items-end" : "items-start", post && postRow)}>
+          <div
+            ref={post ? undefined : slot}
+            className={cn(
+              "relative box-border flex max-w-full min-w-0 flex-col",
+              end ? "items-end" : "items-start",
+              post && postRow,
+              // The bar beside the bubble is absolutely positioned level with its top, so a bubble shorter than the bar
+              // (36px, 40px below the button's sm: breakpoint) would let it overflow past the row's own bottom edge,
+              // eating into the gap below: reserve the bar's height so a short bubble's row is never shorter than it (#3617).
+              !post && room && beside !== undefined && "min-h-10 sm:min-h-9",
+            )}
+          >
             {contentBox}
             {!post && bar}
           </div>
@@ -1244,6 +1275,7 @@ const onPrimary = {
  * the `context` line. Screen readers hear "Reply to Ana, <day>" in place of the author's name, then the excerpt.
  */
 function quoteBox(quote: MessageQuote, primaryBubble: boolean): JSX.Element {
+  const onOpen = quote.onOpen ?? quote.onActivate;
   const day = quoteDay(quote);
   const body = (
     <>
@@ -1270,8 +1302,26 @@ function quoteBox(quote: MessageQuote, primaryBubble: boolean): JSX.Element {
   // With no context line the quote stands alone, so a message with a quote draws no wrapper for it.
   const alone = !quote.context;
   const own = alone ? { className: "mb-2", style: primaryBubble ? onPrimary : undefined } : {};
-  const box = quote.onActivate ? (
-    <button type="button" data-ouro-control="message" data-ouro-part="quote" data-ouro-message-quote="" data-ouro-allow="nested-frame" data-ouro-allow-why={why} onClick={quote.onActivate} className={cn(quoteClass, quoteButtonClass, own.className)} style={own.style}>
+  const box = quote.href !== undefined ? (
+    <RouterLink
+      href={quote.href}
+      data-ouro-control="message"
+      data-ouro-part="quote-link"
+      data-ouro-message-quote=""
+      data-ouro-allow="nested-frame"
+      data-ouro-allow-why={why}
+      onClick={onOpen && ((event) => {
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        onOpen();
+      })}
+      className={cn(quoteClass, quoteButtonClass, "no-underline pointer-coarse:min-h-ouro-11", own.className)}
+      style={own.style}
+    >
+      {body}
+    </RouterLink>
+  ) : onOpen ? (
+    <button type="button" data-ouro-control="message" data-ouro-part="quote" data-ouro-message-quote="" data-ouro-allow="nested-frame" data-ouro-allow-why={why} onClick={onOpen} className={cn(quoteClass, quoteButtonClass, own.className)} style={own.style}>
       {body}
     </button>
   ) : (
@@ -1282,7 +1332,7 @@ function quoteBox(quote: MessageQuote, primaryBubble: boolean): JSX.Element {
   if (alone) return box;
   return (
     <div data-slot="message-quote-group" data-ouro-message-quote-group="" className="mb-2 flex min-w-0 flex-col gap-1" style={primaryBubble ? onPrimary : undefined}>
-      <div data-slot="message-quote-context" data-ouro-message-quote-context="" className="min-w-0 truncate text-xs text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
+      <div data-slot="message-quote-context" data-ouro-message-quote-context="" className="min-w-0 truncate text-xs leading-5 text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">
         {quote.context}
       </div>
       {box}
@@ -1299,7 +1349,7 @@ function wordsFor(presence: string, label: string | undefined): string {
  * A row under the message (its footer or thread), or nothing when the app passed nothing. A post's rows keep a little
  * more room, and a post's thread that is only Reply (nobody has replied) ends the name line instead.
  */
-function extra(slot: "footer" | "thread", end: boolean, post: boolean, children: ReactNode): JSX.Element | null {
+function extra(slot: "footer" | "thread", end: boolean, post: boolean, children: ReactNode, spaced = false): JSX.Element | null {
   if (children === undefined || children === null || children === false) return null;
   return (
     <div
@@ -1308,6 +1358,7 @@ function extra(slot: "footer" | "thread", end: boolean, post: boolean, children:
         "flex max-w-full min-w-0 flex-wrap items-center gap-2",
         end && "justify-end",
         post && ["mt-1", postRow],
+        spaced && "mt-1",
         post && slot === "thread" && "has-data-ouro-thread-summary-unanswered:order-2 has-data-ouro-thread-summary-unanswered:mt-0 has-data-ouro-thread-summary-unanswered:basis-auto",
       )}
     >

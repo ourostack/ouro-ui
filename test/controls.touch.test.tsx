@@ -30,10 +30,21 @@ it("clicks a clipped message action without losing the intended row", async () =
   await userEvent.hover(row.querySelector<HTMLElement>("[data-ouro-message-content]")!);
   await expect.poll(() => row.querySelector('button[aria-label="More actions"]')).not.toBeNull();
   await settle();
+  const firstOpener = overlayOpeners("Message/Chat", host).find((candidate) => candidate.name === "More actions");
+  expect(firstOpener?.element?.closest('[data-ouro="message"]')).toBe(row);
+  expect(firstOpener!.element!.getBoundingClientRect().top).toBeLessThan(scroller.getBoundingClientRect().top);
+  // Scrolling the clipped trigger into view here, ahead of the click, keeps the row's layer showing through the
+  // click's own actionability scroll: a longer run of messages (more rows, more gap between them) scrolls further
+  // to bring the trigger into view, and a hide-then-reshow that chases a click already under way can lose the race.
+  // The layer unmounts the trigger on hide, so the opener is re-found once it is back: the one the click presses.
+  firstOpener!.element!.scrollIntoView({ block: "nearest" });
+  await settle();
+  await userEvent.hover(row.querySelector<HTMLElement>("[data-ouro-message-content]")!);
+  await expect.poll(() => row.querySelector('button[aria-label="More actions"]')).not.toBeNull();
+  await settle();
   const opener = overlayOpeners("Message/Chat", host).find((candidate) => candidate.name === "More actions");
   expect(opener?.element?.closest('[data-ouro="message"]')).toBe(row);
   const trigger = opener!.element!;
-  expect(trigger.getBoundingClientRect().top).toBeLessThan(scroller.getBoundingClientRect().top);
   const presses: { target: Element | null; row: Element | null; trusted: boolean }[] = [];
   const pressed = (event: PointerEvent) => {
     const target = event.target instanceof Element ? event.target.closest("button") : null;

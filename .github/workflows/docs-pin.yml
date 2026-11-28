@@ -214,8 +214,14 @@ jobs:
           git switch -q -c "$BRANCH"
           git add -A
           git commit -q -m "Point docs at $TAG"
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          git push -q --force origin "$BRANCH"
+          # A branch that already pins this release or a newer one (rebuilt by hand under the attributed account) is never overwritten (#4116).
+          if git fetch -q --depth=1 origin "$BRANCH" 2>/dev/null && node scripts/branch-holds-pin.mjs docs "$TAG"; then
+            echo "::notice::$BRANCH already pins $TAG or newer, so it is not pushed over."
+            echo "sha=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            git push -q --force origin "$BRANCH"
+          fi
       - if: steps.pin.outputs.result == 'changed' && steps.same.outputs.same != 'true' && steps.queued.outputs.queued != 'true'
         id: pr
         name: Open or update the pull request, and turn auto-merge on

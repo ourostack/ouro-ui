@@ -135,6 +135,10 @@
     "status": 200,
     "checked": "2026-11-06"
   },
+  "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue": {
+    "status": 200,
+    "checked": "2026-11-26"
+  },
   "https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository": {
     "status": 200,
     "checked": "2026-11-06"
@@ -150,10 +154,6 @@
   "https://docs.npmjs.com/cli/commands/npm-docs": {
     "status": 200,
     "checked": "2026-11-06"
-  },
-  "https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue": {
-    "status": 200,
-    "checked": "2026-11-26"
   },
   "https://en.wikipedia.org/wiki/Crustacean": {
     "status": 200,
@@ -363,9 +363,17 @@
     "status": 200,
     "checked": "2026-11-23"
   },
-  "https://github.com/ourostack/ouro-ui-apple/blob/368cd4b777b63f91bbc2664351c6b851801b7269/core-provenance.json": {
+  "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/decisions/2026-11-27-ouro-feel-principles.md": {
     "status": 200,
-    "checked": "2026-11-23"
+    "checked": "2026-11-27"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/ouro-feel/README.md": {
+    "status": 200,
+    "checked": "2026-11-27"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/49d9f9fdfc73caa90acad474cff833501cbaa454/docs/ouro-feel/checks.json": {
+    "status": 200,
+    "checked": "2026-11-27"
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L11-L13": {
     "status": 200,
@@ -380,18 +388,6 @@
     "checked": "2026-11-06"
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L154-L160": {
-    "status": 200,
-    "checked": "2026-11-06"
-  },
-  "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L246-L250": {
-    "status": 200,
-    "checked": "2026-11-06"
-  },
-  "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L44-L60": {
-    "status": 200,
-    "checked": "2026-11-06"
-  },
-  "https://github.com/ourostack/ouro-ui-apple/blob/700c973facc51ab0c00354bffb940c6cbae0340f/docs/ouro-feel/README.md#L48-L59": {
     "status": 200,
     "checked": "2026-11-06"
   },
@@ -426,6 +422,10 @@
   "https://github.com/ourostack/ouro-ui-apple/blob/b0580c86da4d81e8d4e07bb8dcaf143a01454cd9/Tests/OuroA2UITests/ComposedTests.swift": {
     "status": 200,
     "checked": "2026-11-18"
+  },
+  "https://github.com/ourostack/ouro-ui-apple/blob/b2b4a079a35424fccd1884be28ee2f3708c25b93/core-provenance.json": {
+    "status": 200,
+    "checked": "2026-11-28"
   },
   "https://github.com/ourostack/ouro-ui-apple/blob/c9a84aff2ec71b92981d70595df3158f7ba2c4d0/Package.swift#L1-L9": {
     "status": 200,
@@ -495,9 +495,9 @@
     "status": 200,
     "checked": "2026-11-18"
   },
-  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.10.1": {
+  "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.12.0": {
     "status": 200,
-    "checked": "2026-11-23"
+    "checked": "2026-11-28"
   },
   "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.2.0": {
     "status": 200,

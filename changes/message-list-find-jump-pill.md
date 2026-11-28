@@ -1,0 +1,1 @@
+- Fix: MessageList no longer leaves the "Jump to latest" pill overlapping the message a find's own scroll to its current match landed on, away from the list's true bottom

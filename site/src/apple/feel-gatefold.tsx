@@ -93,10 +93,10 @@ export function GatefoldFlip(): JSX.Element {
                 {which === "before"
                   ? "A person would just see a panel that looks a bit cramped. Feel read the controls' frames against the window, in portrait, landscape and portrait again, and found the switches had wandered off the edge of the world."
                   : "Same check, same simulator, one fix later, and the whole panel is back on the page. Flip back and forth; the panel doesn't have to be told twice."}{" "}
-                <a className="apple-inline-link" href={href("/apple/feel/#genres")} tabIndex={which === side ? undefined : -1}>
+                <a className="apple-inline-link" href={href("/apple/feel/#principles")} tabIndex={which === side ? undefined : -1}>
                   Inside the window
                 </a>{" "}
-                is just one genre.
+                is just one check.
               </p>
             </div>
           ))}

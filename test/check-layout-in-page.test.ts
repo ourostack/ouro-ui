@@ -173,6 +173,30 @@ describe("findLayoutIssues: near-miss", () => {
     ]);
   });
 
+  it("separates a modal plane from its background without hiding gaps within either plane", () => {
+    render(`
+      ${box("behind", 10, 20, 60, 30)}
+      ${box("back-a", 10, 160, 60, 30)}${box("back-b", 74, 160, 60, 30)}
+      <div role="dialog" aria-modal="true" style="position:fixed;left:40px;top:0;width:240px;height:120px;background:white;z-index:2">
+        ${box("front-a", 74, 20, 60, 30)}${box("front-b", 138, 20, 60, 30)}
+      </div>`);
+    expect(found()).toEqual([["div#back-a and div#back-b", "4px"], ["div#front-a and div#front-b", "4px"]]);
+    host.querySelector('[role="dialog"]')!.removeAttribute("aria-modal");
+    expect(found()).toContainEqual(["div#behind and div#front-a", "4px"]);
+  });
+
+  it("keeps a modal's inner spacing separate from a surface outside its unfilled frame", () => {
+    render(`
+      <div id="background" style="position:fixed;left:10px;top:10px;width:200px;height:100px;background:#eee">
+        <div role="alertdialog" aria-modal="true">
+          ${box("inside", 14, 30, 60, 30)}
+        </div>
+      </div>`);
+    expect(found()).toEqual([]);
+    host.querySelector('[role="alertdialog"]')!.removeAttribute("aria-modal");
+    expect(found()).toEqual([["div#background and div#inside", "4px"]]);
+  });
+
   it("finds a picture, an outlined box, a ringed one and a framed one as surfaces, and one finding for two cards with parts in them", () => {
     render(`
       <img id="p" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" style="position:fixed;left:10px;top:10px;width:60px;height:30px">
@@ -268,10 +292,76 @@ describe("findLayoutIssues: near-miss", () => {
     const scroller = host.querySelector("#scroller")!;
     scroller.scrollTop = 174;
     expect(found()).toEqual([]);
+    // The same pair with the button first in the document, so the scrolling side is the second of the pair.
+    host.append(host.querySelector("#jump")!.cloneNode(true));
+    host.querySelector("#jump")!.remove();
+    host.prepend(host.lastElementChild!);
+    expect(found()).toEqual([]);
     host.innerHTML = `
       ${box("bubble2", 10, 136, 60, 30)}
       ${box("jump2", 10, 170, 60, 30)}`;
     expect(found()).toEqual([["div#bubble2 and div#jump2", "4px"]]);
+  });
+
+  it("finds content that scrolls a few pixels short of a bar that sits in the page after the scroller, since that bar does not float", () => {
+    render(`
+      <div id="pane" style="position:fixed;left:10px;top:10px;width:200px">
+        <div id="scroller" style="height:200px;overflow-y:auto;background:#eee">
+          <div style="height:300px"></div>
+          <div id="bubble" style="width:60px;height:30px;background:#cde"></div>
+          <div style="height:300px"></div>
+        </div>
+        <div id="bar" style="width:60px;height:30px;background:#cde"></div>
+      </div>`);
+    host.querySelector("#scroller")!.scrollTop = 134;
+    expect(found()).toContainEqual(["div#bubble and div#bar", "4px"]);
+  });
+
+  it("passes a surface a box around it clips wholly away, as one scrolled out of its pane, with what is outside that box, but finds two the box hides, one in a box with no box of its own, and a fixed or absolute one, or one in a fixed box, that escapes it", () => {
+    // A header's surface, and a pane under it whose page scrolled its own surface up 3px under the header's; and a row
+    // that scrolled its surface 3px beside the one before the row. Each pane clips its surface away, so it's drawn nowhere.
+    render(`
+      <div style="position:fixed;left:10px;top:10px;width:300px">
+        <div id="head" style="padding:10px 20px 38px"><div id="new" style="width:120px;height:32px;background:#cde"></div></div>
+        <div id="pane" style="height:200px;overflow:auto"><div id="page" style="height:800px;padding:100px 20px 0"><div id="not" style="width:120px;height:32px;background:#cde"></div></div></div>
+      </div>
+      <div style="position:fixed;left:10px;top:400px;display:flex;gap:70px">
+        <div id="start" style="width:60px;height:30px;background:#cde"></div>
+        <div id="row" style="width:200px;overflow-x:auto;overflow-y:hidden"><div style="width:800px;padding-left:100px"><div id="item" style="width:60px;height:30px;background:#cde"></div></div></div>
+      </div>`);
+    host.querySelector("#pane")!.scrollTop = 135;
+    host.querySelector("#row")!.scrollLeft = 167;
+    expect([host.querySelector("#not")!.getBoundingClientRect().top, host.querySelector("#item")!.getBoundingClientRect().left]).toEqual([55, 73]);
+    expect(found()).toEqual([]);
+    host.querySelector("#head")!.insertAdjacentHTML("beforeend", '<div style="display:contents;overflow:auto"><div id="shown" style="width:120px;height:32px;margin-top:3px;background:#cde"></div></div>');
+    expect(found()).toEqual([["div#new and div#shown", "3px"]]);
+    // Surfaces in the pane that escape it, 3px beside the header's: a fixed one, one in a fixed box, and an absolute one
+    // whose containing block is outside the pane.
+    host.querySelector("#page")!.insertAdjacentHTML(
+      "beforeend",
+      `${box("fixed", 153, 20, 60, 30)}<div style="position:fixed;left:153px;top:60px"><div id="under" style="width:60px;height:30px;background:#cde"></div></div>${box("abs", 160, 400, 60, 30).replace("fixed", "absolute")}`,
+    );
+    host.querySelector("#head")!.insertAdjacentHTML("beforeend", box("abs2", 223, 400, 60, 30).replace("fixed", "absolute"));
+    expect(found()).toEqual([
+      ["div#new and div#shown", "3px"],
+      ["div#new and div#fixed", "3px"],
+      ["div#shown and div#under", "3px"],
+      ["div#abs2 and div#abs", "3px"],
+    ]);
+    // A row that hides its overflow, its surface past its end and 3px inside the card around it; a box that hides its
+    // surface 3px above the one after the box; and a pane that hides two surfaces 3px apart below its end, whose gap is
+    // their design wherever the pane scrolls; and a pane that shows its surface 3px from a static one beside the pane, below it and above it.
+    host.innerHTML = `
+      <div id="card" style="position:fixed;left:10px;top:10px;width:300px;height:100px;box-sizing:border-box;padding:40px;background:#eee"><div style="width:100px;height:30px;overflow:hidden"><div style="width:60px;height:30px;margin-left:197px;background:#cde"></div></div></div>
+      <div style="position:fixed;left:10px;top:400px;width:60px;height:30px;overflow:hidden"><div style="width:60px;height:30px;margin-top:40px;background:#cde"></div></div>${box("after", 10, 473, 60, 30)}
+      <div style="position:fixed;left:10px;top:200px;width:200px;height:100px;overflow:auto"><div style="height:200px"></div>${box("c", 0, 0, 60, 30).replace("position:fixed;", "")}${box("d", 0, 0, 60, 30).replace("position:fixed;", "margin-top:3px;")}</div>
+      <div style="position:fixed;left:400px;top:10px"><div style="height:30px;overflow-y:auto"><div id="e" style="width:60px;height:30px;background:#cde"></div><div style="height:90px"></div></div><div id="f" style="width:60px;height:30px;margin-top:3px;background:#cde"></div></div>
+      <div style="position:fixed;left:600px;top:10px"><div id="g" style="width:60px;height:30px;margin-bottom:3px;background:#cde"></div><div style="height:30px;overflow-y:auto"><div id="h" style="width:60px;height:30px;background:#cde"></div><div style="height:90px"></div></div></div>`;
+    expect(found()).toEqual([
+      ["div#c and div#d", "3px"],
+      ["div#e and div#f", "3px"],
+      ["div#g and div#h", "3px"],
+    ]);
   });
 
   it("passes a pill that floats because its header does, paired with content that scrolls under it", () => {

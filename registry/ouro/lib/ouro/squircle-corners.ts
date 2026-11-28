@@ -1,3 +1,5 @@
+import { squircleCorner, splitCornerRadii } from "./squircle-curve.ts";
+
 export { squircleCorners };
 export { squircleCornersDedupe };
 export default squircleCorners;
@@ -21,9 +23,6 @@ interface Node {
 const CLIP = "(clip-path: shape(from 0 0, close))";
 const MISSING = `(not (corner-shape: squircle)) and ${CLIP}`;
 const ENCLOSING_CIRCLE = 0.543;
-// Ouro's two-Bezier corner (within 0.03% of the n=4 superellipse) in units of the radius: start, then each curve's two
-// controls and end, drawn from the corner's left edge to its top edge.
-const CORNER = [[0, 1], [0, 0.613, -0.0092, 0.3274, 0.1591, 0.1591], [0.3274, -0.0092, 0.613, 0, 1, 0]] as const;
 const KEYS = ["tl", "tr", "br", "bl"] as const;
 const LONGHANDS: Record<string, number> = {
   "border-top-left-radius": 0, "border-start-start-radius": 0,
@@ -251,27 +250,11 @@ function cornersOf(rule: Node): (string | null)[] {
     if (decl.type !== "decl") continue;
     const value = decl.value!.trim();
     if (decl.prop === "border-radius" && !value.includes("/")) {
-      const [a, b = a, c = a, d = b] = splitTop(value);
+      const [a, b = a, c = a, d = b] = splitCornerRadii(value);
       out.splice(0, 4, a ?? null, b ?? null, c ?? null, d ?? null);
-    } else if (decl.prop! in LONGHANDS) out[LONGHANDS[decl.prop!]!] = splitTop(value)[0] ?? null;
+    } else if (decl.prop! in LONGHANDS) out[LONGHANDS[decl.prop!]!] = splitCornerRadii(value)[0] ?? null;
   }
   return out;
-}
-
-function splitTop(value: string): string[] {
-  const parts: string[] = [];
-  let depth = 0;
-  let start = 0;
-  for (let i = 0; i <= value.length; i++) {
-    const ch = value[i];
-    if (ch === "(") depth++;
-    else if (ch === ")") depth--;
-    else if ((ch === " " || ch === undefined) && depth === 0) {
-      if (i > start) parts.push(value.slice(start, i));
-      start = i + 1;
-    }
-  }
-  return parts;
 }
 
 const px = (v: string) => (/px$/.test(v) ? parseFloat(v) : /rem$/.test(v) ? parseFloat(v) * 16 : NaN);
@@ -290,9 +273,7 @@ function isRound(value: string, rule: Node): boolean {
 function clipPath(): string {
   const n = (x: number, k: string) => `calc(var(--sq-${k}) * ${Number(x.toFixed(4))})`;
   const curves = KEYS.map((k, i) => {
-    const pts: [number, number][] = [[CORNER[0]![0]!, CORNER[0]![1]!]];
-    for (const c of [CORNER[1], CORNER[2]]) for (let j = 0; j < 6; j += 2) pts.push([c![j]!, c![j + 1]!]);
-    const placed = pts.map(([u, v]) => [i === 1 || i === 2 ? -u : u, i >= 2 ? -v : v] as [number, number]);
+    const placed = squircleCorner.map(([u, v]) => [i === 1 || i === 2 ? -u : u, i >= 2 ? -v : v] as [number, number]);
     if (i === 1 || i === 3) placed.reverse();
     const rel = (p: [number, number], from: [number, number]) => `${n(p[0] - from[0], k)} ${n(p[1] - from[1], k)}`;
     return [0, 3].map((s) => `curve by ${rel(placed[s + 3]!, placed[s]!)} with ${rel(placed[s + 1]!, placed[s]!)} / ${rel(placed[s + 2]!, placed[s]!)}`).join(", ");

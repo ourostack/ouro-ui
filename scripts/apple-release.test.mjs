@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { compare, describe, judge, LAG_LIMIT_MS, latestRelease, parse, staleness, statedVersions } from "./apple-release.mjs";
+import { compare, describe, judge, LAG_LIMIT_MS, lagStart, latestRelease, parse, staleness, statedVersions } from "./apple-release.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const real = (path) => readFileSync(join(root, path), "utf8");
@@ -168,4 +168,19 @@ test("the workflow runs hourly, on a change to the pages and by hand, and report
   assert.match(text, /^ {8}id: compare\n {8}env:\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n {8}run: \|\n {10}if \[ "\$GITHUB_EVENT_NAME" = pull_request \]; then node scripts\/apple-release\.mjs --base base; else node scripts\/apple-release\.mjs; fi$/m);
   assert.match(text, /needs: \[compare\]\n\s+if: always\(\) && needs\.compare\.outputs\.behind == 'true' && github\.event_name != 'pull_request'/);
   assert.match(text, /QUIET_HOURS: 24/);
+});
+
+test("the lag is measured from the oldest release main is behind on, so a newer release does not reset it", () => {
+  const releases = [
+    { version: "1.12.0", publishedAt: "2026-11-28T03:00:00Z" },
+    { version: "1.11.0", publishedAt: "2026-11-27T20:00:00Z" },
+    { version: "1.10.1", publishedAt: "2026-11-27T10:00:00Z" },
+  ];
+  const stale = [{ where: "x", version: "1.10.1", kind: "behind" }];
+  const since = lagStart(releases, stale, releases[0].publishedAt);
+  assert.equal(since, "2026-11-27T20:00:00Z");
+  const now = Date.parse("2026-11-28T03:39:00Z");
+  assert.equal(judge({ event: "schedule", latest: "1.12.0", stale, publishedAt: releases[0].publishedAt, now }).fail, false, "judged from the newest, it only warns");
+  assert.equal(judge({ event: "schedule", latest: "1.12.0", stale, publishedAt: since, now }).fail, true, "judged from the oldest, it fails");
+  assert.equal(lagStart(releases, [], "fallback"), "fallback");
 });

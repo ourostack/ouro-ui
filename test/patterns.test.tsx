@@ -99,7 +99,7 @@ describe("SettingsPage", () => {
     await userEvent.fill(field("Display name"), "Edited");
     await userEvent.click(page.getByRole("button", { name: "Delete account" }));
     await expect.element(page.getByRole("alertdialog")).toBeVisible();
-    await passesAxe();
+    expect(onDelete).not.toHaveBeenCalled();
     await userEvent.click(page.getByRole("alertdialog").getByRole("button", { name: "Delete account" }));
     await expect.poll(() => onDelete.mock.calls.length).toBe(1);
     await expect.element(field("Display name")).toHaveValue("");
@@ -109,6 +109,13 @@ describe("SettingsPage", () => {
     await userEvent.fill(field("Email"), "bo@example.com");
     await userEvent.click(page.getByRole("button", { name: "Save" }));
     await expect.element(status()).toHaveTextContent("Settings saved.");
+  });
+
+  it("passes axe with the delete confirmation open", async () => {
+    await render(<SettingsPage />);
+    await userEvent.click(page.getByRole("button", { name: "Delete account" }));
+    await expect.element(page.getByRole("alertdialog")).toBeVisible();
+    await passesAxe();
   });
 
   it("clears what it said while the next save runs, so each save is announced and a failed one never reads as saved", async () => {
@@ -281,12 +288,19 @@ describe("ListDetailPage", () => {
   });
 
   it("shows the entry a row's press chooses, and marks that row shown", async () => {
-    await render(<ListDetailPage />);
-    await userEvent.click(row("Lentil soup"));
-    await expect.element(page.getByRole("heading", { level: 2, name: "Lentil soup" })).toBeVisible();
-    await expect.element(row("Lentil soup")).toHaveAttribute("aria-current", "true");
-    expect(row("Braised short ribs").element().hasAttribute("aria-current")).toBe(false);
-    expect(section().getAttribute("aria-label")).toBe("Lentil soup");
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await render(<ListDetailPage />);
+      await userEvent.click(row("Lentil soup"));
+      await expect.element(page.getByRole("heading", { level: 2, name: "Lentil soup" })).toBeVisible();
+      await expect.element(row("Lentil soup")).toHaveAttribute("aria-current", "true");
+      expect(row("Braised short ribs").element().hasAttribute("aria-current")).toBe(false);
+      expect(section().getAttribute("aria-label")).toBe("Lentil soup");
+      // Finish this selection's announcement before the next test starts watching.
+      await act(() => vi.advanceTimersByTimeAsync(1500));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("says which entry is showing when a row is chosen beside the list, where focus stays in the list, and says nothing on a phone, where focus moves to the heading", async () => {

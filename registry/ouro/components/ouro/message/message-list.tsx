@@ -257,6 +257,21 @@ export interface MessageListOwnProps {
   /** Called with how many matches there are and which is current, whenever either changes, or `partial` does. See {@link MessageListFindReport}. */
   onFindMatches?: ((report: MessageListFindReport) => void) | undefined;
   /**
+   * A composer that floats over the list's bottom edge, as a phone's messaging app floats its own, so
+   * the messages scroll on beneath it instead of stopping at an opaque bar across the pane's foot. The
+   * list measures it and keeps that much room under its last message, so the newest sits just above it
+   * rather than behind it, and keeps that room in view as the reader scrolls or tabs to a message. It
+   * floats Jump to latest above it too. A composer that grows as the reader types (a textarea that
+   * autosizes) keeps the list at its end while the reader is there, as a new message arriving does.
+   * Leave it out, and put your composer under MessageList instead, for a plain bar across the pane's foot.
+   * @claim "The list measures it and keeps that much room" registry/ouro/components/ouro/message/message-list.foot.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.foot.test.tsx::MessageList foot > reserves room under the last message for the foot's measured height, with scroll-padding-bottom to match)
+   * @claim "It floats Jump to latest above it too" registry/ouro/components/ouro/message/message-list.foot.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.foot.test.tsx::MessageList foot > floats Jump to latest above the foot, not overlapping it)
+   * @claim "keeps the list at its end while the reader is there" registry/ouro/components/ouro/message/message-list.foot.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.foot.test.tsx::MessageList foot > keeps a pinned reader at the list's end as the foot grows taller, covering no message)
+   * @example
+   * <MessageList label="Chat" foot={<Composer />}>{messages}</MessageList>
+   */
+  foot?: ReactNode | undefined;
+  /**
    * Layout only: the list's height (`h-96`, `flex-1`), margins. It scrolls inside that
    * height, so give it one. Appearance classes warn in development.
    */
@@ -643,6 +658,10 @@ let layerModule: Promise<typeof MessageBarLayer> | undefined;
 let loadedLayer: typeof MessageBarLayer | undefined;
 const loadLayer = () =>
   (layerModule ??= import("@/registry/ouro/components/ouro/message/message-parts").then((module) => (loadedLayer = module.MessageBarLayer)));
+// Fetched as the list's code loads, not at the first row with a bar: a first list then draws the layer's host with its first
+// frame, where waiting for a row added it a frame or more after the first.
+// Stryker disable next-line ConditionalExpression,StringLiteral: in a browser, true runs the same, as does comparing with "" (typeof is never ""); false never fetches, as the === mutant does, which message-list.preload.test.tsx fails.
+/* istanbul ignore else @preserve -- a server render has no document, and the tests run in a browser */ if (typeof document !== "undefined") void loadLayer();
 
 // The find layer and its marks, loaded with the first list that has `find`, so a list without it adds none of that code.
 let findPromise: Promise<typeof MessageFindLayer> | undefined;
@@ -795,6 +814,7 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
     // with the reader's scroll: a fling that a long frame gathered into one scroll event.
     const kick = isFlingKick(going, scrolling, scrolled, view.height) ? scrolled : 0;
     going = false;
+    const following = moving.size > 0;
     const band = nearby(view);
     const near = new Set(band.map(({ item }) => item));
     // A message that leaves the band is out of sight: it rests at once.
@@ -827,9 +847,9 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
       const next = springAt(state.value, 0, state.velocity, elapsed, SPRING);
       // Stryker disable next-line EqualityOperator: a spring lands exactly on the rest speed only by chance, and a frame later it rests either way.
       if (Math.abs(next.value) < REST && Math.abs(next.velocity) < REST_SPEED) {
-        // While the reader's scroll goes on, a message drawn away that comes back to its place waits there for the scroll's end,
+        // While the reader's scroll goes on, a message drawn away (even first reached in this frame) waits for the scroll's end,
         // asking for no frames: the next scroll event of a fling may come only after a long frame, and moves it again.
-        if (scrolling && shifts.has(item)) {
+        if (scrolling && (shifts.has(item) || (following && state.value !== 0))) {
           moving.set(item, { value: 0, velocity: 0 });
           draw(item, 0);
         } else rest(item);
@@ -1152,6 +1172,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     actionsRef,
     find,
     onFindMatches,
+    foot,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     autoScroll,
@@ -1218,6 +1239,27 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [jumpRoom, setJumpRoom] = useState(false);
   const jumpRoomRef = useRef<HTMLDivElement | null>(null);
   const jumpRef = useRef<HTMLButtonElement | null>(null);
+  // The floating foot's measured height, which the content keeps as bottom padding and the scroller as
+  // scroll-padding-bottom, and which the reveal and keyboard-reveal math below reads live through the ref,
+  // since both are set up once, in effects with no dependencies.
+  const [footHeight, setFootHeight] = useState(0);
+  const footHeightRef = useRef(0);
+  const footRef = useRef<HTMLDivElement | null>(null);
+  footHeightRef.current = footHeight;
+  useLayoutEffect(() => {
+    const node = footRef.current;
+    if (!node) return setFootHeight(0);
+    const observer = new ResizeObserver(() => setFootHeight(node.offsetHeight));
+    observer.observe(node);
+    // Stryker disable next-line ArrowFunction: an observer left on a removed foot reports its height as 0, as the effect's own rerun sets it.
+    return () => observer.disconnect();
+  }, [foot]);
+  // A reveal or a find's own scroll can land anywhere in the conversation, unlike the reader's own scrolling, which
+  // only ever uncovers history above the end: whatever already sits at the view's bottom edge there may be exactly
+  // where the floating pill sits too, with no arrival ahead to earn room for it the usual way. Reserve room at
+  // once, rather than wait for one, so the pill never opens over a message either placed there. Shared by bring()
+  // (the reveal path) and useFindHighlights's scrollToCurrent (the find path), which scrolls on its own. A landing
+  // at the end reserves it too, and the list's resize and scroll handlers read pinned back and clear it at once.
   const [spoken, setSpoken] = useState<Spoken[]>([]);
   const nextId = useRef(0);
   // The newest label function, for the observer set up once below.
@@ -1847,15 +1889,20 @@ export function MessageList(props: MessageListProps): JSX.Element {
       };
       return topItems(content).find((item) => item.id === id) ?? keyed(id);
     };
-    // Scrolls the message to the middle of the view, or its top to the top when it is taller.
+    // Scrolls the message to the middle of the view, or its top to the top when it is taller. Whether that asked for the end or
+    // beyond it, so the list was clamped there and sits at its end.
     const centre = (target: HTMLElement) => {
       const view = scroller.getBoundingClientRect();
       const box = boxOf(target);
-      scroller.scrollTop += box.top - view.top - Math.max(0, (scroller.clientHeight - box.height) / 2);
+      const wanted = scroller.scrollTop + box.top - view.top - Math.max(0, (scroller.clientHeight - box.height) / 2);
+      // Stryker disable next-line EqualityOperator,ArithmeticOperator: a centring within a pixel or two of the end clamps to it or stops short of it, and the list follows the end from there either way.
+      const reachesEnd = wanted >= scroller.scrollHeight - scroller.clientHeight - AT_BOTTOM;
+      scroller.scrollTop = wanted;
       ownTop.current = scroller.scrollTop;
       // Stryker disable next-line BooleanLiteral: both callers reach centre with the hold already clear, open()'s initial
       // ref default and reopen()'s followEnd (toBottom) called just before it, so a test cannot tell this write from none.
       held.current = false;
+      return reachesEnd;
     };
     const open = () => {
       if (content.querySelector(items) === null) return;
@@ -1872,16 +1919,16 @@ export function MessageList(props: MessageListProps): JSX.Element {
         return keepAnchor();
       }
       // In the middle of the view, or its top at the view's top when it is taller. The springs are at rest as it opens.
-      centre(target);
+      const reachesEnd = centre(target);
       // Heights above it may still be estimates: hold(), below, re-centres on this once they are known.
       openTargetRef.current = target;
       // Held from here, so older messages loading before the browser reports this scroll leave it where it opened, and
       // following only if it opened at the end (the anchor was the newest).
       keepAnchor();
-      const newest = target === topItems(content).at(-1);
-      placed = newest ? null : scroller.scrollTop;
-      // Stryker disable next-line ConditionalExpression: the hold in the microtask after this reads the list at its end and follows it, so not following here changes nothing.
-      pinned.current = newest && atBottom();
+      // An anchor whose centring leaves the list at its end (little after it) opens pinned, as the newest one does.
+      pinned.current = reachesEnd;
+      // Stryker disable next-line ConditionalExpression: a list at its end keeps no place: the scroll event it brings finds the end and pins it, whether or not placed holds it.
+      placed = pinned.current ? null : scroller.scrollTop;
     };
     followEnd();
     keepAnchor();
@@ -1897,13 +1944,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // At the message `initialAnchor` names when the switch brings it, as the list opened at it; else at the end, as before.
       const target = anchored();
       if (target) {
-        centre(target);
+        const reachesEnd = centre(target);
         // Stryker disable next-line all: the same read as at open, for a switch to another conversation.
-        const newest = target === topItems(content).at(-1);
+        pinned.current = reachesEnd;
         // Stryker disable next-line all: the same read as at open, for a switch to another conversation.
-        placed = newest ? null : scroller.scrollTop;
-        // Stryker disable next-line all: the same read as at open, for a switch to another conversation.
-        pinned.current = newest && atBottom();
+        placed = pinned.current ? null : scroller.scrollTop;
       }
       // Stryker disable next-line CallExpression: the observer's hold in the microtask after the commit takes the anchors and the end, before any frame or event; at the end of the new conversation, the next message is then followed.
       keepAnchor();
@@ -1927,7 +1972,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Whether the wheel turned since the last scroll that was not the list's own: the turn's scroll, which may not have begun yet.
     // Stryker disable next-line BooleanLiteral: before any turn, the last turn is never under WHEEL_START ago, so no scroll counts as one's either way.
     let wheelStarts = false;
-    const turning = () => wheelScrolling || performance.now() - wheelAt < Math.max(WHEEL_REST, 2 * wheelGap) || document.timeline.currentTime === wheelFrame;
+    // Whether the wheel's own scroll goes on, or it turned within the rest: the wheel still turning, short of a slow wheel's longer wait.
+    const scrolling = () => wheelScrolling || performance.now() - wheelAt < WHEEL_REST || document.timeline.currentTime === wheelFrame;
+    // Stryker disable next-line EqualityOperator: a turn exactly twice the gap ago counts as turning or not, and the next frame decides either way.
+    const turning = () => scrolling() || performance.now() - wheelAt < 2 * wheelGap;
     let resting: ReturnType<typeof setTimeout> | undefined;
     let restFrame = 0;
     // How close to an end, in px, the reader comes before the scroll position takes what is carried: a few frames of a fast wheel.
@@ -1941,6 +1989,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const nearEnd = () => {
       const top = scroller.scrollTop;
       const carried = carriedRef.current;
+      // A pixel or two carried (rows drawn a rounding apart) waits for the rest while the wheel's own scroll goes on: written now,
+      // it would stop that scroll short of where the reader sent it, for a move no one sees.
+      // Stryker disable next-line EqualityOperator: a carry of exactly two pixels waits or is paid, either too small to see.
+      if (wheelScrolling && Math.abs(carried) < 2) return false;
       // Where the view's bottom meets the bottom of what is drawn, drawn up by what is carried.
       const last = farthest() - carried;
       // Stryker disable next-line EqualityOperator: a scroll position exactly at the margin pays a frame sooner or later, and moves nothing on screen either way.
@@ -1974,12 +2026,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
       return applied;
     };
     // Lets the space go once the wheel rests: at the very top, where nothing on screen needs holding (the step that reached
-    // it already replaced the view), at once; past it, the content moves up by it as the scroll position does, so nothing on
-    // screen moves. Short of it (the reader scrolled back up, into the space, but not to its very top) the space stays, since
-    // letting it go there would move a message they can see.
+    // it already replaced the view), as soon as the wheel's own scroll has ended, since a slow wheel's later turn up there scrolls
+    // nothing, and waiting for it would leave the space showing and then move the rows the reader has stopped on; past it, the
+    // content moves up by it as the scroll position does, so nothing on screen moves. Short of it (the reader scrolled back up,
+    // into the space, but not to its very top) the space stays, since letting it go there would move a message they can see.
     const release = () => {
+      const top = scroller.scrollTop === 0;
       // Stryker disable next-line EqualityOperator: a reader exactly the space's height down lets it go now or at their next scroll, and nothing on screen moves either way.
-      if (slack === 0 || turning() || (scroller.scrollTop > 0 && scroller.scrollTop < slack)) return;
+      if (slack === 0 || (top ? scrolling() : turning()) || (!top && scroller.scrollTop < slack)) return;
       // Scrolled while the space still holds the scroll range, then the space goes.
       const range = farthest();
       const gone = slack;
@@ -1989,6 +2043,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // away are left out, so a change waiting for the resize observer is still held.
       taken += applied;
       end += farthest() - range;
+      // At the very top the scroll position takes none of it: the content moves up, and the view shows messages the space kept
+      // out of it. They hold the place from now on, as the one or two the space left in view may not survive older messages going
+      // in above them.
+      // Stryker disable next-line ConditionalExpression: past the space the content moves up as the scroll position does, so the messages in view are those the anchors hold already; taking them again there differs only for a change the resize observer has yet to report in that same frame, which no test reaches.
+      if (top) keepAnchor();
     };
     const pay = () => {
       // Stryker disable next-line CallExpression: a rest left waiting pays nothing once this has paid, and a carry since starts it again.
@@ -2047,7 +2106,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const rest = () => {
       // Stryker disable next-line CallExpression: a second rest left waiting pays once the wheel rests, as this one does, and the later of the two then pays nothing.
       clearTimeout(resting);
-      resting = setTimeout(() => (restFrame = requestAnimationFrame(() => (turning() ? rest() : pay()))), WHEEL_REST);
+      // Still turning, the space at the very top may already go (release), once the wheel's own scroll has ended.
+      resting = setTimeout(() => (restFrame = requestAnimationFrame(() => (turning() ? (release(), rest()) : pay()))), WHEEL_REST);
     };
     const carry = (by: number) => {
       carriedRef.current += by;
@@ -2403,7 +2463,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const bring = (element: HTMLElement, block: MessageListRevealBlock) => {
       const box = boxOf(element);
       const top = scroller.getBoundingClientRect().top;
-      const room = scroller.clientHeight;
+      // The floating foot covers the room nearest the scroller's own bottom edge.
+      const room = scroller.clientHeight - footHeightRef.current;
       const before = scroller.scrollTop;
       // Stryker disable next-line EqualityOperator: at the margin to the pixel, the message is where scrolling would put it.
       const above = box.top < top + EDGE || box.height > room - 2 * EDGE;
@@ -2412,6 +2473,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const centred = box.top - top - Math.max(0, (room - box.height) / 2);
       scroller.scrollTop += block === "center" ? centred : block === "start" || above ? box.top - top - EDGE : below ? box.bottom - top - room + EDGE : 0;
       springsRef.current?.moved(scroller.scrollTop - before);
+      setJumpRoom(true);
     };
     windowSync.current = (scrolled) => {
       const { windowed, keys, indexes, measured, band, reach, sizeOf } = viewRef.current;
@@ -2787,6 +2849,22 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // A reply that streams out of view stays drawn until it is heard, though it stops streaming.
     const publish = () => setWaitingKeys([...waiting].map(slotKeyOf).join("\n"));
     const redrawn = (message: Element) => viewRef.current.windowed && keysHeard.has(slotKeyOf(message));
+    // Marks a message that just arrived, so its bubble grows in (Message's styles read the mark). The mark comes off two
+    // frames after the arrival ends, not in its animationend: taking it off there drops the finished animation at once,
+    // which reads as a cancel to anything that watches it between frames, and a finished animation draws nothing anyway.
+    const arrive = (message: HTMLElement) => {
+      const done = (event: Event) => {
+        if (!(event as AnimationEvent).animationName.startsWith("ouro-message-")) return;
+        // Stryker disable next-line StringLiteral,CallExpression: a listener left on runs again only to take off a mark already gone.
+        message.removeEventListener("animationend", done);
+        // Stryker disable next-line StringLiteral,CallExpression: a listener left on runs again only to take off a mark already gone.
+        message.removeEventListener("animationcancel", done);
+        requestAnimationFrame(() => requestAnimationFrame(() => message.removeAttribute("data-starting-style")));
+      };
+      message.toggleAttribute("data-starting-style", true);
+      message.addEventListener("animationend", done);
+      message.addEventListener("animationcancel", done);
+    };
     const check = () => {
       const now = messages();
       const before = new Set(known);
@@ -2809,6 +2887,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           // the first `||` alone, false never changes the result some test here could observe.
           if (old === undefined || waiting.has(old) || texts.get(old) !== textOf(message)) {
             waiting.add(message);
+            if (!content.closest("[hidden]")) arrive(message);
             // A message new to the conversation's end, not merely redrawn by windowing nor a quiet replacement of the one
             // in its place: the newest drawn row could now reach the pill, so the room it keeps clear of it is owed.
             // Stryker disable next-line ConditionalExpression: while pinned, this same arrival also keeps the view following
@@ -2920,11 +2999,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const reveal = (element: Element) => {
       const box = boxOf(element);
       const view = scroller.getBoundingClientRect();
+      // The floating foot covers the room nearest the view's own bottom edge.
+      const height = view.height - footHeightRef.current;
+      const bottom = view.bottom - footHeightRef.current;
       // Stryker disable next-line EqualityOperator: at the margin to the pixel, the message is where scrolling would put it.
-      const atTop = box.top < view.top + EDGE || box.height > view.height - 2 * EDGE;
+      const atTop = box.top < view.top + EDGE || box.height > height - 2 * EDGE;
       // Stryker disable next-line EqualityOperator: at the margin to the pixel, the message is where scrolling would put it.
-      const atBottom = box.bottom > view.bottom - EDGE;
-      scroller.scrollTop += atTop ? box.top - view.top - EDGE : atBottom ? box.bottom - view.bottom + EDGE : 0;
+      const atBottom = box.bottom > bottom - EDGE;
+      scroller.scrollTop += atTop ? box.top - view.top - EDGE : atBottom ? box.bottom - bottom + EDGE : 0;
     };
     // The message takes the Tab stop as it takes focus, in focusIn.
     const focusOn = (item: HTMLElement) => item.focus({ preventScroll: true });
@@ -3269,13 +3351,19 @@ export function MessageList(props: MessageListProps): JSX.Element {
           onKeyDown={(event) => keyHandler.current!(event)}
           // While focused, isolate keeps the content's own stacking (a sticky header's z-index) inside the scroller, under the ring.
           className="peer relative min-h-0 flex-1 overflow-y-auto bg-(--ouro-scroller-surface) overscroll-contain [overflow-anchor:none] outline-none focus-visible:isolate forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1"
+          // Stryker disable next-line ConditionalExpression,EqualityOperator: a scroll-padding of 0 is the same as none.
+          style={footHeight > 0 ? { scrollPaddingBottom: footHeight } : undefined}
         >
           <span ref={startRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
           <div
             ref={contentRef}
             data-ouro-message-list-content=""
-            className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-ouro-message-list-slot]>[data-continued]]:-mt-[calc(1rem-var(--ouro-message-run-gap,var(--ouro-size-1)))]"
-            style={maxWidth === undefined ? undefined : { maxWidth, marginInline: "auto" }}
+            className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-ouro-message-list-slot]>[data-continued]]:-mt-[calc(1rem-var(--ouro-message-run-gap,var(--ouro-size-2)))]"
+            style={{
+              ...(maxWidth === undefined ? null : { maxWidth, marginInline: "auto" }),
+              // Keeps the newest message just above the floating foot, as a footless list keeps it above the bottom padding.
+              ...(footHeight > 0 ? { paddingBottom: footHeight } : null),
+            }}
           >
             {/* With the content's own padding, keeps the first message below "Loading older messages", which sits over the list's top. */}
             {room && <div ref={roomRef} aria-hidden="true" data-ouro-message-list-older-room="" className="-mb-4 h-11 shrink-0" />}
@@ -3286,7 +3374,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
           <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
           {/* The one bar and menu: portals, so nothing of theirs is here in the page; inside the scroller in React, so a key
               in the bar (Tab, the arrows) reaches the list's keyboard handling as a key in its message would. */}
-          {Layer && <Layer scroller={scrollerRef} layer={layer} />}
+          {/* The layer portals into the scroller, which server HTML can't hold: it joins once hydration is done. */}
+          {Layer && !hydrating && <Layer scroller={scrollerRef} layer={layer} />}
           <span ref={floorRef} aria-hidden="true" data-ouro-message-list-floor="" className="pointer-events-none absolute start-0 top-0 hidden size-px" />
           <span ref={endMarkRef} aria-hidden="true" data-ouro-message-list-end-mark="" data-slot="message-list-end-mark" className="pointer-events-none absolute start-0 top-0 hidden size-px [overflow-anchor:none]" />
         </div>
@@ -3318,7 +3407,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
         </div>
       </div>
       {showJump && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center"
+          // Stryker disable next-line ConditionalExpression,EqualityOperator: forcing this true, or reading 0 as a foot, when footHeight is 0 computes
+          // calc(0.75rem + 0px), which equals the bottom-3 class it would otherwise fall back to.
+          style={footHeight > 0 ? { bottom: `calc(0.75rem + ${footHeight}px)` } : undefined}
+        >
           <button ref={jumpRef} type="button" data-ouro-message-list-jump="" data-ouro-control="message-list" data-ouro-part="jump" onClick={jump} className={jumpClass}>
             <TouchTarget />
             {jumpLabel}
@@ -3328,7 +3422,30 @@ export function MessageList(props: MessageListProps): JSX.Element {
           </button>
         </div>
       )}
-      {FindLayer && find ? <FindLayer all={all} keys={keys} find={find} hasOlder={hasOlder} scroller={scrollerRef} content={contentRef} slot={SLOT} onFindMatches={onFindMatches} onMarks={setFindMarks} request={requestRef} /> : null}
+      {foot !== undefined && (
+        // Floats over the list's own bottom edge, over the scroller, never scrolling with it; measured above to keep
+        // the content clear of it and "Jump to latest" floating over it too.
+        <div data-slot="message-list-foot-overlay" className="pointer-events-none absolute inset-x-0 bottom-0">
+          <div ref={footRef} data-ouro-message-list-foot="" data-slot="message-list-foot" className="pointer-events-auto">
+            {foot}
+          </div>
+        </div>
+      )}
+      {FindLayer && find ? (
+        <FindLayer
+          all={all}
+          keys={keys}
+          find={find}
+          hasOlder={hasOlder}
+          scroller={scrollerRef}
+          content={contentRef}
+          slot={SLOT}
+          onFindMatches={onFindMatches}
+          onMarks={setFindMarks}
+          request={requestRef}
+          reserveJumpRoom={setJumpRoom}
+        />
+      ) : null}
     </div>
   );
 }
