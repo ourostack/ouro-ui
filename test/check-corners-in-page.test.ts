@@ -1353,7 +1353,7 @@ it("does not attribute changing background pixels outside the box to a surface",
 });
 
 it("does not attribute an unrelated neighbor's pixels to an overflowing corner", async () => {
-  const root = render('<div class="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px"></div><div style="position:absolute;left:178px;top:4px;width:8px;height:8px;background:#ddd"></div>');
+  const root = render('<div class="surface" data-ouro-paint-hit="keep" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px"></div><div style="position:absolute;left:178px;top:4px;width:8px;height:8px;background:#ddd"></div>');
   const surface = root.querySelector<HTMLElement>(".surface")!;
   const capture = state.__ouroPaintCapture!;
   state.__ouroPaintCapture = async (clip) => {
@@ -1377,6 +1377,9 @@ it("does not attribute an unrelated neighbor's pixels to an overflowing corner",
     surface.firstElementChild!.remove();
     root.insertAdjacentHTML("beforeend", '<style>.surface::after { content:""; position:absolute; left:178px; top:4px; width:8px; height:8px; background:#c30; pointer-events:none }</style>');
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+    root.querySelector("style")!.textContent = '.surface.surface::after { content:""; position:absolute; left:178px; top:4px; width:8px; height:8px; background:#c30; pointer-events:none !important }';
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+    expect(surface.getAttribute("data-ouro-paint-hit")).toBe("keep");
   } finally {
     state.__ouroPaintCapture = capture;
   }
@@ -1421,15 +1424,10 @@ it("keeps an independent floating squircle separate from an unpainted focus wrap
 }, paintTimeout);
 
 it("keeps a separate round badge distinct from square paint on it", async () => {
-  const restore = forceSquircleFallback();
-  try {
-    const root = render('<div style="position:relative;width:64px;height:64px"><div class="surface rounded-ouro-xl" style="position:absolute;inset:0;background:#def"></div><span class="badge" style="position:absolute;right:-6px;bottom:-6px;width:28px;height:28px;border-radius:9999px;background:#357"></span></div>');
-    expect(await findSquirclePaint()).toEqual([]);
-    root.querySelector(".badge")!.insertAdjacentHTML("beforeend", '<span style="position:absolute;right:-4px;top:-4px;width:8px;height:8px;background:#d11"></span>');
-    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-ouro-xl");
-  } finally {
-    restore();
-  }
+  const root = render('<div style="position:relative;width:64px;height:64px"><div class="surface" style="position:absolute;inset:0;background:#def;border-radius:20px;clip-path:inset(0 round 20px);--sq-tl:24px;--sq-tr:24px;--sq-br:24px;--sq-bl:24px"></div><span class="badge" style="position:absolute;right:-6px;bottom:-6px;width:28px;height:28px;border-radius:9999px;background:#357"></span></div>');
+  expect(await findSquirclePaint()).toEqual([]);
+  root.querySelector(".badge")!.insertAdjacentHTML("beforeend", '<span style="position:absolute;right:-4px;top:-4px;width:8px;height:8px;background:#d11"></span>');
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
 }, paintTimeout);
 
 it("keeps a round sibling's curved shadow separate from a transparent focus surface", async () => {
