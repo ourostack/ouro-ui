@@ -1,0 +1,1 @@
+- Changed: ThreadRail separates the conversation with a surface step instead of a line, and EmojiPicker's scrolling grid has its own surface.

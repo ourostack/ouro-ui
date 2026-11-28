@@ -171,9 +171,9 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
       tabIndex={-1}
       onKeyDownCapture={onKeyDownCapture}
       onKeyDown={onKeyDown}
-      className={cn("flex h-full min-h-0 flex-col border-s border-border bg-background outline-none", className)}
+      className={cn("flex h-full min-h-0 flex-col bg-muted [--ouro-scroller-surface:var(--background)] [--ouro-message-list-bubble-default:var(--muted)] outline-none forced-colors:border-s forced-colors:border-solid forced-colors:border-[CanvasText]", className)}
     >
-      <div data-ouro-thread-rail-header="" className="flex min-w-0 shrink-0 items-start gap-2 border-b border-border px-4 py-3">
+      <div data-ouro-thread-rail-header="" className="flex min-w-0 shrink-0 items-start gap-2 bg-background px-4 py-3">
         <div className="min-w-0 flex-1">
           <h2 id={headingId} className="m-0 truncate text-base leading-6 font-semibold font-[family-name:var(--font-heading,inherit)]">
             {title ?? label}
