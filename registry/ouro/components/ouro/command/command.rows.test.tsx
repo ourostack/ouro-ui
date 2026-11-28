@@ -166,13 +166,15 @@ describe("Command rows", () => {
     for (let height = 300; height <= 800; height += 10) {
       await page.viewport(1280, height);
       // Every 10px, under the height of a heading, so no height where the list could end on one is skipped. The cut
-      // follows the resize on a frame or two; read it once it has settled.
-      await act(async () => {
-        for (let frame = 0; frame < 3; frame++) await new Promise((resolve) => requestAnimationFrame(resolve));
-      });
-      const bottom = box.getBoundingClientRect().bottom - parseFloat(getComputedStyle(box).paddingBottom);
-      const whole = edges().filter((edge) => edge.getBoundingClientRect().bottom <= bottom + 0.5);
-      expect(whole.at(-1)?.hasAttribute("data-ouro-command-group-label"), `${height}px`).toBe(false);
+      // follows the resize over as many frames as the observer needs to converge, so wait for the list to rest on a
+      // row rather than for a count of frames.
+      await expect
+        .poll(() => {
+          const bottom = box.getBoundingClientRect().bottom - parseFloat(getComputedStyle(box).paddingBottom);
+          const whole = edges().filter((edge) => edge.getBoundingClientRect().bottom <= bottom + 0.5);
+          return whole.at(-1)?.hasAttribute("data-ouro-command-group-label");
+        }, { message: `${height}px` })
+        .toBe(false);
     }
   });
 });
