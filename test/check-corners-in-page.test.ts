@@ -14,6 +14,7 @@ let host: HTMLDivElement;
 
 beforeAll(() => {
   state.__ouroPaintCapture = (clip) => commands.squircleCapture(clip);
+  (window as unknown as { __ouroPaintDiagnostic: typeof commands.squircleDiagnostic }).__ouroPaintDiagnostic = (data) => commands.squircleDiagnostic(data);
 });
 
 afterEach(() => {
