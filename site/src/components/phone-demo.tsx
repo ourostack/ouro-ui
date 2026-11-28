@@ -40,7 +40,7 @@ export function DemoStage({ name, title }: { name: string; title: string }): JSX
   return (
     <section
       aria-label="Live demo"
-      className={`relative flex min-h-48 items-center justify-center rounded-3xl border border-transparent bg-muted/50 px-5 pt-10 pb-20 lg:px-10 dark:bg-muted/65 ${phoneable ? "sm:pt-16" : ""}`}
+      className={`relative flex min-h-48 items-center justify-center rounded-3xl border border-transparent bg-muted/50 px-5 pt-10 pb-20 lg:px-10 dark:bg-muted/65 [--ouro-scroller-surface:var(--accent)] ${phoneable ? "sm:pt-16" : ""}`}
     >
       {phoneable && (
         // A phone's own screen is already one, so the button shows from 640px up. 24px in from the box's edge (with its
