@@ -1631,6 +1631,10 @@ it("keeps a fractional-width segment thumb and its shadow inside its own corners
     thumb.id = "fractional-thumb";
     expect(thumb.getBoundingClientRect().width).toBeCloseTo(99.4375, 2);
     expect((await findSquirclePaint()).map((issue) => issue.element)).not.toContain("span#fractional-thumb.pointer-events-none.absolute.top-0.5");
+    thumb.style.setProperty("clip-path", "none", "important");
+    thumb.style.setProperty("overflow", "visible", "important");
+    thumb.insertAdjacentHTML("beforeend", '<span style="position:absolute;inset:0;background:#c30"></span>');
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("span#fractional-thumb.pointer-events-none.absolute.top-0.5");
   } finally {
     await act(async () => root.unmount());
     restore();
