@@ -24,20 +24,17 @@ const NumbersIcon = icon(<path d="M10 6h10M10 12h10M10 18h10M4 5l1.5-1v5M4 14h3l
 
 export default function ComposerDemo(): JSX.Element {
   const editor = useRef<ComposerEditor>(null);
-  const box = useRef<HTMLTextAreaElement>(null);
-  const [value, setValue] = useState(draft);
+  const room = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [height, setHeight] = useState<number | null>(null);
   return (
-    <div className="grid w-full max-w-lg gap-4">
+    <div ref={room} className="flex h-[min(24rem,60vh)] w-full max-w-lg flex-col justify-end">
       <Composer
-        ref={box}
         editorRef={editor}
         label="Plan a Friday gathering"
         placeholder="What shall we do next Friday?"
         format="rich"
-        value={value}
-        onValueChange={setValue}
+        defaultValue={draft}
         expanded={expanded}
         onExpandedChange={setExpanded}
         expandLabel="Long compose"
@@ -45,7 +42,7 @@ export default function ComposerDemo(): JSX.Element {
         maxRows={6}
         resizable
         resizeLabel="Resize your draft"
-        tallest={() => window.innerHeight * 0.6}
+        tallest={(frame) => room.current!.clientHeight - (frame.parentElement!.getBoundingClientRect().height - frame.getBoundingClientRect().height)}
         height={height}
         onHeightChange={setHeight}
         toolbar={
@@ -62,20 +59,10 @@ export default function ComposerDemo(): JSX.Element {
             ]}
           />
         }
-        onSend={(text) => {
-          setValue("");
+        onSend={() => {
           setExpanded(false);
           setHeight(null);
-          toast("Plan sent", {
-            action: {
-              label: "Undo",
-              onClick: () => {
-                setValue(text);
-                setExpanded(expanded);
-                box.current?.focus();
-              },
-            },
-          });
+          toast("Plan sent");
         }}
       />
       <Toaster />
