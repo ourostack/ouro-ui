@@ -149,6 +149,21 @@ it("judges only the corners an image actually paints", async () => {
   expect(findCornerIssues()[0]?.detail).toContain("top left");
   image.style.objectFit = "cover";
   expect(findCornerIssues()[0]?.detail).toContain("top left");
+  canvas.width = 80;
+  canvas.height = 40;
+  canvas.getContext("2d")!.fillRect(0, 0, 80, 40);
+  image.src = canvas.toDataURL();
+  await image.decode();
+  image.style.objectFit = "contain";
+  image.style.objectPosition = "center top";
+  expect(findCornerIssues()[0]?.detail).toContain("top left");
+  expect(findCornerIssues()[0]?.detail).not.toContain("bottom left");
+  image.style.objectPosition = "center bottom";
+  expect(findCornerIssues()[0]?.detail).toContain("bottom left");
+  expect(findCornerIssues()[0]?.detail).not.toContain("top left");
+  image.src = opaque;
+  await image.decode();
+  image.style.objectFit = "cover";
   image.style.padding = "2px";
   expect(findCornerIssues()).toEqual([]);
   image.style.padding = "";
@@ -171,8 +186,39 @@ it("judges only the corners an image actually paints", async () => {
     expect(findCornerIssues()[0]?.detail).toContain("cannot inspect");
     image.style.border = "1px solid red";
     expect(findCornerIssues()[0]?.detail).toContain("expected 20px");
+    root.innerHTML = `<div style="position:relative;width:160px;height:120px">
+      <img alt="" src="https://images.invalid/picture.png" style="position:absolute;inset:0;width:160px;height:120px;border-radius:24px;corner-shape:squircle">
+      <div style="position:absolute;inset:4px;background:#789;border-radius:6px;corner-shape:squircle"></div>
+    </div>`;
+    await root.querySelector("img")!.decode();
+    expect(findCornerIssues()[0]?.detail).toContain("cannot inspect");
   } finally {
     await commands.cornerImageRoute({ data: null });
+  }
+});
+
+it("reports an image position the browser cannot resolve", async () => {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 20;
+  canvas.getContext("2d")!.fillRect(0, 0, 20, 20);
+  const root = render(`<div style="position:relative;width:160px;height:120px;background:#345;border-radius:24px;corner-shape:squircle"><img alt="" src="${canvas.toDataURL()}" style="position:absolute;inset:4px;width:152px;height:112px"></div>`);
+  const image = root.querySelector("img")!;
+  await image.decode();
+  const computed = window.getComputedStyle.bind(window);
+  const spy = vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
+    const style = computed(element, pseudo);
+    return element === image ? new Proxy(style, {
+      get(target, property) {
+        if (property === "objectPosition") return "unresolved-position";
+        const value = Reflect.get(target, property, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    }) : style;
+  });
+  try {
+    expect(findCornerIssues()[0]?.detail).toContain("cannot resolve the image's object-position");
+  } finally {
+    spy.mockRestore();
   }
 });
 
@@ -290,6 +336,25 @@ it("reads an inverse cutout at each physical corner", () => {
     expect(findCornerIssues(), side).toEqual([]);
     root.remove();
   }
+});
+
+it("leaves an inverse cutout's inline styles alone and does not treat covered paint as its opening", () => {
+  const root = render(`<style>
+    .cut-outer { position:relative; width:160px; height:120px; background:#eef4fa; border-top-left-radius:17.376px; --sq-tl:32px; clip-path:inset(0); }
+    .cut-inner { position:absolute; inset:4px; background:#789; }
+    .cut-layer { position:absolute; inset:0; background:#eef4fa; --sq-tl:28px; clip-path:path(evenodd, "M 0 0 H 152 V 112 H 0 Z M 0 28 C 0 17.164 -.2576 9.1672 4.4548 4.4548 C 9.1672 -.2576 17.164 0 28 0 H 152 V 112 H 0 Z"); }
+    .cut-cover { display:none; position:absolute; left:12px; top:12px; width:5px; height:5px; background:#c65; }
+    .cut-cover.shown { display:block; }
+  </style><div class="cut-outer"><div class="cut-inner"><div class="cut-layer"></div><div class="cut-cover"></div></div></div>`);
+  const inner = root.querySelector(".cut-inner")!;
+  const layer = root.querySelector(".cut-layer")!;
+  expect(findCornerIssues()).toEqual([]);
+  expect(inner.hasAttribute("style")).toBe(false);
+  expect(layer.hasAttribute("style")).toBe(false);
+  root.querySelector(".cut-cover")!.classList.add("shown");
+  expect(findCornerIssues().map((issue) => issue.element)).toContain("div.cut-inner in div.cut-outer");
+  expect(inner.hasAttribute("style")).toBe(false);
+  expect(layer.hasAttribute("style")).toBe(false);
 });
 
 it("does not mistake a switch's round thumb inside a capsule for nested frames", () => {
@@ -660,6 +725,18 @@ it("checks surfaces larger than the viewport and leaves no temporary style attri
   const surface = root.querySelector(".surface")!;
   expect(await findSquirclePaint()).toEqual([]);
   expect(surface.hasAttribute("style")).toBe(false);
+}, paintTimeout);
+
+it("checks a clipped squircle partly outside the viewport", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render('<div class="surface rounded-ouro-xl" style="width:160px;height:120px;background:#fff"></div>');
+    root.style.left = "-8px";
+    root.style.top = "-8px";
+    expect(await findSquirclePaint()).toEqual([]);
+  } finally {
+    restore();
+  }
 }, paintTimeout);
 
 it("restores the surface when its screenshot capture fails", async () => {
