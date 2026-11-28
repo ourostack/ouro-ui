@@ -1194,7 +1194,7 @@ it("does not attribute changing background pixels outside the box to a surface",
     context.fillRect(0, 0, canvas.width, canvas.height);
     return canvas.toDataURL("image/png");
   };
-  const captures = ["red", "blue", "green"];
+  const captures = ["red", "blue", "green", "purple", "orange"];
   state.__ouroPaintCapture = async (clip) => image(captures.shift()!, clip);
   try {
     expect(await findSquirclePaint()).toEqual([]);

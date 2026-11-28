@@ -177,9 +177,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     image.close();
     return { width: canvas.width, height: canvas.height, data: context.getImageData(0, 0, canvas.width, canvas.height).data };
   };
-  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, strokePads: { x: number; y: number }[], clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean) => {
-    const [a, b, c, own, noBadges, noStrokes] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null, withoutBadges ? pixels(withoutBadges) : null, withoutStrokes ? pixels(withoutStrokes) : null]);
-    if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height)) || (noBadges && (a.width !== noBadges.width || a.height !== noBadges.height)) || (noStrokes && (a.width !== noStrokes.width || a.height !== noStrokes.height))) {
+  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, strokePads: { x: number; y: number }[], clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean, restored: string | null = null) => {
+    const [a, b, c, own, noBadges, noStrokes, stable] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null, withoutBadges ? pixels(withoutBadges) : null, withoutStrokes ? pixels(withoutStrokes) : null, restored ? pixels(restored) : null]);
+    if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height)) || (noBadges && (a.width !== noBadges.width || a.height !== noBadges.height)) || (noStrokes && (a.width !== noStrokes.width || a.height !== noStrokes.height)) || (stable && (a.width !== stable.width || a.height !== stable.height))) {
       throw new Error("squircle-paint screenshots changed size during measurement");
     }
     if (![1, window.devicePixelRatio].some((scale) =>
@@ -212,6 +212,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
         const row = new Uint8Array(a.width);
         for (let x = startX; x < endX; x++) {
           const index = (y * a.width + x) * 4;
+          if (stable && difference(a.data, stable.data, index) >= 2) continue;
           const px = clip.x + (x + 0.5) * clip.width / a.width;
           const py = clip.y + (y + 0.5) * clip.height / a.height;
           const outsideX = px < rect.left || px >= rect.right;
@@ -544,6 +545,8 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             }
             differs = await differences(actual, masked, hidden, solo, null, [], withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native);
           }
+          let withoutBadges: string | null = null;
+          let badgeRects: DOMRect[] = [];
           if (differs) {
             const badges = notchedBadges(el, siblings, r, initial, outlines.length > 0);
             if (badges.length) {
@@ -554,7 +557,6 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
                 opacity: save(badge, "opacity"),
                 transition: save(badge, "transition"),
               }));
-              let withoutBadges: string;
               try {
                 for (const { badge } of saved) {
                   badge.style.setProperty("transition", "none", "important");
@@ -568,8 +570,13 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
                   restoreStyle(badge, style, normalized);
                 }
               }
-              differs = await differences(actual, masked, hidden, solo, withoutBadges, badges.map((badge) => badge.getBoundingClientRect()), withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native);
+              badgeRects = badges.map((badge) => badge.getBoundingClientRect());
+              differs = await differences(actual, masked, hidden, solo, withoutBadges, badgeRects, withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native);
             }
+          }
+          if (differs) {
+            const restored = await capture(clip);
+            differs = await differences(actual, masked, hidden, solo, withoutBadges, badgeRects, withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native, restored);
           }
           if (differs) { found = differs; break; }
         }

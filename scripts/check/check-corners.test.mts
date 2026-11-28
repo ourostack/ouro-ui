@@ -678,7 +678,7 @@ test("squircle-paint does not attribute changing background pixels to a surface"
   const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
   try {
     await tab.setContent('<div style="position:absolute;left:60px;top:60px;width:160px;height:120px;background:white;border-radius:28px;corner-shape:squircle"></div>');
-    const captures = await tab.evaluate(() => ["red", "blue", "green"].map((color) => {
+    const captures = await tab.evaluate(() => ["red", "blue", "green", "purple", "orange"].map((color) => {
       const canvas = document.createElement("canvas");
       canvas.width = 224;
       canvas.height = 184;
