@@ -33,7 +33,7 @@ export interface PlanApprovalProps {
   onApprove?: (() => void) | undefined;
   /** Called with what the person wrote when they send a request for changes. */
   onRequestChanges?: ((feedback: string) => void) | undefined;
-  /** Which answer is on its way, while your app sends it: that button shows it is busy and none presses again. */
+  /** Which answer is on its way, while your app sends it: that button shows it is busy, and the others turn off. */
   answering?: "approve" | "changes" | undefined;
   /** The person's answer, once they have given it, in this app or another: the buttons give way to who answered. */
   answer?: PlanAnswer | undefined;
@@ -132,13 +132,14 @@ export function PlanApproval(props: PlanApprovalProps): JSX.Element {
   const requestRef = useRef<HTMLButtonElement>(null);
   const [editing, setEditing] = useState(false);
   const [feedback, setFeedback] = useState("");
-  // Where focus goes after the person opens or cancels the field: the field, or back to Request changes.
-  const [focusAfter, setFocusAfter] = useState<"field" | "request" | undefined>(undefined);
+  // Where focus goes once the person opens or cancels the field: the field, or back to Request changes.
+  const focusAfter = useRef<"field" | "request" | undefined>(undefined);
   useLayoutEffect(() => {
-    if (focusAfter === undefined) return;
-    (focusAfter === "field" ? fieldRef : requestRef).current!.focus();
-    setFocusAfter(undefined);
-  }, [focusAfter]);
+    const target = focusAfter.current;
+    if (target === undefined) return;
+    focusAfter.current = undefined;
+    (target === "field" ? fieldRef : requestRef).current!.focus();
+  }, [editing]);
   // Whether focus was on a button or in the field as the answer removed them, read in the ref's cleanup, which React
   // runs before it takes them out; then focus moves to the answer's line.
   const actionsHeldFocus = useRef(false);
@@ -178,15 +179,15 @@ export function PlanApproval(props: PlanApprovalProps): JSX.Element {
                 {editing ? (
                   <>
                     <TextArea ref={fieldRef} label={feedbackLabel} value={feedback} onValueChange={setFeedback} autoGrow disabled={busy !== undefined && answering !== "changes"} />
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div data-slot="plan-approval-buttons" className="flex flex-wrap items-center gap-2">
                       <Button
                         data-ouro-control="plan-approval"
                         data-ouro-part="cancel"
                         variant="plain"
                         disabledReason={busy}
                         onClick={() => {
+                          focusAfter.current = "request";
                           setEditing(false);
-                          setFocusAfter("request");
                         }}
                       >
                         {cancelLabel}
@@ -204,7 +205,7 @@ export function PlanApproval(props: PlanApprovalProps): JSX.Element {
                     </div>
                   </>
                 ) : (
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div data-slot="plan-approval-buttons" className="flex flex-wrap items-center gap-2">
                     <Button
                       ref={requestRef}
                       data-ouro-control="plan-approval"
@@ -214,8 +215,8 @@ export function PlanApproval(props: PlanApprovalProps): JSX.Element {
                       loading={answering === "changes"}
                       disabledReason={answering === "approve" ? busy : undefined}
                       onClick={() => {
+                        focusAfter.current = "field";
                         setEditing(true);
-                        setFocusAfter("field");
                       }}
                     >
                       {requestChangesLabel}
