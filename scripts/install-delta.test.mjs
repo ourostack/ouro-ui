@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { URL } from "node:url";
 import test from "node:test";
-import { appPath, closure, manifestOf, plan, readItems, removeStale } from "./install-delta.mjs";
+import { appPath, closure, manifestOf, plan, readItems, refreshableBase, refreshBaseStylesheet, removeStale } from "./install-delta.mjs";
 import { scratchDir } from "./scratch.mjs";
 
 const item = (hash, paths = ["a.ts"], dependencies = [], packages = []) => ({ hash, paths, dependencies, packages });
@@ -89,6 +89,68 @@ test("the install delta adds everything when a theme item changed, since only th
   assert.equal(plan(outside, before).mode, "incremental");
 });
 
+const styledBase = (hash, shapeHash = "unchanged") => ({ ...item(hash, []), stylesheet: true, shapeHash });
+
+test("a fresh base replaces a changed stylesheet before the remaining items are added as a delta", () => {
+  const before = { ...base(), "ouro-base": styledBase("old") };
+  const now = { ...base(), "ouro-base": styledBase("new") };
+  now["button-tests"] = item("bt2", ["button.test.tsx"], ["button"]);
+  const manifest = manifestOf(before);
+  const app = scratchDir("delta-style-app-");
+  const fresh = scratchDir("delta-style-base-");
+  for (const dir of [app, fresh]) {
+    mkdirSync(join(dir, "src"));
+    writeFileSync(join(dir, "components.json"), JSON.stringify({ tailwind: { css: "src/index.css" }, aliases: { lib: "~/lib" } }));
+  }
+  writeFileSync(join(app, ".ouro-added.json"), JSON.stringify(manifest));
+  writeFileSync(join(app, "src/index.css"), ":root { --old: red }\n.app-own { color: red }\n");
+  writeFileSync(join(fresh, "src/index.css"), ":root { --new: blue }\n.app-own { color: red }\n");
+  writeFileSync(join(app, "src/keep.ts"), "untouched");
+
+  assert.equal(refreshableBase(now, manifest), true);
+  assert.equal(refreshBaseStylesheet(now, app, fresh), true);
+  assert.equal(readFileSync(join(app, "src/index.css"), "utf8"), readFileSync(join(fresh, "src/index.css"), "utf8"));
+  assert.equal(readFileSync(join(app, "src/keep.ts"), "utf8"), "untouched");
+  const updated = JSON.parse(readFileSync(join(app, ".ouro-added.json"), "utf8"));
+  assert.equal(updated.items["ouro-base"].hash, "new");
+  assert.equal(updated.items["button-tests"].hash, "bt1");
+  assert.deepEqual(plan(now, updated), { mode: "incremental", items: ["button-tests"], remove: ["button.test.tsx"] });
+});
+
+test("a base refresh is refused when the old manifest or another change cannot prove a delta safe", () => {
+  const before = { ...base(), "ouro-base": styledBase("old"), "ouro-theme": styledBase("theme") };
+  const now = { ...base(), "ouro-base": styledBase("new"), "ouro-theme": styledBase("theme") };
+  const manifest = manifestOf(before);
+  const legacy = JSON.parse(JSON.stringify(manifest));
+  delete legacy.items["ouro-base"].shapeHash;
+  assert.equal(refreshableBase(now, legacy), false);
+  assert.equal(refreshableBase({ ...now, "ouro-base": styledBase("new", "different") }, manifest), false);
+  assert.equal(refreshableBase({ ...now, "ouro-theme": styledBase("other") }, manifest), false);
+  assert.equal(refreshableBase({ ...now, "ouro-tests": item("changed", ["t.ts"], ["button"]) }, manifest), false);
+  assert.equal(refreshableBase({ ...now, "ouro-base": { ...now["ouro-base"], dependencies: ["new-dependency"] } }, manifest), false);
+  assert.equal(refreshableBase(before, manifest), false);
+
+  const hadPackage = JSON.parse(JSON.stringify(before));
+  hadPackage.button.packages = ["needed"];
+  assert.equal(refreshableBase(now, manifestOf(hadPackage)), false);
+});
+
+test("a different app configuration cannot take the fresh base's stylesheet", () => {
+  const before = { ...base(), "ouro-base": styledBase("old") };
+  const now = { ...base(), "ouro-base": styledBase("new") };
+  const app = scratchDir("delta-style-old-");
+  const fresh = scratchDir("delta-style-new-");
+  for (const dir of [app, fresh]) mkdirSync(join(dir, "src"));
+  writeFileSync(join(app, "components.json"), JSON.stringify({ tailwind: { css: "src/index.css" }, aliases: { lib: "~/lib" } }));
+  writeFileSync(join(fresh, "components.json"), JSON.stringify({ tailwind: { css: "src/index.css" }, aliases: { lib: "@/lib" } }));
+  writeFileSync(join(app, ".ouro-added.json"), JSON.stringify(manifestOf(before)));
+  writeFileSync(join(app, "src/index.css"), "old");
+  writeFileSync(join(fresh, "src/index.css"), "new");
+  assert.equal(refreshBaseStylesheet(now, app, fresh), false);
+  assert.equal(readFileSync(join(app, "src/index.css"), "utf8"), "old");
+  assert.equal(JSON.parse(readFileSync(join(app, ".ouro-added.json"), "utf8")).items["ouro-base"].hash, "old");
+});
+
 test("the install delta adds everything when the app cannot be proved to match a full add", () => {
   const before = manifestOf(base());
   const assertFull = (result) => {
@@ -149,6 +211,13 @@ test("the install delta reads built items without the folder their dependencies 
     writeFileSync(join(dir, "plain.json"), JSON.stringify({ name: "plain", css: { ".x": { color: "red" } } }));
     assert.equal(readItems(dir).theme.stylesheet, true);
     assert.equal(readItems(dir).plain.stylesheet, true);
+    const old = readItems(dir).plain;
+    writeFileSync(join(dir, "plain.json"), JSON.stringify({ name: "plain", css: { ".x": { color: "blue" } } }));
+    const recolored = readItems(dir).plain;
+    assert.notEqual(recolored.hash, old.hash);
+    assert.equal(recolored.shapeHash, old.shapeHash);
+    writeFileSync(join(dir, "plain.json"), JSON.stringify({ name: "plain", description: "new", css: { ".x": { color: "blue" } } }));
+    assert.notEqual(readItems(dir).plain.shapeHash, old.shapeHash);
   }
 });
 

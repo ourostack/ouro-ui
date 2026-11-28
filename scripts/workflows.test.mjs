@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL, URL } from "node:url";
 import { runInNewContext } from "node:vm";
 import { assemble, releasedAt } from "./changes.mjs";
 import { relevance } from "./ci-relevance.mjs";
+import { manifestOf, readItems } from "./install-delta.mjs";
 import { KITS } from "./kit-pin.mjs";
 import { entryProblems, expiredWarning, failedPull, failedTests, hungTests, isExpired, judgeOwnRun, names, quarantineFile, record, retryPlan, staleWarning, stepBlock } from "./quarantine.mjs";
 import { scratchDir } from "./scratch.mjs";
@@ -701,7 +702,7 @@ function runGithubInstall(npxBody, env = {}) {
     writeFileSync(join(bin, name), `#!/usr/bin/env bash\n${body}\n`);
     chmodSync(join(bin, name), 0o755);
   };
-  stub("git", `case "$*" in *" archive "*) tar -C "${tree}" -cf - . ;; *"rev-parse HEAD"*) echo abc123 ;; *) exit 0 ;; esac`);
+  stub("git", `case "$*" in *" archive "*) a="$BIN/tree.tar"; tar -C "${tree}" -cf "$a" . && cat "$a" ;; *"rev-parse HEAD"*) echo abc123 ;; *) exit 0 ;; esac`);
   stub("npm", `echo "npm $*" >> "${calls}"`);
   stub("pnpm", `echo "pnpm $* in $(basename "$PWD")" >> "${calls}"`);
   stub("npx", npxBody);
@@ -1489,7 +1490,7 @@ test("the release runs the public-registry tests with the script tests", () => {
 test("every ci.yml job that runs npm or npx resolves packages as published a day ago, as install-test.sh does", () => {
   const runsNpm = (job) => job.split("\n").some((line) => !/^\s*#/.test(line) && !/\becho\b/.test(line) && /(?:^|[\s;&|(])(?:npx|npm) /.test(line));
   const jobs = Object.entries(ciJobs()).filter(([, job]) => runsNpm(job));
-  assert.deepEqual(jobs.map(([id]) => id).sort(), ["lighthouse", "registry"]);
+  assert.deepEqual(jobs.map(([id]) => id).sort(), ["install-prep", "lighthouse", "registry"]);
   for (const [id, job] of jobs) assert.match(job, /^ {6}- [&*]npm-day-old$/m, id);
   assert.match(workflow("ci.yml"), /^ {8}run: echo "npm_config_before=\$\(date -u -d '1 day ago' \+%Y-%m-%dT%H:%M:%SZ\)" >> "\$GITHUB_ENV"$/m);
   assert.match(readFileSync(join(root, "scripts/install-test.sh"), "utf8"), /^export npm_config_before="\$\{npm_config_before:-\$\(date -u -d '1 day ago' /m);
@@ -4034,15 +4035,106 @@ test("install prep caches a base keyed on the runtime files, then adds the shipp
   assert.ok(script.includes("OURO_BASE_ONLY") && script.includes("OURO_DELTA"));
 });
 
+test("install prep refreshes a changed base stylesheet from a checked base before reusing the earlier app", () => {
+  const block = ciJobs()["install-prep"];
+  const key = block.match(/key: install-app-[^\n]*/)[0];
+  assert.match(key, /hashFiles\('scripts\/install-delta\.mjs'\)/);
+  const restore = block.split("restore-keys: |")[1].split("\n").filter((line) => line.trim().startsWith("install-app-"));
+  assert.match(restore[0], /hashFiles\('scripts\/install-delta\.mjs'\)/);
+  assert.doesNotMatch(restore[1], /hashFiles\('scripts\/install-delta\.mjs'\)/);
+  const add = block.slice(block.indexOf("name: Add the shipped tests"), block.indexOf("name: Pack the app"));
+  assert.match(add, /refresh-plan/);
+  assert.match(add, /base\.tar\.zst/);
+  assert.match(add, /OURO_BASE_ONLY=1 scripts\/install-test\.sh/);
+  assert.match(add, /install-delta\.mjs refresh "\$refresh_registry\/r" "\$previous" "\$OURO_APP"/);
+  assert.match(add, /OURO_DELTA=1 OURO_PREPARE_ONLY=1 OURO_SKIP_CHECKS=1 scripts\/install-test\.sh/);
+  assert.match(add, /if \[ "\$status" -eq 75 \]; then/);
+});
+
+test("install prep reuses the earlier app only after a CSS-only base change has a fresh checked stylesheet", () => {
+  for (const mismatch of [false, true]) {
+    const dir = scratchDir("install-refresh-workflow-");
+    const checkout = join(dir, "checkout");
+    const app = join(dir, "app");
+    const fresh = join(dir, "fresh");
+    const oldItems = join(dir, "old-items");
+    const items = join(dir, "items");
+    const bin = join(dir, "bin");
+    for (const folder of [join(checkout, "scripts"), join(app, "src"), fresh, oldItems, items, bin]) mkdirSync(folder, { recursive: true });
+    for (const file of ["install-delta.mjs", "read-stdin.mjs"]) copyFileSync(join(root, "scripts", file), join(checkout, "scripts", file));
+    const writeItems = (folder, color, content) => {
+      for (const value of [
+        { name: "ouro-tests", registryDependencies: ["/built/button-tests.json"] },
+        { name: "button-tests", files: [{ path: "button.test.tsx", content }] },
+        { name: "ouro-base", type: "registry:item", css: { ":root": { "--surface": color } } },
+      ]) writeFileSync(join(folder, `${value.name}.json`), JSON.stringify(value));
+    };
+    writeItems(oldItems, "old", "old test");
+    writeItems(items, "new", "new test");
+    writeFileSync(join(app, ".ouro-added.json"), JSON.stringify(manifestOf(readItems(oldItems))));
+    writeFileSync(join(app, "components.json"), JSON.stringify({ tailwind: { css: "src/index.css" }, aliases: { lib: "~/lib" } }));
+    writeFileSync(join(app, "src/index.css"), "old surface; app rule");
+    writeFileSync(join(app, "src/kept.ts"), "earlier app");
+    writeFileSync(join(fresh, "components.json"), JSON.stringify({ tailwind: { css: "src/index.css" }, aliases: { lib: mismatch ? "@/lib" : "~/lib" } }));
+    writeFileSync(join(fresh, "index.css"), "new surface; app rule");
+    writeFileSync(join(checkout, "scripts/registry.mts"), `
+      import { cpSync } from "node:fs";
+      cpSync(process.env.ITEMS, process.env.RUNNER_TEMP + "/install-refresh/r", { recursive: true });
+    `);
+    const fakeInstall = join(checkout, "scripts/install-test.sh");
+    writeFileSync(fakeInstall, `#!/usr/bin/env bash
+set -euo pipefail
+app="$2"
+if [ -n "\${OURO_BASE_ONLY:-}" ]; then
+  mkdir -p "$app/src"
+  cp "$FRESH/components.json" "$app/components.json"
+  cp "$FRESH/index.css" "$app/src/index.css"
+  echo base >> "$CALLS"
+elif [ -f "$app/.ouro-added.json" ]; then
+  plan=$(node scripts/install-delta.mjs plan "$ITEMS" "$app/.ouro-added.json")
+  case "$plan" in
+    *'"mode":"full"'*) echo needs-base >> "$CALLS"; exit 75 ;;
+    *) echo "incremental $plan" >> "$CALLS" ;;
+  esac
+else
+  echo full-add >> "$CALLS"
+fi
+`);
+    chmodSync(fakeInstall, 0o755);
+    writeFileSync(join(bin, "npx"), "#!/usr/bin/env bash\nexit 0\n");
+    chmodSync(join(bin, "npx"), 0o755);
+    const calls = join(dir, "calls");
+    const result = spawnSync("bash", ["-e", "-o", "pipefail", "-c", stepScript(ciJobs()["install-prep"], "Add the shipped tests")], {
+      cwd: checkout,
+      encoding: "utf8",
+      env: sandboxEnv({ VARIANT: "shadcn", REF: "test", OURO_APP: app, RUNNER_TEMP: dir, ITEMS: items, FRESH: fresh, CALLS: calls }, [bin]),
+    });
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(readFileSync(join(app, "src/index.css"), "utf8"), "new surface; app rule");
+    const actions = readFileSync(calls, "utf8");
+    assert.match(actions, /^needs-base\nbase\n/m);
+    if (mismatch) {
+      assert.match(actions, /^full-add$/m);
+      assert.equal(existsSync(join(app, "src/kept.ts")), false);
+    } else {
+      assert.match(actions, /^incremental .*"items":\["button-tests"\]/m);
+      assert.equal(readFileSync(join(app, "src/kept.ts"), "utf8"), "earlier app");
+    }
+  }
+});
+
 test("install prep's restore key reads only the fixtures its variants build from, so a change to another fixture still restores the earlier app", () => {
-  const ciText = readFileSync(".github/workflows/ci.yml", "utf8");
-  const prep = ciText.slice(ciText.indexOf("\n  install-prep:"), ciText.indexOf("\n  install-shard:"));
-  const key = prep.match(/key: (install-app-[^\n]*)/)[1];
-  const [restore, earlier] = prep.match(/restore-keys: \|\n\s+(install-app-[^\n]*)\n\s+(install-app-[^\n]*)/).slice(1);
-  assert.ok(earlier.includes("'test/install-fixture*/**', 'scripts/install-test.sh'"), "the earlier, wider restore key stays, so apps saved before the narrower key still restore");
-  assert.ok(key.startsWith(restore.trim()), "the restore key is a prefix of the key");
-  assert.ok(restore.includes("'test/install-fixture/**', 'test/install-fixture-tests/**'"), "it reads the bare app and the shipped tests' setup");
-  for (const other of ["install-fixture-next", "install-fixture-upgrade", "install-fixture-themes", "install-fixture*"]) assert.ok(!restore.includes(other), `the restore key does not read ${other}`);
+  const block = ciJobs()["install-prep"];
+  const key = block.match(/key: (install-app-[^\n]*)/)[1];
+  const restore = block.split("restore-keys: |")[1].split("\n").filter((line) => line.trim().startsWith("install-app-")).map((line) => line.trim());
+  assert.equal(restore.length, 4);
+  for (const narrow of restore.slice(0, 2)) {
+    assert.ok(restore[0].startsWith(narrow.slice(0, narrow.indexOf("}}-") + 3)), "the narrow restore keys share the key's leading narrow hash");
+    assert.ok(narrow.includes("'test/install-fixture/**', 'test/install-fixture-tests/**'"), "they read the bare app and the shipped tests' setup");
+    for (const other of ["install-fixture-next", "install-fixture-upgrade", "install-fixture-themes", "install-fixture*"]) assert.ok(!narrow.includes(other), `the narrow restore key does not read ${other}`);
+  }
+  assert.ok(key.startsWith(restore[1].slice(0, -1)), "the narrow restore key is a prefix of the key, so it is one of what main saves");
+  assert.ok(restore.slice(2).every((line) => line.includes("'test/install-fixture*/**', 'scripts/install-test.sh'")), "the earlier, wider restore keys stay, so apps saved before still restore");
   assert.ok(key.includes("'test/install-fixture*/**'"), "the exact key still reads every fixture");
 });
 

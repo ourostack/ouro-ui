@@ -253,6 +253,8 @@ const RawTextarea = memo(function RawTextarea(props: TextareaHTMLAttributes<HTML
  * Use `TextField` instead for one line, `Composer` for a chat message box with its send
  * button, and `Field` with `FieldControl` for a control that is not text.
  *
+ * For native-host quiet reading, see the [Resting caret guide](https://ui.ouroboros.bot/docs/resting-caret/).
+ *
  * @group Forms
  * @see https://ui.ouroboros.bot/docs/text-area
  *
