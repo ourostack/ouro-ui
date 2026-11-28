@@ -67,7 +67,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     }
     return { width, height, corners, native: corners.filter((corner) => corner.squircle).every((corner) => corner.native) };
   };
-  const notchedBadges = (el: HTMLElement, siblings: HTMLElement[], bounds: DOMRect) => {
+  const notchedBadges = (el: HTMLElement, siblings: HTMLElement[], bounds: DOMRect, initial: NonNullable<ReturnType<typeof geometry>>) => {
     const sameBox = (rect: DOMRect) =>
       [rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5);
     const candidates = [...el.querySelectorAll<HTMLElement>("*"), ...siblings].filter((candidate) => {
@@ -75,6 +75,14 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       const rect = candidate.getBoundingClientRect();
       if (rect.width < 2 || Math.abs(rect.width - rect.height) > 0.5 || rect.width > Math.min(bounds.width, bounds.height) / 2) return false;
       if (rect.right <= bounds.left || rect.left >= bounds.right || rect.bottom <= bounds.top || rect.top >= bounds.bottom) return false;
+      if (!initial.corners.some((corner, index) => {
+        if (!corner.squircle) return false;
+        const width = corner.x * bounds.width / initial.width;
+        const height = corner.y * bounds.height / initial.height;
+        const left = index === 0 || index === 3 ? bounds.left : bounds.right - width;
+        const top = index < 2 ? bounds.top : bounds.bottom - height;
+        return rect.left < left + width && rect.right > left && rect.top < top + height && rect.bottom > top;
+      })) return false;
       if (!visible(candidate)) return false;
       const style = getComputedStyle(candidate);
       return names.every(({ property }) => {
@@ -319,7 +327,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const clip = { x, y, width: Math.min(Math.ceil(r.right + margin), innerWidth) - x, height: Math.min(Math.ceil(r.bottom + margin), innerHeight) - y };
           if (clip.width < 1 || clip.height < 1) continue;
           const active = layers.filter((layer) => layer.el === el || !covers(layer.el, r));
-          const badges = notchedBadges(el, siblings, r);
+          const badges = notchedBadges(el, siblings, r, initial);
           const actual = await capture(clip);
           let withoutBadges: string | null = null;
           if (badges.length) {
