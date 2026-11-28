@@ -57,6 +57,7 @@ export default function ComposerDemo(): JSX.Element {
           value={text}
           onValueChange={(next) => {
             setText(next);
+            if (!next.trim()) setHeight(null);
             setSent(undefined);
             setReceiptOpen(false);
           }}

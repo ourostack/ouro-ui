@@ -1,0 +1,1 @@
+- The Composer playground [returns an emptied resized draft to its compact height](site/src/docs/demos/composer.demo.test.tsx "verify:testExists(site/src/docs/demos/composer.demo.test.tsx::ComposerDemo > returns an emptied resized draft to its compact height)").
