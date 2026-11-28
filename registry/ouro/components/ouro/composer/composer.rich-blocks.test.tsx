@@ -35,6 +35,16 @@ const rich = (props: Partial<React.ComponentProps<typeof Composer>> = {}) => <Co
 const shiftEnter = "{Shift>}{Enter}{/Shift}";
 
 describe("Composer rich blocks", () => {
+  it("draws bullets and numbers with an inset under the app's CSS reset", async () => {
+    const editor = await render(rich({ defaultValue: "- flour\n- water\n\n1. Mix\n2. Rest" }));
+    const bullets = getComputedStyle(editor.querySelector("ul")!);
+    const numbers = getComputedStyle(editor.querySelector("ol")!);
+    expect(bullets.listStyleType).toBe("disc");
+    expect(numbers.listStyleType).toBe("decimal");
+    expect(parseFloat(bullets.paddingInlineStart)).toBeGreaterThan(0);
+    expect(parseFloat(numbers.paddingInlineStart)).toBeGreaterThan(0);
+  });
+
   it("shows lists, quotes and code blocks as blocks, and writes them back out as the same Markdown", async () => {
     const seen: string[] = [];
     const markdown = "- one\n- two\n\n1. first\n2. second\n\n> quoted\n\n```\ncode\n```";

@@ -481,7 +481,14 @@ const onClient = () => true;
 const onServer = () => false;
 
 /**
- * A chat message box: text that grows from one line as the person writes, a send button, and
+ * A message box for a quick reply or a longer note.
+ *
+ * Use `format="rich"` for formatting, links, lists and mention pills, with Markdown text in
+ * `value` and `onSend`. Add `defaultExpanded={false}` for a long-compose toggle: the same
+ * draft and caret, a `toolbar` while expanded, and a quiet line naming the platform's send key.
+ * Keep `format="plain"` (the default) for a text-only box.
+ *
+ * Text grows from one line as the person writes, with a send button and
  * room for the rest of a composer, in one frame with one focus outline. Enter sends and
  * Shift+Enter starts a new line, or `sendOn="mod-enter"` for Ctrl+Enter, and Enter never
  * sends mid-word in an input method. A press anywhere around the text, out to the frame's
@@ -491,7 +498,7 @@ const onServer = () => false;
  * box removes. `sendDisabledReason` turns sending off and says why, while the
  * person can still write, and `highlights` marks words in the text, as TextArea's do.
  *
- * The text is plain text, so emoji from an image catalogue go in as `:shortcode:` tokens: an
+ * Emoji from an image catalogue go in as `:shortcode:` tokens: an
  * `Autocomplete` trigger with `catalogue` inserts them as the person types `:` and a few
  * letters, and an `EmojiPicker` with `catalogue` in `actions` gives its `selection.token` to
  * put at the caret. `EmojiText` draws the tokens as the catalogue's images once the message
@@ -505,7 +512,7 @@ const onServer = () => false;
  * @see https://ui.ouroboros.bot/docs/composer
  *
  * @example
- * <Composer label="Message Mia" placeholder="Write a message" onSend={(text) => send(text)} />
+ * <Composer label="Message" format="rich" defaultExpanded={false} placeholder="Write a message" onSend={(text) => send(text)} />
  *
  * @example
  * <Composer
@@ -536,6 +543,9 @@ const onServer = () => false;
  * @claim "A press anywhere around the" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer presses around the text > puts the caret at the start of the text on a press in the box's top left corner)
  * @claim "A press anywhere around the" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer presses around the text > puts the caret at the end of a line on a press between the line and the send button)
  * @claim "room for the rest of a composer" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer > draws one focus outline, on the frame, while the text has focus, and none on the text itself)
+ * @claim "formatting, links, lists and mention pills" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > shows Markdown marks as formatting, and writes formatting back out as the same Markdown) verify:testExists(registry/ouro/components/ouro/composer/composer.rich-tokens.test.tsx::Composer rich mentions and emoji > draws an imported mention as an inset pill without changing its Markdown)
+ * @claim "the same draft and caret" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > keeps the text, focus and the caret when it expands and collapses)
+ * @claim "a quiet line naming the platform's send key" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > names the send key below the expanded box on %s and removes it when collapsed)
  */
 export function Composer(props: ComposerProps): JSX.Element {
   const platform = usePlatform();
@@ -922,7 +932,8 @@ export function Composer(props: ComposerProps): JSX.Element {
   const notes = [sendDisabledReason !== undefined && !disabled ? `${id}-reason` : undefined, description ? `${id}-description` : undefined];
   const quoteIds = quote ? [`${id}-quote`, `${id}-excerpt`] : [];
   const removeLabel = quote && (quote.removeLabel ?? `Remove quote from ${quote.author}`);
-  const describedBy = [describedByProp, ...quoteIds, ...notes].filter(Boolean).join(" ") || undefined;
+  const sendHintId = expanded ? `${id}-send-hint` : undefined;
+  const describedBy = [describedByProp, ...quoteIds, ...notes, sendHintId].filter(Boolean).join(" ") || undefined;
   const reasonDrawn = notes[0] !== undefined && !hideSendDisabledReason;
   const reasonHidden = notes[0] !== undefined && hideSendDisabledReason;
 
@@ -1088,6 +1099,12 @@ export function Composer(props: ComposerProps): JSX.Element {
         <span id={notes[0]} data-ouro-composer-reason="" className="sr-only">
           {sendDisabledReason}
         </span>
+      )}
+      {expanded && (
+        <div id={sendHintId} data-ouro-composer-send-hint="" className="flex items-center justify-end gap-1 px-1 text-xs text-muted-foreground">
+          <Kbd keys={["mod", "enter"]} />
+          <span>to send</span>
+        </div>
       )}
     </div>
   );
