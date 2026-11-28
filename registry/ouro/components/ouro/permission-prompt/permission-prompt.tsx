@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useLayoutEffect, useRef, type JSX, type ReactNode, type Ref } from "react";
+import { useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Card } from "@/registry/ouro/components/ouro/card/card";
@@ -136,7 +136,8 @@ export function PermissionPrompt(props: PermissionPromptProps): JSX.Element {
   // Whether focus was on a button as the answer removed them, read in the ref's cleanup, which React runs before it
   // takes the buttons out; then focus moves to the answer's line.
   const actionsHeldFocus = useRef(false);
-  const actionsRef = useCallback((element: HTMLDivElement | null) => {
+  // One callback for the component's life, so React calls it once per mount of the buttons.
+  const [actionsRef] = useState(() => (element: HTMLDivElement | null) => {
     // React 19 calls a ref that returns a cleanup with the element only; the cleanup replaces the call with null.
     // Stryker disable next-line ConditionalExpression: never called with null, as above.
     /* istanbul ignore if @preserve -- never called with null */
@@ -144,15 +145,14 @@ export function PermissionPrompt(props: PermissionPromptProps): JSX.Element {
     return () => {
       actionsHeldFocus.current = element.contains(document.activeElement);
     };
-    // Stryker disable next-line ArrayDeclaration: the callback reads only refs, so any fixed list keeps it the same.
-  }, []);
+  });
   const answered = answer !== undefined;
   useLayoutEffect(() => {
     if (!answered || !actionsHeldFocus.current) return;
     // Stryker disable next-line BooleanLiteral,AssignmentOperator: only a later answer with focus on no element could tell, and focus then belongs on the answer anyway.
     actionsHeldFocus.current = false;
-    const active = document.activeElement;
-    if (active === null || active === document.body) settledRef.current?.focus();
+    // The focused button is gone, so focus is on the page's body: the answer's line takes it.
+    settledRef.current!.focus();
   }, [answered]);
   return (
     <div ref={ref} data-ouro="permission-prompt" data-slot="permission-prompt" data-decision={answer?.decision} className={cn("grid min-w-0", className)}>

@@ -159,13 +159,27 @@ describe("PermissionPrompt", () => {
     expect(getComputedStyle(icon()).color).toBe(shade("var(--success)"));
     expect(getComputedStyle(view.part("answer")!).color).toBe(shade("var(--muted-foreground)"));
     expect((icon().firstElementChild as SVGGraphicsElement).getBBox().width).toBeGreaterThan(0);
-    const tick = icon().firstElementChild!.getAttribute("d");
+    // A tick for allowed, a cross for denied: the tick's path has three points, the cross's two strokes.
+    expect(icon().firstElementChild!.getAttribute("d")).toBe("m3.5 8.5 3 3 6-7");
     await view.rerender(<PermissionPrompt {...ask} answer={{ decision: "denied", by: "you" }} />);
     expect(view.part("answer-text")!.textContent).toBe("Denied by you");
-    expect(icon().firstElementChild!.getAttribute("d")).not.toBe(tick);
+    expect(icon().firstElementChild!.getAttribute("d")).toBe("m4.5 4.5 7 7m0-7-7 7");
     expect(getComputedStyle(icon()).color).toBe(shade("var(--destructive)"));
     expect((icon().firstElementChild as SVGGraphicsElement).getBBox().width).toBeGreaterThan(0);
     expect(view.prompt.getAttribute("data-decision")).toBe("denied");
+  });
+
+  it("moves focus to the answer when it arrives while a button holds focus, and not when nothing did", async () => {
+    const view = await render(<PermissionPrompt {...ask} />);
+    await act(async () => view.button("allow")!.focus());
+    expect(document.activeElement).toBe(view.button("allow"));
+    await view.rerender(<PermissionPrompt {...ask} answer={{ decision: "allowed", by: "Ana", app: "their phone" }} />);
+    expect(view.button("allow")).toBeNull();
+    expect(document.activeElement).toBe(view.part("answer"));
+    const unfocused = await render(<PermissionPrompt {...ask} />);
+    await act(async () => (document.activeElement as HTMLElement).blur());
+    await unfocused.rerender(<PermissionPrompt {...ask} answer={{ decision: "denied", by: "Ana" }} />);
+    expect(document.activeElement).toBe(document.body);
   });
 
   it("moves focus from the pressed button to the answer, and leaves focus elsewhere alone", async () => {
