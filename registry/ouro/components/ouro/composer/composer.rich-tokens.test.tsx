@@ -5,8 +5,11 @@ import { userEvent } from "vitest/browser";
 import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import type { AutocompleteItem, AutocompleteTrigger } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
+import { preloadRichEditor } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
+
+await preloadRichEditor();
 
 const roots: Root[] = [];
 let mounted: HTMLElement[] = [];
