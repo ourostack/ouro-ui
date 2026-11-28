@@ -257,6 +257,21 @@ export interface MessageListOwnProps {
   /** Called with how many matches there are and which is current, whenever either changes, or `partial` does. See {@link MessageListFindReport}. */
   onFindMatches?: ((report: MessageListFindReport) => void) | undefined;
   /**
+   * A composer that floats over the list's bottom edge, as a phone's messaging app floats its own, so
+   * the messages scroll on beneath it instead of stopping at an opaque bar across the pane's foot. The
+   * list measures it and keeps that much room under its last message, so the newest sits just above it
+   * rather than behind it, and keeps that room in view as the reader scrolls or tabs to a message. It
+   * floats Jump to latest above it too. A composer that grows as the reader types (a textarea that
+   * autosizes) keeps the list at its end while the reader is there, as a new message arriving does.
+   * Leave it out, and put your composer under MessageList instead, for a plain bar across the pane's foot.
+   * @claim "The list measures it and keeps that much room" registry/ouro/components/ouro/message/message-list.foot.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.foot.test.tsx::MessageList foot > reserves room under the last message for the foot's measured height, with scroll-padding-bottom to match)
+   * @claim "It floats Jump to latest above it too" registry/ouro/components/ouro/message/message-list.foot.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.foot.test.tsx::MessageList foot > floats Jump to latest above the foot, not overlapping it)
+   * @claim "keeps the list at its end while the reader is there" registry/ouro/components/ouro/message/message-list.foot.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.foot.test.tsx::MessageList foot > keeps a pinned reader at the list's end as the foot grows taller, covering no message)
+   * @example
+   * <MessageList label="Chat" foot={<Composer />}>{messages}</MessageList>
+   */
+  foot?: ReactNode | undefined;
+  /**
    * Layout only: the list's height (`h-96`, `flex-1`), margins. It scrolls inside that
    * height, so give it one. Appearance classes warn in development.
    */
@@ -643,6 +658,10 @@ let layerModule: Promise<typeof MessageBarLayer> | undefined;
 let loadedLayer: typeof MessageBarLayer | undefined;
 const loadLayer = () =>
   (layerModule ??= import("@/registry/ouro/components/ouro/message/message-parts").then((module) => (loadedLayer = module.MessageBarLayer)));
+// Fetched as the list's code loads, not at the first row with a bar: a first list then draws the layer's host with its first
+// frame, where waiting for a row added it a frame or more after the first.
+// Stryker disable next-line ConditionalExpression,StringLiteral: in a browser, true runs the same, as does comparing with "" (typeof is never ""); false never fetches, as the === mutant does, which message-list.preload.test.tsx fails.
+/* istanbul ignore else @preserve -- a server render has no document, and the tests run in a browser */ if (typeof document !== "undefined") void loadLayer();
 
 // The find layer and its marks, loaded with the first list that has `find`, so a list without it adds none of that code.
 let findPromise: Promise<typeof MessageFindLayer> | undefined;
@@ -795,6 +814,7 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
     // with the reader's scroll: a fling that a long frame gathered into one scroll event.
     const kick = isFlingKick(going, scrolling, scrolled, view.height) ? scrolled : 0;
     going = false;
+    const following = moving.size > 0;
     const band = nearby(view);
     const near = new Set(band.map(({ item }) => item));
     // A message that leaves the band is out of sight: it rests at once.
@@ -827,9 +847,9 @@ function springs(scroller: HTMLElement, content: HTMLElement, reduced: () => boo
       const next = springAt(state.value, 0, state.velocity, elapsed, SPRING);
       // Stryker disable next-line EqualityOperator: a spring lands exactly on the rest speed only by chance, and a frame later it rests either way.
       if (Math.abs(next.value) < REST && Math.abs(next.velocity) < REST_SPEED) {
-        // While the reader's scroll goes on, a message drawn away that comes back to its place waits there for the scroll's end,
+        // While the reader's scroll goes on, a message drawn away (even first reached in this frame) waits for the scroll's end,
         // asking for no frames: the next scroll event of a fling may come only after a long frame, and moves it again.
-        if (scrolling && shifts.has(item)) {
+        if (scrolling && (shifts.has(item) || (following && state.value !== 0))) {
           moving.set(item, { value: 0, velocity: 0 });
           draw(item, 0);
         } else rest(item);
@@ -1152,6 +1172,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     actionsRef,
     find,
     onFindMatches,
+    foot,
     className,
     // Guard props (hint types), dropped here so they never reach the DOM.
     autoScroll,
@@ -1218,6 +1239,21 @@ export function MessageList(props: MessageListProps): JSX.Element {
   const [jumpRoom, setJumpRoom] = useState(false);
   const jumpRoomRef = useRef<HTMLDivElement | null>(null);
   const jumpRef = useRef<HTMLButtonElement | null>(null);
+  // The floating foot's measured height, which the content keeps as bottom padding and the scroller as
+  // scroll-padding-bottom, and which the reveal and keyboard-reveal math below reads live through the ref,
+  // since both are set up once, in effects with no dependencies.
+  const [footHeight, setFootHeight] = useState(0);
+  const footHeightRef = useRef(0);
+  const footRef = useRef<HTMLDivElement | null>(null);
+  footHeightRef.current = footHeight;
+  useLayoutEffect(() => {
+    const node = footRef.current;
+    if (!node) return setFootHeight(0);
+    const observer = new ResizeObserver(() => setFootHeight(node.offsetHeight));
+    observer.observe(node);
+    // Stryker disable next-line ArrowFunction: an observer left on a removed foot reports its height as 0, as the effect's own rerun sets it.
+    return () => observer.disconnect();
+  }, [foot]);
   const [spoken, setSpoken] = useState<Spoken[]>([]);
   const nextId = useRef(0);
   // The newest label function, for the observer set up once below.
@@ -2406,7 +2442,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const bring = (element: HTMLElement, block: MessageListRevealBlock) => {
       const box = boxOf(element);
       const top = scroller.getBoundingClientRect().top;
-      const room = scroller.clientHeight;
+      // The floating foot covers the room nearest the scroller's own bottom edge.
+      const room = scroller.clientHeight - footHeightRef.current;
       const before = scroller.scrollTop;
       // Stryker disable next-line EqualityOperator: at the margin to the pixel, the message is where scrolling would put it.
       const above = box.top < top + EDGE || box.height > room - 2 * EDGE;
@@ -2923,11 +2960,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const reveal = (element: Element) => {
       const box = boxOf(element);
       const view = scroller.getBoundingClientRect();
+      // The floating foot covers the room nearest the view's own bottom edge.
+      const height = view.height - footHeightRef.current;
+      const bottom = view.bottom - footHeightRef.current;
       // Stryker disable next-line EqualityOperator: at the margin to the pixel, the message is where scrolling would put it.
-      const atTop = box.top < view.top + EDGE || box.height > view.height - 2 * EDGE;
+      const atTop = box.top < view.top + EDGE || box.height > height - 2 * EDGE;
       // Stryker disable next-line EqualityOperator: at the margin to the pixel, the message is where scrolling would put it.
-      const atBottom = box.bottom > view.bottom - EDGE;
-      scroller.scrollTop += atTop ? box.top - view.top - EDGE : atBottom ? box.bottom - view.bottom + EDGE : 0;
+      const atBottom = box.bottom > bottom - EDGE;
+      scroller.scrollTop += atTop ? box.top - view.top - EDGE : atBottom ? box.bottom - bottom + EDGE : 0;
     };
     // The message takes the Tab stop as it takes focus, in focusIn.
     const focusOn = (item: HTMLElement) => item.focus({ preventScroll: true });
@@ -3272,13 +3312,19 @@ export function MessageList(props: MessageListProps): JSX.Element {
           onKeyDown={(event) => keyHandler.current!(event)}
           // While focused, isolate keeps the content's own stacking (a sticky header's z-index) inside the scroller, under the ring.
           className="peer relative min-h-0 flex-1 overflow-y-auto bg-(--ouro-scroller-surface) overscroll-contain [overflow-anchor:none] outline-none focus-visible:isolate forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1"
+          // Stryker disable next-line ConditionalExpression,EqualityOperator: a scroll-padding of 0 is the same as none.
+          style={footHeight > 0 ? { scrollPaddingBottom: footHeight } : undefined}
         >
           <span ref={startRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
           <div
             ref={contentRef}
             data-ouro-message-list-content=""
             className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-ouro-message-list-slot]>[data-continued]]:-mt-[calc(1rem-var(--ouro-message-run-gap,var(--ouro-size-1)))]"
-            style={maxWidth === undefined ? undefined : { maxWidth, marginInline: "auto" }}
+            style={{
+              ...(maxWidth === undefined ? null : { maxWidth, marginInline: "auto" }),
+              // Keeps the newest message just above the floating foot, as a footless list keeps it above the bottom padding.
+              ...(footHeight > 0 ? { paddingBottom: footHeight } : null),
+            }}
           >
             {/* With the content's own padding, keeps the first message below "Loading older messages", which sits over the list's top. */}
             {room && <div ref={roomRef} aria-hidden="true" data-ouro-message-list-older-room="" className="-mb-4 h-11 shrink-0" />}
@@ -3289,7 +3335,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
           <span ref={endRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
           {/* The one bar and menu: portals, so nothing of theirs is here in the page; inside the scroller in React, so a key
               in the bar (Tab, the arrows) reaches the list's keyboard handling as a key in its message would. */}
-          {Layer && <Layer scroller={scrollerRef} layer={layer} />}
+          {/* The layer portals into the scroller, which server HTML can't hold: it joins once hydration is done. */}
+          {Layer && !hydrating && <Layer scroller={scrollerRef} layer={layer} />}
           <span ref={floorRef} aria-hidden="true" data-ouro-message-list-floor="" className="pointer-events-none absolute start-0 top-0 hidden size-px" />
           <span ref={endMarkRef} aria-hidden="true" data-ouro-message-list-end-mark="" data-slot="message-list-end-mark" className="pointer-events-none absolute start-0 top-0 hidden size-px [overflow-anchor:none]" />
         </div>
@@ -3321,7 +3368,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
         </div>
       </div>
       {showJump && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center"
+          // Stryker disable next-line ConditionalExpression,EqualityOperator: forcing this true, or reading 0 as a foot, when footHeight is 0 computes
+          // calc(0.75rem + 0px), which equals the bottom-3 class it would otherwise fall back to.
+          style={footHeight > 0 ? { bottom: `calc(0.75rem + ${footHeight}px)` } : undefined}
+        >
           <button ref={jumpRef} type="button" data-ouro-message-list-jump="" data-ouro-control="message-list" data-ouro-part="jump" onClick={jump} className={jumpClass}>
             <TouchTarget />
             {jumpLabel}
@@ -3329,6 +3381,15 @@ export function MessageList(props: MessageListProps): JSX.Element {
               <path d="M8 3v10M4 9l4 4 4-4" />
             </svg>
           </button>
+        </div>
+      )}
+      {foot !== undefined && (
+        // Floats over the list's own bottom edge, over the scroller, never scrolling with it; measured above to keep
+        // the content clear of it and "Jump to latest" floating over it too.
+        <div data-slot="message-list-foot-overlay" className="pointer-events-none absolute inset-x-0 bottom-0">
+          <div ref={footRef} data-ouro-message-list-foot="" data-slot="message-list-foot" className="pointer-events-auto">
+            {foot}
+          </div>
         </div>
       )}
       {FindLayer && find ? <FindLayer all={all} keys={keys} find={find} hasOlder={hasOlder} scroller={scrollerRef} content={contentRef} slot={SLOT} onFindMatches={onFindMatches} onMarks={setFindMarks} request={requestRef} /> : null}

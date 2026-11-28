@@ -847,12 +847,16 @@ describe("MediaTile visibility", () => {
 
   it("stops watching when it unmounts", async () => {
     const report = vi.fn();
-    const { host } = await render(<MediaTile name="Mara Lind" onVisibilityChange={report} />, 320);
+    const { host, rerender } = await render(<MediaTile name="Mara Lind" onVisibilityChange={report} />, 320);
     await expect.poll(() => report.mock.calls.length).toBe(1);
+    const latest = vi.fn();
+    await rerender(<MediaTile name="Mara Lind" onVisibilityChange={latest} />);
     await act(async () => roots.pop()!.unmount());
+    expect(latest.mock.calls).toEqual([[false, 0, 0]]);
     host.style.width = "500px";
     setPage("hidden");
     await frames();
     expect(report.mock.calls.length).toBe(1);
+    expect(latest.mock.calls).toEqual([[false, 0, 0]]);
   });
 });
