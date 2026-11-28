@@ -203,7 +203,6 @@ describe("stories pass Ouro check's rules", () => {
       restoreFallback = forceSquircleFallback();
       previousCapture = state.__ouroPaintCapture;
       state.__ouroPaintCapture = (clip) => commands.squircleCapture(clip);
-      (window as unknown as { __ouroPaintDiagnostic: typeof commands.squircleDiagnostic }).__ouroPaintDiagnostic = (data) => commands.squircleDiagnostic(data);
       const probe = document.createElement("div");
       probe.className = "rounded-ouro-xl";
       probe.style.cssText = "width:120px;height:80px";
