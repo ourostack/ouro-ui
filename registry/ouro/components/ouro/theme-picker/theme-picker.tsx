@@ -110,7 +110,7 @@ const squareClass =
 function Wordmark({ preset, size }: { preset: ThemePreset; size: keyof typeof tileSizes }): JSX.Element {
   return (
     <span aria-hidden="true" data-slot="theme-picker-wordmark" data-theme={preset.theme ?? preset.name} data-preset={preset.name} className={cn(tileClass, tileSizes[size])}>
-      <span data-slot="theme-picker-name" className={nameClass}>{preset.label}</span>
+      <span data-slot="theme-picker-name" className={cn(nameClass, size === "sm" && "[text-box:trim-both_cap_alphabetic]")}>{preset.label}</span>
       <span data-slot="theme-picker-square" className={squareClass} />
     </span>
   );
