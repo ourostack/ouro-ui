@@ -41,4 +41,4 @@ jobs:
         with:
           node-version: 24
       - name: Retry the run's failures if every one is a quarantined test
-        run: node scripts/quarantine.mjs retry "$RUN_ID"
+        run: node scripts/quarantine.mjs retry --notice "$RUN_ID"

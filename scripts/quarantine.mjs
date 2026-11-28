@@ -25,7 +25,7 @@
 //   node scripts/quarantine.mjs check
 //       fails when an entry lacks its test (project, file, title), its issue URL, its owner or
 //       its expiry (an ISO 8601 date-time)
-//   node scripts/quarantine.mjs retry [--also <check>]... <run id>...
+//   node scripts/quarantine.mjs retry [--notice] [--also <check>]... <run id>...
 //       after scripts/required-ci.sh (or CI's own run) failed on these runs: exits 0 once it has
 //       started the retry (the caller then waits for it and judges again), 1 when nothing may be
 //       retried. Needs gh with GH_TOKEN and GITHUB_REPOSITORY.
@@ -397,9 +397,15 @@ function prepareEntries(entries, runs) {
 
 async function retry(args, { dryRun = false } = {}) {
   const also = [];
-  while (args[0] === "--also") {
-    also.push(args[1]);
-    args = args.slice(2);
+  let notice = false;
+  while (args[0] === "--also" || args[0] === "--notice") {
+    if (args[0] === "--notice") {
+      notice = true;
+      args = args.slice(1);
+    } else {
+      also.push(args[1]);
+      args = args.slice(2);
+    }
   }
   const repo = process.env["GITHUB_REPOSITORY"];
   const entries = JSON.parse(readFileSync(quarantineFile, "utf8"));
@@ -420,7 +426,11 @@ async function retry(args, { dryRun = false } = {}) {
   const plan = retryPlan({ runs, contexts, entries });
   if (!plan.retry) {
     console.log(`Not retried: ${plan.problems.join("; ")}`);
-    return 1;
+    if (!notice) return 1;
+    // The red belongs to the run that failed; not retrying it is the right answer, not a failed retry.
+    const links = args.map((id) => `https://github.com/${repo}/actions/runs/${id}`).join(" ");
+    console.log(`::notice::Not retried, so the failure stays with the run itself (${links}): ${plan.problems.join("; ")}`);
+    return 0;
   }
   if (dryRun) {
     for (const retried of plan.retried) console.log(`Would record: ${record(retried)}`);
@@ -548,7 +558,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   } else if (command === "judge" && args.length > 1) {
     process.exit(judge(args[0], args.slice(1)));
   } else {
-    console.error("usage: quarantine.mjs check | stale | rehearsed <run id> | retry|plan [--also <check>]... <run id>... | judge <run id> <job id>...");
+    console.error("usage: quarantine.mjs check | stale | rehearsed <run id> | retry|plan [--notice] [--also <check>]... <run id>... | judge <run id> <job id>...");
     process.exit(2);
   }
 }
