@@ -235,7 +235,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             const radius = Math.min(badge.width, badge.height) / 2;
             const dx = Math.max(0, Math.abs(px - (badge.left + badge.right) / 2) - (badge.width / 2 - radius));
             const dy = Math.max(0, Math.abs(py - (badge.top + badge.bottom) / 2) - (badge.height / 2 - radius));
-            const pixelRadius = Math.hypot(clip.width / a.width, clip.height / a.height) / 2;
+            // Fractional badge placement can extend the antialiased edge by another quarter physical pixel.
+            const pixelRadius = Math.hypot(clip.width / a.width, clip.height / a.height) / 2
+              + Math.max(clip.width / a.width, clip.height / a.height) / 4;
             return dx * dx + dy * dy <= (radius + pixelRadius) ** 2;
           })) continue;
           // A pixel straddling the box edge can contain the surface's own antialiasing, even when its centre is inside.
