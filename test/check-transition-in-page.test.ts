@@ -85,8 +85,10 @@ describe("transition rules", () => {
     expect(lag.faults.map((f) => f.rule)).toEqual(["off-curve"]);
     const fade = () => {
       const box = document.getElementById("t-box")!;
-      box.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, easing: "linear", fill: "both" });
-      box.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 100, easing: "linear", fill: "both" });
+      // A stall past 600ms finishes both, and the browser then removes the earlier one as replaced by the later one (the
+      // spec's replace state); persist() keeps it, so the fixture does not depend on how long a frame takes.
+      box.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, easing: "linear", fill: "both" }).persist();
+      box.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 100, easing: "linear", fill: "both" }).persist();
     };
     expect((await trace(slide(), fade)).faults.map((f) => f.rule)).toEqual(["opacity-step"]);
     const clip = (width: string[]) => () => void document.getElementById("t-label")!.animate([{ width: width[0]! }, { width: width[1]! }], { duration: 300, fill: "forwards" });
