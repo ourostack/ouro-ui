@@ -205,6 +205,19 @@ export interface CommandRecent {
   icon?: ReactNode;
   /** Runs when the chip is pressed. The palette closes first. */
   onSelect: () => void;
+  /**
+   * Whether closing the palette after this chip runs puts focus back where it was, as a command's `restoreFocus`.
+   * @default true, or false for a chip that `navigates`
+   * @claim "as a command's `restoreFocus`" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command and focus after a choice > leaves focus where a recent chip that navigates put it, unless it says restoreFocus)
+   */
+  restoreFocus?: boolean | undefined;
+  /**
+   * This chip takes the person somewhere, as a command that `navigates`: closing the palette leaves focus where the
+   * destination put it, never back on the trigger. A recent place usually does.
+   * @default false
+   * @claim "as a command that `navigates`" registry/ouro/components/ouro/command/command.test.tsx verify:testExists(registry/ouro/components/ouro/command/command.test.tsx::Command and focus after a choice > leaves focus where a recent chip that navigates put it, unless it says restoreFocus)
+   */
+  navigates?: boolean | undefined;
 }
 
 /** Props shared by both ways of opening a Command palette. */
@@ -901,7 +914,7 @@ export function Command(props: CommandProps): JSX.Element {
                 onBlur={() => setChipActive(false)}
                 // Stryker disable next-line ObjectLiteral,BooleanLiteral: preventScroll only stops a scroll the row is already in view for.
                 onPointerMove={(event) => event.currentTarget.focus({ preventScroll: true })}
-                onClick={() => run({ label: recent.label, onSelect: recent.onSelect })}
+                onClick={() => run(recent)}
               >
                 <TouchTarget />
                 {shown(recent.icon) && (
