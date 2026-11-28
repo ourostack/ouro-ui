@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: [Composer takes `resizable` and `resizeLabel`](registry/ouro/components/ouro/composer/composer.resize.test.tsx "verify:testExists(registry/ouro/components/ouro/composer/composer.resize.test.tsx::Composer resizable edge > moves a line with ArrowUp and ArrowDown, and to the smallest and largest with Home and End, reporting each)"), an edge along the top of its text, as a chat app's reply box has, that a person drags from the press or reaches with ArrowUp, ArrowDown, Home and End, landing on whole lines; `height`, `defaultHeight` and `onHeightChange` keep the height, and the `useResize` helper gives the same edge to other boxes.
