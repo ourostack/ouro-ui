@@ -569,6 +569,36 @@ describe("findDesignIssues: cut-off-edge", () => {
     ]);
   });
 
+  it("does not guess the surface behind a translucent scroller over a gradient", () => {
+    render(`
+      <div style="width:360px;height:320px;background:linear-gradient(#ddd,#bbb)">
+        <div style="width:340px;height:250px;overflow:auto;background:#fff8">
+          <div style="height:80px">One note</div><div style="height:80px">Two notes</div>
+          <div style="height:80px">Three notes</div><div style="height:80px">Four notes</div>
+        </div>
+      </div>`);
+    expect(of("cut-off-edge")).toEqual([]);
+  });
+
+  it("reads a transparent scroller against the dark page canvas", async () => {
+    document.documentElement.style.background = "transparent";
+    document.body.style.background = "transparent";
+    render(`
+      <div style="width:360px;height:320px">
+        <div id="dark-list" style="width:340px;height:250px;overflow:auto">
+          <div style="height:80px">One note</div><div style="height:80px">Two notes</div>
+          <div style="height:80px">Three notes</div><div style="height:80px">Four notes</div>
+        </div>
+      </div>`);
+    await commands.emulateMedia({ colorScheme: "dark" });
+    try {
+      document.documentElement.style.colorScheme = "dark";
+      expect(of("cut-off-edge").map((issue) => issue.element)).toEqual(["div#dark-list"]);
+    } finally {
+      await commands.emulateMedia({ colorScheme: "light" });
+    }
+  });
+
   it("names the clipped sides after scrolling without changing the scroll position", () => {
     render(`
       <div style="width:360px;height:320px;padding-top:20px;background:#eee">
@@ -740,7 +770,7 @@ describe("findDesignIssues: cut-off-edge", () => {
     expect(of("cut-off-edge").map((issue) => issue.element)).toEqual(["div#overlay-list", "div#masked-list"]);
   });
 
-  it("passes an outline or an enclosing border at the clipped edge", () => {
+  it("passes an outline, ring or enclosing border at the clipped edge", () => {
     render(`
       <div style="width:340px;height:120px;background:#eee">
         <div style="width:320px;height:80px;overflow:auto;outline:1px solid #888;background:#eee">
@@ -752,6 +782,11 @@ describe("findDesignIssues: cut-off-edge", () => {
           <div style="width:320px;height:80px;overflow:auto;background:#eee">
             <div style="height:60px">First</div><div style="height:60px">Second</div>
           </div>
+        </div>
+      </div>
+      <div style="width:340px;height:120px;background:#eee">
+        <div style="width:320px;height:80px;overflow:auto;box-shadow:0 0 0 1px #888;background:#eee">
+          <div style="height:60px">First</div><div style="height:60px">Second</div>
         </div>
       </div>`);
     expect(of("cut-off-edge")).toEqual([]);
