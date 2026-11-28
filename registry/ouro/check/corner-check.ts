@@ -6,11 +6,38 @@ import type { PageIssue } from "./size-check.ts";
 interface CornerOptions {
   /** The native window's corner radius in CSS pixels, when its edge is outside the page. */
   windowRadius?: number;
+  /** The native window's bounds in viewport CSS pixels; defaults to the viewport itself. */
+  windowBounds?: { x: number; y: number; width: number; height: number };
+  /** How far the native window extends beyond each viewport edge in CSS pixels. */
+  windowInsets?: { top: number; right: number; bottom: number; left: number };
 }
 
 // Runs in the page: the runner serializes this function into page.evaluate.
-function findCornerIssues({ windowRadius }: CornerOptions = {}): PageIssue[] {
-  type Corner = { name: string; key: string; x: number; y: number; squircle: boolean };
+function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOptions = {}): PageIssue[] {
+  if (windowRadius !== undefined && (!Number.isFinite(windowRadius) || windowRadius < 0)) {
+    throw new Error("windowRadius takes a non-negative number of CSS pixels");
+  }
+  if ((windowBounds !== undefined || windowInsets !== undefined) && windowRadius === undefined) {
+    throw new Error("windowBounds and windowInsets require windowRadius");
+  }
+  if (windowBounds !== undefined && windowInsets !== undefined) throw new Error("pass windowBounds or windowInsets, not both");
+  if (windowBounds !== undefined && (
+    typeof windowBounds !== "object" || windowBounds === null || Array.isArray(windowBounds) ||
+    ![windowBounds.x, windowBounds.y, windowBounds.width, windowBounds.height].every(Number.isFinite) ||
+    windowBounds.width <= 0 || windowBounds.height <= 0
+  )) {
+    throw new Error("windowBounds takes finite x and y and positive width and height in viewport CSS pixels");
+  }
+  if (windowInsets !== undefined && (
+    typeof windowInsets !== "object" || windowInsets === null || Array.isArray(windowInsets) ||
+    ![windowInsets.top, windowInsets.right, windowInsets.bottom, windowInsets.left].every((value) => Number.isFinite(value) && value >= 0)
+  )) {
+    throw new Error("windowInsets takes non-negative top, right, bottom and left in CSS pixels");
+  }
+  if (windowBounds && (windowBounds.x > 1 || windowBounds.y > 1 || windowBounds.x + windowBounds.width < innerWidth - 1 || windowBounds.y + windowBounds.height < innerHeight - 1)) {
+    throw new Error("native window bounds must contain the viewport; use windowInsets for a sweep of sizes");
+  }
+  type Corner = { name: string; key: string; x: number; y: number; squircle: boolean; cutoutMismatch?: boolean };
   type Surface = { el: Element | null; rect: DOMRect; corners: Corner[] };
   const names = [
     { name: "top left", key: "tl", property: "TopLeft", shape: "top-left" },
@@ -90,23 +117,79 @@ function findCornerIssues({ windowRadius }: CornerOptions = {}): PageIssue[] {
     for (const corner of corners) { corner.x *= factor; corner.y *= factor; }
     return { el, rect, corners };
   };
-  const surfaces = [document.body, ...document.body.querySelectorAll("*")]
+  const surfaces = [document.documentElement, document.body, ...document.body.querySelectorAll("*")]
     .filter((el) => !el.closest("svg, script, style, template") && !el.hasAttribute("data-ouro-surface") && !el.hasAttribute("data-ouro-avatar-surface") && visible(el) && painted(el))
     .map(surface);
+  const cutouts = surfaces.filter(({ el, corners }) => {
+    const s = getComputedStyle(el!);
+    return corners.some((corner) => corner.x >= 6 && corner.y >= 6) &&
+      s.clipPath !== "none" && s.maskImage === "none" && s.backgroundImage === "none" &&
+      Number(s.opacity) === 1 && s.filter === "none" && s.mixBlendMode === "normal" &&
+      rgba(s.backgroundColor)[3] === 255;
+  });
+  for (const inner of surfaces) {
+    if (!(inner.el instanceof HTMLElement) || !inner.corners.some((corner) => corner.x < 1 || corner.y < 1)) continue;
+    for (const cutout of cutouts) {
+      if (!(cutout.el instanceof HTMLElement) || !inner.el.contains(cutout.el) || inner === cutout) continue;
+      if (![inner.rect.left - cutout.rect.left, inner.rect.top - cutout.rect.top, inner.rect.right - cutout.rect.right, inner.rect.bottom - cutout.rect.bottom].every((distance) => Math.abs(distance) < 0.5)) continue;
+      const root = inner.el;
+      const layer = cutout.el;
+      const previous = [root, layer].map((el) => ({ el, style: el.getAttribute("style"), normalized: el.style.cssText, value: el.style.getPropertyValue("pointer-events"), priority: el.style.getPropertyPriority("pointer-events") }));
+      try {
+        root.style.setProperty("pointer-events", "auto", "important");
+        layer.style.setProperty("pointer-events", "auto", "important");
+        for (const [index, corner] of cutout.corners.entries()) {
+          if (corner.x < 6 || corner.y < 6) continue;
+          const left = index === 0 || index === 3;
+          const top = index < 2;
+          const point = (x: number, y: number) => document.elementFromPoint(
+            left ? inner.rect.left + x * corner.x : inner.rect.right - x * corner.x,
+            top ? inner.rect.top + y * corner.y : inner.rect.bottom - y * corner.y,
+          );
+          const outside = point(0.05, 0.05);
+          const inside = point(0.5, 0.5);
+          if (!outside || !layer.contains(outside) || !inside || layer.contains(inside) || !root.contains(inside) || (inside !== root && painted(inside))) continue;
+          // Bracket the n=4 curve rather than trusting a radius the cutout may not draw.
+          const x = 0.05;
+          const edge = 1 - (1 - (1 - x) ** 4) ** 0.25;
+          const tolerance = 0.75 / corner.y;
+          const before = point(x, Math.max(0, edge - tolerance));
+          const after = point(x, Math.min(1, edge + tolerance));
+          const matches = Boolean(before && after && layer.contains(before) && !layer.contains(after) && root.contains(after) && (after === root || !painted(after)));
+          inner.corners[index] = { ...corner, squircle: matches, cutoutMismatch: !matches };
+          corner.squircle = matches;
+        }
+      } finally {
+        for (const { el, style, normalized, value, priority } of previous) {
+          if (value) el.style.setProperty("pointer-events", value, priority);
+          else el.style.removeProperty("pointer-events");
+          if (el.getAttribute("style") !== style && el.style.cssText === normalized) {
+            if (style === null) el.removeAttribute("style");
+            else el.setAttribute("style", style);
+          }
+        }
+      }
+    }
+  }
+  const nativeBounds = windowBounds ?? (windowInsets
+    ? { x: -windowInsets.left, y: -windowInsets.top, width: innerWidth + windowInsets.left + windowInsets.right, height: innerHeight + windowInsets.top + windowInsets.bottom }
+    : { x: 0, y: 0, width: innerWidth, height: innerHeight });
   const windowSurface: Surface | null = windowRadius === undefined ? null : {
     el: null,
-    rect: new DOMRect(0, 0, innerWidth, innerHeight),
+    rect: new DOMRect(nativeBounds.x, nativeBounds.y, nativeBounds.width, nativeBounds.height),
     corners: names.map(({ name, key }) => ({ name, key, x: windowRadius, y: windowRadius, squircle: true })),
   };
   const clippedCorner = (inner: Surface, outer: Surface, index: number) => {
-    if (!outer.el?.contains(inner.el!)) return false;
+    if (outer.el && !outer.el.contains(inner.el!)) return false;
     const i = inner.rect;
     const o = outer.rect;
     const horizontal = index === 0 || index === 3 ? i.left - o.left : o.right - i.right;
     const vertical = index < 2 ? i.top - o.top : o.bottom - i.bottom;
     if (Math.abs(horizontal) > 1 || Math.abs(vertical) > 1) return false;
-    const outside = getComputedStyle(outer.el);
-    if (!(/hidden|clip/.test(outside.overflowX) && /hidden|clip/.test(outside.overflowY)) && outside.clipPath === "none") return false;
+    if (outer.el) {
+      const outside = getComputedStyle(outer.el);
+      if (!(/hidden|clip/.test(outside.overflowX) && /hidden|clip/.test(outside.overflowY)) && outside.clipPath === "none") return false;
+    }
     const own = getComputedStyle(inner.el!);
     return own.boxShadow === "none" && (own.outlineStyle === "none" || parseFloat(own.outlineWidth) === 0) &&
       (["Top", "Right", "Bottom", "Left"] as const).every((side) => own[`border${side}Style`] === "none" || parseFloat(own[`border${side}Width`]) === 0);
@@ -120,7 +203,7 @@ function findCornerIssues({ windowRadius }: CornerOptions = {}): PageIssue[] {
         if (outer === inner || (outer.el && optedOut(outer.el))) return false;
         const o = outer.rect;
         return i.left >= o.left - 1 && i.top >= o.top - 1 && i.right <= o.right + 1 && i.bottom <= o.bottom + 1 &&
-          (o.width > i.width + 0.5 || o.height > i.height + 0.5 || (outer.el?.contains(inner.el!) && !inner.el!.contains(outer.el)));
+          (outer.el === null || o.width > i.width + 0.5 || o.height > i.height + 0.5 || (outer.el.contains(inner.el!) && !inner.el!.contains(outer.el)));
       })
       .sort((a, b) => a.rect.width * a.rect.height - b.rect.width * b.rect.height);
     const failures = new Map<Surface, string[]>();
@@ -141,7 +224,7 @@ function findCornerIssues({ windowRadius }: CornerOptions = {}): PageIssue[] {
         if (wrongRadius || !corner.squircle || !oc.squircle) {
           const actual = Math.abs(corner.x - corner.y) < 0.5 ? `${Math.round(corner.x)}px` : `${Math.round(corner.x)}x${Math.round(corner.y)}px`;
           const expected = Math.abs(wantX - wantY) < 0.5 ? `${Math.round(wantX)}px` : `${Math.round(wantX)}x${Math.round(wantY)}px`;
-          const shape = !oc.squircle || !corner.squircle ? "; both corners must be squircles" : "";
+          const shape = corner.cutoutMismatch ? "; the painted cutout does not match its stated squircle radius" : !oc.squircle || !corner.squircle ? "; both corners must be squircles" : "";
           const details = failures.get(outer) ?? [];
           details.push(`${corner.name}: ${actual}, expected ${expected}${shape}`);
           failures.set(outer, details);

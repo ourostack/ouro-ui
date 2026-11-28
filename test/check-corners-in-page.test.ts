@@ -222,14 +222,15 @@ it("detects a low-contrast square and a descendant outline beyond the surface", 
 
 it("detects alpha-only paint against a transparent background", async () => {
   render('<div style="width:160px;height:120px;border-radius:28px;corner-shape:squircle"></div>');
-  const image = (painted: boolean) => {
+  const image = (painted: boolean, clip: PaintClip) => {
     const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = 32;
+    canvas.width = clip.width;
+    canvas.height = clip.height;
     if (painted) canvas.getContext("2d")!.fillRect(0, 0, canvas.width, canvas.height);
     return canvas.toDataURL("image/png");
   };
-  const captures = [image(true), image(false), image(false)];
-  state.__ouroPaintCapture = async () => captures.shift()!;
+  const captures = [true, false, false];
+  state.__ouroPaintCapture = async (clip) => image(captures.shift()!, clip);
   try {
     expect(await findSquirclePaint()).toHaveLength(1);
   } finally {
@@ -386,15 +387,31 @@ it("reports a missing capture and a screenshot whose size changed", async () => 
   delete state.__ouroPaintCapture;
   await expect(findSquirclePaint()).rejects.toThrow("needs a screenshot capture");
   render('<div style="width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"></div>');
-  const image = (size: number) => {
+  const image = (clip: PaintClip, offset: number) => {
     const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = size;
+    canvas.width = clip.width + offset;
+    canvas.height = clip.height;
     return canvas.toDataURL("image/png");
   };
-  const captures = [image(2), image(2), image(1)];
-  state.__ouroPaintCapture = async () => captures.shift()!;
+  const captures = [0, 0, -1];
+  state.__ouroPaintCapture = async (clip) => image(clip, captures.shift()!);
   try {
     await expect(findSquirclePaint()).rejects.toThrow("screenshots changed size");
+  } finally {
+    state.__ouroPaintCapture = (clip) => commands.squircleCapture(clip);
+  }
+});
+
+it("rejects a capture that does not cover the requested clip at CSS or device scale", async () => {
+  render('<div style="width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"></div>');
+  state.__ouroPaintCapture = async (clip) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = clip.width + 20;
+    canvas.height = clip.height;
+    return canvas.toDataURL("image/png");
+  };
+  try {
+    await expect(findSquirclePaint()).rejects.toThrow("squircle-paint capture must cover the requested clip");
   } finally {
     state.__ouroPaintCapture = (clip) => commands.squircleCapture(clip);
   }
@@ -404,21 +421,22 @@ it("restores the native-shadow probe when its capture fails or changes size", as
   const root = render('<div style="width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle;box-shadow:0 4px 12px #0008"></div>');
   const surface = root.firstElementChild as HTMLElement;
   const original = surface.getAttribute("style");
-  const image = (size: number) => {
+  const image = (clip: PaintClip, offset: number) => {
     const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = size;
+    canvas.width = clip.width + offset;
+    canvas.height = clip.height;
     return canvas.toDataURL("image/png");
   };
   try {
-    let captures = [image(2), image(2), image(2), image(1)];
-    state.__ouroPaintCapture = async () => captures.shift()!;
+    let captures = [0, 0, 0, -1];
+    state.__ouroPaintCapture = async (clip) => image(clip, captures.shift()!);
     await expect(findSquirclePaint()).rejects.toThrow("screenshots changed size");
     expect(surface.getAttribute("style")).toBe(original);
     expect(surface.hasAttribute("data-ouro-paint-solo")).toBe(false);
-    captures = [image(2), image(2), image(2)];
-    state.__ouroPaintCapture = async () => {
+    captures = [0, 0, 0];
+    state.__ouroPaintCapture = async (clip) => {
       if (captures.length === 0) throw new Error("probe failed");
-      return captures.shift()!;
+      return image(clip, captures.shift()!);
     };
     await expect(findSquirclePaint()).rejects.toThrow("probe failed");
     expect(surface.getAttribute("style")).toBe(original);
@@ -430,16 +448,17 @@ it("restores the native-shadow probe when its capture fails or changes size", as
 
 it("does not attribute changing background pixels outside the box to a surface", async () => {
   render('<div style="width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"></div>');
-  const image = (color: string) => {
+  const image = (color: string, clip: PaintClip) => {
     const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = 32;
+    canvas.width = clip.width;
+    canvas.height = clip.height;
     const context = canvas.getContext("2d")!;
     context.fillStyle = color;
     context.fillRect(0, 0, canvas.width, canvas.height);
     return canvas.toDataURL("image/png");
   };
-  const captures = [image("red"), image("blue"), image("green")];
-  state.__ouroPaintCapture = async () => captures.shift()!;
+  const captures = ["red", "blue", "green"];
+  state.__ouroPaintCapture = async (clip) => image(captures.shift()!, clip);
   try {
     expect(await findSquirclePaint()).toEqual([]);
   } finally {

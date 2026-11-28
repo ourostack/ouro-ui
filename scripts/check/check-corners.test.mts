@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { chromium, webkit, type Page } from "playwright";
 import postcss from "postcss";
-import { findCornerIssues } from "../../registry/ouro/check/corner-check.ts";
+import { findCornerIssues, type CornerOptions } from "../../registry/ouro/check/corner-check.ts";
 import { check } from "../../registry/ouro/check/run.ts";
 import { findSquirclePaint, type PaintClip } from "../../registry/ouro/check/squircle-paint.ts";
 import { squircleCorners } from "../../registry/ouro/lib/ouro/squircle-corners.ts";
@@ -28,7 +28,7 @@ function contour(w: number, h: number, r: number): string {
   ].join(" ");
 }
 
-async function scan(name: string, html: string, config: { windowRadius?: number } = {}) {
+async function scan(name: string, html: string, config: CornerOptions = {}) {
   return check({
     targets: [site(name, { "index.html": html })],
     out: dir(name),
@@ -73,6 +73,11 @@ test("corners-nest compares a surface with the native window only when its radiu
   assert.equal(withWindow.length, 1);
   assert.match(withWindow[0]!.element, /#window-panel/);
   assert.match(withWindow[0]!.detail, /28px/);
+  const asymmetric = page(`<h1>Projects</h1><div id="window-panel" class="window-panel">Notes</div>`, `<style>${css} .window-panel { border-radius: 8px 8px 28px 28px; }</style>`);
+  const offsetWindow = await scan("window-offset", asymmetric, { windowRadius: 32, windowBounds: { x: 0, y: -40, width: 390, height: 884 } });
+  assert.deepEqual(offsetWindow.findings.filter((finding) => finding.rule === "corners-nest"), []);
+  const insetWindow = await scan("window-insets", asymmetric, { windowRadius: 32, windowInsets: { top: 40, right: 0, bottom: 0, left: 0 } });
+  assert.deepEqual(insetWindow.findings.filter((finding) => finding.rule === "corners-nest"), []);
 });
 
 test("corners-nest uses native window bounds relative to the viewport", async () => {
@@ -89,6 +94,7 @@ test("corners-nest uses native window bounds relative to the viewport", async ()
       const viewport = await tab.evaluate(findCornerIssues, { windowRadius: 48 });
       assert.match(viewport[0]!.detail, /top left/, `${engine.name()}: a viewport edge alone invents top corners`);
       assert.deepEqual(await tab.evaluate(findCornerIssues, { windowRadius: 48, windowBounds: bounds }), [], `${engine.name()}: the native top is outside the viewport`);
+      await assert.rejects(tab.evaluate(findCornerIssues, { windowRadius: 48, windowBounds: { ...bounds, width: 300 } }), /native window bounds must contain the viewport/);
       await tab.locator(".panel").evaluate((el) => { el.style.borderBottomRightRadius = "12px"; });
       const bottom = await tab.evaluate(findCornerIssues, { windowRadius: 48, windowBounds: bounds });
       assert.equal(bottom.length, 1);
@@ -99,9 +105,37 @@ test("corners-nest uses native window bounds relative to the viewport", async ()
         el.style.borderBottomLeftRadius = "12px";
       });
       assert.deepEqual(await tab.evaluate(findCornerIssues, { windowRadius: 48, windowBounds: { x: -52, y: -52, width: 442, height: 352 } }), [], `${engine.name()}: the native left is outside the viewport`);
+      await tab.setContent('<style>html, body { margin: 0; width: 100%; height: 100%; box-sizing: border-box; } body { background: white; }</style>');
+      assert.deepEqual(await tab.evaluate(findCornerIssues, { windowRadius: 48 }), [], `${engine.name()}: the native window clips a full-bleed background`);
+      await tab.locator("body").evaluate((el) => { el.style.border = "2px solid #557799"; });
+      assert.match((await tab.evaluate(findCornerIssues, { windowRadius: 48 }))[0]!.detail, /bottom right/, `${engine.name()}: a full-bleed square border still shows`);
+      await tab.locator("body").evaluate((el) => { el.style.background = "transparent"; el.style.border = "0"; });
+      await tab.locator("html").evaluate((el) => { el.style.background = "white"; el.style.border = "2px solid #557799"; });
+      assert.match((await tab.evaluate(findCornerIssues, { windowRadius: 48 }))[0]!.element, /^html/, `${engine.name()}: the document root is a painted surface too`);
     } finally {
       await browser.close();
     }
+  }
+});
+
+test("corners-nest resolves native window insets at each viewport size", async () => {
+  const css = await styles(`
+    body { margin: 0; background: white; }
+    .panel { position: fixed; inset: 8px; border-radius: 12px 12px 40px 40px; background: #557799; }
+  `);
+  const browser = await chromium.launch({ headless: true });
+  const tab = await browser.newPage();
+  try {
+    for (const [width, height] of [[390, 300], [1440, 900]] as const) {
+      await tab.setViewportSize({ width, height });
+      await tab.setContent(`<style>${css}</style><div class="panel"></div>`);
+      const options = { windowRadius: 48, windowInsets: { top: 52, right: 0, bottom: 0, left: 0 } };
+      assert.deepEqual(await tab.evaluate(findCornerIssues, options), [], `${width}x${height}`);
+      await tab.locator(".panel").evaluate((el) => { el.style.borderBottomRightRadius = "12px"; });
+      assert.match((await tab.evaluate(findCornerIssues, options))[0]!.detail, /bottom right/);
+    }
+  } finally {
+    await browser.close();
   }
 });
 
@@ -118,6 +152,7 @@ test("corners-nest reads a root corner painted by an inverse squircle cutout", a
   for (const engine of [chromium, webkit]) {
     const browser = await engine.launch({ headless: true });
     const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+    await bindCapture(tab);
     try {
       await tab.setContent(`<style>
         body { margin: 0; background: white; }
@@ -126,7 +161,21 @@ test("corners-nest reads a root corner painted by an inverse squircle cutout", a
       </style><main class="panel"><div class="cutout" aria-hidden="true"></div></main>`);
       const bounds = { x: 0, y: -52, width: 390, height: 352 };
       await tab.locator(".cutout").evaluate((el, path) => { el.style.clipPath = path; }, hole(40));
+      const before = await tab.locator(".panel, .cutout").evaluateAll((els) => els.map((el) => el.getAttribute("style")));
       assert.deepEqual(await tab.evaluate(findCornerIssues, { windowRadius: 48, windowBounds: bounds }), [], `${engine.name()}: the cutout supplies the visible corners`);
+      assert.deepEqual(await tab.locator(".panel, .cutout").evaluateAll((els) => els.map((el) => el.getAttribute("style"))), before);
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: an inverse layer is not itself a rounded surface`);
+      for (const radius of [32, 36, 44]) {
+        await tab.locator(".cutout").evaluate((el, path) => { el.style.clipPath = path; }, hole(radius));
+        assert.notDeepEqual(await tab.evaluate(findCornerIssues, { windowRadius: 48, windowBounds: bounds }), [], `${engine.name()}: a ${radius}px cutout cannot claim to be 40px`);
+      }
+      await tab.locator(".cutout").evaluate((el, path) => { el.style.clipPath = path; }, hole(40));
+      await tab.locator(".panel").evaluate((el) => {
+        const wrapper = document.createElement("div");
+        wrapper.style.cssText = "position:absolute;inset:0";
+        el.prepend(wrapper);
+      });
+      assert.deepEqual(await tab.evaluate(findCornerIssues, { windowRadius: 48, windowBounds: bounds }), [], `${engine.name()}: a transparent wrapper does not hide the cutout`);
       await tab.locator(".cutout").evaluate((el, path) => {
         el.style.clipPath = path;
         for (const corner of ["tl", "tr", "br", "bl"]) el.style.setProperty(`--sq-${corner}`, "12px");
@@ -143,6 +192,8 @@ test("corners-nest reads a root corner painted by an inverse squircle cutout", a
         el.style.background = "transparent";
       }, hole(40));
       assert.notDeepEqual(await tab.evaluate(findCornerIssues, { windowRadius: 48, windowBounds: bounds }), [], `${engine.name()}: a transparent cutout does not cover the square`);
+      await tab.locator(".cutout").evaluate((el) => { el.style.background = "#557799"; });
+      assert.notDeepEqual(await tab.evaluate(findCornerIssues, { windowRadius: 48, windowBounds: bounds }), [], `${engine.name()}: a cutout the same color as the panel does not cover the square`);
     } finally {
       await browser.close();
     }
@@ -436,13 +487,13 @@ test("squircle-paint checks coincident rounded siblings without treating their s
   }
 });
 
-test("squircle-paint finds a leaking child under a strict style policy", async () => {
+test("squircle-paint finds a leaking child under a strict content policy", async () => {
   for (const engine of [chromium, webkit]) {
     const browser = await engine.launch({ headless: true });
     const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
     await bindCapture(tab);
     try {
-      await tab.setContent(`<meta http-equiv="Content-Security-Policy" content="style-src 'self'"><div class="surface"><div class="leak"></div></div>`);
+      await tab.setContent(`<meta http-equiv="Content-Security-Policy" content="style-src 'self'; img-src 'self'"><div class="surface"><div class="leak"></div></div>`);
       await tab.evaluate(() => {
         const surface = document.querySelector<HTMLElement>(".surface")!;
         const leak = document.querySelector<HTMLElement>(".leak")!;
@@ -480,6 +531,8 @@ test("squircle-paint checks a separate SVG outline over a rounded surface", asyn
     try {
       await tab.setContent(`<style>${css}</style><div class="surface"></div><div class="layer" data-ouro="inspector"><svg viewBox="0 0 200 140"><path d="${contour(200, 140, 32)}" fill="none" stroke="#b44939" stroke-width="2"></path></svg></div>`);
       assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: a curved outline follows the surface`);
+      await tab.locator("path").evaluate((path) => { path.setAttribute("stroke-width", "6"); });
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: a thicker curved outline still follows the surface`);
       await tab.locator("path").evaluate((path) => { path.setAttribute("d", "M 1 1 H 199 V 139 H 1 Z"); });
       assert.ok((await tab.evaluate(findSquirclePaint)).some((issue) => issue.element === "div.surface"), `${engine.name()}: a square outline crosses the curve`);
       await tab.locator("svg").evaluate((svg) => { svg.style.left = "300px"; });
@@ -573,7 +626,8 @@ test("squircle-paint does not attribute changing background pixels to a surface"
     await tab.setContent('<div style="position:absolute;left:60px;top:60px;width:160px;height:120px;background:white;border-radius:28px;corner-shape:squircle"></div>');
     const captures = await tab.evaluate(() => ["red", "blue", "green"].map((color) => {
       const canvas = document.createElement("canvas");
-      canvas.width = canvas.height = 32;
+      canvas.width = 224;
+      canvas.height = 184;
       const context = canvas.getContext("2d")!;
       context.fillStyle = color;
       context.fillRect(0, 0, canvas.width, canvas.height);
@@ -583,6 +637,55 @@ test("squircle-paint does not attribute changing background pixels to a surface"
     assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
   } finally {
     await browser.close();
+  }
+});
+
+test("squircle-paint ignores compositing noise on an unchanged overlapping surface", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+  try {
+    await tab.setContent('<div style="position:absolute;left:60px;top:60px;width:160px;height:120px;background:white;border-radius:28px;corner-shape:squircle;box-shadow:0 0 0 1px black"></div>');
+    const captures = await tab.evaluate(() => [false, true, false, true].map((noise) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 224;
+      canvas.height = 184;
+      const context = canvas.getContext("2d")!;
+      context.fillStyle = "#777";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      if (noise) {
+        context.fillStyle = "#797979";
+        context.fillRect(0, 0, 32, canvas.height);
+      }
+      return canvas.toDataURL("image/png");
+    }));
+    await tab.exposeBinding("__ouroPaintCapture", () => captures.shift()!);
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("squircle-paint preserves focus while it measures a raised surface", async () => {
+  const generated = await styles(`
+    body { margin: 0; background: white; }
+    .stage:focus-within .trigger { background: #b44939; }
+    .trigger { position: absolute; left: 65px; top: 43px; width: 30px; height: 22px; background: #557799; }
+    .surface { position: absolute; left: 60px; top: 70px; width: 200px; height: 140px; border-radius: 32px; background: white; box-shadow: 0 4px 12px #0008; }
+    input { position: absolute; left: 40px; top: 40px; }
+  `);
+  const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-check-native-shape: squircle)");
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+    await bindCapture(tab);
+    try {
+      await tab.setContent(`<style>${css}</style><div class="stage"><div class="trigger"></div><div class="surface"><input aria-label="Search"></div></div>`);
+      await tab.locator("input").focus();
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], engine.name());
+      assert.equal(await tab.evaluate(() => document.activeElement?.tagName), "INPUT", `${engine.name()}: keeps the focused field`);
+    } finally {
+      await browser.close();
+    }
   }
 });
 

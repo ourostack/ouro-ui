@@ -9,7 +9,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import type { Browser, BrowserType, Page, Request } from "playwright";
-import { findCornerIssues } from "./corner-check.ts";
+import { findCornerIssues, type CornerOptions } from "./corner-check.ts";
 import { findDesignIssues, listCornerMedia, mediaDrawn, readCorners, shownCorners, type CornerReading } from "./design-check.ts";
 import { findImageFades } from "./fade-check.ts";
 import { ALIASES, behindModal, boxOf, veiled, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, listPersonSignals, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
@@ -184,6 +184,10 @@ interface Gate {
   measure?: Record<string, string>;
   // The host window's corner radius, in CSS pixels, when its edge lies outside the page.
   windowRadius?: number;
+  // The host window's bounds in viewport CSS pixels, when its edges differ from the viewport.
+  windowBounds?: CornerOptions["windowBounds"];
+  // How far the host window extends beyond the viewport at every size, in CSS pixels.
+  windowInsets?: CornerOptions["windowInsets"];
   // false: walk nothing, so jank measures no page.
   walk?: boolean;
   // The states a page reaches by presses, each checked as a page of its own: the page as the check names it ("/" or
@@ -1151,7 +1155,11 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       shown.push(...(await page.evaluate(findSizeIssues, { measures: measuresFor(config, target.page) })));
       shown.push(...(await page.evaluate(findImageFades)));
       shown.push(...(await page.evaluate(findDesignIssues, { legacyCorners: false })));
-      shown.push(...(await page.evaluate(findCornerIssues, config.windowRadius === undefined ? {} : { windowRadius: config.windowRadius })));
+      shown.push(...(await page.evaluate(findCornerIssues, {
+        ...(config.windowRadius === undefined ? {} : { windowRadius: config.windowRadius }),
+        ...(config.windowBounds === undefined ? {} : { windowBounds: config.windowBounds }),
+        ...(config.windowInsets === undefined ? {} : { windowInsets: config.windowInsets }),
+      })));
       await page.exposeBinding("__ouroPaintCapture", async ({ page: current }, clip: PaintClip) =>
         (await current.screenshot({ clip, scale: "device", animations: "disabled", caret: "initial" })).toString("base64"),
       );
@@ -1778,11 +1786,23 @@ async function readJson<T>(file: string): Promise<T> {
 }
 
 // What is wrong with a config's press and state settings, which JSON leaves unchecked: a string would read as its letters.
-function configProblem({ press, pressRepeat, pressAll, pressLimit, states, waive, firstRun, usability, decisions, windowRadius }: Gate): string | null {
+function configProblem({ press, pressRepeat, pressAll, pressLimit, states, waive, firstRun, usability, decisions, windowRadius, windowBounds, windowInsets }: Gate): string | null {
   const waived = Object.entries(waive ?? {}).find(([, rules]) => Object.hasOwn(Object(rules), "blurry-image"));
   if (waived)
     return `"waive" > "${waived[0]}" waives blurry-image, which cannot be waived: remove it, and give each picture it reports a larger source, or a srcset whose largest file covers its drawn width at 2x.`;
   if (windowRadius !== undefined && !(typeof windowRadius === "number" && Number.isFinite(windowRadius) && windowRadius >= 0)) return '"windowRadius" takes the native window corner radius as a non-negative number of CSS pixels.';
+  if (windowBounds !== undefined && windowRadius === undefined) return '"windowBounds" also needs "windowRadius".';
+  if (windowInsets !== undefined && windowRadius === undefined) return '"windowInsets" also needs "windowRadius".';
+  if (windowBounds !== undefined && windowInsets !== undefined) return 'pass "windowBounds" or "windowInsets", not both.';
+  if (windowBounds !== undefined && (
+    typeof windowBounds !== "object" || windowBounds === null || Array.isArray(windowBounds) ||
+    ![windowBounds.x, windowBounds.y, windowBounds.width, windowBounds.height].every(Number.isFinite) ||
+    windowBounds.width <= 0 || windowBounds.height <= 0
+  )) return '"windowBounds" takes finite x and y and positive width and height in viewport CSS pixels.';
+  if (windowInsets !== undefined && (
+    typeof windowInsets !== "object" || windowInsets === null || Array.isArray(windowInsets) ||
+    ![windowInsets.top, windowInsets.right, windowInsets.bottom, windowInsets.left].every((value) => Number.isFinite(value) && value >= 0)
+  )) return '"windowInsets" takes non-negative top, right, bottom and left in CSS pixels.';
   if (press !== undefined && !(Array.isArray(press) && press.every((selector) => typeof selector === "string" && selector.trim() !== ""))) return '"press" takes a list of CSS selectors, such as ["[role=tab]"].';
   if (pressRepeat !== undefined && !(Number.isInteger(pressRepeat) && pressRepeat >= 1)) return '"pressRepeat" takes a whole number of presses, 1 or more.';
   if (pressAll !== undefined && typeof pressAll !== "boolean") return '"pressAll" takes true or false.';
