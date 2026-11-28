@@ -266,6 +266,19 @@ describe("findDesignIssues: nested-frame", () => {
     ]);
   });
 
+  it("finds a lighter framed card partially clipped by its outer frame", () => {
+    render(`
+      <div id="shell" style="box-sizing:border-box;width:360px;height:220px;overflow:hidden;border:1px solid #888;background:#d8dce0;padding:24px">
+        <div id="card" style="box-sizing:border-box;width:220px;height:300px;border:1px solid #999;background:#fff">A collection of notes</div>
+      </div>`);
+    const shell = host.querySelector("#shell")!;
+    const card = host.querySelector("#card")!;
+    expect(card.getBoundingClientRect().bottom).toBeGreaterThan(shell.getBoundingClientRect().bottom);
+    expect(of("nested-frame")).toEqual([
+      expect.objectContaining({ element: "div#card in div#shell", detail: expect.stringMatching(/border|frame/i) }),
+    ]);
+  });
+
   it("finds lighter framed surfaces at different insets and leaves unfilled, darker, hidden and allowed ones alone", () => {
     render(`
       <div id="shell" style="position:relative;box-sizing:border-box;width:360px;height:340px;overflow:hidden;border:1px solid #888;background:#c8cdd1;padding:20px">
