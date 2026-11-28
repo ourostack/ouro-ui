@@ -259,17 +259,17 @@ test("planShards weighs each mutant by its own tests' measured time and each sha
   };
   // Each mutant may hang until Stryker's timeout, reckoned from every test file the shard needs.
   const hang = (mutants, testSeconds) => mutants * timeoutRate * strykerTimeout(testSeconds);
-  // 16 mutants x (1 + 0.5 x 60) + 0.5 x 60: the two slow files are each a shard's worth.
-  assert.equal(shardCost(["dialog.tsx"], files, seconds), 16 * 31 + 30 + hang(16, 60));
+  // 16 mutants x (8 + 0.12 x 60) + 0.5 x 60: a mutant's share of the tests is the fitted one, the first run's the larger.
+  assert.equal(shardCost(["dialog.tsx"], files, seconds), 16 * (8 + 0.12 * 60) + 30 + hang(16, 60));
   // The importers' tests count once, in the first run, not per mutant, but in every mutant's timeout.
-  assert.equal(shardCost(["handoff.ts"], files, seconds), 55 * 1.5 + 0.5 + 15 + hang(55, 31));
-  assert.deepEqual(planShards(files, 3, seconds), [["dialog.tsx"], ["sheet.tsx"], ["handoff.ts", "styles.ts"]]);
+  assert.equal(shardCost(["handoff.ts"], files, seconds), 55 * (8 + 0.12 * 1) + 0.5 + 15 + hang(55, 31));
+  assert.deepEqual(planShards(files, 3, seconds), [["handoff.ts"], ["dialog.tsx", "styles.ts"], ["sheet.tsx"]]);
   // A file whose tests were never timed counts as a few seconds of tests, not none.
   const list = "registry/ouro/components/ouro/message/message-list.tsx";
-  assert.equal(shardCost([list], { [list]: { mutants: 10, own: ["a.test.tsx"], wider: [] } }, { "a.test.tsx": 60 }), 10 * 31 + 30 + 10 * hangRates[list] * strykerTimeout(60));
+  assert.equal(shardCost([list], { [list]: { mutants: 10, own: ["a.test.tsx"], wider: [] } }, { "a.test.tsx": 60 }), 10 * (8 + 0.12 * 60) + 30 + 10 * hangRates[list] * strykerTimeout(60));
   // A unit of a changed range is keyed by its range, and its hang rate is its file's.
-  assert.equal(shardCost([`${list}:10-90`], { [`${list}:10-90`]: { path: list, mutants: 10, own: ["a.test.tsx"], wider: [] } }, { "a.test.tsx": 60 }), 10 * 31 + 30 + 10 * hangRates[list] * strykerTimeout(60));
-  assert.equal(shardCost(["new.tsx"], { "new.tsx": { mutants: 2, own: ["new.test.tsx"], wider: [] } }, {}), 2 * (1 + 0.5 * unmeasuredSeconds) + 0.5 * unmeasuredSeconds + hang(2, unmeasuredSeconds));
+  assert.equal(shardCost([`${list}:10-90`], { [`${list}:10-90`]: { path: list, mutants: 10, own: ["a.test.tsx"], wider: [] } }, { "a.test.tsx": 60 }), 10 * (8 + 0.12 * 60) + 30 + 10 * hangRates[list] * strykerTimeout(60));
+  assert.equal(shardCost(["new.tsx"], { "new.tsx": { mutants: 2, own: ["new.test.tsx"], wider: [] } }, {}), 2 * (8 + 0.12 * unmeasuredSeconds) + 0.5 * unmeasuredSeconds + hang(2, unmeasuredSeconds));
 });
 
 test("shardCount takes the fewest shards from the minimum that plan each at the target or under, at most the maximum", () => {
@@ -286,10 +286,9 @@ test("shardCount takes the fewest shards from the minimum that plan each at the 
 });
 
 test("the shard target keeps a shard within ci-budget's 10-minute pull request budget at the worst measured ratio of time to estimate", () => {
-  assert.equal(SHARD_TARGET_SECONDS, 900);
-  // #287's thirteen shards at a 1500 s target took at most 0.62 times their estimates (run 41171948948).
-  assert.ok(SHARD_TARGET_SECONDS * 0.62 <= 10 * 60);
-  assert.ok(1500 * 0.62 > 15 * 60, "the old target's worst shard was past ci-budget's 15-minute ceiling");
+  assert.equal(SHARD_TARGET_SECONDS, 600);
+  // The calibrated estimate is about a shard's actual time, so the target is the 10-minute budget.
+  assert.ok(SHARD_TARGET_SECONDS <= 10 * 60);
   assert.match(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../.github/workflows/ci.yml"), "utf8"), /node scripts\/mutation\.mjs HEAD\^1 --count "\$min\/24"/);
 });
 

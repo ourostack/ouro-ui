@@ -228,12 +228,11 @@ export function unitExclusions(ids, units) {
 
 /**
  * The estimated seconds (`shardCost`) a CI shard is planned to at most. A mutation shard is on the pull
- * request's critical path, which ci-budget holds to 10 minutes (scripts/ci-budget.mjs). With a 1500 s
- * target, #287's thirteen shards took up to 15.5 minutes (run 41171948948; at most 0.62 times their
- * estimates, where the cold run before took up to 0.72), past ci-budget's 15-minute work ceiling. At 900 s the same ratio gives about 9.3 minutes,
- * so the shard, plus the plan jobs before it, fits the budget.
+ * request's critical path, which ci-budget holds to 10 minutes (scripts/ci-budget.mjs). Since
+ * `shardCost` was fitted to measured shard times, an estimate is about the shard's actual time (0.6 to
+ * 2.2 times it over the 22 longest shards of 11 pull request runs), so the target is the budget itself.
  */
-export const SHARD_TARGET_SECONDS = 900;
+export const SHARD_TARGET_SECONDS = 600;
 
 /**
  * Minutes Stryker gives the first run, which runs every test file the mutated files name, the
