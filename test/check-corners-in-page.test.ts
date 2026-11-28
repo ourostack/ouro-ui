@@ -83,6 +83,14 @@ it("compares painted corners against the actual browser pixels", async () => {
   expect(issues.find((issue) => issue.element === "div#surface")?.detail).toContain("top left");
 }, paintTimeout);
 
+it("keeps explicitly declared fallback corners equal to a parent's tokens", async () => {
+  const root = render('<div id="parent" style="--sq-tl: 28px !important; color: red"><div id="surface" style="position:relative;width:160px;height:120px;background:white;border-radius:15.204px;--sq-tl:28px"><div style="position:absolute;inset:0;background:#f40"></div></div></div>');
+  const parent = root.querySelector("#parent")!;
+  const original = parent.getAttribute("style");
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#surface");
+  expect(parent.getAttribute("style")).toBe(original);
+}, paintTimeout);
+
 it("ignores a neighboring raster change while finding real paint beyond the box", async () => {
   const root = render('<div id="surface" style="position:relative;width:160px;height:120px;background:white;border-radius:28px;corner-shape:squircle;box-shadow:0 4px 12px #0008"></div>');
   const surface = root.querySelector<HTMLElement>("#surface")!;
@@ -179,6 +187,32 @@ it("treats a clipped full-size fill as the outer paint and checks a native windo
   root.innerHTML = '<div id="window-panel" style="position:fixed;inset:4px;background:#789;border-radius:8px;corner-shape:squircle"></div>';
   expect(findCornerIssues()).toEqual([]);
   expect(findCornerIssues({ windowRadius: 32 })[0]?.element).toContain("native window");
+});
+
+it("compares the visible curves through an unpainted clipping layer", () => {
+  const root = render(`<div id="outer" style="position:relative;width:200px;height:160px;box-shadow:0 2px 6px #0002;border-radius:17.376px;--sq-tl:32px;--sq-tr:32px;--sq-br:32px;--sq-bl:32px">
+    <div id="clip" style="position:absolute;left:8px;top:8px;width:100px;height:100px;overflow:hidden"><div id="tile" style="position:absolute;inset:0;background:#789"></div></div>
+  </div>`);
+  const clip = root.querySelector<HTMLElement>("#clip")!;
+  const tile = root.querySelector<HTMLElement>("#tile")!;
+  const shape = (element: HTMLElement, radius: number, round = false) => {
+    element.style.borderRadius = `${radius * (round ? 1 : .543)}px`;
+    element.style.clipPath = round ? "none" : "inset(0)";
+    element.style.setProperty("corner-shape", "round");
+    for (const corner of ["tl", "tr", "br", "bl"]) element.style.setProperty(`--sq-${corner}`, round ? "0px" : `${radius}px`);
+  };
+  shape(clip, 24);
+  shape(tile, 0);
+  expect(findCornerIssues()).toEqual([]);
+  shape(clip, 12);
+  expect(findCornerIssues()[0]?.detail).toContain("12px, expected 24px");
+  shape(clip, 24, true);
+  expect(findCornerIssues()[0]?.detail).toContain("both corners must be squircles");
+  shape(clip, 24);
+  shape(tile, 32);
+  expect(findCornerIssues()[0]?.detail).toContain("32px, expected 24px");
+  shape(tile, 14, true);
+  expect(findCornerIssues()[0]?.detail).toContain("incompatible clipping curves");
 });
 
 it("treats a picture clipped at the top corners as the frame's paint", async () => {

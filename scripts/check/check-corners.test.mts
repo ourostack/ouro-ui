@@ -44,13 +44,17 @@ async function scan(name: string, html: string, config: CornerOptions = {}) {
 }
 
 async function transparentClip({ clip = 24, own = 0, clipRound = false, ownRound = false, empty = false } = {}) {
-  const css = (await styles(`
+  const radius = (value: number, round: boolean) => round
+    ? `border-radius: ${value}px; corner-shape: round;`
+    : `border-radius: ${value * .543}px; ${["tl", "tr", "br", "bl"].map((key) => `--sq-${key}: ${value}px;`).join(" ")}
+       clip-path: path("${contour(100, 100, value)}");`;
+  return `<style>
     body { margin: 0; background: white; }
-    .outer { position: absolute; left: 80px; top: 80px; width: 200px; height: 160px; border-radius: 32px; box-shadow: 0 2px 6px #0002; }
-    .clip { position: absolute; left: 8px; top: 8px; width: 100px; height: 100px; overflow: hidden; border-radius: ${clip}px; ${clipRound ? "corner-shape: round;" : ""} }
-    .tile { position: absolute; inset: 0; background: #557799; border-radius: ${own}px; ${ownRound ? "corner-shape: round;" : ""} }
-  `)).replaceAll("(corner-shape: squircle)", "(ouro-check-native-shape: squircle)");
-  return `<style>${css} .outer { clip-path: none; }</style><div class="outer"><div class="clip">${empty ? "" : '<div class="tile"></div>'}</div></div>`;
+    .outer { position: absolute; left: 80px; top: 80px; width: 200px; height: 160px; box-shadow: 0 2px 6px #0002;
+      border-radius: ${32 * .543}px; --sq-tl: 32px; --sq-tr: 32px; --sq-br: 32px; --sq-bl: 32px; }
+    .clip { position: absolute; left: 8px; top: 8px; width: 100px; height: 100px; overflow: hidden; ${radius(clip, clipRound)} }
+    .tile { position: absolute; inset: 0; background: #557799; ${radius(own, ownRound)} }
+  </style><div class="outer"><div class="clip">${empty ? "" : '<div class="tile"></div>'}</div></div>`;
 }
 
 test("corners-nest checks the marked surface in the nested-frame pass fixture", async () => {
