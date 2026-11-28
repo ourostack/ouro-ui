@@ -139,7 +139,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
   // Clip each layer to the ideal n=4 curve, including paint extending beyond the box.
   const clipPath = (regions: { width: number; height: number; corners: Corner[]; offsetX: number; offsetY: number }[]) => {
     const path = regions.map(({ width, height, corners, offsetX, offsetY }) => {
-      const [tl, tr, br, bl] = corners as [Corner, Corner, Corner, Corner];
+      const [tl, tr, br, bl] = [corners[0]!, corners[1]!, corners[2]!, corners[3]!];
       const n = (value: number) => Number(value.toFixed(4));
       const x = (value: number) => n(value + offsetX);
       const y = (value: number) => n(value + offsetY);

@@ -1400,9 +1400,9 @@ it("keeps real glass buttons' curved shadows distinct from square paint", async 
     }, createElement("div", {
       style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, padding: 24, borderRadius: 16, background: "var(--muted)" },
     },
-    createElement(Button, { variant: "glass", tone: "secondary", "aria-label": "Back" }, createElement(icon)),
-    createElement(Button, { variant: "glass", tone: "secondary", startIcon: icon }, "Example"),
-    createElement(Button, { variant: "glass", tone: "secondary", "aria-expanded": true, endIcon: icon }, "More")))));
+    createElement(Button, { variant: "glass", tone: "secondary", "aria-label": "Back", children: createElement(icon) }),
+    createElement(Button, { variant: "glass", tone: "secondary", startIcon: icon, children: "Example" }),
+    createElement(Button, { variant: "glass", tone: "secondary", "aria-expanded": true, endIcon: icon, children: "More" })))));
     expect(await findSquirclePaint()).toEqual([]);
     host.querySelector("button")!.insertAdjacentHTML("beforeend", '<span style="position:absolute;left:-6px;top:-6px;width:10px;height:10px;background:#c30"></span>');
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("button.press.relative.isolate");
