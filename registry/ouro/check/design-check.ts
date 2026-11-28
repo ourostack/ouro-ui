@@ -809,6 +809,8 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
               const innerHit = across ? document.elementFromPoint(along, deep) : document.elementFromPoint(deep, along);
               if (!edgeHit || !innerHit || !pane.contains(edgeHit) || !pane.contains(innerHit)
                 || optedOut(edgeHit, "pane-edge") || optedOut(innerHit, "pane-edge")) return false;
+              const control = innerHit.closest("button, input, select, textarea, [role=button], [role=textbox], [contenteditable=true]");
+              if (control && pane.contains(control)) return false;
               const [edgeSurface, innerSurface] = [surfaceOf(edgeHit), surfaceOf(innerHit)];
               return edgeSurface !== null && innerSurface !== null && colourDistance(edgeSurface, innerSurface) > 12;
             });

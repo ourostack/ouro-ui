@@ -609,6 +609,12 @@ describe("findDesignIssues: pane-edge", () => {
         <div style="position:relative;width:170px;background:#ddd">
           <div style="position:absolute;left:0;right:0;top:60px;height:24px;background:#fff"></div>
         </div><div style="width:190px;background:#fff"></div>
+      </div>
+      <div style="display:flex;width:360px;height:180px;margin-top:12px">
+        <div id="field-main" style="width:170px;background:#fff"></div>
+        <div id="field-pane" style="position:relative;width:190px;background:#ddd">
+          <textarea aria-label="Draft" style="position:absolute;left:8px;top:50px;width:120px;height:80px;border:0;background:#fff"></textarea>
+        </div>
       </div>`);
     expect(of("pane-edge")).toEqual([
       expect.objectContaining({ element: "div#light-side and div#light-main", detail: expect.stringMatching(/surface.*(step|token)/i) }),
