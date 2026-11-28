@@ -36,6 +36,22 @@ afterEach(async () => {
 });
 
 describe("Attachment", () => {
+  it("initializes its byte formatter only for the first default size and reuses it", async () => {
+    const construct = vi.spyOn(Intl, "NumberFormat");
+    const { Attachment: FreshAttachment }: typeof import("./attachment") = await import(/* @vite-ignore */ new URL("./attachment.tsx?first-size", import.meta.url).href);
+    expect(construct).not.toHaveBeenCalled();
+    await render(<FreshAttachment name="notes.txt" />);
+    const custom = await render(<FreshAttachment name="menu.pdf" size={2048} formatSize={() => "2 Ko"} />);
+    expect(custom.attachment.textContent).toBe("menu.pdf 2 Ko");
+    expect(construct).not.toHaveBeenCalled();
+    const zero = await render(<FreshAttachment name="empty.txt" size={0} />);
+    expect(zero.attachment.textContent).toBe("empty.txt 0 B");
+    expect(construct).toHaveBeenCalledTimes(1);
+    const rounded = await render(<FreshAttachment name="menu.pdf" size={1_258_291} />);
+    expect(rounded.attachment.textContent).toBe("menu.pdf 1.2 MB");
+    expect(construct).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     ["the next file's remove button", "crumb.jpg", "Remove notes.txt"],
     ["the one before it when it was the last", "notes.txt", "Remove crumb.jpg"],
