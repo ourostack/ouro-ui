@@ -308,7 +308,8 @@ test("corners-nest reads a root corner painted by an inverse squircle cutout", a
         body { margin: 0; background: white; }
         .panel { position: fixed; inset: 8px; background: #557799; }
         .cutout { position: absolute; inset: 0; background: white; pointer-events: none; --sq-tl: 40px; --sq-tr: 40px; --sq-br: 40px; --sq-bl: 40px; }
-      </style><main class="panel"><div class="cutout" aria-hidden="true"></div></main>`);
+      </style><main class="panel"><div class="cutout" aria-hidden="true"></div></main>
+      <div style="position:fixed;inset:0;z-index:10"></div>`);
       const bounds = { x: 0, y: -52, width: 390, height: 352 };
       await tab.locator(".cutout").evaluate((el, path) => { el.style.clipPath = path; }, hole(40));
       const before = await tab.locator(".panel, .cutout").evaluateAll((els) => els.map((el) => el.getAttribute("style")));
