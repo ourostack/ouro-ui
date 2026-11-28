@@ -1,3 +1,4 @@
+import { createServer, type Server } from "node:http";
 import type {} from "@vitest/browser-playwright";
 import type { BrowserCommand } from "vitest/node";
 import type { PaintClip } from "../registry/ouro/check/squircle-paint.ts";
@@ -52,22 +53,45 @@ const squircleHostScroll: BrowserCommand<[{ y: number | null }]> = async (ctx, {
   return { scroll, top: bounds.y };
 };
 
-const cornerImageRoute: BrowserCommand<[{ data: string | null }]> = async (ctx, { data }) => {
-  const url = "https://images.invalid/picture.png";
-  await ctx.page.unroute(url);
-  if (data !== null) {
-    await ctx.page.route(url, (route) => route.fulfill({
-      status: 200, contentType: "image/png", body: Buffer.from(data.split(",")[1]!, "base64"),
-    }));
+const imageServers = new WeakMap<object, Server>();
+const cornerImageServer: BrowserCommand<[{ data: string | null }]> = async (ctx, { data }) => {
+  const previous = imageServers.get(ctx.page);
+  if (data === null) {
+    if (!previous) throw new Error("No corner image server is running.");
+    await new Promise<void>((resolve, reject) => previous.close((error) => error ? reject(error) : resolve()));
+    imageServers.delete(ctx.page);
+    return null;
   }
+  if (previous) throw new Error("The corner image server is already running.");
+  const body = Buffer.from(data.split(",")[1]!, "base64");
+  const server = createServer((request, response) => {
+    if (request.url !== "/picture.png") {
+      response.writeHead(404);
+      response.end();
+      return;
+    }
+    response.writeHead(200, { "Content-Type": "image/png", "Content-Length": body.length });
+    response.end(body);
+  });
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      server.off("error", reject);
+      resolve();
+    });
+  });
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("The corner image server has no port.");
+  imageServers.set(ctx.page, server);
+  return `http://127.0.0.1:${address.port}/picture.png`;
 };
 
-export const squircleCommands = { squircleCapture, squircleHostScroll, cornerImageRoute };
+export const squircleCommands = { squircleCapture, squircleHostScroll, cornerImageServer };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
     squircleCapture: (clip: PaintClip) => Promise<string>;
     squircleHostScroll: (options: { y: number | null }) => Promise<{ scroll: number; top: number }>;
-    cornerImageRoute: (options: { data: string | null }) => Promise<void>;
+    cornerImageServer: (options: { data: string | null }) => Promise<string | null>;
   }
 }

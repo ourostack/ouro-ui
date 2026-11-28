@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, expect, it, vi } from "vitest";
 import { commands } from "vitest/browser";
 import { findCornerIssues } from "@/registry/ouro/check/corner-check";
+import { findDesignIssues } from "@/registry/ouro/check/design-check";
 import { findSquirclePaint, type PaintClip } from "@/registry/ouro/check/squircle-paint";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -35,6 +36,16 @@ function render(content: string): HTMLDivElement {
 
 it("finds mismatched nested corners in the browser", () => {
   render('<div id="outer" style="width:160px;height:120px;padding:4px;box-sizing:border-box;background:#345;border-radius:24px;corner-shape:squircle"><div id="inner" style="width:100%;height:100%;background:#789;border-radius:6px;corner-shape:squircle"></div></div>');
+  expect(findCornerIssues().map((issue) => issue.element)).toContain("div#inner in div#outer");
+});
+
+it("replaces the legacy corner finding without removing other frame checks", () => {
+  render('<div id="outer" style="width:160px;height:120px;padding:4px;box-sizing:border-box;background:#345;border-radius:24px;corner-shape:squircle"><div id="inner" style="width:100%;height:100%;box-sizing:border-box;border:1px solid #789;border-radius:6px;corner-shape:squircle"></div></div><div style="border:1px solid #888;padding:4px"><div id="frame" style="border:1px solid #888;height:40px"></div></div>');
+  const legacy = findDesignIssues().filter((issue) => issue.rule === "nested-frame");
+  const current = findDesignIssues({ legacyCorners: false }).filter((issue) => issue.rule === "nested-frame");
+  expect(legacy.map((issue) => issue.element)).toContain("div#inner in div#outer");
+  expect(current.map((issue) => issue.element)).not.toContain("div#inner in div#outer");
+  expect(current.map((issue) => issue.element)).toContain("div#frame in div");
   expect(findCornerIssues().map((issue) => issue.element)).toContain("div#inner in div#outer");
 });
 
@@ -481,23 +492,24 @@ it("judges only the corners an image actually paints", async () => {
   await image.decode();
   image.style.border = "1px solid red";
   expect(findCornerIssues()[0]?.detail).toContain("top right");
-  await commands.cornerImageRoute({ data: opaque });
+  const imageUrl = await commands.cornerImageServer({ data: opaque });
+  if (imageUrl === null) throw new Error("The corner image server did not start.");
   try {
     image.style.border = "";
     image.style.objectFit = "fill";
-    image.src = "https://images.invalid/picture.png";
+    image.src = imageUrl;
     await image.decode();
     expect(findCornerIssues()[0]?.detail).toContain("cannot inspect");
     image.style.border = "1px solid red";
     expect(findCornerIssues()[0]?.detail).toContain("expected 20px");
     root.innerHTML = `<div style="position:relative;width:160px;height:120px">
-      <img alt="" src="https://images.invalid/picture.png" style="position:absolute;inset:0;width:160px;height:120px;border-radius:24px;corner-shape:squircle">
+      <img alt="" src="${imageUrl}" style="position:absolute;inset:0;width:160px;height:120px;border-radius:24px;corner-shape:squircle">
       <div style="position:absolute;inset:4px;background:#789;border-radius:6px;corner-shape:squircle"></div>
     </div>`;
     await root.querySelector("img")!.decode();
     expect(findCornerIssues()[0]?.detail).toContain("cannot inspect");
   } finally {
-    await commands.cornerImageRoute({ data: null });
+    await commands.cornerImageServer({ data: null });
   }
 });
 
