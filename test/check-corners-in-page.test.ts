@@ -128,6 +128,25 @@ it("ignores an inherited paint token on a square descendant", async () => {
   expect(parent.hasAttribute("style")).toBe(false);
 }, paintTimeout);
 
+it("keeps a neighbor in the gap between wrapped inline fragments", async () => {
+  const root = render(`<style>
+    .line { position:relative; width:350px; font:16px/21px sans-serif; }
+    .neighbor { position:absolute; left:0; top:0; width:30px; height:18px; background:#b44939; }
+    .prefix { display:inline-block; width:39px; }
+    code { font:14px/20px monospace; background:#f5f5f7; border-radius:16px; corner-shape:squircle;
+      --sq-tl:16px; --sq-tr:16px; --sq-br:16px; --sq-bl:16px; padding:.1em .3em; }
+  </style><div class="line"><span class="neighbor"></span><span class="prefix"></span><code>one two three four five six seven eight nine ten eleven twelve</code></div>`);
+  const line = root.querySelector(".line")!;
+  const code = root.querySelector<HTMLElement>("code")!;
+  const neighbor = root.querySelector<HTMLElement>(".neighbor")!;
+  const fragments = code.getClientRects();
+  expect(fragments.length).toBe(2);
+  expect(await findSquirclePaint()).toEqual([]);
+  const bounds = line.getBoundingClientRect();
+  neighbor.style.cssText = `left:${fragments[0]!.left - bounds.left}px;top:${fragments[0]!.top - bounds.top}px;width:8px;height:8px`;
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("code");
+}, paintTimeout);
+
 it("ignores a neighboring raster change while finding real paint beyond the box", async () => {
   const root = render('<div id="surface" style="position:relative;width:160px;height:120px;background:white;border-radius:28px;corner-shape:squircle;box-shadow:0 4px 12px #0008"></div>');
   const surface = root.querySelector<HTMLElement>("#surface")!;
@@ -486,6 +505,17 @@ it("reads the visible corner of an independently painted inverse cutout", () => 
   expect(findCornerIssues()).toEqual([]);
   cutout.style.clipPath = `path(evenodd, "${box} M 0 28 A 28 28 0 0 1 28 0 H 152 V 112 H 0 Z")`;
   expect(findCornerIssues().map((issue) => issue.detail)).toContainEqual(expect.stringContaining("cutout does not match"));
+});
+
+it("does not discard a mismatched cutout behind a smaller transparent clip", () => {
+  render(`<div style="position:relative;width:160px;height:120px;background:#eef4fa;border-radius:17.376px 0 0 0;--sq-tl:32px;clip-path:inset(0)">
+    <div style="position:absolute;inset:4px;overflow:hidden;border-radius:2.172px 0 0 0;--sq-tl:4px;clip-path:inset(0)">
+      <div style="position:absolute;inset:0;background:#789">
+        <div class="cutout" style='position:absolute;inset:0;background:#eef4fa;--sq-tl:28px;clip-path:path(evenodd, "M 0 0 H 152 V 112 H 0 Z M 0 28 A 28 28 0 0 1 28 0 H 152 V 112 H 0 Z")'></div>
+      </div>
+    </div>
+  </div>`);
+  expect(findCornerIssues().map((issue) => issue.detail)).toContainEqual(expect.stringContaining("incompatible clipping curves"));
 });
 
 it("reads an inverse cutout at each physical corner", () => {
