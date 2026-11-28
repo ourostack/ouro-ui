@@ -1022,6 +1022,52 @@ test("squircle-paint distinguishes a round badge in a cut-out from square or unn
   }
 });
 
+for (const engine of [chromium, webkit]) test(`squircle-paint measures a notched SVG badge through an ancestor blur in ${engine.name()}`, async () => {
+  const browser = await engine.launch({ headless: true });
+  const css = `
+    body { margin: 0; background: white; }
+    .scene { position: fixed; inset: 0; }
+    .frame { position: absolute; left: 60px; top: 60px; width: 32px; height: 32px; border-radius: 44%; corner-shape: squircle; }
+    .surface { position: absolute; inset: 0; border-radius: inherit; corner-shape: inherit; background: #dce5ef; }
+    .cut {
+      --notch: shape(nonzero from 0 0, hline to 100%, vline to 100%, hline to 0, close,
+        move to calc(100% + 3.6px) calc(100% - 2.5px),
+        arc to calc(100% - 8.6px) calc(100% - 2.5px) of 6.1px,
+        arc to calc(100% + 3.6px) calc(100% - 2.5px) of 6.1px, close);
+      clip-path: var(--notch);
+    }
+    .badge { position: absolute; right: -2px; bottom: -2px; width: 9px; height: 9px; border-radius: 50%; corner-shape: round; pointer-events: none; }
+    svg { display: block; width: 100%; height: 100%; fill: #149b55; }
+    .square { position: absolute; inset: 0; background: #b44939; }
+    .leak { position: absolute; left: -6px; top: -6px; width: 8px; height: 8px; background: #b44939; }
+    .near { left: auto; top: auto; right: -3px; bottom: -3px; width: 12px; height: 12px; }
+  `;
+  try {
+    for (const deviceScaleFactor of [1, 2]) {
+      const tab = await browser.newPage({ viewport: { width: 390, height: 300 }, deviceScaleFactor });
+      await bindCapture(tab);
+      for (const blur of [0, 4]) {
+        for (const [cut, square, leak, expected] of [
+          [true, false, false, false],
+          [false, false, false, true],
+          [true, true, false, true],
+          [true, false, true, true],
+          [true, false, "near", true],
+        ] as const) {
+          await tab.setContent(`<style>${css}</style><div class="scene" style="filter:blur(${blur}px)"><div class="frame"><div class="surface${cut ? " cut" : ""}" style="mask-image:linear-gradient(white,white);mask-size:100% 100% !important"></div><span class="badge"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="8" /></svg>${square ? '<i class="square"></i>' : ""}</span>${leak ? `<div class="leak${leak === "near" ? " near" : ""}"></div>` : ""}</div></div>`);
+          const before = await tab.locator(".frame,.surface,.badge").evaluateAll(els => els.map(el => el.getAttribute("style")));
+          assert.equal((await tab.evaluate(findSquirclePaint)).length > 0, expected,
+            `dpr=${deviceScaleFactor}, blur=${blur}, cut=${cut}, square=${square}, leak=${leak}`);
+          assert.deepEqual(await tab.locator(".frame,.surface,.badge").evaluateAll(els => els.map(el => el.getAttribute("style"))), before);
+        }
+      }
+      await tab.close();
+    }
+  } finally {
+    await browser.close();
+  }
+});
+
 test("squircle-paint does not attribute changing background pixels to a surface", async () => {
   const browser = await chromium.launch({ headless: true });
   const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
