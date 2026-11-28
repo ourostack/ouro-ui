@@ -1667,7 +1667,7 @@ describe("Message rows", () => {
     expect(bubbleOf(theirs!).getBoundingClientRect().left).toBeCloseTo(chip(theirs!, "f1").left, 0);
   });
 
-  it("keeps 4px between a message and its footer", async () => {
+  it("keeps 8px between a message and its footer", async () => {
     const { host } = await render(
       <>
         <Message variant="chat" role="assistant" name="Mara Quill" footer={chips("f")}>
@@ -1680,20 +1680,42 @@ describe("Message rows", () => {
     );
     for (const message of host.querySelectorAll<HTMLElement>('[data-ouro="message"]')) {
       const footer = message.querySelector("[data-ouro-message-footer]")!;
-      expect(footer.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(4, 0);
+      expect(footer.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(8, 0);
     }
   });
 
-  it("keeps 4px between a message and its thread in the default layout, and lifts the avatar 2px off the row's foot", async () => {
+  it("keeps 8px between a message and its footer in the default layout, and the footer above the thread", async () => {
+    const { message } = await render(
+      <Message role="assistant" name="Ouro" footer={chips("f")} thread={chips("t")}>
+        Hi
+      </Message>,
+    );
+    const footer = message.querySelector("[data-ouro-message-footer]")!.getBoundingClientRect();
+    const thread = message.querySelector("[data-ouro-message-thread]")!.getBoundingClientRect();
+    expect(footer.top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(8, 0);
+    expect(thread.top).toBeGreaterThanOrEqual(footer.bottom);
+  });
+
+  it("keeps 8px between a message and its thread in the default layout, and lifts the avatar 2px off the row's foot", async () => {
     const { message } = await render(
       <Message role="assistant" name="Ouro" thread={chips("t")}>
         Hi
       </Message>,
     );
     const thread = message.querySelector("[data-ouro-message-thread]")!;
-    expect(thread.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(4, 0);
+    expect(thread.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(8, 0);
     const avatar = message.querySelector<HTMLElement>('[data-ouro="avatar"]')!;
     expect(message.getBoundingClientRect().bottom - avatar.getBoundingClientRect().bottom).toBeCloseTo(2, 0);
+  });
+
+  it("keeps 8px above an unanswered thread summary in the default layout, where it does not move up into a post's row", async () => {
+    const { message } = await render(
+      <Message role="assistant" name="Ouro" thread={<ThreadSummary count={0} onOpen={() => {}} />}>
+        Hi
+      </Message>,
+    );
+    const thread = message.querySelector("[data-ouro-message-thread]")!;
+    expect(thread.getBoundingClientRect().top - bubbleOf(message).getBoundingClientRect().bottom).toBeCloseTo(8, 0);
   });
 
   it("leaves out the attachments row when there are none", async () => {
@@ -2181,6 +2203,27 @@ const box = (element: Element) => element.getBoundingClientRect();
 
 
 describe("Message actions", () => {
+  // The bar beside the bubble sits level with its top, so a one-line bubble's row keeps the bar's height (#3617); a
+  // row with no bar keeps no such room.
+  it("keeps a row beside the bubble as tall as its action bar, and a row with no bar as tall as what it holds", async () => {
+    const rowOf = (message: HTMLElement) => message.querySelector<HTMLElement>("[data-ouro-message-body] > .box-border")!;
+    const { message } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" actionsPlacement="beside" actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
+        Hi
+      </Message>,
+    );
+    expect(Number.parseFloat(getComputedStyle(rowOf(message)).minHeight)).toBeGreaterThanOrEqual(36);
+    const { message: bare } = await render(<Message variant="chat" role="assistant" name="Mara Quill" actionsPlacement="beside" attachments={<Attachment name="menu.pdf" />} />);
+    expect(getComputedStyle(rowOf(bare)).minHeight).toMatch(/^(0px|auto)$/);
+    // A bar in the corner sits over the bubble, not beside it, so its row keeps no bar-sized room either.
+    const { message: corner } = await render(
+      <Message variant="chat" role="assistant" name="Mara Quill" actionsPlacement="corner" actions={[{ key: "like", label: "Like", icon: "👍", onClick: () => {} }]}>
+        Hi
+      </Message>,
+    );
+    expect(getComputedStyle(rowOf(corner)).minHeight).toMatch(/^(0px|auto)$/);
+  });
+
   it("names each action, runs it, and shows its label in a tooltip", async () => {
     const log: string[] = [];
     const { message } = await render(
@@ -2588,10 +2631,10 @@ describe("Message actions", () => {
     const [mine, user, assistant] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
     expect(box(barOf(mine!)).left).toBeCloseTo(box(bubbleOf(mine!)).left + 8, 0);
     expect(box(bubbleOf(user!)).right).toBeGreaterThan(box(host).right - 60);
-    // Elsewhere it sits at the bubble's end corner, 32px above it.
+    // Elsewhere it sits at the bubble's end corner, 30px above it.
     for (const message of [user!, assistant!]) {
       expect(box(barOf(message)).right).toBeCloseTo(box(bubbleOf(message)).right - 8, 0);
-      expect(box(barOf(message)).top).toBeCloseTo(box(bubbleOf(message)).top - 32, 0);
+      expect(box(barOf(message)).top).toBeCloseTo(box(bubbleOf(message)).top - 30, 0);
     }
   });
 
@@ -2611,12 +2654,12 @@ describe("Message actions", () => {
     );
     const [chat, post, reply] = [...host.querySelectorAll<HTMLElement>('[data-ouro="message"]')];
     expect(box(barOf(chat!)).right).toBeCloseTo(box(bubbleOf(chat!)).right - 8, 0);
-    expect(box(barOf(chat!)).top).toBeCloseTo(box(bubbleOf(chat!)).top - 32, 0);
+    expect(box(barOf(chat!)).top).toBeCloseTo(box(bubbleOf(chat!)).top - 30, 0);
     const body = post!.querySelector("[data-ouro-message-body]")!;
     expect(box(barOf(post!)).right).toBeCloseTo(box(body).right - 8, 0);
     expect(box(barOf(post!)).top).toBeCloseTo(box(body).top - 20, 0);
     expect(box(barOf(reply!)).right).toBeCloseTo(box(bubbleOf(reply!)).right - 8, 0);
-    expect(box(barOf(reply!)).top).toBeCloseTo(box(bubbleOf(reply!)).top - 32, 0);
+    expect(box(barOf(reply!)).top).toBeCloseTo(box(bubbleOf(reply!)).top - 30, 0);
   });
 
   it("puts a reply's bar beside its text, level with its top, clear of the name", async () => {
@@ -2795,7 +2838,7 @@ describe("Message actions", () => {
     expect(box(barOf(post!)).top).toBeCloseTo(box(body).top - 20, 0);
     for (const message of [plain!, note!]) {
       expect(box(barOf(message)).right).toBeCloseTo(box(bubbleOf(message)).right - 8, 0);
-      expect(box(barOf(message)).top).toBeCloseTo(box(bubbleOf(message)).top - 32, 0);
+      expect(box(barOf(message)).top).toBeCloseTo(box(bubbleOf(message)).top - 30, 0);
       expect(getComputedStyle(message).containerType).toBe("normal");
     }
   });

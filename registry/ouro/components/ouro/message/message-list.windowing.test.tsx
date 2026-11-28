@@ -463,10 +463,10 @@ describe("MessageList windowing", () => {
         expect(slot.children).toHaveLength(1);
         expect(slot.firstElementChild!.matches('[data-ouro="message"]')).toBe(true);
       }
-      // A continued message sits closer to the one before it: 16px apart, less 12.
+      // A continued message sits closer to the one before it: 16px apart, less 8.
       const last = document.getElementById(`m${count - 1}`)!;
       const before = document.getElementById(`m${count - 2}`)!;
-      expect(last.getBoundingClientRect().top - before.getBoundingClientRect().bottom).toBeCloseTo(4, 0);
+      expect(last.getBoundingClientRect().top - before.getBoundingClientRect().bottom).toBeCloseTo(8, 0);
     }
   });
 
@@ -1383,7 +1383,8 @@ describe("MessageList windowing", () => {
     expect(worst).toBeLessThanOrEqual(1);
     // What the top stopped is space above the first message.
     expect(content.offsetTop).toBeGreaterThanOrEqual(100);
-  });
+    // About 90 wheel steps of a frame each reach the top, about 9 s in WebKit on CI: past half the default 15 s.
+  }, 30_000);
 
   it("holds the reader's row to the pixel and keeps no space above the first message as a wheel takes them to the top past rows already measured", async () => {
     // Older rows far shorter than the estimate the newest set, as in wheelToTheTop, fewer of them.

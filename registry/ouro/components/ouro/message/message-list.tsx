@@ -1254,6 +1254,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Stryker disable next-line ArrowFunction: an observer left on a removed foot reports its height as 0, as the effect's own rerun sets it.
     return () => observer.disconnect();
   }, [foot]);
+  // A reveal or a find's own scroll can land anywhere in the conversation, unlike the reader's own scrolling, which
+  // only ever uncovers history above the end: whatever already sits at the view's bottom edge there may be exactly
+  // where the floating pill sits too, with no arrival ahead to earn room for it the usual way. Reserve room at
+  // once, rather than wait for one, so the pill never opens over a message either placed there. Shared by bring()
+  // (the reveal path) and useFindHighlights's scrollToCurrent (the find path), which scrolls on its own. A landing
+  // at the end reserves it too, and the list's resize and scroll handlers read pinned back and clear it at once.
   const [spoken, setSpoken] = useState<Spoken[]>([]);
   const nextId = useRef(0);
   // The newest label function, for the observer set up once below.
@@ -2467,6 +2473,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const centred = box.top - top - Math.max(0, (room - box.height) / 2);
       scroller.scrollTop += block === "center" ? centred : block === "start" || above ? box.top - top - EDGE : below ? box.bottom - top - room + EDGE : 0;
       springsRef.current?.moved(scroller.scrollTop - before);
+      setJumpRoom(true);
     };
     windowSync.current = (scrolled) => {
       const { windowed, keys, indexes, measured, band, reach, sizeOf } = viewRef.current;
@@ -3351,7 +3358,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           <div
             ref={contentRef}
             data-ouro-message-list-content=""
-            className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-ouro-message-list-slot]>[data-continued]]:-mt-[calc(1rem-var(--ouro-message-run-gap,var(--ouro-size-1)))]"
+            className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-ouro-message-list-slot]>[data-continued]]:-mt-[calc(1rem-var(--ouro-message-run-gap,var(--ouro-size-2)))]"
             style={{
               ...(maxWidth === undefined ? null : { maxWidth, marginInline: "auto" }),
               // Keeps the newest message just above the floating foot, as a footless list keeps it above the bottom padding.
@@ -3424,7 +3431,21 @@ export function MessageList(props: MessageListProps): JSX.Element {
           </div>
         </div>
       )}
-      {FindLayer && find ? <FindLayer all={all} keys={keys} find={find} hasOlder={hasOlder} scroller={scrollerRef} content={contentRef} slot={SLOT} onFindMatches={onFindMatches} onMarks={setFindMarks} request={requestRef} /> : null}
+      {FindLayer && find ? (
+        <FindLayer
+          all={all}
+          keys={keys}
+          find={find}
+          hasOlder={hasOlder}
+          scroller={scrollerRef}
+          content={contentRef}
+          slot={SLOT}
+          onFindMatches={onFindMatches}
+          onMarks={setFindMarks}
+          request={requestRef}
+          reserveJumpRoom={setJumpRoom}
+        />
+      ) : null}
     </div>
   );
 }
