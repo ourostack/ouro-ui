@@ -523,15 +523,27 @@ describe("ThemePicker popover", () => {
   it("nests the chosen wordmark's corners inside the trigger", async () => {
     const previous = html.style.getPropertyValue("--radius");
     const priority = html.style.getPropertyPriority("--radius");
-    html.style.setProperty("--radius", "18px");
+    html.style.setProperty("--radius", "10px");
     try {
-      const el = await render(<ThemePicker presets={presets} presentation="popover" />);
+      const el = await render(
+        <>
+          <ThemePicker presets={presets} presentation="popover" />
+          <ThemePicker presets={presets} />
+        </>,
+      );
       const trigger = el.querySelector<HTMLButtonElement>('[data-ouro-part="trigger"]')!;
       const wordmark = trigger.querySelector<HTMLElement>('[data-shows]:not([hidden]) [data-slot="theme-picker-wordmark"]')!;
       const radius = (node: HTMLElement) => {
         const style = getComputedStyle(node);
         return parseFloat(style.getPropertyValue("--sq-tl")) || parseFloat(style.borderTopLeftRadius);
       };
+      const inline = el.querySelector<HTMLElement>('[data-presentation="inline"]')!;
+      const standard = tile(option(inline, "pearl"));
+      const probe = document.createElement("span");
+      probe.style.borderRadius = "var(--radius-ouro-md)";
+      inline.append(probe);
+      expect(radius(standard)).toBeCloseTo(parseFloat(getComputedStyle(probe).borderTopLeftRadius), 1);
+      probe.remove();
       for (const width of [390, 1280]) {
         await page.viewport(width, 844);
         for (const spacing of ["0.25rem", "0.2rem"]) {
