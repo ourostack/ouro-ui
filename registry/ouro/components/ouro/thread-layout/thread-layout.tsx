@@ -127,7 +127,7 @@ export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
         )}
         onFocus={remember}
       >
-        <div className="flex h-full min-h-0 min-w-0 flex-col">{conversation}</div>
+        <div className={cn("flex h-full min-h-0 min-w-0 flex-col", open && "@lg:pe-5")}>{conversation}</div>
       </div>
       {open && (
         <div ref={threadBox} className="flex h-full min-h-0 w-full min-w-0 flex-col @lg:max-w-ouro-80">

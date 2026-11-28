@@ -7,6 +7,7 @@ import { sweepStoryCheck } from "./check-sweep.ts";
 import { describeFindings, parkPointer, scan, scanStory, scanStoryViolations, storyScanTimeout } from "./story-axe.ts";
 import { cleanupStories, closeOverlay, openOverlay, overlayOpeners, renderStory, selectedStories, setScheme, settle, stories, story, storyFiles } from "./stories.tsx";
 import { sliced } from "./slice.ts";
+import { applyThemeFixture } from "./theme-fixtures.ts";
 
 // Every Storybook story renders and passes axe with zero violations (spec §8:
 // "axe checks in every story"), closed and with each of its overlays open.
@@ -206,6 +207,28 @@ describe("stories pass Ouro check's rules", () => {
   it("keeps pane and cut-off edges out of the known findings", () => {
     expect(knownFindings.filter(({ rule }) => rule === "pane-edge" || rule === "cut-off-edge")).toEqual([]);
   });
+
+  it.each(["Message/Posts", "Message/Thread", "ThreadLayout/Default"])(
+    "%s keeps its edges clear under a stock theme at desktop widths",
+    async (id) => {
+      const entry = stories.find((candidate) => candidate.id === id)!;
+      const remove = applyThemeFixture("nova");
+      try {
+        await sweepStoryCheck({
+          id,
+          Story: entry.Story,
+          sizes: [[1280, 800], [2560, 1440]],
+          schemes: ["light", "dark"],
+          known: knownFor(knownFindings, id, "nova"),
+          inherited: knownFor(knownFindings, id),
+          restore: [390, 844],
+        });
+      } finally {
+        remove();
+      }
+    },
+    2 * storyScanTimeout,
+  );
 
   it.each(sliced(selectedStories, "stories: check"))("$id passes Ouro check's rules, except its known findings", async ({ id, Story }) => {
     await sweepStoryCheck({ id, Story, sizes: [[390, 844], [1280, 800]], schemes: ["light", "dark"], known: knownFor(knownFindings, id), restore: [390, 844] });

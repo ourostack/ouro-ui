@@ -526,7 +526,7 @@ export function Table<Row extends object = Record<string, unknown>>(props: Table
           {shown.length === 0 ? (
             <TableRow>
               <TableCell colSpan={columns.length}>
-                <span className="text-muted-foreground">{empty}</span>
+                <span className="text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]">{empty}</span>
               </TableCell>
             </TableRow>
           ) : (
