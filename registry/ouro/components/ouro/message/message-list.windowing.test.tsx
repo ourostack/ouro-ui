@@ -1412,6 +1412,31 @@ describe("MessageList windowing", () => {
     expect(content.offsetTop).toBe(0);
   });
 
+  it("leaves a pixel carried near the top for the rest while the wheel's own scroll goes on, as writing it would stop that scroll short", async () => {
+    const items = (first: number) => conversation(30).map((item) => ({ ...item, tall: item.id === 0 ? first : 150 }));
+    const { scroller, rerender } = await render(<Chat items={items(150)} springy={false} windowing={false} />);
+    await scrollTo(scroller, 80);
+    const clock = { now: 1_000_000 };
+    vi.spyOn(performance, "now").mockImplementation(() => clock.now);
+    const content = scroller.querySelector<HTMLElement>("[data-ouro-message-list-content]")!;
+    // The wheel turns up, and the browser scrolls for it: the wheel's own scroll goes on, near the top.
+    scroller.dispatchEvent(new WheelEvent("wheel", { deltaY: -20 }));
+    scroller.scrollTop = 60;
+    await frame();
+    const reading = firstVisible(scroller);
+    // The first message, above the reader, comes in a pixel taller, as a row drawn rounds.
+    await rerender(<Chat items={items(151)} springy={false} windowing={false} />);
+    // Held by drawing, the scroll position unwritten.
+    expect(scroller.scrollTop).toBe(60);
+    expect(content.style.translate).not.toBe("");
+    expect(Math.abs(reading.message.getBoundingClientRect().top - reading.top)).toBeLessThanOrEqual(1);
+    // Once the scroll has ended and the wheel rests, it is paid.
+    scroller.dispatchEvent(new Event("scrollend"));
+    clock.now += 10_000;
+    await expect.poll(() => content.style.translate).toBe("");
+    expect(scroller.scrollTop).toBe(61);
+  });
+
   it("keeps the space above the first message while the wheel turns, and lets it go without moving anything once the reader is past it and the wheel rests", async () => {
     const { scroller, content, clock } = await wheelToTheTop();
     await frame();

@@ -1983,6 +1983,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const nearEnd = () => {
       const top = scroller.scrollTop;
       const carried = carriedRef.current;
+      // A pixel or two carried (rows drawn a rounding apart) waits for the rest while the wheel's own scroll goes on: written now,
+      // it would stop that scroll short of where the reader sent it, for a move no one sees.
+      // Stryker disable next-line EqualityOperator: a carry of exactly two pixels waits or is paid, either too small to see.
+      if (wheelScrolling && Math.abs(carried) < 2) return false;
       // Where the view's bottom meets the bottom of what is drawn, drawn up by what is carried.
       const last = farthest() - carried;
       // Stryker disable next-line EqualityOperator: a scroll position exactly at the margin pays a frame sooner or later, and moves nothing on screen either way.
