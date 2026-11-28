@@ -46,6 +46,7 @@ try {
     };
   });
   console.log("TARGET", JSON.stringify(target));
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   console.log("ISSUES", JSON.stringify(await page.evaluate(findSquirclePaint)));
 } finally {
   await browser.close();
