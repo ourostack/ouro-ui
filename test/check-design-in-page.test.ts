@@ -355,6 +355,17 @@ describe("findDesignIssues: nested-frame", () => {  it("finds a frame hugging a 
     expect(of("nested-frame").map((issue) => issue.element)).toEqual(["div#card in div"]);
   });
 
+  it("finds a lighter framed card even when its picture fills most of it", () => {
+    render(`
+      <div style="width:400px;padding:20px;border:1px solid #888;background:#ddd">
+        <article id="card" style="box-sizing:border-box;width:300px;height:180px;border:1px solid #888;background:#fff">
+          <img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" style="display:block;width:100%;height:155px">
+          <h2 style="margin:0;font-size:16px;line-height:20px">A collection</h2>
+        </article>
+      </div>`);
+    expect(of("nested-frame").map((issue) => issue.element)).toEqual(["article#card in div"]);
+  });
+
   it("distinguishes composite colour and chip fields from a framed card", () => {
     render(`
       <div style="width:360px;padding:20px;border:1px solid #888;background:#ddd">
