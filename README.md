@@ -513,6 +513,7 @@ Components:
 `page-header`,
 `page-shell`,
 `pagination`,
+`permission-prompt`,
 `popover`,
 `porthole`,
 `preview-bar`,
@@ -931,6 +932,7 @@ Each component has a page in `docs/` with its purpose, an example, every prop, i
 - **EmojiText** — A message's text with its emoji drawn from an image catalogue: each token (`:party:`, an emoji's first shortcode or else its id, as `EmojiPicker` and `Autocomplete` put into a `Composer`) and each emoji's `text` the catalogue lists becomes the emoji's image, which screen readers hear by name. [Docs](docs/EmojiText.md)
 - **Message** — One message in a chat: who wrote it, their avatar and what they wrote, with any attachments under it. [Docs](docs/Message.md)
 - **MessageList** — A conversation: `Message`s in a scrolling, labeled region that opens at the newest one. [Docs](docs/MessageList.md)
+- **PermissionPrompt** — An agent asking the person's permission before it acts: what it wants to do, exactly what it would run, why, and how risky it is, with Allow once and Deny. [Docs](docs/PermissionPrompt.md)
 - **ReactionBar** — A message's reactions: each one's emoji and how many chose it, with the person's own pressed and tinted, and quick reactions to add with a single press. [Docs](docs/ReactionBar.md)
 - **readFailure** — Whether a failed read's HTTP status is the service's (`"failed"`: no answer, signed out, throttled, timed out or failing, so every read waits) or this person's (`"missing"`: the service refused them alone, so they are kept as missing and no one waits). [Docs](docs/readFailure.md)
 - **ReadReceipt** — Who has seen a message, as small faces under it: the first three readers, overlapping, then "+N" for the rest. [Docs](docs/ReadReceipt.md)
