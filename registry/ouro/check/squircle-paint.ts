@@ -472,11 +472,12 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const fragmented = rectangles.length > 1;
           const horizontal = style.writingMode.startsWith("horizontal");
           const reverse = style.direction === "rtl";
+          const cloned = style.boxDecorationBreak === "clone" || style.getPropertyValue("-webkit-box-decoration-break") === "clone";
           const start = horizontal ? (reverse ? [1, 2] : [0, 3]) : (reverse ? [2, 3] : [0, 1]);
           const end = horizontal ? (reverse ? [0, 3] : [1, 2]) : (reverse ? [0, 1] : [2, 3]);
           const fragments = (fragmented ? rectangles : [r]).map((rect, index, all) => {
             const corners = initial.corners.map((corner, cornerIndex) => {
-              const present = !fragmented || style.boxDecorationBreak === "clone" ||
+              const present = !fragmented || cloned ||
                 (index === 0 && start.includes(cornerIndex)) || (index === all.length - 1 && end.includes(cornerIndex));
               return present ? { ...corner } : { ...corner, x: 0, y: 0, squircle: false };
             });
@@ -617,6 +618,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
                   length(y!, height) * rect.height / height + 0.5 >= corner.y * scaleY * 0.543;
               }));
               try {
+                await capture(clip);
                 for (const layer of effectLayers) {
                   layer.el.style.setProperty("box-shadow", "none", "important");
                   layer.el.style.setProperty("outline", "none", "important");
