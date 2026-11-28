@@ -167,8 +167,8 @@ function useUnnamedRegionCheck(viewportRef: { current: HTMLDivElement | null }, 
  * (pixels hidden), so a parent can draw a hairline once it is scrolled from the start. Its focus ring
  * is drawn over the content, so a header that sticks to the top never hides an edge of it.
  *
- * The viewport paints `--ouro-scroller-surface` (`--muted` on the page by default; Card, Popover,
- * Menu, Select, Combobox, Dialog and Sheet set their own), because
+ * The viewport paints `--ouro-scroller-surface`, falling back to its local `--muted`; Card, Popover,
+ * Menu, Select, Combobox, Dialog and Sheet set their own. This is opaque because
  * Chromium on Windows keeps a see-through scroller off the compositor where LCD text is on, and repaints
  * it on every scroll frame (ourostack/ouro-ui#2891). Set the token to another theme surface when
  * needed (`[--ouro-scroller-surface:var(--card)]`); on glass, set it to `transparent`.
@@ -236,7 +236,7 @@ export function ScrollArea(props: ScrollAreaProps): JSX.Element {
         aria-label={label}
         // While focused, isolate keeps the content's own stacking (a sticky header's z-index) inside the viewport, under the
         // focus ring. Only then: at rest the content stacks with the page, as it always has.
-        className={cn("peer min-h-0 bg-(--ouro-scroller-surface) focus-visible:isolate flex-1 rounded-[inherit] outline-none", viewports[orientation], scrollbar, contain && "overscroll-contain")}
+        className={cn("peer min-h-0 bg-[color:var(--ouro-scroller-surface,var(--muted))] focus-visible:isolate flex-1 rounded-[inherit] outline-none", viewports[orientation], scrollbar, contain && "overscroll-contain")}
       >
         <div className={orientation === "vertical" ? "min-w-0" : "min-w-fit"}>{children}</div>
       </div>

@@ -77,6 +77,21 @@ describe("MessageList surface", () => {
     }
   });
 
+  it("uses the nested dark theme's muted surface for its scroller", async () => {
+    const root = document.documentElement;
+    const wasDark = root.classList.contains("dark");
+    root.classList.remove("dark");
+    try {
+      const scroller = await render(<div className="dark">{list}</div>);
+      const probe = document.createElement("div");
+      probe.style.backgroundColor = "var(--muted)";
+      scroller.append(probe);
+      expect(getComputedStyle(scroller).backgroundColor).toBe(getComputedStyle(probe).backgroundColor);
+    } finally {
+      root.classList.toggle("dark", wasDark);
+    }
+  });
+
   it("keeps glass see-through when the app opts out of an opaque scroller", async () => {
     const scroller = await render(<div style={{ "--ouro-scroller-surface": "transparent" } as React.CSSProperties}>{list}</div>);
     expect(getComputedStyle(scroller).backgroundColor).toBe("rgba(0, 0, 0, 0)");

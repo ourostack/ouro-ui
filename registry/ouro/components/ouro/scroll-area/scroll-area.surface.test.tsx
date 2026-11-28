@@ -106,6 +106,34 @@ describe("ScrollArea surface", () => {
     expect(background(viewportOf(host))).toBe("rgb(1, 2, 3)");
   });
 
+  it("uses the nested dark theme's muted surface without overriding an app's surface token", async () => {
+    const root = document.documentElement;
+    const wasDark = root.classList.contains("dark");
+    root.classList.remove("dark");
+    try {
+      const host = await render(
+        <>
+          <div className="dark" data-test-default="">
+            <ScrollArea label="Dark steps">x</ScrollArea>
+          </div>
+          <div style={{ "--ouro-scroller-surface": "rgb(1, 2, 3)" } as React.CSSProperties}>
+            <div className="dark" data-test-override="">
+              <ScrollArea label="Custom dark steps">x</ScrollArea>
+            </div>
+          </div>
+        </>,
+      );
+      const dark = host.querySelector<HTMLElement>("[data-test-default]")!;
+      const probe = document.createElement("div");
+      probe.style.backgroundColor = "var(--muted)";
+      dark.append(probe);
+      expect(background(viewportOf(dark))).toBe(background(probe));
+      expect(background(viewportOf(host.querySelector("[data-test-override]")!))).toBe("rgb(1, 2, 3)");
+    } finally {
+      root.classList.toggle("dark", wasDark);
+    }
+  });
+
   it("stays see-through inside a glass surface that opts out, so the glass shows", async () => {
     const host = await render(
       <div style={{ "--ouro-scroller-surface": "transparent" } as React.CSSProperties}>
