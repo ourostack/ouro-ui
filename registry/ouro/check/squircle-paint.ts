@@ -67,6 +67,66 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     }
     return { width, height, corners, native: corners.filter((corner) => corner.squircle).every((corner) => corner.native) };
   };
+  const notchedBadges = (el: HTMLElement, siblings: HTMLElement[], bounds: DOMRect) => {
+    const sameBox = (rect: DOMRect) =>
+      [rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5);
+    const candidates = [...el.querySelectorAll<HTMLElement>("*"), ...siblings].filter((candidate) => {
+      if (!(candidate instanceof HTMLElement)) return false;
+      const rect = candidate.getBoundingClientRect();
+      if (rect.width < 2 || Math.abs(rect.width - rect.height) > 0.5 || rect.width > Math.min(bounds.width, bounds.height) / 2) return false;
+      if (rect.right <= bounds.left || rect.left >= bounds.right || rect.bottom <= bounds.top || rect.top >= bounds.bottom) return false;
+      if (!visible(candidate)) return false;
+      const style = getComputedStyle(candidate);
+      return names.every(({ property }) => {
+        const [x, y] = style[`border${property}Radius`].split(/\s+/);
+        const length = (value: string, dimension: number) => value.endsWith("%") ? parseFloat(value) * dimension / 100 : parseFloat(value) || 0;
+        return length(x!, candidate.offsetWidth) >= candidate.offsetWidth / 2 && length(y ?? x!, candidate.offsetHeight) >= candidate.offsetHeight / 2;
+      });
+    });
+    if (candidates.length === 0) return [];
+    const surfaces = [el, ...el.querySelectorAll<HTMLElement>("*")].flatMap((surface) => {
+      if (!(surface instanceof HTMLElement) || !sameBox(surface.getBoundingClientRect()) || getComputedStyle(surface).clipPath === "none") return [];
+      const shape = geometry(surface);
+      return shape ? [{ surface, shape }] : [];
+    });
+    return candidates.filter((candidate) => {
+      const badge = candidate.getBoundingClientRect();
+      const cx = (badge.left + badge.right) / 2;
+      const cy = (badge.top + badge.bottom) / 2;
+      const radius = badge.width / 2 + 0.5;
+      return surfaces.some(({ surface, shape }) => {
+        const inside = (x: number, y: number) => {
+          const localX = (x - bounds.left) * shape.width / bounds.width;
+          const localY = (y - bounds.top) * shape.height / bounds.height;
+          if (localX < 0 || localY < 0 || localX >= shape.width || localY >= shape.height) return false;
+          return shape.corners.every((corner, index) => {
+            if (!corner.squircle) return true;
+            const dx = (corner.x - (index === 0 || index === 3 ? localX : shape.width - localX)) / corner.x;
+            const dy = (corner.y - (index < 2 ? localY : shape.height - localY)) / corner.y;
+            return dx <= 0 || dy <= 0 || dx ** 4 + dy ** 4 <= 1;
+          });
+        };
+        if (!inside(cx, cy)) return false;
+        const points = [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1], [-0.707, -0.707], [0.707, -0.707], [0.707, 0.707], [-0.707, 0.707]]
+          .map(([x, y]) => [cx + x! * radius, cy + y! * radius] as const)
+          .filter(([x, y]) => x >= 0 && y >= 0 && x < innerWidth && y < innerHeight && inside(x, y));
+        if (points.length < 3) return false;
+        const original = surface.getAttribute("style");
+        const normalized = surface.style.cssText;
+        const prior = save(surface, "pointer-events");
+        try {
+          surface.style.setProperty("pointer-events", "auto", "important");
+          return points.every(([x, y]) => !document.elementsFromPoint(x, y).includes(surface));
+        } finally {
+          restore(surface, "pointer-events", prior);
+          if (surface.getAttribute("style") !== original && surface.style.cssText === normalized) {
+            if (original === null) surface.removeAttribute("style");
+            else surface.setAttribute("style", original);
+          }
+        }
+      });
+    });
+  };
   // An even-odd path keeps everything outside the box, but cuts its corner slivers to the ideal n=4 curve.
   const clipPath = (width: number, height: number, corners: Corner[], offsetX: number, offsetY: number) => {
     const [tl, tr, br, bl] = corners as [Corner, Corner, Corner, Corner];
@@ -104,9 +164,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     context.drawImage(image, 0, 0);
     return { width: canvas.width, height: canvas.height, data: context.getImageData(0, 0, canvas.width, canvas.height).data };
   };
-  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean) => {
-    const [a, b, c, own] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null]);
-    if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height))) {
+  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, withoutBadges: string | null, badges: DOMRect[], clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean) => {
+    const [a, b, c, own, noBadges] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null, withoutBadges ? pixels(withoutBadges) : null]);
+    if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height)) || (noBadges && (a.width !== noBadges.width || a.height !== noBadges.height))) {
       throw new Error("squircle-paint screenshots changed size during measurement");
     }
     const guardX = Math.max(1, Math.ceil(a.width / clip.width * 0.75));
@@ -139,6 +199,12 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const outsideX = px < rect.left || px >= rect.right;
           const outsideY = py < rect.top || py >= rect.bottom;
           const outsideCorner = outsideX || outsideY;
+          // A separate round badge in a real cut-out is not paint from the notched surface.
+          if (noBadges && difference(a.data, noBadges.data, index) >= 2 && badges.some((badge) => {
+            const dx = (px - (badge.left + badge.right) / 2) / (badge.width / 2 + 0.5);
+            const dy = (py - (badge.top + badge.bottom) / 2) / (badge.height / 2 + 0.5);
+            return dx * dx + dy * dy <= 1;
+          })) continue;
           // A pixel straddling the box edge can contain the surface's own antialiasing.
           if ((outsideX && Math.min(Math.abs(px - rect.left), Math.abs(px - rect.right)) < clip.width / a.width / 2) ||
               (outsideY && Math.min(Math.abs(py - rect.top), Math.abs(py - rect.bottom)) < clip.height / a.height / 2)) continue;
@@ -253,7 +319,34 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const clip = { x, y, width: Math.min(Math.ceil(r.right + margin), innerWidth) - x, height: Math.min(Math.ceil(r.bottom + margin), innerHeight) - y };
           if (clip.width < 1 || clip.height < 1) continue;
           const active = layers.filter((layer) => layer.el === el || !covers(layer.el, r));
+          const badges = notchedBadges(el, siblings, r);
           const actual = await capture(clip);
+          let withoutBadges: string | null = null;
+          if (badges.length) {
+            const saved = badges.map((badge) => ({
+              badge,
+              style: badge.getAttribute("style"),
+              normalized: badge.style.cssText,
+              opacity: save(badge, "opacity"),
+              transition: save(badge, "transition"),
+            }));
+            try {
+              for (const { badge } of saved) {
+                badge.style.setProperty("transition", "none", "important");
+                badge.style.setProperty("opacity", "0", "important");
+              }
+              withoutBadges = await capture(clip);
+            } finally {
+              for (const { badge, style, normalized, opacity, transition } of saved) {
+                restore(badge, "opacity", opacity);
+                restore(badge, "transition", transition);
+                if (badge.getAttribute("style") !== style && badge.style.cssText === normalized) {
+                  if (style === null) badge.removeAttribute("style");
+                  else badge.setAttribute("style", style);
+                }
+              }
+            }
+          }
           for (const layer of active) {
             const layerRect = layer.el.getBoundingClientRect();
             const offsetX = (r.left - layerRect.left) / scaleX;
@@ -288,10 +381,10 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             }
           };
           let solo = ownEffects ? await captureSolo() : null;
-          let differs = await differences(actual, masked, hidden, solo, clip, r, initial.width, initial.height, initial.corners, initial.native);
+          let differs = await differences(actual, masked, hidden, solo, withoutBadges, badges.map((badge) => badge.getBoundingClientRect()), clip, r, initial.width, initial.height, initial.corners, initial.native);
           if (differs && !solo) {
             solo = await captureSolo();
-            differs = await differences(actual, masked, hidden, solo, clip, r, initial.width, initial.height, initial.corners, initial.native);
+            differs = await differences(actual, masked, hidden, solo, withoutBadges, badges.map((badge) => badge.getBoundingClientRect()), clip, r, initial.width, initial.height, initial.corners, initial.native);
           }
           if (differs) { found = true; break; }
         }

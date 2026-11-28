@@ -255,6 +255,32 @@ it("detects a protruding sibling without reporting an inset one", async () => {
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
 }, paintTimeout);
 
+it("keeps a round badge in a cut-out distinct from leaking square paint", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render(`<style>
+      .cut-frame, .cut-surface { width:80px; height:80px; }
+      .cut-frame { position:relative; }
+      .cut-surface { position:absolute; inset:0; background:#dce5ef; --sq-notch:move to calc(100% + 8px) calc(100% - 5px), arc to calc(100% - 18px) calc(100% - 5px) of 13px, arc to calc(100% + 8px) calc(100% - 5px) of 13px, close; }
+      .cut-badge { position:absolute; right:-5px; bottom:-5px; width:20px; height:20px; border-radius:50%; corner-shape:round; background:#149b55; }
+      .cut-leak { position:absolute; left:-6px; top:-6px; width:8px; height:8px; background:#b44939; }
+    </style><div class="cut-frame rounded-[44%]"><div class="cut-surface rounded-[44%]"></div><div class="cut-badge"></div></div>`);
+    const frame = root.querySelector<HTMLElement>(".cut-frame")!;
+    const surface = root.querySelector<HTMLElement>(".cut-surface")!;
+    const badge = root.querySelector<HTMLElement>(".cut-badge")!;
+    expect(await findSquirclePaint()).toEqual([]);
+    expect(surface.hasAttribute("style")).toBe(false);
+    expect(badge.hasAttribute("style")).toBe(false);
+    frame.insertAdjacentHTML("beforeend", '<div class="cut-leak"></div>');
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.cut-frame.rounded-[44%]");
+    frame.lastElementChild!.remove();
+    surface.style.setProperty("--sq-notch", "move to 0 0, close");
+    expect(await findSquirclePaint()).not.toEqual([]);
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
 it("keeps a native shadow and its probe separate from a descendant's external paint", async () => {
   const root = render('<div style="position:relative;width:160px;height:120px"><div style="position:absolute;inset:0"></div><div class="surface" data-ouro-paint-solo="original" style="position:absolute;inset:0;background:#fff;border-radius:28px;corner-shape:squircle;box-shadow:0 4px 12px #0008"></div></div>');
   const surface = root.querySelector<HTMLElement>(".surface")!;

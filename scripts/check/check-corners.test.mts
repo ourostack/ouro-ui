@@ -308,6 +308,38 @@ test("squircle-paint finds a sibling control protruding from a rounded pane's co
   }
 });
 
+test("squircle-paint distinguishes a round badge in a cut-out from square or unnotched paint", async () => {
+  const generated = await styles(`
+    body { margin: 0; background: white; }
+    .frame { position: absolute; left: 60px; top: 60px; width: 80px; height: 80px; border-radius: 40%; }
+    .surface { position: absolute; inset: 0; background: #dce5ef; border-radius: 40%; }
+    .cut { --sq-notch: move to calc(100% + 8px) calc(100% - 5px), arc to calc(100% - 18px) calc(100% - 5px) of 13px, arc to calc(100% + 8px) calc(100% - 5px) of 13px, close; }
+    .badge { position: absolute; right: -5px; bottom: -5px; width: 20px; height: 20px; border-radius: 50%; corner-shape: round; --corner-shape: round; background: #149b55; }
+    .square { border-radius: 0; }
+    .leak { position: absolute; left: -6px; top: -6px; width: 8px; height: 8px; background: #b44939; }
+  `);
+  const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-check-native-shape: squircle)");
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+    await bindCapture(tab);
+    try {
+      for (const [cut, square, leak, expected] of [
+        [true, false, false, false],
+        [false, false, false, true],
+        [true, true, false, true],
+        [true, false, true, true],
+      ] as const) {
+        await tab.setContent(`<style>${css}</style><div class="frame"><div class="surface${cut ? " cut" : ""}"></div><div class="badge${square ? " square" : ""}"></div>${leak ? '<div class="leak"></div>' : ""}</div>`);
+        const found = await tab.evaluate(findSquirclePaint);
+        assert.equal(found.length > 0, expected, `${engine.name()}: cut=${cut}, square=${square}, leak=${leak}`);
+      }
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
 test("squircle-paint does not attribute changing background pixels to a surface", async () => {
   const browser = await chromium.launch({ headless: true });
   const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
@@ -344,6 +376,25 @@ test("squircle-paint finds an external descendant beside a native surface's inte
       const found = await tab.evaluate(findSquirclePaint);
       assert.equal(found.length, leaking ? 1 : 0, leaking ? "external descendant" : "native shadow");
     }
+  } finally {
+    await browser.close();
+  }
+});
+
+test("squircle-paint keeps a fallback popup's soft shadow separate from its content", async () => {
+  const generated = await styles(`
+    body { margin: 0; background: #f8f8f9; }
+    .surface { position: absolute; left: 69px; top: 73px; width: 288px; height: 240px; border-radius: 18px; background: white;
+      box-shadow: 0 0 0 1px #eee9, 0 10px 15px -3px #0002, 0 4px 6px -4px #0002; }
+    .content { position: absolute; inset: 16px; }
+  `);
+  const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-check-native-shape: squircle)");
+  const browser = await chromium.launch({ headless: true });
+  const tab = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await bindCapture(tab);
+  try {
+    await tab.setContent(`<style>${css}</style><div class="surface"><div class="content">Members</div></div>`);
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
   } finally {
     await browser.close();
   }
