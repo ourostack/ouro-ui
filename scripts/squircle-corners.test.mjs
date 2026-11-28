@@ -213,6 +213,26 @@ test("squircle corners: a later circle clears an earlier squircle", async () => 
   }
 });
 
+test("squircle corners: native shapes follow a later circle and a still-later squircle", async () => {
+  const css = await run(`
+    .surface { width: 120px; height: 80px; background: #dce5ef; }
+    .squircle { border-radius: 20px; }
+    .circle { border-radius: 50%; }
+    .later { border-radius: 12px; }
+  `);
+  const browser = await chromium.launch({ headless: true });
+  const tab = await browser.newPage();
+  try {
+    await tab.setContent(`<style>${css}</style><div class="surface squircle circle"></div>`);
+    const shape = () => tab.locator(".surface").evaluate((element) => globalThis.getComputedStyle(element).getPropertyValue("corner-top-left-shape"));
+    assert.ok(["round", "superellipse(1)"].includes(await shape()), "the later circle remains round");
+    await tab.locator(".surface").evaluate((element) => { element.classList.add("later"); });
+    assert.equal(await shape(), "superellipse(2)", "the still-later squircle wins");
+  } finally {
+    await browser.close();
+  }
+});
+
 test("squircle corners: fallback radii honor important declarations", async () => {
   const generated = await run(`
     .surface { width: 120px; height: 80px; background: #dce5ef; }
