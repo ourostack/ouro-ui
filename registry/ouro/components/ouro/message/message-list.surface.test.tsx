@@ -53,10 +53,11 @@ describe("MessageList surface", () => {
   it.each([
     ["the theme's own fills", {}],
     ["a theme whose page and card fills differ", distinct],
-  ])("paints its scroller with the page's background, opaque, on the page (%s)", async (_name, style) => {
+  ])("paints its scroller with the muted surface, opaque, on the page (%s)", async (_name, style) => {
     const scroller = await render(list, style);
-    expect(getComputedStyle(scroller).backgroundColor).toBe(fill("--background"));
+    expect(getComputedStyle(scroller).backgroundColor).toBe(fill("--muted"));
     expect(getComputedStyle(scroller).backgroundColor).not.toMatch(/rgba|transparent/);
+    expect(getComputedStyle(scroller.querySelector("[data-ouro-message-content]")!).backgroundColor).toBe(fill("--background"));
   });
 
   it.each([
@@ -65,6 +66,20 @@ describe("MessageList surface", () => {
   ])("paints its scroller with the Card's fill inside a Card (%s)", async (_name, style) => {
     const scroller = await render(<Card title="Thread">{list}</Card>, style);
     expect(getComputedStyle(scroller).backgroundColor).toBe(fill("--card"));
+    expect(getComputedStyle(scroller.querySelector("[data-ouro-message-content]")!).backgroundColor).toBe(fill("--muted"));
+  });
+
+  it("keeps an app's bubble fill on the page and inside a Card", async () => {
+    const themed = <div style={{ "--ouro-bubble-other": "rgb(80, 90, 100)" } as React.CSSProperties}>{list}</div>;
+    for (const node of [themed, <Card title="Thread">{themed}</Card>]) {
+      const scroller = await render(node);
+      expect(getComputedStyle(scroller.querySelector("[data-ouro-message-content]")!).backgroundColor).toBe("rgb(80, 90, 100)");
+    }
+  });
+
+  it("keeps glass see-through when the app opts out of an opaque scroller", async () => {
+    const scroller = await render(<div style={{ "--ouro-scroller-surface": "transparent" } as React.CSSProperties}>{list}</div>);
+    expect(getComputedStyle(scroller).backgroundColor).toBe("rgba(0, 0, 0, 0)");
   });
 
   // Chromium on Windows promotes a see-through scroller only at 150% display scaling or more (ourostack/ouro-ui#2891).

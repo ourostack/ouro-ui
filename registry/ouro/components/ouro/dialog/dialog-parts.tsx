@@ -44,7 +44,7 @@ const viewportClass =
 const popupClass =
   "relative isolate box-border flex max-h-full min-h-0 flex-col outline-none " +
   "rounded-ouro-xl bg-(--ouro-bg) text-popover-foreground ring-1 ring-border/60 " +
-  "[--ouro-bg:var(--popover)] [--ouro-scroller-surface:var(--popover)] [--ouro-bd:color-mix(in_oklab,var(--border)_60%,transparent)] " +
+  "[--ouro-bg:var(--popover)] [--ouro-scroller-surface:var(--popover)] [--ouro-message-list-bubble-default:var(--muted)] [--ouro-bd:color-mix(in_oklab,var(--border)_60%,transparent)] " +
   "shadow-(--shadow-xl) " +
   "[transition:transform_var(--ouro-dialog-duration)_var(--ouro-dialog-ease),opacity_var(--ouro-dialog-duration)_var(--ouro-dialog-ease)] " +
   "data-starting-style:[transform:scale(0.96)] data-starting-style:opacity-0 " +

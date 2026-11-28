@@ -16,10 +16,10 @@ const cellBase = "m-0 align-middle whitespace-nowrap border-b border-border font
 const wrapClass = "whitespace-normal wrap-anywhere min-w-48";
 const cellPad = { md: "px-4 py-3", dense: "px-3 py-1.5" } as const;
 
-const headCell = "font-medium text-muted-foreground";
+const headCell = "font-medium text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
 // Inside the ScrollArea's viewport, which scrolls both ways, the header sticks to its top and
 // moves sideways with its column. z-20 keeps it over the rows' links (z-1) and raised controls (z-10).
-const stickyHead = "sticky top-0 z-20 bg-background";
+const stickyHead = "sticky top-0 z-20 bg-(--ouro-scroller-surface)";
 
 // The last body row has no line under it; a footer has a line above it and none under it.
 const sectionCell = {
