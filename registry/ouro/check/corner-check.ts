@@ -253,10 +253,10 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
           if (corner.x < 6 || corner.y < 6) continue;
           const left = index === 0 || index === 3;
           const top = index < 2;
-          const point = (x: number, y: number) => document.elementFromPoint(
+          const point = (x: number, y: number) => document.elementsFromPoint(
             left ? inner.rect.left + x * corner.x : inner.rect.right - x * corner.x,
             top ? inner.rect.top + y * corner.y : inner.rect.bottom - y * corner.y,
-          );
+          ).find((node) => root.contains(node)) ?? null;
           const outside = point(0.05, 0.05);
           const inside = point(0.5, 0.5);
           if (!outside || !layer.contains(outside) || !inside || layer.contains(inside) || !root.contains(inside)) continue;
