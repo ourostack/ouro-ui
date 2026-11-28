@@ -12,7 +12,6 @@ type PaintCapture = (clip: PaintClip) => Promise<string>;
 async function findSquirclePaint(): Promise<PageIssue[]> {
   type Corner = { x: number; y: number; squircle: boolean };
   type Saved = { value: string; priority: string };
-  type InlineElement = Element & { style: CSSStyleDeclaration };
   const capture = (window as unknown as { __ouroPaintCapture?: PaintCapture }).__ouroPaintCapture;
   if (!capture) throw new Error("squircle-paint needs a screenshot capture supplied by its host");
   const names = [
@@ -40,7 +39,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     if (el.closest("[hidden], template, .visually-hidden, .sr-only, details:not([open]) > :not(summary)")) return false;
     for (let n: Element | null = el; n && n !== document.documentElement; n = n.parentElement) {
       const style = getComputedStyle(n);
-      if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return false;
+      if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) <= 0.05) return false;
     }
     return true;
   };
@@ -182,8 +181,10 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     image.close();
     return { width: canvas.width, height: canvas.height, data: context.getImageData(0, 0, canvas.width, canvas.height).data };
   };
+  let references: string[] = [];
   const differences = async (actual: string, masked: string, hidden: string, solo: string | null, withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, strokePads: { x: number; y: number }[], clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean) => {
     const [a, b, c, own, noBadges, noStrokes] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null, withoutBadges ? pixels(withoutBadges) : null, withoutStrokes ? pixels(withoutStrokes) : null]);
+    const refImages = await Promise.all(references.map(pixels));
     if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height)) || (noBadges && (a.width !== noBadges.width || a.height !== noBadges.height)) || (noStrokes && (a.width !== noStrokes.width || a.height !== noStrokes.height))) {
       throw new Error("squircle-paint screenshots changed size during measurement");
     }
@@ -257,7 +258,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             if (edge) continue;
           }
           if (delta >= 64 || (x > startX && row[x - 1]) || previous[x]) {
-            return { corner: cornerIndex, x: Math.round(px - rect.left), y: Math.round(py - rect.top) };
+            const rgba = (image: typeof a | null) => image && [...image.data.slice(index, index + 4)];
+            return { corner: cornerIndex, x: Math.round(px - rect.left), y: Math.round(py - rect.top),
+              debug: { actual: rgba(a), masked: rgba(b), hidden: rgba(c), solo: rgba(own), references: refImages.map(rgba), native, outsideCorner, behind, delta } };
           }
           row[x] = 1;
         }
@@ -266,12 +269,11 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     }
     return null;
   };
-  const save = (el: InlineElement, property: string): Saved => ({ value: el.style.getPropertyValue(property), priority: el.style.getPropertyPriority(property) });
-  const restore = (el: InlineElement, property: string, saved: Saved) => {
+  const save = (el: HTMLElement | SVGElement, property: string): Saved => ({ value: el.style.getPropertyValue(property), priority: el.style.getPropertyPriority(property) });
+  const restore = (el: HTMLElement | SVGElement, property: string, saved: Saved) => {
     if (saved.value) el.style.setProperty(property, saved.value, saved.priority);
     else el.style.removeProperty(property);
   };
-  const hasInlineStyle = (el: Element): el is InlineElement => "style" in el && el.style instanceof CSSStyleDeclaration;
   const inverseCutout = (el: HTMLElement, shape: NonNullable<ReturnType<typeof geometry>>) => {
     if (getComputedStyle(el).clipPath === "none") return false;
     const rect = el.getBoundingClientRect();
@@ -413,7 +415,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     const scroll = [...function* () { for (let n = el.parentElement; n; n = n.parentElement) yield n; }()]
       .map((node) => ({ node, left: node.scrollLeft, top: node.scrollTop }));
     const windowScroll = { x: scrollX, y: scrollY };
-    let found: { corner: number; x: number; y: number } | null = null;
+    let found: { corner: number; x: number; y: number; debug: object } | null = null;
     try {
       for (const layer of layers) layer.el.style.setProperty("transition", "none", "important");
       const blocks: ScrollLogicalPosition[] = el.getBoundingClientRect().height > innerHeight ? ["start", "end"] : ["nearest"];
@@ -441,7 +443,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             const normalizedStyle = el.style.cssText;
             const radii = names.map(({ shape }) => ({ property: `border-${shape}-radius`, saved: save(el, `border-${shape}-radius`) }));
             const overrides = [...el.querySelectorAll("[style]")].flatMap((node) => {
-              if (!hasInlineStyle(node)) return [];
+              if (!(node instanceof HTMLElement || node instanceof SVGElement)) return [];
               const opacity = node.style.getPropertyPriority("opacity") === "important";
               const transition = node.style.getPropertyPriority("transition-property") === "important";
               if (!opacity && !transition) return [];
@@ -497,8 +499,10 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             }
           };
           const actual = await capture(clip);
+          references = [await capture(clip)];
           // A mask can change how a browser composites the restored shadow, so take this reference first.
           let solo = ownEffects ? await captureSolo() : null;
+          references.push(await capture(clip));
           for (const layer of active) {
             const layerRect = layer.el.getBoundingClientRect();
             const layerStyle = getComputedStyle(layer.el);
@@ -520,6 +524,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             restore(layer.el, "opacity", layer.saved.get("opacity")!);
             restore(layer.el, "clip-path", layer.saved.get("clip-path")!);
           }
+          references.push(await capture(clip));
           let differs = await differences(actual, masked, hidden, solo, null, [], null, [], clip, r, initial.width, initial.height, initial.corners, initial.native);
           if (differs && !solo) {
             solo = await captureSolo();
@@ -582,7 +587,12 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               differs = await differences(actual, masked, hidden, solo, withoutBadges, badges.map((badge) => badge.getBoundingClientRect()), withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native);
             }
           }
-          if (differs) { found = differs; break; }
+          if (differs) {
+            found = { ...differs, debug: { ...differs.debug, layers: active.map(({ el }) => ({
+              element: describe(el), rect: el.getBoundingClientRect().toJSON(),
+            })) } };
+            break;
+          }
         }
         if (found) break;
       }
@@ -601,7 +611,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     }
     if (found) {
       const corner = ["top left", "top right", "bottom right", "bottom left"][found.corner]!;
-      issues.push({ ref: ref(el), rule: "squircle-paint", element: describe(el), detail: `paint shows outside the ${corner} squircle corner at (${found.x}, ${found.y})` });
+      issues.push({ ref: ref(el), rule: "squircle-paint", element: describe(el), detail: `paint shows outside the ${corner} squircle corner at (${found.x}, ${found.y}) ${JSON.stringify(found.debug)}` });
     }
   }
   return issues;
