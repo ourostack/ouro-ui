@@ -3604,7 +3604,8 @@ test("Docs pin points main's docs at the newest release through one pull request
   );
   const push = stepScript(pin, "Commit the docs and push their branch");
   assert.match(push, /git push -q --force origin "\$BRANCH"/);
-  assert.match(push, /41898282\+github-actions\[bot\]@users\.noreply\.github\.com/);
+  assert.match(push, /APP_SLUG: \$\{\{ steps\.app\.outputs\.app-slug \}\}/, "the commit is authored as the app that opens the pull request (#3991)");
+  assert.match(push, /41898282\+github-actions\[bot\]@users\.noreply\.github\.com/, "and as github-actions[bot] only when the app is not installed");
   const open = stepScript(pin, "Open or update the pull request, and turn auto-merge on");
   assert.match(open, /gh pr list --head "\$BRANCH" --base main --state open/);
   assert.match(open, /gh pr edit "\$number" --title "\$title"/);

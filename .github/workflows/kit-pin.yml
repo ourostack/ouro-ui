@@ -103,9 +103,17 @@ jobs:
         name: Commit the pages and push their branch, unless the branch already holds this pin
         env:
           TAG: ${{ steps.check.outputs.tag }}
+          APP_SLUG: ${{ steps.app.outputs.app-slug }}
+          APP_TOKEN: ${{ steps.app.outputs.token }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Author the commit as the app that opens the pull request, so the ruleset's attribution rule sees one identity
+          # (#3991); without the app, as before.
+          name="github-actions[bot]"; email="41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$APP_SLUG" ] && uid=$(GH_TOKEN="$APP_TOKEN" gh api "/users/${APP_SLUG}%5Bbot%5D" --jq .id); then
+            name="${APP_SLUG}[bot]"; email="${uid}+${APP_SLUG}[bot]@users.noreply.github.com"
+          fi
+          git config user.name "$name"
+          git config user.email "$email"
           git switch -q -c "$BRANCH"
           git add -A
           git commit -q -m "Point the $NAME pages at ouro-ui-$KIT $TAG"
