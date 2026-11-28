@@ -439,7 +439,11 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
           const noHeading = !inner.querySelector("h1, h2, h3, h4, h5, h6, [role=heading]");
           const fillsField = editors.some((el) => {
             const r = el.getBoundingClientRect();
-            return r.width >= i.width / 2 && r.height >= i.height * 0.35;
+            let region = el;
+            while (region.parentElement && region.parentElement !== inner) region = region.parentElement;
+            const box = region.getBoundingClientRect();
+            return r.width >= i.width / 2 && (r.height >= i.height * 0.35
+              || (box.height >= i.height * 0.35 && !region.querySelector("p, article, section")));
           });
           const flexItems = (parent: Element): Element[] => [...parent.children].flatMap((el) =>
             getComputedStyle(el).display === "contents" ? flexItems(el) : visibleSet.has(el) ? [el] : []);
@@ -456,8 +460,26 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
           const fillsChips = boxes.length > 0
             && Math.max(...boxes.map((r) => r.right)) - Math.min(...boxes.map((r) => r.left)) >= i.width / 2
             && Math.max(...boxes.map((r) => r.bottom)) - Math.min(...boxes.map((r) => r.top)) >= i.height * 0.35;
-          const fieldFrame = noHeading && (fillsField || fillsChips);
-          lighter = !fieldFrame && sideNames.some((side) => visibleEdge(inner, side, surface));
+          const fieldFrame = noHeading && (fillsField || fillsChips || (inner instanceof HTMLLabelElement && inner.control !== null));
+          const media = [...inner.querySelectorAll("img, video, canvas, svg")].flatMap((el) => {
+            const r = visibleSet.has(el) ? drawnRect(el) : null;
+            if (!r) return [];
+            const box = { left: Math.max(r.left, drawn.left), right: Math.min(r.right, drawn.right), top: Math.max(r.top, drawn.top), bottom: Math.min(r.bottom, drawn.bottom) };
+            return box.right > box.left && box.bottom > box.top ? [box] : [];
+          });
+          const cuts = [...new Set(media.flatMap(({ left, right }) => [left, right]))].sort((a, b) => a - b);
+          let covered = 0;
+          for (let x = 1; x < cuts.length; x++) {
+            const left = cuts[x - 1]!, right = cuts[x]!;
+            const spans = media.filter((r) => r.left < right && r.right > left).sort((a, b) => a.top - b.top);
+            let bottom = drawn.top;
+            for (const span of spans) {
+              covered += (right - left) * Math.max(0, span.bottom - Math.max(bottom, span.top));
+              bottom = Math.max(bottom, span.bottom);
+            }
+          }
+          const mediaFrame = covered >= drawn.width * drawn.height * 0.8;
+          lighter = !fieldFrame && !mediaFrame && sideNames.some((side) => visibleEdge(inner, side, surface));
         }
       }
       if (hugs || lighter) {
