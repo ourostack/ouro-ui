@@ -1254,6 +1254,12 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Stryker disable next-line ArrowFunction: an observer left on a removed foot reports its height as 0, as the effect's own rerun sets it.
     return () => observer.disconnect();
   }, [foot]);
+  // A reveal or a find's own scroll can land anywhere in the conversation, unlike the reader's own scrolling, which
+  // only ever uncovers history above the end: whatever already sits at the view's bottom edge there may be exactly
+  // where the floating pill sits too, with no arrival ahead to earn room for it the usual way. Reserve room at
+  // once, rather than wait for one, so the pill never opens over a message either placed there. Shared by bring()
+  // (the reveal path) and useFindHighlights's scrollToCurrent (the find path), which scrolls on its own. A landing
+  // at the end reserves it too, and the list's resize and scroll handlers read pinned back and clear it at once.
   const [spoken, setSpoken] = useState<Spoken[]>([]);
   const nextId = useRef(0);
   // The newest label function, for the observer set up once below.
@@ -1966,7 +1972,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     // Whether the wheel turned since the last scroll that was not the list's own: the turn's scroll, which may not have begun yet.
     // Stryker disable next-line BooleanLiteral: before any turn, the last turn is never under WHEEL_START ago, so no scroll counts as one's either way.
     let wheelStarts = false;
-    const turning = () => wheelScrolling || performance.now() - wheelAt < Math.max(WHEEL_REST, 2 * wheelGap) || document.timeline.currentTime === wheelFrame;
+    // Whether the wheel's own scroll goes on, or it turned within the rest: the wheel still turning, short of a slow wheel's longer wait.
+    const scrolling = () => wheelScrolling || performance.now() - wheelAt < WHEEL_REST || document.timeline.currentTime === wheelFrame;
+    // Stryker disable next-line EqualityOperator: a turn exactly twice the gap ago counts as turning or not, and the next frame decides either way.
+    const turning = () => scrolling() || performance.now() - wheelAt < 2 * wheelGap;
     let resting: ReturnType<typeof setTimeout> | undefined;
     let restFrame = 0;
     // How close to an end, in px, the reader comes before the scroll position takes what is carried: a few frames of a fast wheel.
@@ -1980,6 +1989,10 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const nearEnd = () => {
       const top = scroller.scrollTop;
       const carried = carriedRef.current;
+      // A pixel or two carried (rows drawn a rounding apart) waits for the rest while the wheel's own scroll goes on: written now,
+      // it would stop that scroll short of where the reader sent it, for a move no one sees.
+      // Stryker disable next-line EqualityOperator: a carry of exactly two pixels waits or is paid, either too small to see.
+      if (wheelScrolling && Math.abs(carried) < 2) return false;
       // Where the view's bottom meets the bottom of what is drawn, drawn up by what is carried.
       const last = farthest() - carried;
       // Stryker disable next-line EqualityOperator: a scroll position exactly at the margin pays a frame sooner or later, and moves nothing on screen either way.
@@ -2013,12 +2026,14 @@ export function MessageList(props: MessageListProps): JSX.Element {
       return applied;
     };
     // Lets the space go once the wheel rests: at the very top, where nothing on screen needs holding (the step that reached
-    // it already replaced the view), at once; past it, the content moves up by it as the scroll position does, so nothing on
-    // screen moves. Short of it (the reader scrolled back up, into the space, but not to its very top) the space stays, since
-    // letting it go there would move a message they can see.
+    // it already replaced the view), as soon as the wheel's own scroll has ended, since a slow wheel's later turn up there scrolls
+    // nothing, and waiting for it would leave the space showing and then move the rows the reader has stopped on; past it, the
+    // content moves up by it as the scroll position does, so nothing on screen moves. Short of it (the reader scrolled back up,
+    // into the space, but not to its very top) the space stays, since letting it go there would move a message they can see.
     const release = () => {
+      const top = scroller.scrollTop === 0;
       // Stryker disable next-line EqualityOperator: a reader exactly the space's height down lets it go now or at their next scroll, and nothing on screen moves either way.
-      if (slack === 0 || turning() || (scroller.scrollTop > 0 && scroller.scrollTop < slack)) return;
+      if (slack === 0 || (top ? scrolling() : turning()) || (!top && scroller.scrollTop < slack)) return;
       // Scrolled while the space still holds the scroll range, then the space goes.
       const range = farthest();
       const gone = slack;
@@ -2028,6 +2043,11 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // away are left out, so a change waiting for the resize observer is still held.
       taken += applied;
       end += farthest() - range;
+      // At the very top the scroll position takes none of it: the content moves up, and the view shows messages the space kept
+      // out of it. They hold the place from now on, as the one or two the space left in view may not survive older messages going
+      // in above them.
+      // Stryker disable next-line ConditionalExpression: past the space the content moves up as the scroll position does, so the messages in view are those the anchors hold already; taking them again there differs only for a change the resize observer has yet to report in that same frame, which no test reaches.
+      if (top) keepAnchor();
     };
     const pay = () => {
       // Stryker disable next-line CallExpression: a rest left waiting pays nothing once this has paid, and a carry since starts it again.
@@ -2086,7 +2106,8 @@ export function MessageList(props: MessageListProps): JSX.Element {
     const rest = () => {
       // Stryker disable next-line CallExpression: a second rest left waiting pays once the wheel rests, as this one does, and the later of the two then pays nothing.
       clearTimeout(resting);
-      resting = setTimeout(() => (restFrame = requestAnimationFrame(() => (turning() ? rest() : pay()))), WHEEL_REST);
+      // Still turning, the space at the very top may already go (release), once the wheel's own scroll has ended.
+      resting = setTimeout(() => (restFrame = requestAnimationFrame(() => (turning() ? (release(), rest()) : pay()))), WHEEL_REST);
     };
     const carry = (by: number) => {
       carriedRef.current += by;
@@ -2452,6 +2473,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       const centred = box.top - top - Math.max(0, (room - box.height) / 2);
       scroller.scrollTop += block === "center" ? centred : block === "start" || above ? box.top - top - EDGE : below ? box.bottom - top - room + EDGE : 0;
       springsRef.current?.moved(scroller.scrollTop - before);
+      setJumpRoom(true);
     };
     windowSync.current = (scrolled) => {
       const { windowed, keys, indexes, measured, band, reach, sizeOf } = viewRef.current;
@@ -3336,7 +3358,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           <div
             ref={contentRef}
             data-ouro-message-list-content=""
-            className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-ouro-message-list-slot]>[data-continued]]:-mt-[calc(1rem-var(--ouro-message-run-gap,var(--ouro-size-1)))]"
+            className="box-border flex min-h-full flex-col justify-end gap-4 p-4 [&>[data-ouro-message-list-slot]>[data-continued]]:-mt-[calc(1rem-var(--ouro-message-run-gap,var(--ouro-size-2)))]"
             style={{
               ...(maxWidth === undefined ? null : { maxWidth, marginInline: "auto" }),
               // Keeps the newest message just above the floating foot, as a footless list keeps it above the bottom padding.
@@ -3409,7 +3431,21 @@ export function MessageList(props: MessageListProps): JSX.Element {
           </div>
         </div>
       )}
-      {FindLayer && find ? <FindLayer all={all} keys={keys} find={find} hasOlder={hasOlder} scroller={scrollerRef} content={contentRef} slot={SLOT} onFindMatches={onFindMatches} onMarks={setFindMarks} request={requestRef} /> : null}
+      {FindLayer && find ? (
+        <FindLayer
+          all={all}
+          keys={keys}
+          find={find}
+          hasOlder={hasOlder}
+          scroller={scrollerRef}
+          content={contentRef}
+          slot={SLOT}
+          onFindMatches={onFindMatches}
+          onMarks={setFindMarks}
+          request={requestRef}
+          reserveJumpRoom={setJumpRoom}
+        />
+      ) : null}
     </div>
   );
 }

@@ -1,0 +1,1 @@
+- Fixed: Message's chat/default-layout action bar [rises a fixed 2px less](registry/ouro/components/ouro/message/message-parts.tsx "verify:fileLine(registry/ouro/components/ouro/message/message-parts.tsx, /calc\(2rem-2px\)/)") far above its own bubble, so it reliably clears the minimum gap from the message above it at every scale.
