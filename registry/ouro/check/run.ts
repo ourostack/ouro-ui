@@ -354,7 +354,7 @@ const HINTS: Record<string, string> = {
   "image-fade": "end the picture on a hard edge, or put it on a solid band",
   "giant-picture": "show the work itself (the component, a screenshot) or a small picture beside the words, not a banner",
   "cramped-heading": "give the heading room: more space above it than between it and what follows",
-  "nested-frame": "drop the inner border and use a step between theme surface tokens",
+  "nested-frame": "drop the inner border and use a step between theme surface tokens; for mismatched corners, make the inner radius the outer one less the inset",
   "corners-nest": "make each inner corner a squircle with the outer radius less its inset",
   "squircle-paint": "clip every painted layer to the squircle's corner curve",
   "doubled-line": "keep one line: drop the inner divider where a frame or another divider already separates, or give the two room apart",
