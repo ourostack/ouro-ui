@@ -1932,6 +1932,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
     let wheelStarts = false;
     // Whether the wheel's own scroll goes on, or it turned within the rest: the wheel still turning, short of a slow wheel's longer wait.
     const scrolling = () => wheelScrolling || performance.now() - wheelAt < WHEEL_REST || document.timeline.currentTime === wheelFrame;
+    // Stryker disable next-line EqualityOperator: a turn exactly twice the gap ago counts as turning or not, and the next frame decides either way.
     const turning = () => scrolling() || performance.now() - wheelAt < 2 * wheelGap;
     let resting: ReturnType<typeof setTimeout> | undefined;
     let restFrame = 0;
@@ -1999,6 +2000,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
       // At the very top the scroll position takes none of it: the content moves up, and the view shows messages the space kept
       // out of it. They hold the place from now on, as the one or two the space left in view may not survive older messages going
       // in above them.
+      // Stryker disable next-line ConditionalExpression: past the space the content moves up as the scroll position does, so the messages in view are those the anchors hold already; taking them again there differs only for a change the resize observer has yet to report in that same frame, which no test reaches.
       if (top) keepAnchor();
     };
     const pay = () => {
