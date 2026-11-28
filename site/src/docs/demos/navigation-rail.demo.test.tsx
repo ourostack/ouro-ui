@@ -45,6 +45,11 @@ it.each([
   document.documentElement.classList.toggle("dark", dark);
   host = document.createElement("div");
   host.style.width = "100%";
+  if (!dark) {
+    host.style.setProperty("--background", "#f8f8fc");
+    host.style.setProperty("--muted", "#f8f8fc");
+    host.style.setProperty("--card", "#fff");
+  }
   document.body.append(host);
   root = createRoot(host);
   await act(async () => root!.render(<NavigationRailDemo />));
