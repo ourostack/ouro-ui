@@ -1068,6 +1068,33 @@ it("does not mistake the next line of a wrapped inline surface for corner paint"
   expect(await findSquirclePaint()).toEqual([]);
 }, paintTimeout);
 
+it("checks the real ends of wrapped inline surfaces in each writing direction", async () => {
+  for (const [writingMode, direction, decoration] of [
+    ["horizontal-tb", "ltr", "slice"],
+    ["horizontal-tb", "rtl", "slice"],
+    ["vertical-rl", "ltr", "slice"],
+    ["vertical-rl", "rtl", "slice"],
+    ["horizontal-tb", "ltr", "clone"],
+  ] as const) {
+    const root = render(`<div class="line" style="position:relative;width:120px;height:120px;writing-mode:${writingMode};direction:${direction};font:16px/24px monospace">
+      <code class="inline" style="background:#eee;border-radius:8px;corner-shape:squircle;--sq-tl:8px;--sq-tr:8px;--sq-br:8px;--sq-bl:8px;-webkit-box-decoration-break:${decoration};box-decoration-break:${decoration}">one two three four five six seven eight nine ten</code>
+    </div>`);
+    const line = root.querySelector<HTMLElement>(".line")!;
+    const inline = root.querySelector<HTMLElement>(".inline")!;
+    const fragments = inline.getClientRects();
+    expect(fragments.length, `${writingMode} ${direction} ${decoration}`).toBeGreaterThan(1);
+    expect(await findSquirclePaint()).toEqual([]);
+    const fragment = decoration === "clone" ? fragments[fragments.length - 1]! : fragments[0]!;
+    const bounds = line.getBoundingClientRect();
+    const horizontal = writingMode === "horizontal-tb";
+    const x = horizontal && direction === "rtl" ? fragment.right - 4 : fragment.left;
+    const y = !horizontal && direction === "rtl" ? fragment.bottom - 4 : fragment.top;
+    inline.insertAdjacentHTML("beforeend", `<span style="position:absolute;left:${x - bounds.left}px;top:${y - bounds.top}px;width:4px;height:4px;background:#c30"></span>`);
+    expect((await findSquirclePaint()).map((issue) => issue.element), `${writingMode} ${direction} ${decoration}`).toContain("code.inline");
+    root.remove();
+  }
+}, paintTimeout);
+
 it("ignores a border pixel straddling the inside of a fractional box edge", async () => {
   const restore = forceSquircleFallback();
   try {
@@ -1361,10 +1388,21 @@ it("keeps a glass surface's curved shadow distinct from an escaping child", asyn
 
 it("keeps real glass buttons' curved shadows distinct from square paint", async () => {
   const restore = forceSquircleFallback();
-  const host = render('<div style="padding:24px;background:var(--muted)"></div>');
-  const root = createRoot(host.firstElementChild!);
+  const host = render("");
+  host.style.left = "16px";
+  host.style.top = "16px";
+  const root = createRoot(host);
+  const icon = () => createElement("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, "aria-hidden": true },
+    createElement("path", { d: "M5 12h14M13 6l6 6-6 6" }));
   try {
-    await act(async () => root.render(createElement(Button, { variant: "glass", tone: "secondary" }, "Example")));
+    await act(async () => root.render(createElement("div", {
+      style: { background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", borderRadius: "calc(var(--radius) + 4px)", padding: 24 },
+    }, createElement("div", {
+      style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, padding: 24, borderRadius: 16, background: "var(--muted)" },
+    },
+    createElement(Button, { variant: "glass", tone: "secondary", "aria-label": "Back" }, createElement(icon)),
+    createElement(Button, { variant: "glass", tone: "secondary", startIcon: icon }, "Example"),
+    createElement(Button, { variant: "glass", tone: "secondary", "aria-expanded": true, endIcon: icon }, "More")))));
     expect(await findSquirclePaint()).toEqual([]);
     host.querySelector("button")!.insertAdjacentHTML("beforeend", '<span style="position:absolute;left:-6px;top:-6px;width:10px;height:10px;background:#c30"></span>');
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("button.press.relative.isolate");
