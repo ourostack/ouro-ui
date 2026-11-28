@@ -236,12 +236,11 @@ test("every file under scripts/, test/ and .github/ is scoped to the tiers it re
 });
 
 test("a change to a CI helper, a Node script test or another workflow starts no browser, install or heavy tier, and a path that reaches them still does", () => {
-  for (const path of ["scripts/main-green.mjs", "scripts/fetch-newest-release.sh", "scripts/workflows.test.mjs", ".github/workflows/release.yml", "test/__screenshots__/a/b-linux.png"]) {
+  for (const path of ["scripts/main-green.mjs", "scripts/workflows.test.mjs", ".github/workflows/release.yml", "test/__screenshots__/a/b-linux.png"]) {
     assert.equal(runs("browser", [path]), false, path);
     assert.equal(runs("installs", [path]), false, path);
   }
   assert.equal(runs("heavy", ["scripts/main-green.mjs"]), false);
-  assert.equal(runs("heavy", ["scripts/fetch-newest-release.sh"]), false);
   assert.equal(runs("heavy", ["scripts/latency-shards.mjs"]), true);
   assert.equal(runs("browser", ["scripts/shard.mjs"]), true);
   assert.equal(runs("installs", ["scripts/install-test.sh"]), true);

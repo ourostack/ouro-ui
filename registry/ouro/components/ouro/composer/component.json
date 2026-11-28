@@ -11,13 +11,6 @@
             "toolbar": {"properties": ["opacity", "transform"], "reduced": ["opacity"]}
           },
           "tests": ["registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded motion > clips and fades the box in over a moment, and only fades the toolbar in with reduced motion"]
-        },
-        "data-dragging": {
-          "kind": "motion",
-          "parts": {
-            "resize-line": {"properties": ["opacity"], "reduced": ["opacity"]}
-          },
-          "tests": ["registry/ouro/components/ouro/composer/composer.resize.test.tsx::Composer resizable edge > fades its line in on a drag with opacity only, at rest and with reduced motion"]
         }
       }
     }
@@ -28,7 +21,6 @@
       {"part": "quote", "role": "button", "portal": false},
       {"part": "remove", "role": "button", "portal": false},
       {"part": "expand", "role": "button", "portal": false},
-      {"part": "resize-edge", "role": "separator", "portal": false},
       {"part": "send", "role": "button", "portal": false}
     ]
   }

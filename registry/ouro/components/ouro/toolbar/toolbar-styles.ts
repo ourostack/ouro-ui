@@ -1,4 +1,4 @@
-export { fitCount, splitEntries, toolbarSizes, toolbarTones, toolbarToneClass };
+export { fitCount, splitEntries, toolbarSizes };
 export type { ToolbarSize };
 
 // Value lists and the overflow arithmetic Toolbar uses, apart from the component so its file
@@ -10,20 +10,6 @@ export type { ToolbarSize };
  * @internal
  */
 const toolbarSizes = { sm: "sm", md: "md", lg: "lg" } as const;
-
-/** @internal */
-const toolbarTones = ["secondary", "inverse", "primary", "destructive"] as const;
-
-// Toolbar owns these parts' appearance. Keep the system's pressed and focus colours under
-// forced colours, including Toggle's Highlight fill and Button's state layers.
-/** @internal */
-const toolbarToneClass =
-  "[@media(forced-colors:none)]:[&_[data-ouro-toolbar-tone=inverse]]:[--ouro-bg:var(--foreground)] " +
-  "[@media(forced-colors:none)]:[&_[data-ouro-toolbar-tone=inverse]]:text-background " +
-  "[@media(forced-colors:none)]:[&_[data-ouro-toolbar-tone=primary]]:[--ouro-bg:var(--primary)] " +
-  "[@media(forced-colors:none)]:[&_[data-ouro-toolbar-tone=primary]]:text-primary-foreground " +
-  "[@media(forced-colors:none)]:[&_[data-ouro-toolbar-tone=destructive]]:[--ouro-bg:var(--destructive)] " +
-  "[@media(forced-colors:none)]:[&_[data-ouro-toolbar-tone=destructive]]:text-destructive-foreground";
 
 /**
  * A toolbar size.

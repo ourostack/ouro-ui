@@ -1,1 +1,0 @@
-- Fixed: [MessageList keeps newly visible messages attached to a fling through long frames until scrolling ends](registry/ouro/components/ouro/message/message-list.springs.test.tsx "verify:testExists(registry/ouro/components/ouro/message/message-list.springs.test.tsx::MessageList springs > keeps newly visible messages settling through a long fling frame until scrollend)").

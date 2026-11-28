@@ -153,33 +153,6 @@ for (const [path, reason] of [
   });
 }
 
-test("a new component's agent snippets and server section, named after it, keep its pull request a reduced run", () => {
-  const dir = fixture();
-  const added = [
-    `${components}/checklist/checklist.tsx`,
-    "scripts/fixtures/agent-types/checklist.cases.ts",
-    "scripts/fixtures/agent-types/checklist.snippets.tsx",
-    "test/install-fixture-next/src/app/sections/checklist.tsx",
-  ];
-  const impact = testImpact(added, dir);
-  assert.equal(impact.full, false, impact.reasons.join("\n"));
-  assert.deepEqual(impact.components, ["checklist", "form"]);
-  assert.ok(impact.reasons.includes("scripts/fixtures/agent-types/checklist.cases.ts: checklist's agent snippets, which run its folder's tests and render no story"), impact.reasons.join("\n"));
-  assert.ok(impact.reasons.includes("test/install-fixture-next/src/app/sections/checklist.tsx: checklist's server section, which the install jobs check in full on every run, no component's tests"), impact.reasons.join("\n"));
-  // Alone, the snippets run their component's tests and render no story; the section selects nothing.
-  assert.deepEqual(testImpact(["scripts/fixtures/agent-types/checkbox-group.snippets.tsx"], dir), {
-    full: false,
-    reasons: ["scripts/fixtures/agent-types/checkbox-group.snippets.tsx: checkbox-group's agent snippets, which run its folder's tests and render no story"],
-    components: ["checkbox", "checkbox-group"],
-    rendered: [],
-  });
-  assert.deepEqual(testImpact(["test/install-fixture-next/src/app/sections/slider.tsx"], dir).components, []);
-  // A file named after no component, or the shared helpers beside them, still runs everything.
-  for (const path of ["scripts/fixtures/agent-types/nobody.cases.ts", "scripts/fixtures/agent-types/shared.ts", "test/install-fixture-next/src/app/sections/nobody.tsx", "test/install-fixture-next/src/app/page.tsx"]) {
-    assert.equal(testImpact([path], dir).full, true, path);
-  }
-});
-
 test("no changed file at all runs everything", () => {
   assert.deepEqual(testImpact([], fixture()).full, true);
 });

@@ -681,7 +681,6 @@ Helpers, one item per file in `lib/ouro`, each installed with the components tha
 `lib-use-platform`,
 `lib-use-prefetch-intent`,
 `lib-use-reduced-motion`,
-`lib-use-resize`,
 `lib-use-sheet-presentation`,
 `lib-use-timer`,
 `lib-use-until-found`,
@@ -1009,7 +1008,7 @@ MIT
 [^field-tokens]: registry/ouro/theme/ouro-base.css verify:testExists(scripts/install-check.test.mjs::an install whose stylesheet lacks the field border color or the radius scale fails) verify:testExists(scripts/install-check.test.mjs::stripFieldTokens removes --input, --radius and their @theme mappings, and nothing else)
 [^ouro-layer]: registry/ouro/theme/ouro-base.css; https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/apps/v4/registry/bases/base/ui/dialog.tsx#L33-L53; scripts/install-test.sh verify:fileLine(registry/ouro/theme/ouro-base.css, /--ouro-layer: 50;/) verify:urlOk(https://github.com/shadcn-ui/ui/blob/3502dbcde11d1eaf967a47ac375744dc336641f3/apps/v4/registry/bases/base/ui/dialog.tsx#L33-L53) verify:fileLine(scripts/install-test.sh, /grep -c 'z-50' src.components.ui.dialog.tsx/) verify:ciJob(ci.yml#install)
 [^no-motion]: test:scripts/registry.test.mjs::npm dependencies are pinned to the ranges this repository tests verify:testExists(scripts/registry.test.mjs::npm dependencies are pinned to the ranges this repository tests)
-[^reduced-motion]: test:scripts/motion-coverage.test.mjs::a motion state with no reduced-motion record for a part fails, even when that part's reduced list is empty; .github/workflows/ci.yml verify:testExists(scripts/motion-coverage.test.mjs::a motion state with no reduced-motion record for a part fails, even when that part's reduced list is empty) verify:ciJob(ci.yml#ci)
+[^reduced-motion]: test:scripts/motion-coverage.test.mjs::a motion state with no reduced-motion record for a part fails, even when that part's reduced list is empty; .github/workflows/ci.yml verify:testExists(scripts/motion-coverage.test.mjs::a motion state with no reduced-motion record for a part fails, even when that part's reduced list is empty) verify:ciJob(ci.yml#motion-coverage)
 [^lands]: test:scripts/registry.test.mjs::helpers land in lib/ouro and the test kit in lib/ouro/testing and e2e/ouro; test:scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports verify:testExists(scripts/registry.test.mjs::helpers land in lib/ouro and the test kit in lib/ouro/testing and e2e/ouro) verify:testExists(scripts/registry.test.mjs::each lib helper is its own item, so an item installs only the helpers it imports)
 [^theme-check]: test:registry/ouro/lib/ouro/dev.test.ts::checkTheme > names the command that adds ouro-base, once per page, when the token is unset verify:testExists(registry/ouro/lib/ouro/dev.test.ts::checkTheme > names the command that adds ouro-base, once per page, when the token is unset)
 [^not-ui]: scripts/install-check.mjs; .github/workflows/ci.yml verify:fileLine(scripts/install-check.mjs, /an Ouro item landed in components\/ui/) verify:ciJob(ci.yml#install)

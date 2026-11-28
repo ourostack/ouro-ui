@@ -79,7 +79,3 @@ createElement(Composer, { label: "Message", onSend: () => {}, loading: true });
 // format is plain or rich, and a guessed value is a type error that names the two.
 for (const format of ["plain", "rich"] as const) createElement(Composer, { label: "Message", onSend: () => {}, format });
 expectTypeOf<{ label: "Message"; onSend: () => void; format: "markdown" }>().not.toExtend<ComposerProps>();
-
-// resizable takes a label and the height in px, or null at the smallest; resize is a type error that names the fix.
-expectTypeOf<{ label: "Message"; onSend: () => void; resizable: true; resizeLabel: "Resize"; height: number | null; onHeightChange: (height: number | null) => void }>().toExtend<ComposerProps>();
-expectTypeOf<{ label: "Message"; onSend: () => void; resize: true }>().not.toExtend<ComposerProps>();

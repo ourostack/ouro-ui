@@ -58,14 +58,7 @@ export const agentCases: AgentCase[] = [
     dev: '<Composer format="rich" offsets="markdown">',
     names: ["tsc", "dev"],
   },
-  {
-    id: "composer09",
-    habit: "a resize flag for the drag-to-resize edge",
-    tsc: [hint("boolean", 'Use <Composer resizable resizeLabel="Resize the box">')],
-    dev: '<Composer resizable resizeLabel="Resize the box">',
-    names: ["tsc", "dev"],
-  },
 ];
 
 /** Valid composer snippets: no type error, no development message, and hover on every prop. */
-export const validSnippets: string[] = ["composerOk01", "composerOk02", "composerOk03", "composerOk04", "composerOk05", "composerOk06", "composerOk07", "composerOk08"];
+export const validSnippets: string[] = ["composerOk01", "composerOk02", "composerOk03", "composerOk04", "composerOk05", "composerOk06"];

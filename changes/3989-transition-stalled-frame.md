@@ -1,1 +1,0 @@
-- Fixed: Ouro check's transition rules now judge a transition that a stalled frame ran to its end before the check stepped it, instead of skipping it.

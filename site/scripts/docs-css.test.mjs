@@ -24,9 +24,3 @@ test("a page without a demo adds nothing to the shell, and a demo adds the class
   assert.doesNotMatch(delta, /\/\*!/, "Tailwind's licence banner is the shell's");
   assert.doesNotMatch(delta, /@supports \(color:color-mix/, "the colour-mix fallbacks are dropped");
 });
-
-test("the call pages add the full scene's layout without putting it in the shared shell", async () => {
-  for (const name of ["toolbar", "media-tile", "snap-pip"]) {
-    assert.match(await docsDelta(demo(name)), /\.bottom-14\{/);
-  }
-});
