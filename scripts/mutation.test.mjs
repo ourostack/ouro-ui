@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, matchesGlob } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { changedLines, dryRunMinutes, inScope, mutationRunners, HEAVY_TEST_SECONDS, SHARD_TARGET_SECONDS, shardUnits, spanningMutants, splitRange, unitChanges, unitExclusions, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, mutates, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
+import { changedLines, dryRunMinutes, runtimeIdentity, inScope, mutationRunners, HEAVY_TEST_SECONDS, SHARD_TARGET_SECONDS, shardUnits, spanningMutants, splitRange, unitChanges, unitExclusions, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, mutates, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { ignoreReason, inOtherShard, isClassList, keepDryRun, storedDryRun, testPhases } from "./mutation/plugins.mjs";
@@ -678,4 +678,13 @@ test("a stored dry run is used only under the key it was kept with, and a missin
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("runtimeIdentity changes with the Node version, the runner image or a browser build, so the dry run's key does", () => {
+  const base = runtimeIdentity({ ImageVersion: "1" }, "v24.1.0", [["chromium", "1", "100"]]);
+  assert.notEqual(runtimeIdentity({ ImageVersion: "2" }, "v24.1.0", [["chromium", "1", "100"]]), base);
+  assert.notEqual(runtimeIdentity({ ImageVersion: "1" }, "v24.2.0", [["chromium", "1", "100"]]), base);
+  assert.notEqual(runtimeIdentity({ ImageVersion: "1" }, "v24.1.0", [["chromium", "1", "101"]]), base);
+  assert.notEqual(runtimeIdentity({}, "v24.1.0", null), base);
+  assert.match(runtimeIdentity(), /chromium/);
 });

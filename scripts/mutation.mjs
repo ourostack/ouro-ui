@@ -14,6 +14,7 @@ import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { availableParallelism } from "node:os";
 import { dirname, join, relative, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -323,6 +324,26 @@ export function describeSurvivor(mutant) {
   return `${mutant.fileName}:${line}:${column + 1} ${mutant.mutatorName}: ${mutant.replacement ?? ""}`.trim();
 }
 
+/**
+ * What the dry run's tests run on besides the repository: Node, the runner image and the browser
+ * builds Playwright would launch (its `browsers.json`), so a new browser or image misses the
+ * stored dry run's key.
+ */
+export function runtimeIdentity(env = process.env, node = process.version, browsers = browserBuilds()) {
+  return JSON.stringify({ node, image: env["ImageVersion"] ?? "", browsers });
+}
+
+function browserBuilds() {
+  try {
+    const fromRoot = createRequire(join(root, "package.json"));
+    // pnpm keeps playwright-core out of the root: find it from @playwright/test's own folder.
+    const path = join(dirname(createRequire(fromRoot.resolve("@playwright/test")).resolve("playwright-core")), "browsers.json");
+    return JSON.parse(readFileSync(path, "utf8")).browsers.map(({ name, revision, browserVersion }) => [name, revision, browserVersion]);
+  } catch {
+    return null;
+  }
+}
+
 async function main(args) {
   // `--only <path>` mutates one file's changed lines, while you work on it; `--shard <i>/<n>`
   // mutates the ith of n groups of the changed ranges, balanced by their estimated mutants and
@@ -403,7 +424,7 @@ async function main(args) {
     mutatedFiles,
     [...new Set(Object.values(testsByFile).flatMap(({ own, wider }) => [...own, ...wider]))],
     mutate,
-    readFileSync(fileURLToPath(import.meta.url), "utf8"),
+    [readFileSync(fileURLToPath(import.meta.url), "utf8"), runtimeIdentity()].join("\0"),
   );
   process.env["OURO_MUTATION_DRYRUN_FILE"] = join(root, ".tmp/stryker-dry-run.json");
   const incrementalFile = join(root, ".tmp/stryker-incremental.json");
