@@ -386,13 +386,13 @@ function roundedFrame(box: DOMRect, style: CSSStyleDeclaration, radiusLength: Ra
   const names = ["top-left", "top-right", "bottom-right", "bottom-left"];
   const radii = names.map((name, index) => {
     const fallback = style.getPropertyValue(`--sq-${["tl", "tr", "br", "bl"][index]}`);
-    const squircle = fallback !== "" && radiusLength(fallback, Math.max(box.width, box.height)) > 0;
+    const squircle = radiusLength(fallback, Math.max(box.width, box.height)) > 0;
     const value = squircle ? [fallback] : style.getPropertyValue(`border-${name}-radius`).split(/\s+(?![^()]*\))/);
     const x = radiusLength(value[0]!, box.width);
     const y = radiusLength(value[1] ?? value[0]!, box.height);
     return {
-      x: y === 0 ? 0 : x,
-      y: x === 0 ? 0 : y,
+      x,
+      y,
       squircle: squircle || /squircle|superellipse\(2\)/.test(style.getPropertyValue(`corner-${name}-shape`)),
     };
   });

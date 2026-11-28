@@ -252,6 +252,21 @@ describe("Inspector geometry", () => {
     expect(curve.isPointInStroke(new DOMPoint(199.5 - 29.5 * diagonal, 0.5 + 19.5 * diagonal))).toBe(true);
   });
 
+  it("includes the nonzero axis of a square elliptical corner in CSS overlap clamping", async () => {
+    const surface = component(100, 200, 100, 100);
+    surface.style.borderRadius = "0px 20px 120px 20px / 120px 20px 0px 20px";
+    surface.style.setProperty("corner-shape", "round");
+    expect(document.elementFromPoint(195, 205)).toBe(surface);
+    await xray();
+    await drawn(1);
+    const curve = outlines()[0]!.querySelector("path")!;
+    const diagonal = (20 * (100 / 140) - 0.5) * (1 - Math.SQRT1_2);
+    expect(curve.isPointInStroke(new DOMPoint(99.5 - diagonal, 0.5 + diagonal))).toBe(true);
+    expect(curve.isPointInStroke(new DOMPoint(0.5 + diagonal, 99.5 - diagonal))).toBe(true);
+    expect(curve.isPointInStroke(new DOMPoint(0.5, 0.5))).toBe(true);
+    expect(curve.isPointInStroke(new DOMPoint(99.5, 99.5))).toBe(true);
+  });
+
   it("resolves CSS min, max and clamp radii instead of adding their terms", async () => {
     const surface = component(100, 200, 200, 100);
     surface.style.borderTopLeftRadius = "min(40px, 20%)";
