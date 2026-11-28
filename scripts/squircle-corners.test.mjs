@@ -92,6 +92,79 @@ test("squircle corners: an unsupported selector cannot discard another surface's
   }
 });
 
+test("squircle corners: separate longhand classes preserve each other's corners", async () => {
+  const generated = await run(`
+    .surface { width: 120px; height: 80px; background: #dce5ef; }
+    .top { border-top-left-radius: 20px; border-top-right-radius: 20px; }
+    .bottom { border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
+  `);
+  const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-native-corner-shape: squircle)");
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage();
+    try {
+      await tab.setContent(`<style>${css}</style><div class="surface top bottom"></div>`);
+      const corners = await tab.locator(".surface").evaluate((element) => {
+        const style = getComputedStyle(element);
+        return ["tl", "tr", "br", "bl"].map((corner) => parseFloat(style.getPropertyValue(`--sq-${corner}`)));
+      });
+      assert.deepEqual(corners, [20, 20, 12, 12], `${engine.name()}: opposite corners compose`);
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
+test("squircle corners: logical corners follow the writing direction", async () => {
+  const generated = await run(`
+    .surface { width: 120px; height: 80px; background: #dce5ef; }
+    .start { border-start-start-radius: 20px; border-end-start-radius: 12px; }
+    .end { border-start-end-radius: 16px; border-end-end-radius: 8px; }
+  `);
+  const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-native-corner-shape: squircle)");
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage();
+    try {
+      for (const [direction, expected] of [["ltr", [20, 16, 8, 12]], ["rtl", [16, 20, 12, 8]]]) {
+        await tab.setContent(`<style>${css}</style><div dir="${direction}" class="surface start end"></div>`);
+        const corners = await tab.locator(".surface").evaluate((element) => {
+          const style = getComputedStyle(element);
+          return ["tl", "tr", "br", "bl"].map((corner) => parseFloat(style.getPropertyValue(`--sq-${corner}`)));
+        });
+        assert.deepEqual(corners, expected, `${engine.name()}: ${direction}`);
+      }
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
+test("squircle corners: grouping fallback rules preserves the source cascade", async () => {
+  const generated = await run(`
+    .surface { width: 120px; height: 80px; background: #dce5ef; }
+    .first { border-radius: 8px; }
+    .middle { border-radius: 24px; }
+    .last { border-radius: 8px; }
+    @media (min-width: 500px) { .wide { border-radius: 28px; } }
+  `);
+  const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-native-corner-shape: squircle)");
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage();
+    try {
+      await tab.setContent(`<style>${css}</style><div class="surface first middle last"></div>`);
+      const radius = await tab.locator(".surface").evaluate((element) => parseFloat(getComputedStyle(element).getPropertyValue("--sq-tl")));
+      assert.equal(radius, 8, `${engine.name()}: the last radius wins`);
+      await tab.locator(".surface").evaluate((element) => { element.className = "surface first wide"; });
+      const wide = await tab.locator(".surface").evaluate((element) => parseFloat(getComputedStyle(element).getPropertyValue("--sq-tl")));
+      assert.equal(wide, 28, `${engine.name()}: the later media rule wins`);
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
 test("squircleCornersDedupe: merges two source files' complete squircle-corners layers, bundled into one chunk, into one", async () => {
   const a = await run("@layer utilities{.a{border-radius:8px}}");
   const b = await run("@layer utilities{.b{border-radius:8px}.c{border-radius:4px}}");
