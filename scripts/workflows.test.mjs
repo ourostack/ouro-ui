@@ -419,8 +419,8 @@ test("only main saves a cache: every cache save in a workflow or action is guard
     });
   }
   assert.ok(saves.length >= 6, `found ${saves.length} saves`);
-  const exempt = saves.filter(({ step }) => step.includes("path: .tmp/stryker-incremental.json"));
-  assert.deepEqual(exempt.map(({ file }) => file), ["ci.yml"], "the one save a pull request makes is the mutation job's");
+  const exempt = saves.filter(({ step }) => /path: \.tmp\/stryker-(?:incremental|dry-run)\.json/.test(step));
+  assert.deepEqual(exempt.map(({ file }) => file), ["ci.yml", "ci.yml"], "the saves a pull request makes are the mutation job's results and a mutation shard's dry run");
   for (const { file, step } of saves.filter((save) => !exempt.includes(save))) {
     const condition = step.match(/if: (.*)$/m)?.[1] ?? "";
     for (const part of guard) assert.ok(condition.includes(part), `${file} saves a cache without ${part}:\n${step}`);
@@ -2108,15 +2108,17 @@ test("the mutation shards mutate a pull request's changed runtime lines, split b
   assert.equal(runStep(changed, { EVENT: "push" }).output.run, "false");
   assert.equal(runStep(changed, { EVENT: "merge_group" }).output.run, "false");
   const later = block.slice(block.indexOf("name: Is any runtime source changed?")).split(/\n {6}- /).slice(1);
-  for (const step of later) assert.match(step, /^(?:if: steps\.changed\.outputs\.run == 'true'|if: \$\{\{ !cancelled\(\) && steps\.changed\.outputs\.run == 'true' \}\})$/m, step);
+  for (const step of later) assert.match(step, /^(?:if: steps\.changed\.outputs\.run == 'true'(?: && needs\.mutation-plan\.outputs\.key != '')?|if: \$\{\{ !cancelled\(\) && steps\.changed\.outputs\.run == 'true'(?: && needs\.mutation-plan\.outputs\.key != '' && hashFiles\('\.tmp\/stryker-dry-run\.json'\) != '')? \}\})$/m, step);
   assert.match(block, /^ {8}name: Mutation testing\n {8}run: pnpm mutation HEAD\^1 --shard "\$SHARD\/\$COUNT"$/m);
   assert.match(block, /^ {4}needs: \[plan, mutation-plan\]$/m);
   assert.match(block, /^ {8}shard: \$\{\{ fromJSON\(needs\.mutation-plan\.outputs\.shards\) \}\}$/m);
   assert.match(block, /^ {6}COUNT: \$\{\{ needs\.mutation-plan\.outputs\.count \}\}$/m);
   assert.match(block, /^ {4}name: mutation \(\$\{\{ matrix\.shard \}\}\/\$\{\{ needs\.mutation-plan\.outputs\.count \}\}\)$/m);
   assert.match(block, /uses: actions\/cache\/restore@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}path: \.tmp\/stryker-incremental\.json\n {10}key: \$\{\{ needs\.mutation-plan\.outputs\.key \}\}\$\{\{ github\.sha \}\}\n/);
-  // A shard never saves on its own: the mutation job keeps the merged file.
-  assert.doesNotMatch(block, /actions\/cache(?:\/save)?@/);
+  // A shard saves only its dry run, keyed by pull request and shard; the mutation job keeps the merged results.
+  assert.doesNotMatch(block, /actions\/cache@/);
+  assert.equal(block.match(/actions\/cache\/save@/g).length, 1);
+  assert.match(block, /actions\/cache\/save@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}path: \.tmp\/stryker-dry-run\.json\n {10}key: stryker-dry-\$\{\{ github\.event\.pull_request\.number \}\}-\$\{\{ matrix\.shard \}\}-\$\{\{ github\.sha \}\}\n/);
   assert.match(block, /uses: actions\/upload-artifact@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}name: stryker-incremental-\$\{\{ matrix\.shard \}\}\n {10}path: \.tmp\/stryker-incremental\.json\n/);
   assert.match(block, /- uses: actions\/checkout@[0-9a-f]{40} # v[\d.]+\n {8}with:\n {10}persist-credentials: false\n(?: {10}#.*\n)* {10}fetch-depth: 2\n/);
 });
@@ -3650,7 +3652,7 @@ test("Kit pin pushes a kit's branch only when main has moved since its last push
   const script = stepScript(workflow("kit-pin.yml").split("\n  pin:\n")[1], "Commit the pages and push their branch, unless the branch already holds this pin");
   for (const [unchanged, pushed] of [[true, false], [false, true]]) {
     const dir = scratchDir("ouro-kit-pin-");
-    const git = `git() {\n  printf 'git %s\\n' "$*" >> "$LOG"\n  case "$1" in\n    fetch) return 0 ;;\n    diff) return ${unchanged ? 0 : 1} ;;\n    rev-parse) echo abc123 ;;\n  esac\n}`;
+    const git = `git() {\n  printf 'git %s\\n' "$*" >> "$LOG"\n  case "$1" in\n    fetch) return 0 ;;\n    diff) return ${unchanged ? 0 : 1} ;;\n    rev-parse) echo abc123 ;;\n  esac\n}\nnode() { return 1; }`;
     const result = runStep(`${git}\n${script}`, { TAG: "v0.11.0", KIT: "windows", NAME: "Windows", BRANCH: "docs/point-at-windows", LOG: join(dir, "git.log") });
     assert.equal(result.status, 0, result.stdout + result.calls);
     const calls = readFileSync(join(dir, "git.log"), "utf8");
@@ -4169,4 +4171,12 @@ test("the ci check's judge is asked only about the parts that failed, since judg
   assert.deepEqual(runStep(parts, { ...passed, SUBSETS: "failure" }).output, { ids: "subsets" });
   assert.deepEqual(runStep(parts, { ...passed, SUBSETS: "failure", COVERAGE: "failure", FALLBACK: "true", BROWSER_FALLBACK: "failure" }).output, { ids: "subsets coverage browser-fallback" });
   assert.match(jobs.ci, /^ {8}run: node scripts\/quarantine\.mjs judge "\$GITHUB_RUN_ID" \$\{\{ steps\.parts\.outputs\.ids \}\}$/m);
+});
+
+test("each pin workflow leaves a branch that already pins its release or a newer one alone, never pushing over it", () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..", ".github", "workflows");
+  for (const [file, kind] of [["docs-pin.yml", "docs"], ["core-pin.yml", "core"], ["kit-pin.yml", '"$KIT"']]) {
+    const text = readFileSync(join(root, file), "utf8");
+    assert.ok(text.includes(`node scripts/branch-holds-pin.mjs ${kind} "$TAG"`), `${file} checks whether the branch already holds the pin before it pushes`);
+  }
 });

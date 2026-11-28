@@ -1,6 +1,6 @@
-export { installSquircleCapsules, capsuleHalf };
+export { installSquircleCapsules, capsuleHalf, ROUND };
 
-// What stays round, whatever its radius: a switch, a radio, a slider's thumb, a presence dot and a spinner.
+/** What stays round, whatever its radius: a switch, a radio, a slider's thumb, a presence dot and a spinner. An app that draws its own squircles leaves these out too. */
 const ROUND = [
   '[data-ouro-control="switch"]', '[data-ouro-control="switch"] *', "input[type=radio]", "[role=radio] [data-ouro-menu-indicator]",
   "[role=slider]", "input[type=range]", "[data-ouro-avatar-presence]", "[data-ouro-avatar-presence] *", '[data-ouro="spinner"]', '[data-ouro="spinner"] *',

@@ -1,0 +1,1 @@
+- Fixed: [`ROUND` is exported from the squircle capsule watcher again](registry/ouro/lib/ouro/squircle-capsules.ts "verify:fileLine(registry/ouro/lib/ouro/squircle-capsules.ts, /^export \{ installSquircleCapsules, capsuleHalf, ROUND \};$/)"), after a later change dropped it; an app whose tests import it can update again.

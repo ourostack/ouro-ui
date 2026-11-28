@@ -112,6 +112,21 @@ describe("MessageList find in a windowed list", () => {
     expect(Math.abs(row.top + row.height / 2 - (view.top + view.height / 2))).toBeGreaterThan(30);
   });
 
+  it("reserves room for the pill once centring a match leaves the list away from the end, with nothing to earn it the usual way", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    mounted.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const report: MessageListFindReport[] = [];
+    await act(async () => root.render(<Chat current={0} report={report} />));
+    const scroller = host.querySelector<HTMLElement>("[data-ouro='message-list']")!.querySelector<HTMLElement>("[data-ouro-message-list-scroller]") ?? host.querySelector<HTMLElement>("[data-ouro='message-list']")!;
+    await act(async () => root.render(<Chat current={1} report={report} />));
+    await expect.poll(() => host.querySelector("#m200") !== null).toBe(true);
+    await expect.poll(() => host.querySelector("[data-ouro-message-list-jump]") !== null).toBe(true);
+    expect(scroller.querySelector("[data-ouro-message-list-jump-room]")).not.toBeNull();
+  });
+
   it("reports that more matches may lie in history that has not loaded", async () => {
     const host = document.createElement("div");
     document.body.append(host);
@@ -188,7 +203,7 @@ describe("MessageList find in a windowed list", () => {
     const content = { current: host };
     await act(async () =>
       root.render(
-        <MessageFindLayer all={[]} keys={[]} find={{ query: "needle" }} hasOlder={false} scroller={{ current: host }} content={content} slot="data-slot-key" onFindMatches={undefined} onMarks={() => {}} request={request} />,
+        <MessageFindLayer all={[]} keys={[]} find={{ query: "needle" }} hasOlder={false} scroller={{ current: host }} content={content} slot="data-slot-key" onFindMatches={undefined} onMarks={() => {}} request={request} reserveJumpRoom={() => {}} />,
       ),
     );
     await frame();
