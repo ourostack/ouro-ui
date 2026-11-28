@@ -339,6 +339,38 @@ export const ReorderableSectionHeaders: Story = {
   render: () => <ReorderableSections />,
 };
 
+function RowsIntoSections() {
+  const [where, setWhere] = useState<Record<string, string>>({ trail: "pinned", ana: "favorites", garden: "recent", grace: "recent" });
+  return (
+    <Surface>
+      <ConversationList
+        label="Conversations"
+        sections={[
+          { id: "pinned", title: "Pinned" },
+          { id: "favorites", title: "Favorites", acceptsItems: true },
+          { id: "projects", title: "Projects", acceptsItems: true },
+          { id: "recent", title: "Recent" },
+        ]}
+        items={[
+          { id: "trail", title: "Trail crew", preview: "Meet at the north gate at eight.", time: "9:41", unread: true },
+          { id: "ana", title: "Ana Lind", preview: "The engine notes are attached.", time: "8:15" },
+          { id: "design", title: "Design review", preview: "Mockups are in the folder.", time: "Wed" },
+          { id: "garden", title: "Garden club", preview: "Seed swap moved to Sunday.", time: "Tue" },
+          { id: "grace", title: "Grace Hopper", preview: "Found the bug: a moth in relay 70.", time: "Mon" },
+        ].map((chat) => ({ ...chat, section: where[chat.id] ?? "projects" }))}
+        onItemMove={(id, section) => setWhere((all) => ({ ...all, [id]: section }))}
+        selectedId="ana"
+        onSelect={() => {}}
+      />
+    </Surface>
+  );
+}
+
+/** Drag a row with a mouse onto Favorites or Projects, its header or any of its rows, to move it there; the section it would land in lights up, and Escape puts it back. Pinned and Recent take no rows. */
+export const MoveRowsIntoSections: Story = {
+  render: () => <RowsIntoSections />,
+};
+
 /** A row's menu, open from a right-click on "Ana Lind". */
 export const RowMenu: Story = {
   render: () => <RowMenus />,
