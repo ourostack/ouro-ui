@@ -438,7 +438,23 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             const originalStyle = el.getAttribute("style");
             const normalizedStyle = el.style.cssText;
             const radii = names.map(({ shape }) => ({ property: `border-${shape}-radius`, saved: save(el, `border-${shape}-radius`) }));
+            const overrides = [...el.querySelectorAll("[style]")].flatMap((node) => {
+              if (!(node instanceof HTMLElement || node instanceof SVGElement)) return [];
+              const opacity = node.style.getPropertyPriority("opacity") === "important";
+              const transition = node.style.getPropertyPriority("transition-property") === "important";
+              if (!opacity && !transition) return [];
+              return [{
+                node, opacity, style: node.getAttribute("style")!, normalized: node.style.cssText,
+                savedOpacity: save(node, "opacity"), savedTransition: save(node, "transition-property"),
+                temporary: "",
+              }];
+            });
             try {
+              for (const override of overrides) {
+                override.node.style.setProperty("transition-property", "none", "important");
+                if (override.opacity) override.node.style.setProperty("opacity", "0", "important");
+                override.temporary = override.node.getAttribute("style")!;
+              }
               el.setAttribute(attribute, marker);
               document.adoptedStyleSheets = [...document.adoptedStyleSheets, probe];
               if (!initial.native) {
@@ -465,6 +481,15 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               if (el.getAttribute("style") !== originalStyle && el.style.cssText === normalizedStyle) {
                 if (originalStyle === null) el.removeAttribute("style");
                 else el.setAttribute("style", originalStyle);
+              }
+              for (const override of overrides) {
+                if (override.node.getAttribute("style") === override.temporary) {
+                  override.node.setAttribute("style", override.style);
+                } else {
+                  if (override.opacity) restore(override.node, "opacity", override.savedOpacity);
+                  restore(override.node, "transition-property", override.savedTransition);
+                  if (override.node.style.cssText === override.normalized) override.node.setAttribute("style", override.style);
+                }
               }
               for (const layer of active.slice(1)) restore(layer.el, "opacity", layer.saved.get("opacity")!);
             }

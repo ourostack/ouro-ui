@@ -589,9 +589,30 @@ it("keeps a native shadow and its probe separate from a descendant's external pa
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
   expect(surface.getAttribute("data-ouro-paint-solo")).toBe("original");
   surface.firstElementChild!.setAttribute("style", "position:absolute;left:-12px;top:-12px;width:8px;height:8px;background:#f40;opacity:1 !important;transition:opacity 1s !important");
-  const childStyle = surface.firstElementChild!.getAttribute("style");
+  const child = surface.firstElementChild as HTMLElement;
+  const childStyle = child.getAttribute("style");
+  surface.insertAdjacentHTML("beforeend", '<span style="transition:opacity 1s !important"></span>');
+  const transitionOnly = surface.lastElementChild!;
+  const transitionStyle = transitionOnly.getAttribute("style");
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
-  expect(surface.firstElementChild!.getAttribute("style")).toBe(childStyle);
+  expect(child.getAttribute("style")).toBe(childStyle);
+  expect(transitionOnly.getAttribute("style")).toBe(transitionStyle);
+  const capture = state.__ouroPaintCapture!;
+  let captures = 0;
+  state.__ouroPaintCapture = async (clip) => {
+    const image = await capture(clip);
+    if (++captures === 2) child.style.color = "red";
+    return image;
+  };
+  try {
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+    expect(child.style.color).toBe("red");
+    expect(child.style.getPropertyValue("opacity")).toBe("1");
+    expect(child.style.getPropertyPriority("opacity")).toBe("important");
+    expect(child.style.getPropertyValue("transition-property")).toBe("opacity");
+  } finally {
+    state.__ouroPaintCapture = capture;
+  }
 }, paintTimeout);
 
 it("keeps a fallback popup's curved shadow separate from its content", async () => {
