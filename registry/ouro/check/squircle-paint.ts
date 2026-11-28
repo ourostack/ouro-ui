@@ -137,27 +137,29 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     });
   };
   // Clip each layer to the ideal n=4 curve, including paint extending beyond the box.
-  const clipPath = (width: number, height: number, corners: Corner[], offsetX: number, offsetY: number) => {
-    const [tl, tr, br, bl] = corners as [Corner, Corner, Corner, Corner];
-    const n = (value: number) => Number(value.toFixed(4));
-    const x = (value: number) => n(value + offsetX);
-    const y = (value: number) => n(value + offsetY);
-    const [w, h] = [width, height];
-    const path = [
-      `M ${x(0)} ${y(tl.y)}`,
-      `C ${x(0)} ${y(0.613 * tl.y)} ${x(-0.0092 * tl.x)} ${y(0.3274 * tl.y)} ${x(0.1591 * tl.x)} ${y(0.1591 * tl.y)}`,
-      `C ${x(0.3274 * tl.x)} ${y(-0.0092 * tl.y)} ${x(0.613 * tl.x)} ${y(0)} ${x(tl.x)} ${y(0)}`,
-      `H ${x(w - tr.x)}`,
-      `C ${x(w - 0.613 * tr.x)} ${y(0)} ${x(w - 0.3274 * tr.x)} ${y(-0.0092 * tr.y)} ${x(w - 0.1591 * tr.x)} ${y(0.1591 * tr.y)}`,
-      `C ${x(w + 0.0092 * tr.x)} ${y(0.3274 * tr.y)} ${x(w)} ${y(0.613 * tr.y)} ${x(w)} ${y(tr.y)}`,
-      `V ${y(h - br.y)}`,
-      `C ${x(w)} ${y(h - 0.613 * br.y)} ${x(w + 0.0092 * br.x)} ${y(h - 0.3274 * br.y)} ${x(w - 0.1591 * br.x)} ${y(h - 0.1591 * br.y)}`,
-      `C ${x(w - 0.3274 * br.x)} ${y(h + 0.0092 * br.y)} ${x(w - 0.613 * br.x)} ${y(h)} ${x(w - br.x)} ${y(h)}`,
-      `H ${x(bl.x)}`,
-      `C ${x(0.613 * bl.x)} ${y(h)} ${x(0.3274 * bl.x)} ${y(h + 0.0092 * bl.y)} ${x(0.1591 * bl.x)} ${y(h - 0.1591 * bl.y)}`,
-      `C ${x(-0.0092 * bl.x)} ${y(h - 0.3274 * bl.y)} ${x(0)} ${y(h - 0.613 * bl.y)} ${x(0)} ${y(h - bl.y)}`,
-      "Z",
-    ].join(" ");
+  const clipPath = (regions: { width: number; height: number; corners: Corner[]; offsetX: number; offsetY: number }[]) => {
+    const path = regions.map(({ width, height, corners, offsetX, offsetY }) => {
+      const [tl, tr, br, bl] = corners as [Corner, Corner, Corner, Corner];
+      const n = (value: number) => Number(value.toFixed(4));
+      const x = (value: number) => n(value + offsetX);
+      const y = (value: number) => n(value + offsetY);
+      const [w, h] = [width, height];
+      return [
+        `M ${x(0)} ${y(tl.y)}`,
+        `C ${x(0)} ${y(0.613 * tl.y)} ${x(-0.0092 * tl.x)} ${y(0.3274 * tl.y)} ${x(0.1591 * tl.x)} ${y(0.1591 * tl.y)}`,
+        `C ${x(0.3274 * tl.x)} ${y(-0.0092 * tl.y)} ${x(0.613 * tl.x)} ${y(0)} ${x(tl.x)} ${y(0)}`,
+        `H ${x(w - tr.x)}`,
+        `C ${x(w - 0.613 * tr.x)} ${y(0)} ${x(w - 0.3274 * tr.x)} ${y(-0.0092 * tr.y)} ${x(w - 0.1591 * tr.x)} ${y(0.1591 * tr.y)}`,
+        `C ${x(w + 0.0092 * tr.x)} ${y(0.3274 * tr.y)} ${x(w)} ${y(0.613 * tr.y)} ${x(w)} ${y(tr.y)}`,
+        `V ${y(h - br.y)}`,
+        `C ${x(w)} ${y(h - 0.613 * br.y)} ${x(w + 0.0092 * br.x)} ${y(h - 0.3274 * br.y)} ${x(w - 0.1591 * br.x)} ${y(h - 0.1591 * br.y)}`,
+        `C ${x(w - 0.3274 * br.x)} ${y(h + 0.0092 * br.y)} ${x(w - 0.613 * br.x)} ${y(h)} ${x(w - br.x)} ${y(h)}`,
+        `H ${x(bl.x)}`,
+        `C ${x(0.613 * bl.x)} ${y(h)} ${x(0.3274 * bl.x)} ${y(h + 0.0092 * bl.y)} ${x(0.1591 * bl.x)} ${y(h - 0.1591 * bl.y)}`,
+        `C ${x(-0.0092 * bl.x)} ${y(h - 0.3274 * bl.y)} ${x(0)} ${y(h - 0.613 * bl.y)} ${x(0)} ${y(h - bl.y)}`,
+        "Z",
+      ].join(" ");
+    }).join(" ");
     return `path("${path}")`;
   };
   const pixels = async (data: string) => {
@@ -229,9 +231,10 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             const pixelRadius = Math.hypot(clip.width / a.width, clip.height / a.height) / 2;
             return dx * dx + dy * dy <= (radius + pixelRadius) ** 2;
           })) continue;
-          // A pixel straddling the box edge can contain the surface's own antialiasing.
-          if ((outsideX && Math.min(Math.abs(px - rect.left), Math.abs(px - rect.right)) <= clip.width / a.width / 2 + 0.001) ||
-              (outsideY && Math.min(Math.abs(py - rect.top), Math.abs(py - rect.bottom)) <= clip.height / a.height / 2 + 0.001)) continue;
+          // A pixel straddling the box edge can contain the surface's own antialiasing, even when its centre is inside.
+          const edgeX = Math.min(Math.abs(px - rect.left), Math.abs(px - rect.right)) <= clip.width / a.width / 2 + 0.001;
+          const edgeY = Math.min(Math.abs(py - rect.top), Math.abs(py - rect.bottom)) <= clip.height / a.height / 2 + 0.001;
+          if ((outsideX && edgeX) || (outsideY && edgeY) || (own && difference(a.data, own.data, index) < 2 && (edgeX || edgeY))) continue;
           const delta = difference(a.data, own && (native || outsideCorner) ? own.data : outsideCorner ? c.data : b.data, index);
           const behind = difference(b.data, c.data, index);
           if (delta < 2 || (!outsideCorner && behind > 4)) continue;
@@ -455,6 +458,29 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const clip = { x, y, width: Math.min(Math.ceil(r.right + margin), innerWidth) - x, height: Math.min(Math.ceil(r.bottom + margin), innerHeight) - y };
           if (clip.width < 1 || clip.height < 1) continue;
           const active = layers.filter((layer) => layer.el === el || !(layer.el instanceof HTMLElement) || !covers(layer.el, r));
+          const effectLayers = active.filter((layer) => {
+            const computed = getComputedStyle(layer.el);
+            return computed.boxShadow !== "none" || computed.outlineStyle !== "none";
+          });
+          const rectangles = style.display === "inline" ? [...el.getClientRects()].filter((rect) => rect.width >= 2 && rect.height >= 2) : [];
+          const fragmented = rectangles.length > 1;
+          const horizontal = style.writingMode.startsWith("horizontal");
+          const reverse = style.direction === "rtl";
+          const start = horizontal ? (reverse ? [1, 2] : [0, 3]) : (reverse ? [2, 3] : [0, 1]);
+          const end = horizontal ? (reverse ? [0, 3] : [1, 2]) : (reverse ? [0, 1] : [2, 3]);
+          const fragments = (fragmented ? rectangles : [r]).map((rect, index, all) => {
+            const corners = initial.corners.map((corner, cornerIndex) => {
+              const present = !fragmented || style.boxDecorationBreak === "clone" ||
+                (index === 0 && start.includes(cornerIndex)) || (index === all.length - 1 && end.includes(cornerIndex));
+              return present ? { ...corner } : { ...corner, x: 0, y: 0, squircle: false };
+            });
+            const width = fragmented ? rect.width / scaleX : initial.width;
+            const height = fragmented ? rect.height / scaleY : initial.height;
+            const [tl, tr, br, bl] = corners as [Corner, Corner, Corner, Corner];
+            const factor = Math.min(1, width / Math.max(1, tl.x + tr.x), width / Math.max(1, bl.x + br.x), height / Math.max(1, tl.y + bl.y), height / Math.max(1, tr.y + br.y));
+            for (const corner of corners) { corner.x *= factor; corner.y *= factor; }
+            return { rect, width, height, corners };
+          });
           for (let attempt = 0; attempt < 2; attempt++) {
             const captureSolo = async () => {
               // Compare with the surface alone to separate its own shadow or outline from another layer's paint.
@@ -529,12 +555,17 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               const layerHeight = layer.el instanceof HTMLElement ? layer.el.offsetHeight : parseFloat(layerStyle.height);
               const layerScaleX = layerRect.width / layerWidth;
               const layerScaleY = layerRect.height / layerHeight;
-              const x = scaleX / layerScaleX;
-              const y = scaleY / layerScaleY;
-              const corners = initial.corners.map((corner) => ({ ...corner, x: corner.x * x, y: corner.y * y }));
-              const offsetX = (r.left - layerRect.left) / layerScaleX;
-              const offsetY = (r.top - layerRect.top) / layerScaleY;
-              layer.el.style.setProperty("clip-path", clipPath(initial.width * x, initial.height * y, corners, offsetX, offsetY), "important");
+              const regions = fragments.map((fragment) => {
+                const x = scaleX / layerScaleX;
+                const y = scaleY / layerScaleY;
+                return {
+                  width: fragment.width * x, height: fragment.height * y,
+                  corners: fragment.corners.map((corner) => ({ ...corner, x: corner.x * x, y: corner.y * y })),
+                  offsetX: (fragment.rect.left - layerRect.left) / layerScaleX,
+                  offsetY: (fragment.rect.top - layerRect.top) / layerScaleY,
+                };
+              });
+              layer.el.style.setProperty("clip-path", clipPath(regions), "important");
             }
             const masked = await capture(clip);
             for (const layer of active) layer.el.style.setProperty("opacity", "0", "important");
@@ -543,34 +574,54 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               restore(layer.el, "opacity", layer.saved.get("opacity")!);
               restore(layer.el, "clip-path", layer.saved.get("clip-path")!);
             }
-            let differs = await differences(actual, masked, hidden, solo, null, [], null, [], clip, r, initial.width, initial.height, initial.corners, initial.native);
+            const compare = async (withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, restored: string | null = null, withoutEffects: string | null = null, roundedEffects: boolean[] = []) => {
+              for (const fragment of fragments) {
+                const result = await differences(actual, masked, hidden, solo, withoutBadges, badges, withoutStrokes, strokes, clip, fragment.rect, fragment.width, fragment.height, fragment.corners, initial.native, restored, withoutEffects, roundedEffects);
+                if (result) return { ...result, x: Math.round(result.x + fragment.rect.left - r.left), y: Math.round(result.y + fragment.rect.top - r.top) };
+              }
+              return null;
+            };
+            let differs = await compare(null, [], null);
             if (differs && !solo) {
               solo = await captureSolo();
-              differs = await differences(actual, masked, hidden, solo, null, [], null, [], clip, r, initial.width, initial.height, initial.corners, initial.native);
+              differs = await compare(null, [], null);
             }
             let withoutEffects: string | null = null;
             let roundedEffects: boolean[] = [];
-            if (differs && ownEffects) {
+            if (differs && effectLayers.length) {
               const computed = getComputedStyle(el);
               const length = (value: string, dimension: number) => value.endsWith("%") ? parseFloat(value) * dimension / 100 : parseFloat(value) || 0;
-              roundedEffects = initial.corners.map((corner, index) => {
-                if (corner.native) return true;
-                const raw = computed.getPropertyValue(`--sq-${names[index]!.key}`).trim();
-                const [x, y = x] = computed[`border${names[index]!.property}Radius`].split(/\s+/);
-                return Math.abs(length(x!, initial.width) - length(raw, initial.width) * 0.543) < 0.5 &&
-                  Math.abs(length(y!, initial.height) - length(raw, initial.height) * 0.543) < 0.5;
-              });
-              const shadow = save(el, "box-shadow");
-              const outline = save(el, "outline");
+              roundedEffects = initial.corners.map((corner, index) => effectLayers.every((layer) => {
+                if (layer.el === el) {
+                  if (corner.native) return true;
+                  const raw = computed.getPropertyValue(`--sq-${names[index]!.key}`).trim();
+                  const [x, y = x] = computed[`border${names[index]!.property}Radius`].split(/\s+/);
+                  return Math.abs(length(x!, initial.width) - length(raw, initial.width) * 0.543) < 0.5 &&
+                    Math.abs(length(y!, initial.height) - length(raw, initial.height) * 0.543) < 0.5;
+                }
+                const rect = layer.el.getBoundingClientRect();
+                if (![rect.left - r.left, rect.top - r.top, rect.right - r.right, rect.bottom - r.bottom].every((distance) => Math.abs(distance) < 0.5)) return false;
+                const layerStyle = getComputedStyle(layer.el);
+                const width = layer.el instanceof HTMLElement ? layer.el.offsetWidth : parseFloat(layerStyle.width);
+                const height = layer.el instanceof HTMLElement ? layer.el.offsetHeight : parseFloat(layerStyle.height);
+                if (!(width > 0 && height > 0)) return false;
+                const [x, y = x] = layerStyle[`border${names[index]!.property}Radius`].split(/\s+/);
+                return length(x!, width) * rect.width / width + 0.5 >= corner.x * scaleX * 0.543 &&
+                  length(y!, height) * rect.height / height + 0.5 >= corner.y * scaleY * 0.543;
+              }));
               try {
-                el.style.setProperty("box-shadow", "none", "important");
-                el.style.setProperty("outline", "none", "important");
+                for (const layer of effectLayers) {
+                  layer.el.style.setProperty("box-shadow", "none", "important");
+                  layer.el.style.setProperty("outline", "none", "important");
+                }
                 withoutEffects = await capture(clip);
               } finally {
-                restore(el, "box-shadow", shadow);
-                restore(el, "outline", outline);
+                for (const layer of effectLayers) {
+                  restore(layer.el, "box-shadow", layer.saved.get("box-shadow")!);
+                  restore(layer.el, "outline", layer.saved.get("outline")!);
+                }
               }
-              differs = await differences(actual, masked, hidden, solo, null, [], null, [], clip, r, initial.width, initial.height, initial.corners, initial.native, null, withoutEffects, roundedEffects);
+              differs = await compare(null, [], null, null, withoutEffects, roundedEffects);
             }
             let withoutStrokes: string | null = null;
             if (differs && strokes.length) {
@@ -594,7 +645,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
                   restoreStyle(node, style, normalized);
                 }
               }
-              differs = await differences(actual, masked, hidden, solo, null, [], withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native, null, withoutEffects, roundedEffects);
+              differs = await compare(null, [], withoutStrokes, null, withoutEffects, roundedEffects);
             }
             let withoutBadges: string | null = null;
             let badgeRects: DOMRect[] = [];
@@ -635,13 +686,13 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
                   }
                 }
                 badgeRects = badges.map((badge) => badge.getBoundingClientRect());
-                differs = await differences(actual, masked, hidden, solo, withoutBadges, badgeRects, withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native, null, withoutEffects, roundedEffects);
+                differs = await compare(withoutBadges, badgeRects, withoutStrokes, null, withoutEffects, roundedEffects);
               }
             }
             let changed = false;
             if (differs) {
               const restored = await capture(clip);
-              differs = await differences(actual, masked, hidden, solo, withoutBadges, badgeRects, withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native, restored, withoutEffects, roundedEffects);
+              differs = await compare(withoutBadges, badgeRects, withoutStrokes, restored, withoutEffects, roundedEffects);
               changed = !differs;
             }
             if (differs) { found = differs; break; }
