@@ -96,6 +96,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
         return length(x!, candidate.offsetWidth) >= candidate.offsetWidth / 2 && length(y ?? x!, candidate.offsetHeight) >= candidate.offsetHeight / 2;
       });
     });
+    if (el.closest('[data-ouro="avatar"]')) console.log("BADGE-CANDIDATES", JSON.stringify({ target: describe(el), candidates: candidates.map(describe) }));
     if (candidates.length === 0) return [];
     if (!hasOutline && !hasPaint(el) &&
       ![...el.querySelectorAll("*"), ...siblings].some((other) => !candidates.some((candidate) => candidate.contains(other)) && visible(other) && hasPaint(other))) return candidates;
@@ -124,13 +125,18 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
         const points = [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1], [-0.707, -0.707], [0.707, -0.707], [0.707, 0.707], [-0.707, 0.707]]
           .map(([x, y]) => [cx + x! * radius, cy + y! * radius] as const)
           .filter(([x, y]) => x >= 0 && y >= 0 && x < innerWidth && y < innerHeight && inside(x, y));
-        if (points.length < 3) return false;
+        if (points.length < 3) {
+          if (el.closest('[data-ouro="avatar"]')) console.log("BADGE-POINTS", JSON.stringify({ target: describe(el), surface: describe(surface), candidate: describe(candidate), points, reason: "too few" }));
+          return false;
+        }
         const original = surface.getAttribute("style");
         const normalized = surface.style.cssText;
         const prior = save(surface, "pointer-events");
         try {
           surface.style.setProperty("pointer-events", "auto", "important");
-          return points.every(([x, y]) => !document.elementsFromPoint(x, y).includes(surface));
+          const hits = points.map(([x, y]) => document.elementsFromPoint(x, y).includes(surface));
+          if (el.closest('[data-ouro="avatar"]')) console.log("BADGE-POINTS", JSON.stringify({ target: describe(el), surface: describe(surface), candidate: describe(candidate), points, hits }));
+          return hits.every((hit) => !hit);
         } finally {
           restore(surface, "pointer-events", prior);
           restoreStyle(surface, original, normalized);
@@ -571,6 +577,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             let badgeRects: DOMRect[] = [];
             if (differs) {
               const badges = notchedBadges(el, siblings, r, initial, outlines.length > 0);
+              if (el.closest('[data-ouro="avatar"]')) console.log("BADGE-ACCEPTED", JSON.stringify({ target: describe(el), badges: badges.map(describe) }));
               if (badges.length) {
                 const saved = badges.map((badge) => ({
                   badge,
