@@ -124,7 +124,7 @@ it("ignores an inherited paint token on a square descendant", async () => {
     .child { position:absolute; inset:0; background:#c65; }
   </style><div class="parent"><div class="child"></div></div>`);
   const parent = root.querySelector(".parent")!;
-  expect(await findSquirclePaint()).toEqual([]);
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toEqual(["div.parent"]);
   expect(parent.hasAttribute("style")).toBe(false);
 }, paintTimeout);
 
@@ -145,6 +145,30 @@ it("keeps a neighbor in the gap between wrapped inline fragments", async () => {
   const bounds = line.getBoundingClientRect();
   neighbor.style.cssText = `left:${fragments[0]!.left - bounds.left}px;top:${fragments[0]!.top - bounds.top}px;width:8px;height:8px`;
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("code");
+}, paintTimeout);
+
+it("keeps an independent pill and a hairline inside an unpainted squircle", async () => {
+  render(`<div style="position:relative;width:160px;height:120px;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px">
+    <div style="position:absolute;left:30px;top:40px;width:100px;height:20px;border-radius:50%;background:#c65"></div>
+    <div style="position:absolute;left:30px;top:70px;width:40px;height:0;border-top:1px solid #c65"></div>
+  </div>`);
+  expect(await findSquirclePaint()).toEqual([]);
+}, paintTimeout);
+
+it("finds a square child beside an independently shadowed rounded layer", async () => {
+  const root = render(`<div style="position:relative;width:160px;height:120px">
+    <div class="surface" style="position:absolute;inset:0;background:#fff;border-radius:15.204px;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px">
+      <div style="position:absolute;left:0;top:0;width:12px;height:12px;background:#c65"></div>
+    </div>
+    <div class="ring" style="position:absolute;inset:0;border-radius:15.204px;corner-shape:round;box-shadow:0 2px 6px #0005"></div>
+  </div>`);
+  const ring = root.querySelector<HTMLElement>(".ring")!;
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+  ring.style.right = "auto";
+  ring.style.bottom = "auto";
+  ring.style.width = "80px";
+  ring.style.height = "60px";
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
 }, paintTimeout);
 
 it("ignores a neighboring raster change while finding real paint beyond the box", async () => {
