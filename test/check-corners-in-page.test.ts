@@ -361,7 +361,7 @@ it("reads an inverse cutout at each physical corner", () => {
   }
 });
 
-it("leaves an inverse cutout's inline styles alone and does not treat covered paint as its opening", () => {
+it("keeps paint inside an inverse cutout while detecting paint above its edge", () => {
   const root = render(`<style>
     .cut-outer { position:relative; width:160px; height:120px; background:#eef4fa; border-top-left-radius:17.376px; --sq-tl:32px; clip-path:inset(0); }
     .cut-inner { position:absolute; inset:4px; background:#789; }
@@ -375,9 +375,25 @@ it("leaves an inverse cutout's inline styles alone and does not treat covered pa
   expect(inner.hasAttribute("style")).toBe(false);
   expect(layer.hasAttribute("style")).toBe(false);
   root.querySelector(".cut-cover")!.classList.add("shown");
+  expect(findCornerIssues()).toEqual([]);
+  const cover = root.querySelector<HTMLElement>(".cut-cover")!;
+  cover.style.left = "0";
+  cover.style.top = "0";
   expect(findCornerIssues().map((issue) => issue.element)).toContain("div.cut-inner in div.cut-outer");
   expect(inner.hasAttribute("style")).toBe(false);
   expect(layer.hasAttribute("style")).toBe(false);
+});
+
+it("recognizes panes whose corners are covered by an ancestor's inverse cutout", () => {
+  render(`<div style="width:160px;height:120px;background:#eef4fa;border-top-left-radius:17.376px;--sq-tl:32px;clip-path:inset(0)">
+    <div style="position:relative;margin:4px;width:152px;height:112px;background:#789">
+      <div style="position:absolute;inset:0;display:flex;background:#567">
+        <div style="width:50%;height:100%;background:#345"></div><div style="width:50%;height:100%;background:#678"></div>
+      </div>
+      <div style='position:absolute;inset:0;background:#eef4fa;--sq-tl:28px;clip-path:path(evenodd, "M 0 0 H 152 V 112 H 0 Z M 0 28 C 0 17.164 -.2576 9.1672 4.4548 4.4548 C 9.1672 -.2576 17.164 0 28 0 H 152 V 112 H 0 Z")'></div>
+    </div>
+  </div>`);
+  expect(findCornerIssues()).toEqual([]);
 });
 
 it("reports an inverse cutout whose curve is partly covered by paint", () => {
