@@ -793,6 +793,23 @@ it("keeps a round badge's fractional antialiasing separate from its cut-out", as
   }
 }, paintTimeout);
 
+it("keeps a round badge's dark-background edge distinct from a square leak", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render(`<div style="position:fixed;left:40px;top:40px;width:210px;height:210px;background:#000">
+      <div class="frame rounded-[24%]" style="position:absolute;left:41px;top:41px;width:112px;height:112px">
+        <div class="surface rounded-[44%]" style="position:absolute;inset:0;background:#456;--sq-notch:move to calc(100% + 12.2px) calc(100% - 8.9px), arc to calc(100% - 30px) calc(100% - 8.9px) of 21.1px, arc to calc(100% + 12.2px) calc(100% - 8.9px) of 21.1px, close"></div>
+        <span class="badge" style="position:absolute;right:-6.6px;bottom:-6.6px;width:31px;height:31px;border-radius:9999px"><svg viewBox="0 0 16 16" style="display:block;width:100%;height:100%"><circle cx="8" cy="8" r="8" fill="#fbc024"></circle></svg></span>
+      </div>
+    </div>`);
+    expect(await findSquirclePaint()).toEqual([]);
+    root.querySelector(".badge")!.insertAdjacentHTML("beforeend", '<span style="position:absolute;right:-4px;top:-4px;width:8px;height:8px;background:#d11"></span>');
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.frame.rounded-[24%]");
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
 it("keeps a native shadow and its probe separate from a descendant's external paint", async () => {
   const root = render('<div style="position:relative;width:160px;height:120px"><div style="position:absolute;inset:0"></div><div class="surface" data-ouro-paint-solo="original" style="position:absolute;inset:0;background:#fff;border-radius:28px;corner-shape:squircle;box-shadow:0 4px 12px #0008"></div></div>');
   const surface = root.querySelector<HTMLElement>(".surface")!;
@@ -1335,6 +1352,33 @@ it("does not attribute changing background pixels outside the box to a surface",
   }
 });
 
+it("does not attribute an unrelated neighbor's pixels to an overflowing corner", async () => {
+  const root = render('<div class="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px"></div><div style="position:absolute;left:178px;top:4px;width:8px;height:8px;background:#ddd"></div>');
+  const surface = root.querySelector<HTMLElement>(".surface")!;
+  const capture = state.__ouroPaintCapture!;
+  state.__ouroPaintCapture = async (clip) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = clip.width;
+    canvas.height = clip.height;
+    const pen = canvas.getContext("2d")!;
+    pen.fillStyle = "#fff";
+    pen.fillRect(0, 0, canvas.width, canvas.height);
+    if (surface.style.opacity !== "0" && surface.style.clipPath === "" && !surface.hasAttribute("data-ouro-paint-solo")) {
+      const rect = surface.getBoundingClientRect();
+      pen.fillStyle = "#c30";
+      pen.fillRect(rect.left - clip.x + 178, rect.top - clip.y + 4, 8, 8);
+    }
+    return canvas.toDataURL();
+  };
+  try {
+    expect(await findSquirclePaint()).toEqual([]);
+    surface.insertAdjacentHTML("beforeend", '<span style="position:absolute;left:178px;top:4px;width:8px;height:8px;background:#c30;pointer-events:none"></span>');
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+  } finally {
+    state.__ouroPaintCapture = capture;
+  }
+}, paintTimeout);
+
 it("ignores an unpainted rounded focus wrapper around a smaller control", async () => {
   const root = render(`<div class="wrapper" style="position:relative;width:160px;height:120px;border-radius:28px;corner-shape:squircle;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px">
     <div style="position:absolute;right:0;bottom:0;width:24px;height:24px;background:#d11"></div>
@@ -1349,6 +1393,14 @@ it("ignores an unpainted rounded focus wrapper around a smaller control", async 
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.wrapper");
 }, paintTimeout);
 
+it("keeps a round bar separate from an unpainted narrow focus wrapper", async () => {
+  const root = render('<button class="focus" style="position:relative;width:4px;height:47px;padding:0;border:0;background:transparent;border-radius:4.344px;--sq-tl:8px;--sq-tr:8px;--sq-br:8px;--sq-bl:8px"><span class="bar" style="position:absolute;left:2px;top:0;width:4px;height:47px;border-radius:9999px;background:#58b"></span></button>');
+  const bar = root.querySelector<HTMLElement>(".bar")!;
+  expect(await findSquirclePaint()).toEqual([]);
+  bar.style.borderRadius = "0";
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("button.focus");
+}, paintTimeout);
+
 it("keeps an independent floating squircle separate from an unpainted focus wrapper", async () => {
   const restore = forceSquircleFallback();
   try {
@@ -1360,6 +1412,18 @@ it("keeps an independent floating squircle separate from an unpainted focus wrap
     expect(await findSquirclePaint()).toEqual([]);
     root.querySelector("#floating")!.insertAdjacentHTML("beforeend", '<span style="position:absolute;left:-5px;top:-5px;width:10px;height:10px;background:#d11"></span>');
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#floating.rounded-ouro-lg");
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
+it("keeps a separate round badge distinct from square paint on it", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render('<div style="position:relative;width:64px;height:64px"><div class="surface rounded-ouro-xl" style="position:absolute;inset:0;background:#def"></div><span class="badge" style="position:absolute;right:-6px;bottom:-6px;width:28px;height:28px;border-radius:9999px;background:#357"></span></div>');
+    expect(await findSquirclePaint()).toEqual([]);
+    root.querySelector(".badge")!.insertAdjacentHTML("beforeend", '<span style="position:absolute;right:-4px;top:-4px;width:8px;height:8px;background:#d11"></span>');
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-ouro-xl");
   } finally {
     restore();
   }
