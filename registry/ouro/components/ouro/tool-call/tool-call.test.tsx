@@ -72,6 +72,12 @@ describe("ToolCall", () => {
     expect(plain.part("row")!.tagName).toBe("DIV");
   });
 
+  it("keeps its own state with no onOpenChange", async () => {
+    const view = await render(<ToolCall name="Ran command" status="done" output="ok" />);
+    await userEvent.click(view.trigger!);
+    expect(view.trigger!.getAttribute("aria-expanded")).toBe("true");
+  });
+
   it("follows open when the app controls it, and starts open with defaultOpen", async () => {
     const onOpenChange = vi.fn();
     const controlled = await render(<ToolCall name="Ran command" status="done" output="ok" open={false} onOpenChange={onOpenChange} />);
@@ -91,7 +97,12 @@ describe("ToolCall", () => {
     const waiting = await render(<ToolCall name="Edit file" detail="roast.md" status="waiting" />);
     expect(waiting.part("status")!.textContent).toBe("Waiting for you");
     expect(waiting.part("row")!.textContent).toContain(", waiting for you");
+    const read = await render(<ToolCall name="Read file" detail="recipes/roast.md" status="done" duration={0.4} />);
+    expect(read.part("row")!.textContent).toBe("Read file recipes/roast.md 0.4s, done");
+    expect(getComputedStyle(waiting.part("icon")!).color).toBe(themed("var(--warning)"));
+    expect(getComputedStyle(waiting.part("status")!).color).toBe(themed("var(--warning)"));
     const failed = await render(<ToolCall name="Ran command" status="failed" />);
+    expect(failed.call.getAttribute("data-status")).toBe("failed");
     expect(failed.part("status")!.textContent).toBe("Failed");
     expect(getComputedStyle(failed.part("status")!).color).toBe(themed("var(--destructive)"));
     expect(getComputedStyle(failed.part("icon")!).color).toBe(themed("var(--destructive)"));

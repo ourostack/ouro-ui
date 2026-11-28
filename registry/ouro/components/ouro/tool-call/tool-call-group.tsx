@@ -7,7 +7,7 @@ import { ToolCall, type ToolCallProps } from "@/registry/ouro/components/ouro/to
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
-import { groupListClass, groupTitle, toolCallStatuses, type ToolCallStatus } from "@/registry/ouro/components/ouro/tool-call/tool-call-styles";
+import { groupListClass, groupTitle } from "@/registry/ouro/components/ouro/tool-call/tool-call-styles";
 
 /** One call in a {@link ToolCallGroup}: a ToolCall's props, with an `id` that stays put as the list changes. */
 export type ToolCallGroupItem = Pick<ToolCallProps, "name" | "status" | "detail" | "duration" | "output" | "outputLanguage"> & {
@@ -90,16 +90,15 @@ export function ToolCallGroup(props: ToolCallGroupProps): JSX.Element {
           tools !== undefined && ["tools is not a prop; the calls are calls", "<ToolCallGroup calls={[{ id, name, status }]} />"],
           title !== undefined && [
             "title is not a prop; the title is summary",
-            `<ToolCallGroup summary=${JSON.stringify(typeof title === "string" ? title : "Read the recipe")}>`,
+            '<ToolCallGroup summary="Read the recipe">',
           ],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
   );
-  const statuses = calls.map((call): ToolCallStatus => ((toolCallStatuses as readonly string[]).includes(call.status) ? (call.status as ToolCallStatus) : "done"));
-  const { busy, words, failed } = groupTitle(statuses);
+  const { busy, running, words, failed } = groupTitle(calls.map((call) => call.status));
   // The person's own choice, once they make one; until then the group is open while a call runs or waits.
   const [chosen, setChosen] = useState<boolean | undefined>(defaultOpen === true ? true : undefined);
-  const expanded = open ?? chosen ?? busy !== undefined;
+  const expanded = open ?? chosen ?? busy;
   const keepOpen = () => setChosen((current) => current ?? true);
   return (
     <div
@@ -107,7 +106,7 @@ export function ToolCallGroup(props: ToolCallGroupProps): JSX.Element {
       data-ouro="tool-call-group"
       data-slot="tool-call-group"
       // Stryker disable next-line StringLiteral: any value of a presence attribute styles the same.
-      data-busy={busy !== undefined ? "" : undefined}
+      data-busy={busy ? "" : undefined}
       className={cn("box-border grid min-w-0", className)}
     >
       <Collapsible
@@ -118,7 +117,7 @@ export function ToolCallGroup(props: ToolCallGroupProps): JSX.Element {
         }}
         title={
           <span data-slot="tool-call-group-title" className="inline-flex min-w-0 items-center gap-2 font-normal text-muted-foreground">
-            {busy === "running" ? <Spinner size="sm" label="" aria-hidden="true" /> : null}
+            {running ? <Spinner size="sm" label="" aria-hidden="true" /> : null}
             {summary ?? words}
             {failed > 0 ? " " : null}
             {failed > 0 ? (

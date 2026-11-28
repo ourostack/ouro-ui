@@ -95,6 +95,9 @@ describe("ToolCallGroup", () => {
   it("starts open with defaultOpen, and follows open when the app controls it", async () => {
     const first = await render(<ToolCallGroup calls={[read]} defaultOpen />);
     expect(first.trigger.getAttribute("aria-expanded")).toBe("true");
+    // With no onOpenChange, the group keeps its own state.
+    await userEvent.click(first.trigger);
+    expect(first.trigger.getAttribute("aria-expanded")).toBe("false");
     const onOpenChange = vi.fn();
     const second = await render(<ToolCallGroup calls={[running]} open={false} onOpenChange={onOpenChange} />);
     expect(second.trigger.getAttribute("aria-expanded")).toBe("false");
@@ -107,10 +110,17 @@ describe("ToolCallGroup", () => {
     const view = await render(<ToolCallGroup calls={[read, running]} />);
     expect(view.title.textContent).toBe("Running 2 tools");
     expect(view.title.querySelector('[data-ouro="spinner"]')!.getAttribute("aria-hidden")).toBe("true");
-    await view.rerender(<ToolCallGroup calls={[read, { ...search, status: "waiting" }]} />);
-    expect(view.title.textContent).toBe("Waiting for you · 2 tools");
+    await view.rerender(<ToolCallGroup calls={[read, running, { ...search, id: "edit", status: "waiting" }]} />);
+    expect(view.title.textContent).toBe("Waiting for you · 3 tools");
+    // What waits on the person leads, with no spinner beside it.
+    expect(view.title.querySelector('[data-ouro="spinner"]')).toBeNull();
     await view.rerender(<ToolCallGroup calls={[read]} />);
     expect(view.title.textContent).toBe("Ran 1 tool");
+    expect(view.title.querySelector('[data-ouro="spinner"]')).toBeNull();
+    // A status that is not one of ToolCall's counts as a settled call.
+    // @ts-expect-error pending is not a status.
+    await view.rerender(<ToolCallGroup calls={[read, { ...search, status: "pending" }]} />);
+    expect(view.title.textContent).toBe("Ran 2 tools");
     await view.rerender(<ToolCallGroup calls={[read, { ...search, status: "failed" }, { ...read, id: "again", status: "failed" }]} />);
     expect(view.title.textContent).toBe("Ran 3 tools · 2 failed");
     await expect.element(page.getByRole("button", { name: "Ran 3 tools · 2 failed" })).toBeVisible();

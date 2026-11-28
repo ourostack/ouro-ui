@@ -8,12 +8,14 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import {
+  callClass,
   detailClass,
   durationClass,
   formatDuration,
   iconClass,
   nameClass,
   rowClass,
+  statusCellClass,
   statusIconTone,
   statusLabels,
   statusWords,
@@ -115,7 +117,7 @@ export function ToolCall(props: ToolCallProps): JSX.Element {
       ? () => [
           status !== statusProp && [`status="${String(statusProp)}" is not a status; use "running", "done", "failed" or "waiting"`, toolCallStatusFix(String(statusProp))],
           state !== undefined && ["state is not a prop; where the call stands is status", toolCallStatusFix(String(state))],
-          toolName !== undefined && ["toolName is not a prop", `<ToolCall name=${JSON.stringify(typeof toolName === "string" ? toolName : "Read file")}>`],
+          toolName !== undefined && ["toolName is not a prop", '<ToolCall name="Read file">'],
           args !== undefined && ["args is not a prop; a summary of the arguments is detail", '<ToolCall detail="recipes/roast.md">'],
           input !== undefined && ["input is not a prop; a summary of the arguments is detail", '<ToolCall detail="recipes/roast.md">'],
           result !== undefined && ["result is not a prop; what the tool gave back is output, a string", "<ToolCall output={text}>"],
@@ -128,7 +130,6 @@ export function ToolCall(props: ToolCallProps): JSX.Element {
   const words = statusWords[status];
   const row = (
     <>
-      <StatusIcon status={status} />
       <span data-slot="tool-call-name" className={nameClass}>
         {name}
       </span>
@@ -157,7 +158,11 @@ export function ToolCall(props: ToolCallProps): JSX.Element {
     </>
   );
   return (
-    <div ref={ref} data-ouro="tool-call" data-slot="tool-call" data-status={status} className={cn("box-border grid min-w-0", className)}>
+    <div ref={ref} data-ouro="tool-call" data-slot="tool-call" data-status={status} className={cn(callClass, className)}>
+      {/* The status sits beside the row, not in Collapsible's title, so the title is drawn as every other Collapsible's. */}
+      <span data-slot="tool-call-status-cell" className={statusCellClass}>
+        <StatusIcon status={status} />
+      </span>
       {output !== undefined ? (
         <Collapsible
           open={expanded}

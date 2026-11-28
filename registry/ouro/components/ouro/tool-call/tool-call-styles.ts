@@ -1,4 +1,5 @@
 export {
+  callClass,
   detailClass,
   durationClass,
   formatDuration,
@@ -7,6 +8,7 @@ export {
   iconClass,
   nameClass,
   rowClass,
+  statusCellClass,
   statusIconTone,
   statusLabels,
   statusWords,
@@ -76,6 +78,7 @@ const statusWords: Readonly<Partial<Record<ToolCallStatus, string>>> = {
  * @internal
  */
 const statusIconTone: Readonly<Record<ToolCallStatus, string>> = {
+  // Stryker disable next-line StringLiteral: a running call shows Spinner, which draws in its own colour, and no words.
   running: "text-muted-foreground",
   done: "text-success",
   failed: "text-destructive",
@@ -99,6 +102,20 @@ const rowClass =
  * @internal
  */
 const titleRowClass = "flex min-w-0 max-w-full items-center gap-2 font-normal text-foreground";
+
+/**
+ * A call: its status in a column of its own, beside the row, whose output opens under the row's text.
+ *
+ * @internal
+ */
+const callClass = "box-border grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-x-2";
+
+/**
+ * The status column: as tall as the row, so the icon sits in the middle of its first line.
+ *
+ * @internal
+ */
+const statusCellClass = "flex h-ouro-11 items-center self-start sm:pointer-fine:h-9";
 
 /** @internal */
 const iconClass = "size-ouro-4 shrink-0";
@@ -146,11 +163,12 @@ function formatDuration(seconds: number | undefined): string | undefined {
  * @internal
  * @claim "A group's title from its calls" registry/ouro/components/ouro/tool-call/tool-call-group.test.tsx verify:testExists(registry/ouro/components/ouro/tool-call/tool-call-group.test.tsx::ToolCallGroup > titles itself from its calls: running, waiting, ran, and how many failed)
  */
-function groupTitle(statuses: readonly ToolCallStatus[]): { busy: ToolCallStatus | undefined; words: string; failed: number } {
+function groupTitle(statuses: readonly string[]): { busy: boolean; running: boolean; words: string; failed: number } {
   const count = statuses.length;
   const tools = `${count} ${count === 1 ? "tool" : "tools"}`;
   const failed = statuses.filter((status) => status === "failed").length;
-  if (statuses.includes("waiting")) return { busy: "waiting", words: `Waiting for you · ${tools}`, failed };
-  if (statuses.includes("running")) return { busy: "running", words: `Running ${tools}`, failed };
-  return { busy: undefined, words: `Ran ${tools}`, failed };
+  const running = statuses.includes("running");
+  if (statuses.includes("waiting")) return { busy: true, running: false, words: `Waiting for you · ${tools}`, failed };
+  if (running) return { busy: true, running, words: `Running ${tools}`, failed };
+  return { busy: false, running, words: `Ran ${tools}`, failed };
 }
