@@ -31,6 +31,7 @@ test("the Ouro check tests pass and cover every line, branch and function of its
       "--test-coverage-branches=100",
       "--test-coverage-functions=100",
       "scripts/check/check.test.mts",
+      "scripts/check/check-corners.test.mts",
       "scripts/check/check-pages.test.mts",
       "scripts/check/check-command.test.mts",
       "scripts/check/check-watch.test.mts",
