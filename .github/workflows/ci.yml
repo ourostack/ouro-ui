@@ -2344,9 +2344,25 @@ jobs:
           path: .tmp/stryker-incremental.json
           key: ${{ needs.mutation-plan.outputs.key }}${{ github.sha }}
           restore-keys: ${{ needs.mutation-plan.outputs.key }}
+      # The unmutated first run of this shard's tests, from the last push; scripts/mutation.mjs keys
+      # it by everything the run reads (dryRunKey) and runs it again when any of that changed, so the
+      # cache key names only the pull request and shard: main moving on must not lose it.
+      - if: steps.changed.outputs.run == 'true' && needs.mutation-plan.outputs.key != ''
+        id: dry-run
+        name: Dry run from the last push
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .tmp/stryker-dry-run.json
+          key: stryker-dry-${{ github.event.pull_request.number }}-${{ matrix.shard }}-${{ github.sha }}
+          restore-keys: stryker-dry-${{ github.event.pull_request.number }}-${{ matrix.shard }}-
       - if: steps.changed.outputs.run == 'true'
         name: Mutation testing
         run: pnpm mutation HEAD^1 --shard "$SHARD/$COUNT"
+      - if: ${{ !cancelled() && steps.changed.outputs.run == 'true' && needs.mutation-plan.outputs.key != '' && hashFiles('.tmp/stryker-dry-run.json') != '' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .tmp/stryker-dry-run.json
+          key: stryker-dry-${{ github.event.pull_request.number }}-${{ matrix.shard }}-${{ github.sha }}
       # This shard's results, survivors included, for the mutation job to merge and keep.
       - if: ${{ !cancelled() && steps.changed.outputs.run == 'true' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

@@ -10,7 +10,7 @@
 //   author, its own Co-authored-by trailer (DEPENDABOT_CREDIT), or the project's own app, Ouro Current,
 //   whose commit may only be GitHub's revert of a pull request (REVERT_SUBJECT), as screen-reader-revert.yml
 //   opens it, or whose commit only merges main into a pull request's branch (queue-unmergeable.yml's update-branch):
-//   two parents, the second already on the base, and a tree equal to the clean merge of its parents, so it adds nothing main lacks;
+//   two parents, the second already on the base, and a tree equal to the clean merge of its parents, so it adds nothing main lacks, or whose commit is a docs pin that changes only version literals (scripts/pin-only.mjs);
 // - is committed by anyone but those two or GitHub (noreply@github.com, which commits the merge
 //   queue's squash commits and the web editor's);
 // - carries AI attribution in its message: a `*-by:` trailer (Co-authored-by, Assisted-by, ...)
@@ -28,6 +28,7 @@
 //   node scripts/attribution.mjs <base> <head>   checks the commits in base..head
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { pinProblems } from "./pin-only.mjs";
 
 /** The only person who commits to this repository. */
 export const MAINTAINER = { name: "Ari Mendelow", email: "16390116+arimendelow@users.noreply.github.com" };
@@ -93,8 +94,8 @@ export function problems(commits, { messages = true } = {}) {
     if (dependabot && (files.length === 0 || stray.length > 0)) report("files", files.length === 0 ? "Dependabot's commit changes no file the check could read" : `Dependabot may change only dependency files (package.json, pnpm-lock.yaml, workflows and actions), not ${stray.join(", ")}`, REAUTHOR);
     const current = commit.authorEmail.toLowerCase() === OURO_CURRENT;
     const revert = current && REVERT_SUBJECT.test(commit.message);
-    const mainMerge = current && commit.mainMerge === true;
-    if (!AUTHORS.includes(commit.authorEmail.toLowerCase()) && !revert && !mainMerge) report("author", `${commit.authorName} <${commit.authorEmail}> may not author here (only ${AUTHORS.join(" or ")}, or ${OURO_CURRENT} for a revert or a merge of main that adds nothing main lacks)`, REAUTHOR);
+    const mainMerge = current && (commit.mainMerge === true || commit.pinOnly === true);
+    if (!AUTHORS.includes(commit.authorEmail.toLowerCase()) && !revert && !mainMerge) report("author", `${commit.authorName} <${commit.authorEmail}> may not author here (only ${AUTHORS.join(" or ")}, or ${OURO_CURRENT} for a revert a merge of main that adds nothing main lacks, or a pin that changes only version literals)`, REAUTHOR);
     if (!COMMITTERS.includes(commit.committerEmail.toLowerCase()) && !(mainMerge && commit.committerEmail.toLowerCase() === OURO_CURRENT)) report("committer", `${commit.committerName} <${commit.committerEmail}> may not commit here (only ${COMMITTERS.join(", ")})`, REAUTHOR);
     // A line is read with its hidden characters removed and as spaces. NEL is a line terminator and a hidden character at once, so a message is read split at it and, when it holds one, again whole.
     const read = (raw, field) => {
@@ -139,6 +140,25 @@ export function isMainMerge(sha, base, git = runGit) {
   }
 }
 
+/** Whether a commit is a docs pin: one parent, and a diff scripts/pin-only.mjs accepts, which changes only version literals. Any git failure says no. */
+export function isPinCommit(sha, git = runGit) {
+  try {
+    const parents = git(["rev-list", "--parents", "-n", "1", sha]).trim().split(/\s+/).slice(1);
+    if (parents.length !== 1) return false;
+    const at = (rev, path) => {
+      try {
+        return git(["show", `${rev}:${path}`]);
+      } catch {
+        return null;
+      }
+    };
+    const paths = git(["diff", "--no-renames", "--name-only", "-z", parents[0], sha]).split("\0").filter(Boolean);
+    return paths.length > 0 && pinProblems(paths.map((path) => ({ path, before: at(parents[0], path), after: at(sha, path) }))).length === 0;
+  } catch {
+    return false;
+  }
+}
+
 /** The commits in base..head, newest first. Throws when either end is missing or unknown, or the range is empty. */
 export function readCommits(base, head, git = runGit, pause = sleep) {
   for (const [end, ref] of [["base", base], ["head", head]]) {
@@ -169,7 +189,10 @@ export function readCommits(base, head, git = runGit, pause = sleep) {
       return { sha, authorName, authorEmail, committerName, committerEmail, message: message.trimEnd(), files: names.split("\n").filter(Boolean) };
     });
   if (commits.length === 0) throw new Error(`${base}..${head} holds no commits, so there is nothing that could pass.`);
-  for (const commit of commits) if (commit.authorEmail.toLowerCase() === OURO_CURRENT) commit.mainMerge = isMainMerge(commit.sha, base, git);
+  for (const commit of commits) if (commit.authorEmail.toLowerCase() === OURO_CURRENT) {
+    commit.mainMerge = isMainMerge(commit.sha, base, git);
+    commit.pinOnly = isPinCommit(commit.sha, git);
+  }
   return commits;
 }
 

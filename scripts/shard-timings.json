@@ -1004,6 +1004,7 @@
     "registry/ouro/e2e/ouro/a2ui-surface.spec.ts": 16668,
     "registry/ouro/e2e/ouro/accordion.spec.ts": 10427,
     "registry/ouro/e2e/ouro/agent-handoff.spec.ts": 4307,
+    "registry/ouro/e2e/ouro/thinking-block.spec.ts": 3500,
     "registry/ouro/e2e/ouro/tool-call.spec.ts": 3500,
     "registry/ouro/e2e/ouro/tool-call-group.spec.ts": 3500,
     "registry/ouro/e2e/ouro/agent-presence.spec.ts": 15398,

@@ -157,7 +157,7 @@ export interface MessageOwnProps {
    * forced colors draw. In a run of `continued` messages from one sender, the corners where neighboring bubbles meet
    * are slightly less round (`--ouro-message-joined-radius`, `--radius-ouro-xl` unless set), on the side the bubbles sit (the end
    * for the user's own, the start for others', mirrored in right-to-left), and `MessageList` keeps
-   * `--ouro-message-run-gap` (`--ouro-size-1` unless set) between them. Inside the user's own bubble, the theme's colors follow the fill, so a
+   * `--ouro-message-run-gap` (`--ouro-size-2` unless set) between them. Inside the user's own bubble, the theme's colors follow the fill, so a
    * link (underlined), a mention, a quote, a button or a focus ring in it stays readable on it; on others', a link, a mention or muted text
    * follows the bubble's own text color instead of the page's, so it keeps 4.5:1 there too. `raised` is a workplace chat's: others' messages on a raised card with
    * a hairline and a small shadow, the user's own in a tint of the primary color. A `reply` with a
@@ -1032,14 +1032,14 @@ export function Message(props: MessageProps): JSX.Element {
             bubble
           )}
           {attachments !== undefined && attachments !== null && (
-            <div data-ouro-message-attachments="" className={cn("flex max-w-full flex-wrap gap-2", role === "user" && "justify-end")}>
+            <div data-ouro-message-attachments="" className={cn("mt-1 flex max-w-full flex-wrap gap-2", role === "user" && "justify-end")}>
               {attachments}
             </div>
           )}
           {notSent}
           {sending(role === "user" ? "absolute end-full bottom-0 me-2" : "absolute start-full bottom-0 ms-2")}
-          {extra("footer", role === "user", false, footer)}
-          {extra("thread", role === "user", false, thread)}
+          {extra("footer", role === "user", false, footer, true)}
+          {extra("thread", role === "user", false, thread, true)}
         </div>
       </article>
     );
@@ -1092,10 +1092,16 @@ export function Message(props: MessageProps): JSX.Element {
   const contentBox = (
     <div
       data-ouro-message-content=""
+      data-ouro-part="bubble"
       hidden={!worded}
       style={surfaceColors}
       className={cn(
         "relative box-border max-w-full min-w-0 leading-relaxed [overflow-wrap:anywhere]",
+        // MessageList marks a message that just arrived; its bubble grows from the corner at its tail, on the bounce tokens.
+        end
+          ? "[transform-origin:100%_100%] [[data-ouro=message][data-starting-style]_&]:motion-safe:[animation:ouro-message-sent_var(--ouro-duration-bounce)_var(--ouro-ease-bounce)] rtl:[transform-origin:0_100%]"
+          : "[transform-origin:0_100%] [[data-ouro=message][data-starting-style]_&]:motion-safe:[animation:ouro-message-received_var(--ouro-duration-bounce)_var(--ouro-ease-bounce)] rtl:[transform-origin:100%_100%]",
+        "[[data-ouro=message][data-starting-style]_&]:motion-reduce:[animation:ouro-message-fade_var(--ouro-duration-fast)_ease]",
         surface,
         marked ? "pb-6" : "has-[>[data-ouro=code-block]:last-child]:pb-3",
       )}
@@ -1170,9 +1176,9 @@ export function Message(props: MessageProps): JSX.Element {
         ref={post ? slot : undefined}
         data-ouro-message-body=""
         className={cn(
-          "relative flex min-w-0 gap-1",
+          "relative flex min-w-0 gap-2",
           // A post's rows wrap in a row, so an unanswered post's Reply ends its name line and the rest take a line each.
-          post ? "flex-row flex-wrap items-center gap-x-2" : "flex-col",
+          post ? "flex-row flex-wrap items-center gap-x-2 gap-y-1" : "flex-col",
           shape === "chat" ? "max-w-[min(85%,36rem)]" : "flex-1",
           !post && (end ? "items-end" : "items-start"),
           post && postHairline,
@@ -1182,7 +1188,18 @@ export function Message(props: MessageProps): JSX.Element {
         {!post && !room && worded ? (
           contentBox
         ) : (
-          <div ref={post ? undefined : slot} className={cn("relative box-border flex max-w-full min-w-0 flex-col", end ? "items-end" : "items-start", post && postRow)}>
+          <div
+            ref={post ? undefined : slot}
+            className={cn(
+              "relative box-border flex max-w-full min-w-0 flex-col",
+              end ? "items-end" : "items-start",
+              post && postRow,
+              // The bar beside the bubble is absolutely positioned level with its top, so a bubble shorter than the bar
+              // (36px, 40px below the button's sm: breakpoint) would let it overflow past the row's own bottom edge,
+              // eating into the gap below: reserve the bar's height so a short bubble's row is never shorter than it (#3617).
+              !post && room && beside !== undefined && "min-h-10 sm:min-h-9",
+            )}
+          >
             {contentBox}
             {!post && bar}
           </div>
@@ -1334,7 +1351,7 @@ function wordsFor(presence: string, label: string | undefined): string {
  * A row under the message (its footer or thread), or nothing when the app passed nothing. A post's rows keep a little
  * more room, and a post's thread that is only Reply (nobody has replied) ends the name line instead.
  */
-function extra(slot: "footer" | "thread", end: boolean, post: boolean, children: ReactNode): JSX.Element | null {
+function extra(slot: "footer" | "thread", end: boolean, post: boolean, children: ReactNode, spaced = false): JSX.Element | null {
   if (children === undefined || children === null || children === false) return null;
   return (
     <div
@@ -1343,6 +1360,7 @@ function extra(slot: "footer" | "thread", end: boolean, post: boolean, children:
         "flex max-w-full min-w-0 flex-wrap items-center gap-2",
         end && "justify-end",
         post && ["mt-1", postRow],
+        spaced && "mt-1",
         post && slot === "thread" && "has-data-ouro-thread-summary-unanswered:order-2 has-data-ouro-thread-summary-unanswered:mt-0 has-data-ouro-thread-summary-unanswered:basis-auto",
       )}
     >
