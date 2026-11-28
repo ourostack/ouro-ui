@@ -16,6 +16,7 @@ expectTypeOf<{
   answer: PermissionAnswer;
   allowLabel: "Allow";
   denyLabel: "Not now";
+  headingLevel: 2;
   className: "max-w-xl";
 }>().toExtend<PermissionPromptProps>();
 expectTypeOf<{ decision: "denied"; by: "you"; app: "the desktop app"; at: "9:41" }>().toExtend<PermissionAnswer>();

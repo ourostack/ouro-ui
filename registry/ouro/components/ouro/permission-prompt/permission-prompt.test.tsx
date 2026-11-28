@@ -68,6 +68,9 @@ describe("PermissionPrompt", () => {
     expect(view.part("risk")!.textContent).toBe("Medium risk");
     await view.rerender(<PermissionPrompt {...ask} risk="high" />);
     expect(view.part("risk")!.textContent).toBe("High risk");
+    expect(view.prompt.querySelector("h3")!.textContent).toBe("Your agent wants to run a command");
+    await view.rerender(<PermissionPrompt {...ask} headingLevel={2} />);
+    expect(view.prompt.querySelector("h2")!.textContent).toBe("Your agent wants to run a command");
     await view.rerender(<PermissionPrompt title="Your agent wants to read your calendar" />);
     expect(view.part("risk")).toBeNull();
     expect(view.part("detail")).toBeNull();

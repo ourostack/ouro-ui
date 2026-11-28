@@ -3,7 +3,7 @@
 import { useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode, type Ref } from "react";
 import { Badge } from "@/registry/ouro/components/ouro/badge/badge";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
-import { Card } from "@/registry/ouro/components/ouro/card/card";
+import { Card, type CardProps } from "@/registry/ouro/components/ouro/card/card";
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import { riskBadges, settledClass, type PermissionRisk } from "@/registry/ouro/components/ouro/permission-prompt/permission-prompt-styles";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
@@ -44,6 +44,8 @@ export interface PermissionPromptProps {
   allowLabel?: string | undefined;
   /** The deny button's label. @default "Deny" */
   denyLabel?: string | undefined;
+  /** The title's heading level, one below the section's heading, as Card's. @default 3 */
+  headingLevel?: CardProps["headingLevel"];
   /** Layout only: margins, width (`mt-2`, `max-w-xl`). Appearance classes warn in development. */
   className?: string | undefined;
   ref?: Ref<HTMLDivElement> | undefined;
@@ -99,6 +101,7 @@ export function PermissionPrompt(props: PermissionPromptProps): JSX.Element {
     answer,
     allowLabel = "Allow once",
     denyLabel = "Deny",
+    headingLevel,
     className,
     ref,
     // Guard props (hint types), dropped here so they never reach the DOM.
@@ -161,6 +164,7 @@ export function PermissionPrompt(props: PermissionPromptProps): JSX.Element {
         size="sm"
         data-slot="permission-prompt-card"
         aria-labelledby={titleId}
+        headingLevel={headingLevel}
         title={<span id={titleId}>{title}</span>}
         description={reason}
         action={
