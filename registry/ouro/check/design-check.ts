@@ -92,8 +92,6 @@ interface DesignOptions {
   cornerShape?: boolean;
   /** The radius, in CSS pixels, under which a circle's arc and a squircle's look alike. */
   squirclePx?: number;
-  /** Keep the original nested-frame corner finding; the runner uses corners-nest instead. */
-  legacyCorners?: boolean;
 }
 
 interface CornerMedia {
@@ -119,7 +117,7 @@ interface CornerReading {
   corners: string[];
 }
 
-function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5, readingPx = 24, cornerShape = CSS.supports("corner-shape", "squircle"), squirclePx = 4, lineGapPx = 6, badgeSlackPx = 0.75, textSlackPx = 2.5, fieldSlackPx = 1.5, legacyCorners = true, inkSlackPx = 1 }: DesignOptions = {}): PageIssue[] {
+function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5, readingPx = 24, cornerShape = CSS.supports("corner-shape", "squircle"), squirclePx = 4, lineGapPx = 6, badgeSlackPx = 0.75, textSlackPx = 2.5, fieldSlackPx = 1.5, inkSlackPx = 1 }: DesignOptions = {}): PageIssue[] {
   const issues: PageIssue[] = [];
   const counter = window as unknown as { __ouroCheckRef?: number };
   const ref = (el: Element) => {
@@ -222,15 +220,15 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
   // The actual solid surface, with translucent fills and group opacity composited over their ancestors. A picture,
   // gradient or filter that affects the result cannot be represented by one colour, so an edge over it is not guessed.
   const surfaces = new WeakMap<Element, [number, number, number] | null>();
-  const surfaceOf = (el: Element | null): [number, number, number] | null => {
-    const known = el ? surfaces.get(el) : undefined;
+  const surfaceOf = (el: Element): [number, number, number] | null => {
+    const known = surfaces.get(el);
     if (known !== undefined) return known;
     const colour: [number, number, number] = [0, 0, 0];
     let alpha = 0;
-    for (let n = el; n; n = n.parentElement) {
+    for (let n: Element | null = el; n; n = n.parentElement) {
       const s = getComputedStyle(n);
       if ((s.backgroundImage !== "none" && alpha < 0.999) || s.filter !== "none" || (s.backdropFilter && s.backdropFilter !== "none") || s.mixBlendMode !== "normal") {
-        if (el) surfaces.set(el, null);
+        surfaces.set(el, null);
         return null;
       }
       const fill = rgba(s.backgroundColor);
@@ -243,7 +241,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     }
     const canvas = matchMedia("(prefers-color-scheme: dark)").matches && /dark/.test(getComputedStyle(document.documentElement).colorScheme) ? 18 : 255;
     const result = colour.map((channel) => channel + canvas * (1 - alpha)) as [number, number, number];
-    if (el) surfaces.set(el, result);
+    surfaces.set(el, result);
     return result;
   };
   const colourDistance = (a: number[], b: number[]) => Math.abs(a[0]! - b[0]!) + Math.abs(a[1]! - b[1]!) + Math.abs(a[2]! - b[2]!);
@@ -438,7 +436,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const r = el.getBoundingClientRect();
     return Math.min(px(getComputedStyle(el).borderTopLeftRadius), r.width / 2, r.height / 2);
   };
-  for (const outer of legacyCorners ? visible : []) {
+  for (const outer of visible) {
     const os = getComputedStyle(outer);
     const radius = radiusOf(outer);
     // Only a corner people see: a visible frame or fill, which doesn't clip what is in it, around a child near enough
