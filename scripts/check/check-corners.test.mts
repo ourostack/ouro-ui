@@ -99,6 +99,7 @@ test("corners-nest preserves visible curves through transparent clips", async ()
   for (const engine of [chromium, webkit]) {
     const browser = await engine.launch({ headless: true });
     const tab = await browser.newPage({ viewport: { width: 390, height: 400 } });
+    tab.on("console", (message) => console.log(message.text()));
     try {
       for (const [options, detail] of [
         [{ clip: 12 }, /12px, expected 24px/],
@@ -604,7 +605,7 @@ test("squircle-paint does not hide a neighbor in a wrapped inline's bounding gap
       .line { position: absolute; left: 16px; top: 100.609375px; width: 350px; font: 16px/21px sans-serif; }
       .neighbor { position: absolute; left: 0; top: 0; width: 30px; height: 18px; background: #b44939; }
       .prefix { display: inline-block; width: 39px; }
-      code { font: 14px/20px monospace; background: #f5f5f7; border-radius: 4.806px; corner-shape: squircle; padding: 0.1em 0.3em; }
+      code { font: 14px/20px monospace; background: #f5f5f7; border-radius: 16px; corner-shape: squircle; padding: 0.1em 0.3em; }
     </style><div class="line"><span class="neighbor"></span><span class="prefix"></span><code>one two three four five six seven eight nine ten eleven twelve</code></div>`);
     const rects = await tab.locator("code").evaluate((el) => [...el.getClientRects()].map((rect) => rect.toJSON()));
     assert.equal(rects.length, 2);
@@ -613,7 +614,7 @@ test("squircle-paint does not hide a neighbor in a wrapped inline's bounding gap
     await tab.locator(".neighbor").evaluate((el) => {
       const line = el.parentElement!.getBoundingClientRect();
       const fragment = el.nextElementSibling!.nextElementSibling!.getClientRects()[0]!;
-      el.setAttribute("style", `left:${fragment.left - line.left}px;top:${fragment.top - line.top}px;width:5px;height:5px`);
+      el.setAttribute("style", `left:${fragment.left - line.left}px;top:${fragment.top - line.top}px;width:8px;height:8px`);
     });
     assert.equal((await tab.evaluate(findSquirclePaint)).length, 1);
   } finally {

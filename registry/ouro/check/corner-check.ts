@@ -323,6 +323,7 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
       if (surfaceByElement.has(el)) continue;
       let clip = clips.get(el);
       if (!clip) { clip = surface(el); clips.set(el, clip); }
+      console.log("CORNER-CLIP", JSON.stringify({ inner: describe(inner.el!), clip: describe(el), index, clips: clippedCorner(inner, clip, index), corner: clip.corners[index] }));
       if (!clippedCorner(inner, clip, index)) continue;
       const corner = clip.corners[index]!;
       if (corner.x === 0 || corner.y === 0 || corners.some((own) => dominates(own, corner))) continue;
@@ -332,6 +333,7 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
     return corners.length === 1 ? corners[0]! : { ...corners[0]!, clippingCorners: corners };
   };
   const issues: PageIssue[] = [];
+  console.log("CORNER-SURFACES", JSON.stringify(surfaces.map((s) => ({ element: describe(s.el!), rect: s.rect.toJSON(), corners: s.corners }))));
   for (const inner of surfaces) {
     if (optedOut(inner.el!)) continue;
     const i = inner.rect;
@@ -349,6 +351,7 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
       for (const outer of outers) {
         const o = outer.rect;
         const oc = outer.corners[index]!;
+        console.log("CORNER-PAIR", JSON.stringify({ inner: describe(inner.el!), outer: outer.el ? describe(outer.el) : "window", index, corner, oc, clipped: clippedCorner(inner, outer, index) }));
         if (oc.inverse || Math.min(oc.x, oc.y) < 6 || oc.x >= o.width / 2 - 0.5 || oc.y >= o.height / 2 - 0.5) continue;
         const left = index === 0 || index === 3;
         const top = index < 2;
