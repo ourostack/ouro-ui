@@ -137,7 +137,7 @@ describe("Sidebar", () => {
     const { nav } = await render(<Sidebar label="Main" sections={[{ items: [{ label: "Inbox", href: "/inbox", badge: 12 }] }]} header="Search" footer="Account" />);
     const sample = document.createElement("span");
     nav!.append(sample);
-    sample.style.backgroundColor = "var(--muted)";
+    sample.style.backgroundColor = "var(--accent)";
     const paneSurface = getComputedStyle(sample).backgroundColor;
     expect(getComputedStyle(nav!).backgroundColor).toBe(paneSurface);
     expect(getComputedStyle(nav!).borderInlineEndWidth).toBe("0px");
