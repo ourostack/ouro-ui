@@ -26,4 +26,4 @@ jobs:
           pnpm exec vitest run --project ouro-chromium --project ouro-webkit
           test/check-corners-in-page.test.ts
           registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx
-          -t "uses the clipping corner|nests the selected segment's corners"
+          -t "uses the clipping corner|checks a larger painted corner|nests the selected segment's corners|keeps a selected segment and its shadow"
