@@ -51,6 +51,8 @@ export const OURO_CURRENT = "357084126+ouro-current[bot]@users.noreply.github.co
 export const REVERT_SUBJECT = /^Revert "/;
 /** The trailer GitHub adds to the squash of a pull request release.yml opened: no AI, so the one bot a trailer may name. */
 export const RELEASE_BOT_TRAILER = `github-actions[bot] <${RELEASE_BOT}>`;
+/** The credit GitHub's squash adds for the project's own app, whose merge-of-main and pin commits the check already limits. */
+export const OURO_CURRENT_CREDIT = `ouro-current[bot] <${OURO_CURRENT}>`;
 export const COMMITTERS = [MAINTAINER.email, RELEASE_BOT, GITHUB];
 
 const tools = "copilot|claude|anthropic|openai|chatgpt|gpt|codex|gemini|cursor|devin|aider";
@@ -67,7 +69,7 @@ const INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}\u2800]|(?![\t\n\r])\p
 /** A hidden character may sit inside a word or stand between words, so a line is read with them removed and with them as spaces. */
 const FILLER = INVISIBLE;
 /** The "No AI co-author credit" ruleset's pattern for a commit message, as the ruleset writes it. */
-const RULESET_CREDIT = /co-authored-by:[^\n]*(\[bot\]|copilot)/i;
+const RULESET_CREDIT = /co-authored-by:[^\n]*(copilot|claude|anthropic|openai|chatgpt|codex|gemini|cursor|devin)/i;
 const GENERATED = /(?<![a-z])generated\s+(?:with|by)(?![a-z])(.*)$/i;
 const ROBOT_FOOTER = /🤖.*(?<![a-z])generated(?![a-z])/iu;
 
@@ -101,7 +103,7 @@ export function problems(commits, { messages = true } = {}) {
     const read = (raw, field) => {
       for (const line of [raw.replace(INVISIBLE, ""), raw.replace(FILLER, " ").replace(INVISIBLE, "")]) {
         const trailer = line.match(TRAILER);
-        const own = (bump && trailer?.[1].toLowerCase() === "co-authored-by" && trailer[2].trim().toLowerCase() === DEPENDABOT_CREDIT) || (trailer && [RELEASE_BOT_TRAILER, DEPENDABOT_TRAILER].includes(trailer[2].trim().toLowerCase()));
+        const own = (bump && trailer?.[1].toLowerCase() === "co-authored-by" && trailer[2].trim().toLowerCase() === DEPENDABOT_CREDIT) || (trailer && [RELEASE_BOT_TRAILER, DEPENDABOT_TRAILER, OURO_CURRENT_CREDIT].includes(trailer[2].trim().toLowerCase()));
         if (trailer && !own && AI_OR_BOT.test(trailer[2])) return report(field, `"${raw.trim()}" credits an AI tool or a bot`, UNCREDIT);
         const generated = line.match(GENERATED);
         if ((generated && AI_TOOL.test(generated[1])) || ROBOT_FOOTER.test(line)) return report(field, `"${raw.trim()}" says an AI tool wrote it`, REWORD);
