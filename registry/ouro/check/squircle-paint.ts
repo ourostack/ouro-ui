@@ -476,7 +476,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             });
             const width = fragmented ? rect.width / scaleX : initial.width;
             const height = fragmented ? rect.height / scaleY : initial.height;
-            const [tl, tr, br, bl] = corners as [Corner, Corner, Corner, Corner];
+            const [tl, tr, br, bl] = [corners[0]!, corners[1]!, corners[2]!, corners[3]!];
             const factor = Math.min(1, width / Math.max(1, tl.x + tr.x), width / Math.max(1, bl.x + br.x), height / Math.max(1, tl.y + bl.y), height / Math.max(1, tr.y + br.y));
             for (const corner of corners) { corner.x *= factor; corner.y *= factor; }
             return { rect, width, height, corners };
