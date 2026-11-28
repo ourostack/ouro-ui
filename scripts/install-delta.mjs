@@ -9,7 +9,7 @@
 // Added, removed and moved items are not that: the files the shipped tests no longer write are removed
 // (install-delta.mjs remove) and the new and changed items are added again.
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { readStdin } from "./read-stdin.mjs";
 
@@ -20,6 +20,8 @@ const canonical = (value) =>
       ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical(value[key])]))
       : value;
 
+const hash = (value) => createHash("sha256").update(JSON.stringify(canonical(value))).digest("hex");
+
 // registryDependencies hold the temporary folder the built items sit in, so they are left out; the
 // dependency's own item is hashed under its own name.
 export function readItems(dir) {
@@ -29,8 +31,10 @@ export function readItems(dir) {
     const item = JSON.parse(readFileSync(join(dir, file), "utf8"));
     if (typeof item.name !== "string") continue;
     const { registryDependencies, ...rest } = item;
+    const shape = Object.fromEntries(Object.entries(rest).filter(([key]) => key !== "css" && key !== "cssVars"));
     items[item.name] = {
-      hash: createHash("sha256").update(JSON.stringify(canonical(rest))).digest("hex"),
+      hash: hash(rest),
+      shapeHash: hash(shape),
       paths: (item.files ?? []).map((entry) => entry.target ?? entry.path).sort(),
       packages: [...(item.dependencies ?? []), ...(item.devDependencies ?? [])].sort(),
       dependencies: (registryDependencies ?? []).map((dependency) => basename(dependency).replace(/\.json$/, "")).sort(),
@@ -89,7 +93,34 @@ export function plan(items, manifest, root = "ouro-tests") {
 }
 
 export function manifestOf(items) {
-  return { items: Object.fromEntries(Object.entries(items).map(([name, { hash, paths, dependencies, packages }]) => [name, { hash, paths, dependencies: [...dependencies].sort(), packages }])) };
+  return { items: Object.fromEntries(Object.entries(items).map(([name, { hash, shapeHash, paths, dependencies, packages }]) => [name, { hash, shapeHash, paths, dependencies: [...dependencies].sort(), packages }])) };
+}
+
+// Only the base's CSS changed, and all other changes still pass the ordinary delta proof.
+// Older manifests lack shapeHash and must take the full-add path.
+export function refreshableBase(items, manifest) {
+  const before = manifest?.items?.["ouro-base"];
+  const now = items["ouro-base"];
+  if (!before || !now?.stylesheet || before.hash === now.hash || typeof before.shapeHash !== "string" || before.shapeHash !== now.shapeHash) return false;
+  if (!Array.isArray(before.dependencies) || before.dependencies.join() !== now.dependencies.join()) return false;
+  if (closure(items, "ouro-tests").has("ouro-base") || closure(manifest.items, "ouro-tests").has("ouro-base")) return false;
+  const updated = { ...manifest, items: { ...manifest.items, "ouro-base": { ...before, hash: now.hash } } };
+  return plan(items, updated).mode === "incremental";
+}
+
+// The fresh base ran the same fixture and later-add checks as a full install. Copy its whole
+// stylesheet, including the app's rule, rather than merging CSS and retaining removed declarations.
+export function refreshBaseStylesheet(items, app, fresh) {
+  const manifestPath = join(app, ".ouro-added.json");
+  const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : null;
+  if (!refreshableBase(items, manifest)) return false;
+  const oldConfig = JSON.parse(readFileSync(join(app, "components.json"), "utf8"));
+  const newConfig = JSON.parse(readFileSync(join(fresh, "components.json"), "utf8"));
+  if (oldConfig.tailwind?.css !== "src/index.css" || JSON.stringify(canonical(oldConfig)) !== JSON.stringify(canonical(newConfig))) return false;
+  copyFileSync(join(fresh, "src/index.css"), join(app, "src/index.css"));
+  manifest.items["ouro-base"].hash = items["ouro-base"].hash;
+  writeFileSync(manifestPath, `${JSON.stringify(manifest)}\n`);
+  return true;
 }
 
 // Where an item's target lands in an app: shadcn's aliases (@components, @lib) come from components.json and
@@ -131,8 +162,19 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   } else if (command === "plan") {
     const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : null;
     console.log(JSON.stringify(plan(items, manifest)));
+  } else if (command === "refresh-plan") {
+    const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, "utf8")) : null;
+    console.log(refreshableBase(items, manifest) ? "refresh" : "full");
+  } else if (command === "refresh") {
+    const fresh = process.argv[5];
+    if (!fresh) throw new Error("refresh needs the freshly prepared base app");
+    if (!refreshBaseStylesheet(items, manifestPath, fresh)) {
+      console.error("Install delta: the base or app configuration is not safe to refresh; adding everything");
+      process.exit(75);
+    }
+    console.log("Install delta: copied the freshly prepared base's stylesheet");
   } else {
-    console.error("usage: install-delta.mjs <plan|write|remove> <built items dir> <manifest or app dir>");
+    console.error("usage: install-delta.mjs <plan|write|remove|refresh-plan|refresh> <built items dir> <manifest or app dir> [fresh base app]");
     process.exit(2);
   }
 }
