@@ -28,7 +28,7 @@ export default function ComposerDemo(): JSX.Element {
   const [expanded, setExpanded] = useState(false);
   const [height, setHeight] = useState<number | null>(null);
   return (
-    <div ref={room} className="flex h-[min(24rem,60vh)] w-full max-w-lg flex-col justify-end">
+    <div ref={room} className="flex h-[min(16rem,60vh)] w-full max-w-lg flex-col justify-end">
       <Composer
         editorRef={editor}
         label="Plan a Friday gathering"
@@ -65,7 +65,7 @@ export default function ComposerDemo(): JSX.Element {
           toast("Plan sent");
         }}
       />
-      <Toaster />
+      <Toaster avoid="[data-ouro='composer']" />
     </div>
   );
 }
