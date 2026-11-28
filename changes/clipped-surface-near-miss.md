@@ -1,0 +1,1 @@
+- Fixed: [near-miss compares partially clipped surfaces with outside neighbours at their painted edges](registry/ouro/check/layout-check.ts "verify:testExists(test/check-layout-in-page.test.ts::findLayoutIssues: near-miss > clips a fixed child's painted edge when a transformed pane is its containing block)").

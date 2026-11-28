@@ -152,6 +152,71 @@ describe("findLayoutIssues: near-miss", () => {
     `<div id="${id}" style="position:fixed;left:${left}px;top:${top}px;width:${width}px;height:${height}px;box-sizing:border-box;${style}"></div>`;
   const found = () => of("near-miss").map(({ element, detail }) => [element, detail.replace(/ apart.*$/, "")]);
 
+  it.each(["x", "y"])("compares a partially clipped surface's painted %s edge outside its pane, retaining a genuinely small gap", (axis) => {
+    for (const overflow of ["auto", "hidden", "clip"]) {
+      render(`
+        <div style="position:fixed;left:20px;top:20px;${axis === "x" ? "display:flex" : ""}">
+          <div id="outside" style="width:60px;height:40px;flex-shrink:0;background:#cde"></div>
+          <div id="pane" style="width:120px;height:100px;overflow:${overflow};${axis === "x" ? "margin-left" : "margin-top"}:8px">
+            <div id="clipped" style="position:relative;${axis === "x" ? "left" : "top"}:-0.953125px;width:60px;height:40px;background:#cde"></div>
+            <div style="width:240px;height:200px"></div>
+          </div>
+        </div>`);
+      expect(found()).toEqual([]);
+      host.querySelector<HTMLElement>("#pane")!.style[axis === "x" ? "marginLeft" : "marginTop"] = "7px";
+      expect(found()).toEqual([["div#outside and div#clipped", "7px"]]);
+      host.remove();
+    }
+  });
+
+  it("keeps the design gap between partially clipped children sharing a pane, including nested clips", () => {
+    render(`
+      <div style="position:fixed;left:20px;top:20px;width:120px;height:100px;overflow:hidden">
+        <div style="overflow:clip">
+          <div style="display:flex;position:relative;left:-1px;gap:7px">
+            <div id="first" style="width:40px;height:40px;flex-shrink:0;background:#cde"></div>
+            <div id="second" style="width:40px;height:40px;flex-shrink:0;background:#cde"></div>
+          </div>
+        </div>
+      </div>`);
+    expect(found()).toEqual([["div#first and div#second", "7px"]]);
+  });
+
+  it("retains a small gap on the axis a pane does not clip", () => {
+    render(`
+      <div style="position:fixed;left:20px;top:20px">
+        <div id="outside" style="width:60px;height:40px;background:#cde"></div>
+        <div style="width:120px;height:100px;margin-top:8px;overflow-x:clip;overflow-y:visible">
+          <div id="clipped" style="position:relative;top:-0.953125px;width:60px;height:40px;background:#cde"></div>
+        </div>
+      </div>`);
+    expect(found()).toEqual([["div#outside and div#clipped", "7px"]]);
+  });
+
+  it("clips to a bordered pane's padding edge rather than its border edge", () => {
+    render(`
+      <div style="position:fixed;left:20px;top:20px">
+        <div id="outside" style="width:60px;height:40px;background:#cde"></div>
+        <div id="pane" style="width:120px;height:100px;margin-top:6px;border:2px solid transparent;box-sizing:border-box;overflow:hidden">
+          <div id="clipped" style="position:relative;top:-0.953125px;width:60px;height:40px;background:#cde"></div>
+        </div>
+      </div>`);
+    expect(found()).toEqual([]);
+    host.querySelector<HTMLElement>("#pane")!.style.marginTop = "5px";
+    expect(found()).toEqual([["div#outside and div#clipped", "7px"]]);
+  });
+
+  it("clips a fixed child's painted edge when a transformed pane is its containing block", () => {
+    render(`
+      <div style="position:fixed;left:20px;top:20px">
+        <div id="outside" style="width:60px;height:40px;background:#cde"></div>
+        <div style="width:120px;height:100px;margin-top:8px;overflow:hidden;transform:translateZ(0)">
+          <div id="fixed" style="position:fixed;left:0;top:-0.953125px;width:60px;height:40px;background:#cde"></div>
+        </div>
+      </div>`);
+    expect(found()).toEqual([]);
+  });
+
   it("finds two surfaces a few pixels apart, across and down, and a surface a few pixels inside the one around it", () => {
     render(`${box("a", 10, 10, 60, 30)}${box("b", 74, 10, 60, 30)}${box("c", 10, 100, 60, 30)}${box("d", 10, 133, 60, 30)}`);
     const issues = of("near-miss");
