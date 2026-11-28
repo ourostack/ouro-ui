@@ -292,6 +292,22 @@ it("keeps a native shadow and its probe separate from a descendant's external pa
   expect(surface.getAttribute("data-ouro-paint-solo")).toBe("original");
 }, paintTimeout);
 
+it("keeps a fallback popup's curved shadow separate from its content", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render(`<button style="position:absolute;left:0;top:0;width:100px;height:44px;background:#eaf2fa">Open</button>
+      <div class="surface rounded-ouro-lg" style="position:absolute;left:0;top:52px;width:288px;height:156px;background:white;box-shadow:0 0 0 1px #9999,0 10px 15px -3px #0002,0 4px 6px -4px #0002">
+        <div style="padding:16px"><strong>Notes</strong><p>A short description.</p><input value="Example"></div>
+      </div>`);
+    const surface = root.querySelector<HTMLElement>(".surface")!;
+    expect(await findSquirclePaint()).toEqual([]);
+    surface.insertAdjacentHTML("beforeend", '<div style="position:absolute;left:-12px;top:-12px;width:8px;height:8px;background:#f40"></div>');
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-ouro-lg");
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
 it("finds paint on a forced fallback and skips invisible or offscreen surfaces", async () => {
   const root = render('<div id="surface" style="position:relative;width:160px;height:120px;border-radius:15px;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px;background:#fff"><div style="position:absolute;inset:0;background:#f40"></div></div>');
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#surface");
@@ -404,15 +420,22 @@ it("reports a missing capture and a screenshot whose size changed", async () => 
 
 it("rejects a capture that does not cover the requested clip at CSS or device scale", async () => {
   render('<div style="width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"></div>');
-  state.__ouroPaintCapture = async (clip) => {
+  const image = (clip: PaintClip, width: number, height: number) => {
     const canvas = document.createElement("canvas");
-    canvas.width = clip.width + 20;
-    canvas.height = clip.height;
+    canvas.width = clip.width * width;
+    canvas.height = clip.height * height;
     return canvas.toDataURL("image/png");
   };
+  const ratio = Object.getOwnPropertyDescriptor(window, "devicePixelRatio");
   try {
+    Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 2 });
+    state.__ouroPaintCapture = async (clip) => image(clip, 2, 2);
+    expect(await findSquirclePaint()).toEqual([]);
+    state.__ouroPaintCapture = async (clip) => image(clip, 2, 1);
     await expect(findSquirclePaint()).rejects.toThrow("squircle-paint capture must cover the requested clip");
   } finally {
+    if (ratio) Object.defineProperty(window, "devicePixelRatio", ratio);
+    else Reflect.deleteProperty(window, "devicePixelRatio");
     state.__ouroPaintCapture = (clip) => commands.squircleCapture(clip);
   }
 });
