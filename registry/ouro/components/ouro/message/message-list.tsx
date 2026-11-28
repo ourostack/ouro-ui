@@ -3271,7 +3271,7 @@ export function MessageList(props: MessageListProps): JSX.Element {
           data-ouro-part="scroller"
           onKeyDown={(event) => keyHandler.current!(event)}
           // While focused, isolate keeps the content's own stacking (a sticky header's z-index) inside the scroller, under the ring.
-          className="peer relative min-h-0 flex-1 overflow-y-auto bg-(--ouro-scroller-surface) overscroll-contain [overflow-anchor:none] outline-none focus-visible:isolate forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1"
+          className="peer relative min-h-0 flex-1 overflow-y-auto bg-[color:var(--ouro-scroller-surface,var(--muted))] overscroll-contain [overflow-anchor:none] outline-none focus-visible:isolate forced-colors:[&[tabindex='0']]:outline-1 forced-colors:[&[tabindex='0']]:outline-solid forced-colors:[&[tabindex='0']]:-outline-offset-1"
         >
           <span ref={startRef} tabIndex={-1} aria-hidden="true" data-ouro-message-list-edge="" className="absolute outline-none" />
           <div
