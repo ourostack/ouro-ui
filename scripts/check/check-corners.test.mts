@@ -427,6 +427,27 @@ test("squircle-paint separates distant fractional inline fragments and still fin
   }
 });
 
+test("squircle-paint does not hide a neighbor in a wrapped inline's bounding gap", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: 390, height: 300 }, deviceScaleFactor: 2 });
+  const tab = await context.newPage();
+  await bindCapture(tab);
+  try {
+    await tab.setContent(`<style>
+      body { margin: 0; background: #fffaf7; }
+      .line { position: absolute; left: 16px; top: 100.609375px; width: 350px; font: 16px/21px sans-serif; }
+      a { color: #b44939; }
+      code { font: 14px/20px monospace; background: #f5f5f7; border-radius: 4.806px; corner-shape: squircle; padding: 0.1em 0.3em; }
+    </style><div class="line"><a href="#example">Seed</a> <code>one two three four five six seven eight nine ten eleven twelve</code></div>`);
+    const rects = await tab.locator("code").evaluate((el) => [...el.getClientRects()].map((rect) => rect.toJSON()));
+    assert.equal(rects.length, 2);
+    assert.ok(rects[0]!.left > rects[1]!.left);
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+  } finally {
+    await browser.close();
+  }
+});
+
 test("squircle-paint passes adjacent native buttons at a fractional edge", async () => {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
