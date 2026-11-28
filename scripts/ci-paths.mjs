@@ -61,7 +61,7 @@ export const scoped = [
 export const runsAll = {
   scripts: [
     "a11y-evidence/", "addresses.d.mts", "addresses.mjs", "adoption/", "agent-benchmark/", "agent-usability/", "apple-release.mjs", "attribution.mjs", "ax-docs.mts",
-    "browser-deps.sh", "catalog-groups.mts", "changes.mjs", "check/", "ci-paths.mjs", "ci-relevance.mjs", "claims.mjs", "components.mts", "conformance-exemptions.mjs", "control-matrix.mts",
+    "branch-holds-pin.mjs", "browser-deps.sh", "catalog-groups.mts", "changes.mjs", "check/", "ci-paths.mjs", "ci-relevance.mjs", "claims.mjs", "components.mts", "conformance-exemptions.mjs", "control-matrix.mts",
     "core-bundle.mts", "coverage-merge.mjs", "cross-kit/", "docs-summary.mts", "drift/", "fixtures/", "form-answer-impact.mjs", "gen-docs.mts", "generate.mjs",
     "generated-files.d.mts", "generated-files.mjs", "git-hooks/", "goto-timeout-reporter.mjs", "gradient-known.json", "headroom-ratchet.mjs", "headroom-reporter.mts", "headroom.d.mts", "headroom.mjs", "images/", "install-check.mjs", "install-folders.mts", "install-hooks.mjs",
     "kit-pin.mjs", "kits/", "latency-quiet.mjs", "latest-release.mjs", "local-test-gate.sh", "layout-animation-allowed.json", "links.mjs", "lint/", "mcp-app.mts", "mcp-app/", "mirror/", 
