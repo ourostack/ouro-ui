@@ -36,11 +36,11 @@
  * - --ouro-layer: the z-index of sheet and dialog portals.
  * - --ouro-gap-min: the least gap between two separate surfaces that don't touch (0.5rem); Ouro check's
  *   near-miss rule reads it.
- * - --ouro-scroller-surface: the opaque fill of the surface a scroller sits on, the page's background
- *   by default. ScrollArea and MessageList paint their scroll viewport with it, so Chromium on Windows
+ * - --ouro-scroller-surface: an optional override for a scroller's opaque fill. ScrollArea and
+ *   MessageList fall back to their local muted surface, so Chromium on Windows
  *   (which keeps LCD text on a see-through scroller by not promoting it to the compositor) promotes it
  *   and scrolls without repainting. Ouro's own surfaces (Card, Popover, Menu, Dialog, Sheet and the like) set it
- *   to their fill. A scroller on any other surface sets it to that surface's opaque color.
+ *   to their fill. An app can set it to another opaque theme surface, or to transparent on glass.
  * - The root type on a very wide screen: 112.5% from 150rem and 125% from 200rem, so a 4K display
  *   at 1x reads at a laptop's size.
  * - --input and --radius, with shadcn's stock values, for an app whose theme has neither:
@@ -230,8 +230,6 @@
    * level the portal still wins, because it is the last child of <body>.
    */
   --ouro-layer: 50;
-  /* The opaque fill of the surface a scroller sits on (ScrollArea, MessageList); see the header. */
-  --ouro-scroller-surface: var(--background);
   /* Liquid Glass, as the switch's lens wears it: the tint over what is behind, the inner rim and the outer hairline. */
   --ouro-glass: #ffffff;
   --ouro-glass-tint: 34%;
@@ -255,7 +253,7 @@
 
 .dark {
   /*
-   * --ouro-scroller-surface, --ouro-row-radius, --ouro-row-selected*, and --ouro-row-hover-shadow
+   * --ouro-row-radius, --ouro-row-selected*, and --ouro-row-hover-shadow
    * are not repeated here: their formulas already read theme-dependent variables (or are fixed
    * constants), so :root's declarations resolve to the same value here too.
    */

@@ -93,8 +93,7 @@ const launchTasks = [
 ];
 
 /**
- * A table and a line of code wider than the bubble scroll sideways, and fade out at the side
- * where they go on, so they never look cut off. Shown at a phone's width.
+ * A table and a line of code wider than the bubble scroll sideways. Shown at a phone's width.
  */
 export const WideContent: Story = {
   render: () => (
@@ -218,7 +217,7 @@ function ChatConversation({ bubble = "filled" }: { bubble?: MessageBubble }) {
           continued
           actions={actions}
           menu={menu}
-          footer={<span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>Edited</span>}
+          footer={<span style={{ fontSize: 12, color: "color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground))" }}>Edited</span>}
           statusMark={<span style={{ fontSize: 12, color: "color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground))" }}>Seen</span>}
         >
           I will print the seating plan tonight.
@@ -308,7 +307,7 @@ const repliers = [{ name: "Mara Quill" }, { name: "Theo Brandt" }, { name: "Priy
 /** A channel's own surface: posts run edge to edge on it, with no gap of the story's own between them. */
 function Channel({ children, label }: { children: ReactNode; label: string }) {
   return (
-    <div style={{ background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", borderRadius: "calc(var(--radius) + 4px)", padding: "4px 12px", maxWidth: 720 }}>
+    <div style={{ background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", borderRadius: "calc(var(--radius) + 4px)", padding: "0 12px", maxWidth: 720 }}>
       <MessageList label={label}>{children}</MessageList>
     </div>
   );
@@ -443,7 +442,7 @@ export const Thread: Story = {
       <Message variant="post" role="assistant" name="Jonah Vale" presence="busy" presenceLabel="In a meeting" time="7:30 AM" subject="Agenda for Friday's design review">
         We will look at the new onboarding flow first, then the settings page. Add your questions to this thread before Thursday so we can group them.
       </Message>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, paddingInlineStart: 44, fontSize: 12, color: "var(--muted-foreground)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, paddingInlineStart: 44, fontSize: 12, color: "color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground))" }}>
         <span>3 replies</span>
         <span style={{ flex: 1, borderTop: "1px solid var(--border)" }} />
       </div>
@@ -487,7 +486,7 @@ function FlatChannelMessages() {
           }
         />
         {/* An hour and a half later: a quiet time says why the gap is there, so the message under it needs no time of its own. */}
-        <p style={{ margin: 0, textAlign: "center", fontSize: 12, color: "var(--muted-foreground)" }}>
+        <p style={{ margin: 0, textAlign: "center", fontSize: 12, color: "color-mix(in oklab, var(--muted-foreground) 80%, var(--foreground))" }}>
           <time dateTime="2026-05-04T10:31">10:31 AM</time>
         </p>
         <Message variant="chat" role="user" name="Priya Okafor">

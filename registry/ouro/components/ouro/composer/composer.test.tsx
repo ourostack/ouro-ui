@@ -97,7 +97,7 @@ function onPlatform(platform: "macOS" | "Windows") {
 describe("Composer conversation", () => {
   it("starts an uncontrolled draft over when conversation changes, and keeps it while it stays", async () => {
     const view = await render(<Composer label="Message" conversation="a" onSend={() => {}} />);
-    await userEvent.type(view.textarea, "half a thought");
+    await userEvent.fill(view.textarea, "half a thought");
     await view.rerender(<Composer label="Message" conversation="a" onSend={() => {}} />);
     expect(view.textarea.value).toBe("half a thought");
     await view.rerender(<Composer label="Message" conversation="b" defaultValue="Hi" onSend={() => {}} />);
@@ -1074,7 +1074,7 @@ describe("Composer expanded", () => {
     expect(onExpandedChange).toHaveBeenCalledWith(true);
     await rerender(<Composer label="Reply" expanded={false} toolbar={formatting} onSend={() => {}} />);
     expect(expandButton()).toBeNull();
-    expect(root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
+    await expect.poll(() => root.querySelector("[data-ouro-composer-toolbar]")).toBeNull();
   });
 
   it("gives the expanded text the whole width, with the buttons on a row under it", async () => {

@@ -153,7 +153,7 @@ export interface MessageOwnProps {
    * own message filled with `--ouro-bubble-user` and text in `--ouro-bubble-user-foreground`
    * when the theme sets them, else as a primary button is (`--ouro-action`, else the primary color); others'
    * filled with `--ouro-bubble-other` and text in `--ouro-bubble-other-foreground` when the theme sets them, else
-   * the muted surface, each round with equal corners, with an edge that
+   * the muted surface (the page surface in a `MessageList` on a page), each round with equal corners, with an edge that
    * forced colors draw. In a run of `continued` messages from one sender, the corners where neighboring bubbles meet
    * are slightly less round (`--ouro-message-joined-radius`, `--radius-ouro-xl` unless set), on the side the bubbles sit (the end
    * for the user's own, the start for others', mirrored in right-to-left), and `MessageList` keeps
@@ -168,6 +168,7 @@ export interface MessageOwnProps {
    *
    * @claim "`filled`, the default, is a messaging" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills the user's own bubble with the primary color and puts others' on the muted surface by default, each round with equal corners)
    * @claim "others' filled with `--ouro-bubble-other`" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills others' bubble from --ouro-bubble-other and its text from --ouro-bubble-other-foreground before the muted surface)
+   * @claim "the page surface in a `MessageList`" registry/ouro/components/ouro/message/message-list.surface.test.tsx verify:testExists(registry/ouro/components/ouro/message/message-list.surface.test.tsx::MessageList surface > paints its scroller with the muted surface, opaque, on the page (%s))
    * @claim "on others', a link, a mention or muted text" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > keeps a link in the primary color at 4.5:1 or more on others' muted bubble)
    * @claim "follows the bubble's own text color" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > mixes a link, a success mark and muted text toward --ouro-bubble-other-foreground, not the page's own foreground, once it is set)
    * @claim "else as a primary button" registry/ouro/components/ouro/message/message.test.tsx verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message chat > fills the user's own bubble as a primary button is, from --ouro-action when the theme sets it)
@@ -488,8 +489,8 @@ const placements = ["corner", "beside"] as const;
 
 const bubbles = {
   user: "rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:0.5rem] group-data-continued/message:rounded-se-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-ee-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-ee-(--ouro-jr) bg-primary px-3.5 pt-2 pb-2 text-primary-foreground",
-  assistant: "rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:0.5rem] group-data-continued/message:rounded-ss-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-es-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-es-(--ouro-jr) bg-muted px-3.5 py-2 text-foreground",
-  system: "bg-transparent text-center text-muted-foreground",
+  assistant: "rounded-ouro-2xl [--ouro-jr:var(--ouro-message-joined-radius,var(--radius-ouro-xl))] [--ouro-fr:var(--radius-ouro-2xl)] [--ouro-fi:0.5rem] group-data-continued/message:rounded-ss-(--ouro-jr) [[data-ouro-message-list-run-next]_&]:rounded-es-(--ouro-jr) group-has-[+[data-continued]]/message:rounded-es-(--ouro-jr) bg-(--ouro-message-list-bubble,var(--muted)) px-3.5 py-2 text-foreground",
+  system: "bg-transparent text-center text-muted-foreground [[data-ouro=message-list]_&]:text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]",
 } as const;
 
 // A raised surface: the theme's card with its hairline and small shadow, for a chat's bubbles.
@@ -533,7 +534,7 @@ const filledInk =
 // sets, flat, with no shadow, like the user's own. The message mixes them (mutedColors) and the bubble reads
 // them (mutedInk): a variable can't be mixed from itself.
 const mutedColors = {
-  "--ouro-bubble-other-fill": "var(--ouro-bubble-other,var(--muted))",
+  "--ouro-bubble-other-fill": "var(--ouro-bubble-other,var(--ouro-message-list-bubble,var(--muted)))",
   "--ouro-bubble-other-ink": "var(--ouro-bubble-other-foreground,var(--foreground))",
   "--ouro-bubble-link": "color-mix(in oklab,var(--primary) 85%,var(--ouro-bubble-other-ink))",
   "--ouro-bubble-success": "color-mix(in oklab,var(--success) 85%,var(--ouro-bubble-other-ink))",
@@ -542,6 +543,7 @@ const mutedColors = {
 const mutedInk = {
   "--muted": "var(--ouro-bubble-other-fill)",
   "--foreground": "var(--ouro-bubble-other-ink)",
+  "--ouro-scroller-surface": "color-mix(in oklab,var(--ouro-bubble-other-ink) 12%,var(--ouro-bubble-other-fill))",
   "--primary": "var(--ouro-bubble-link)",
   "--success": "var(--ouro-bubble-success)",
   "--muted-foreground": "var(--ouro-bubble-quiet)",
@@ -866,7 +868,7 @@ export function Message(props: MessageProps): JSX.Element {
     );
   const notSent = failed !== false && (
     <div data-ouro-message-failed="" className={cn("flex max-w-full flex-wrap items-center gap-x-1 text-xs", variant === "post" && postRow)}>
-      <span id={failedId} className="inline-flex items-center gap-1 font-medium text-destructive">
+      <span id={failedId} className="inline-flex items-center gap-1 font-medium text-destructive [[data-ouro=message-list]_&]:text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]">
         <NotSentIcon aria-hidden="true" className="size-ouro-3_5 shrink-0" />
         {failedLabel}
       </span>
@@ -1006,7 +1008,7 @@ export function Message(props: MessageProps): JSX.Element {
             role === "user" ? "items-end" : role === "system" ? "items-center" : "items-start",
           )}
         >
-          <span id={nameId} data-ouro-message-author="" className={role === "assistant" && !continued ? "px-1 text-xs font-medium text-muted-foreground" : "sr-only"}>
+          <span id={nameId} data-ouro-message-author="" className={role === "assistant" && !continued ? "px-1 text-xs font-medium text-muted-foreground [[data-ouro=message-list]_&]:text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]" : "sr-only"}>
             {authorName(name, nameContent, nameLoading ? nameLoadingLabel : undefined)}
             {nameTag && <span className="sr-only">, </span>}
             {nameTag && (
@@ -1058,14 +1060,14 @@ export function Message(props: MessageProps): JSX.Element {
         {authorName(name, nameContent, nameLoading ? nameLoadingLabel : undefined)}
       </span>
       {nameTag && (
-        <span data-ouro-message-name-tag="" className={nameShown ? cn("shrink-0 text-muted-foreground", people && "text-xs") : "sr-only"}>
+        <span data-ouro-message-name-tag="" className={nameShown ? cn("shrink-0 text-muted-foreground [[data-ouro=message-list]_&]:text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]", people && "text-xs") : "sr-only"}>
           <span className="sr-only">, </span>
           {nameTag}
         </span>
       )}
       {time !== undefined && <span className="sr-only">, </span>}
       {time !== undefined && (
-        <time id={timeId} dateTime={dateTime} className={cn("shrink-0 text-muted-foreground tabular-nums", people && "text-xs")}>
+        <time id={timeId} dateTime={dateTime} className={cn("shrink-0 text-muted-foreground [[data-ouro=message-list]_&]:text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] tabular-nums", people && "text-xs")}>
           {time}
         </time>
       )}
@@ -1153,7 +1155,7 @@ export function Message(props: MessageProps): JSX.Element {
                 // holds its end at the same slack the gutter always gave it, whatever its width, so it never reaches the
                 // bubble and still clears the row's focus ring for a short time; it reuses the 2 step other parts of
                 // this file already apply at this inline edge (ms-2, me-2), rather than a new arbitrary value.
-                className="-me-2 mt-2.5 text-[0.625rem] leading-none whitespace-nowrap text-muted-foreground tabular-nums opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:group-hover/message:opacity-100 group-focus-within/message:opacity-100"
+                className="-me-2 mt-2.5 text-[0.625rem] leading-none whitespace-nowrap text-muted-foreground [[data-ouro=message-list]_&]:text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] tabular-nums opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] pointer-fine:group-hover/message:opacity-100 group-focus-within/message:opacity-100"
               >
                 {time}
               </time>

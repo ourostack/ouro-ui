@@ -2,7 +2,7 @@ import { useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { ThreadRail, type ThreadRailProps } from "@/registry/ouro/components/ouro/thread-rail/thread-rail";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -83,6 +83,59 @@ function Stateful({ returnFocus }: { returnFocus?: RefObject<HTMLElement | null>
 }
 
 describe("ThreadRail", () => {
+  it.each(["ltr", "rtl"])("keeps the rail's surface continuous along the conversation edge in %s", async (direction) => {
+    const root = document.documentElement;
+    const previous = root.dir;
+    root.dir = direction;
+    try {
+      const { rail } = await render(
+        <ThreadRail label="Thread" autoFocus={false} onClose={noop}>
+          <div data-test-scroller="" style={{ height: 200, background: "var(--ouro-scroller-surface)" }} />
+        </ThreadRail>,
+      );
+      const scroller = rail.querySelector<HTMLElement>("[data-test-scroller]")!;
+      const railBox = rail.getBoundingClientRect();
+      const scrollerBox = scroller.getBoundingClientRect();
+      const inset = direction === "rtl" ? railBox.right - scrollerBox.right : scrollerBox.left - railBox.left;
+      const trailing = direction === "rtl" ? scrollerBox.left - railBox.left : railBox.right - scrollerBox.right;
+      expect(inset).toBeGreaterThanOrEqual(20);
+      expect(trailing).toBeGreaterThanOrEqual(12);
+      expect(railBox.bottom - scrollerBox.bottom).toBeGreaterThanOrEqual(12);
+    } finally {
+      root.dir = previous;
+    }
+  });
+
+  it.each(["light", "dark"])("keeps its header on the rail surface and steps the scroller in %s", async (scheme) => {
+    const root = document.documentElement;
+    const wasDark = root.classList.contains("dark");
+    root.classList.toggle("dark", scheme === "dark");
+    try {
+      const { rail } = await render(<ThreadRail label="Thread" autoFocus={false} onClose={noop} />);
+      const header = rail.querySelector<HTMLElement>("[data-ouro-thread-rail-header]")!;
+      const scroller = document.createElement("div");
+      scroller.style.backgroundColor = "var(--ouro-scroller-surface)";
+      rail.append(scroller);
+      const railFill = getComputedStyle(rail).backgroundColor;
+      expect(getComputedStyle(header).backgroundColor).toBe(railFill);
+      expect(getComputedStyle(scroller).backgroundColor).not.toBe(railFill);
+      scroller.remove();
+    } finally {
+      root.classList.toggle("dark", wasDark);
+    }
+  });
+
+  it("keeps a visible edge in forced colors without drawing one otherwise", async () => {
+    const { rail } = await render(<ThreadRail label="Thread" autoFocus={false} onClose={noop} />);
+    expect(getComputedStyle(rail).borderInlineStartWidth).toBe("0px");
+    try {
+      await commands.emulateMedia({ forcedColors: "active" });
+      await expect.poll(() => getComputedStyle(rail).borderInlineStartWidth).not.toBe("0px");
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
   it("keeps its fixed sizes at a compact --spacing", async () => {
     const { host, close } = await render(<ThreadRail label="Thread" onClose={noop} />);
     const icon = () => getComputedStyle(close.querySelector<SVGElement>("svg")!);

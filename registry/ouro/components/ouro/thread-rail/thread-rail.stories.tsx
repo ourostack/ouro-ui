@@ -9,7 +9,7 @@ import { ThreadRail } from "@/registry/ouro/components/ouro/thread-rail/thread-r
 // Layout here uses inline styles and the theme's CSS variables (shadcn's names).
 
 /** A conversation beside the thread, in a fixed-height page: the rail takes the page's height. */
-function Page({ children }: { children: ReactNode }) {
+function Page({ children, opener }: { children: ReactNode; opener?: ReactNode }) {
   return (
     <div
       style={{
@@ -22,7 +22,10 @@ function Page({ children }: { children: ReactNode }) {
         borderRadius: "calc(var(--radius) + 4px)",
       }}
     >
-      <div style={{ flex: 1, minWidth: 0, padding: 16, color: "var(--muted-foreground)" }}>Design reviews</div>
+      <div style={{ flex: 1, minWidth: 0, padding: 16, color: "var(--muted-foreground)" }}>
+        Design reviews
+        {opener}
+      </div>
       {children}
     </div>
   );
@@ -74,12 +77,15 @@ export const Playground: Story = {
 function ControlledRail() {
   const [open, setOpen] = useState(false);
   return (
-    <Page>
-      <div style={{ padding: 16 }}>
-        <Button variant="outline" aria-expanded={open} onClick={() => setOpen(true)}>
-          Show thread
-        </Button>
-      </div>
+    <Page
+      opener={
+        <div style={{ paddingTop: 16 }}>
+          <Button variant="outline" aria-expanded={open} onClick={() => setOpen(true)}>
+            Show thread
+          </Button>
+        </div>
+      }
+    >
       {open && (
         <ThreadRail label="Thread" title="Replies" detail="Design reviews" meta="2 replies" onClose={() => setOpen(false)} className="w-96 max-w-[65%]">
           <Thread />
