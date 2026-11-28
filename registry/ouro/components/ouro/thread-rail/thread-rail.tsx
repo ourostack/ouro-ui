@@ -197,7 +197,7 @@ export function ThreadRail(props: ThreadRailProps): JSX.Element {
           </Button>
         </Tooltip>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col ps-2">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col ps-5 pe-3 pb-3">{children}</div>
     </aside>
   );
 }
