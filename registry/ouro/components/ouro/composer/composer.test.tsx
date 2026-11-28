@@ -8,7 +8,7 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { Composer, type ComposerEditor, type ComposerMove, type ComposerProps, type ComposerQuote } from "@/registry/ouro/components/ouro/composer/composer";
-import { clearComposerDrafts, composerDrafts, composerShortcuts, formatEdit, isApple, pressed } from "@/registry/ouro/components/ouro/composer/composer-styles";
+import { clearComposerDrafts, composerDrafts, composerShortcuts, formatEdit, isApple, pressed, preloadRichEditor } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { EmojiText, type EmojiCatalogue, type EmojiItem } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
@@ -458,6 +458,24 @@ describe("Composer presses around the text", () => {
     await press(frame, 6, frame.getBoundingClientRect().height - 6);
     expect(document.activeElement).toBe(textarea);
     expect(textarea.selectionStart).toBe(text.length);
+  });
+
+  it("puts the caret at the end of rich text from the footer's blank space, but leaves a disabled editor alone", async () => {
+    await preloadRichEditor();
+    const onFocus = vi.fn();
+    const view = await render(<Composer label="Reply" format="rich" defaultValue={text} onFocus={onFocus} onSend={() => {}} />);
+    const editor = view.host.querySelector<HTMLElement>("[data-ouro-composer-editor]")!;
+    const footer = view.send.parentElement!;
+    await press(footer, 6, footer.getBoundingClientRect().height - 6);
+    expect(document.activeElement).toBe(editor);
+    expect(window.getSelection()?.anchorNode?.textContent).toBe("See you then.");
+    expect(window.getSelection()?.anchorOffset).toBe("See you then.".length);
+    await view.rerender(<Composer label="Reply" format="rich" defaultValue={text} disabled onFocus={onFocus} onSend={() => {}} />);
+    editor.blur();
+    onFocus.mockClear();
+    await press(footer, 6, footer.getBoundingClientRect().height - 6);
+    expect(document.activeElement).not.toBe(editor);
+    expect(onFocus).not.toHaveBeenCalled();
   });
 
   it("puts the caret at the end of a line on a press between the line and the send button", async () => {
@@ -1101,6 +1119,14 @@ describe("Composer expanded", () => {
     expect(Math.abs(text.top + text.height / 2 - button.top - button.height / 2)).toBeLessThanOrEqual(2);
   });
 
+  it("keeps an empty rich quick reply and its actions on one line on a phone", async () => {
+    await preloadRichEditor();
+    const { host, send } = await render(<Composer label="Reply" format="rich" defaultExpanded={false} onSend={() => {}} />, 320);
+    const text = host.querySelector<HTMLElement>("[data-ouro-composer-editor]")!.getBoundingClientRect();
+    const button = send.getBoundingClientRect();
+    expect(Math.abs(text.top + text.height / 2 - button.top - button.height / 2)).toBeLessThanOrEqual(2);
+  });
+
   it("can expand with onExpandedChange alone, and hides the toolbar of a collapsed composer the app controls without listening", async () => {
     const onExpandedChange = vi.fn();
     const { root, rerender } = await render(<Composer label="Reply" onExpandedChange={onExpandedChange} toolbar={formatting} onSend={() => {}} />);
@@ -1290,9 +1316,11 @@ describe("Composer expanded", () => {
   });
 
   it("does not animate when expanding leaves the box its height", async () => {
-    const { root } = await render(<Composer label="Reply" defaultExpanded={false} expandedRows={1} onSend={() => {}} />, 200);
+    const { root } = await render(<Composer label="Reply" defaultExpanded={false} rows={2} expandedRows={2} onSend={() => {}} />, 200);
     const frame = root.querySelector<HTMLElement>("[data-ouro-composer-frame]")!;
+    const before = frame.getBoundingClientRect().height;
     await userEvent.click(expandButton()!);
+    expect(frame.getBoundingClientRect().height).toBe(before);
     expect(frame.getAnimations()).toEqual([]);
     expect(frame.hasAttribute("data-ouro-moving")).toBe(false);
   });
@@ -2053,6 +2081,33 @@ describe("Composer with a catalogue", () => {
 });
 
 describe("Composer text at rest", () => {
+  it.each(["plain", "rich"] as const)("gives a %s draft with line breaks its own writing row without replacing its editor or caret", async (format) => {
+    if (format === "rich") await preloadRichEditor();
+    const view = await render(<Composer label="Reply" format={format} defaultExpanded={false} defaultValue="One" onSend={() => {}} />, 600);
+    const editor = view.host.querySelector<HTMLElement>("textarea, [data-ouro-composer-editor]")!;
+    editor.focus();
+    if (editor instanceof HTMLTextAreaElement) editor.setSelectionRange(3, 3);
+    else {
+      const range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+      window.getSelection()!.removeAllRanges();
+      window.getSelection()!.addRange(range);
+    }
+    await userEvent.keyboard("{Shift>}{Enter}{/Shift}Two");
+    expect(document.activeElement).toBe(editor);
+    expect(view.host.querySelector("textarea, [data-ouro-composer-editor]")).toBe(editor);
+    if (editor instanceof HTMLTextAreaElement) expect(editor.selectionStart).toBe(7);
+    else expect(window.getSelection()?.anchorOffset).toBe(3);
+    await expect.poll(() => view.send.parentElement!.getBoundingClientRect().top).toBeGreaterThanOrEqual(editor.getBoundingClientRect().bottom);
+    await userEvent.fill(editor, "One");
+    expect(document.activeElement).toBe(editor);
+    expect(view.send.getBoundingClientRect().top).toBeLessThan(editor.getBoundingClientRect().bottom);
+    await userEvent.fill(editor, "A long, wrapped reply. ".repeat(12));
+    expect(editor.getBoundingClientRect().height).toBeGreaterThan(parseFloat(getComputedStyle(editor).lineHeight) * 2);
+    expect(view.send.getBoundingClientRect().top).toBeLessThan(editor.getBoundingClientRect().bottom);
+  });
+
   /** Where the placeholder's capital letters centre: the line's baseline from the font's ascent and descent, less half a cap height. */
   function capCentre(textarea: HTMLTextAreaElement) {
     const style = getComputedStyle(textarea);

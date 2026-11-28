@@ -438,9 +438,8 @@ const quoteButtonClass =
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
 
 /** The text's line height and its padding and border in px, and its height now. */
-function textMetrics(frame: HTMLElement | null): { line: number; offset: number; now: number } | undefined {
-  const text = frame?.querySelector<HTMLElement>("textarea, [data-ouro-composer-editor]");
-  if (!text) return undefined;
+function textMetrics(frame: HTMLElement): { line: number; offset: number; now: number } {
+  const text = frame.querySelector<HTMLElement>("textarea, [data-ouro-composer-editor]")!;
   const style = getComputedStyle(text);
   const size = parseFloat(style.fontSize);
   const line = parseFloat(style.lineHeight) || size * 1.5;
@@ -749,6 +748,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     setOwn(kept.get(conversation) ?? defaultValue ?? "");
   }
   const text = value ?? own;
+  const blockLayout = expanded || baseRows > 1 || text.includes("\n");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const setRef = useMergedRef(ref, textareaRef);
   const richRef = useRef<RichEditorHandle | null>(null);
@@ -805,12 +805,11 @@ export function Composer(props: ComposerProps): JSX.Element {
     // Stryker disable next-line ConditionalExpression: heldLines reads the metrics only while resizable, so measuring without the edge changes nothing drawn.
     if (!resizable) return;
     if (heldHeight === null) return;
-    const next = textMetrics(frameRef.current);
+    const next = textMetrics(frameRef.current!);
     // Stryker disable next-line ConditionalExpression: a changed offset alone is re-read by the next dependency change, and only a restyle between renders could tell.
-    if (next && (metrics?.line !== next.line || metrics.offset !== next.offset)) setMetrics(next);
+    if (metrics?.line !== next.line || metrics.offset !== next.offset) setMetrics(next);
   }, [resizable, metrics, baseRows, ownHeight, heldHeight]);
-  // Stryker disable next-line ObjectLiteral: the text is drawn whenever the edge is, so the fallback only keeps a read or press before the first paint from throwing.
-  const edgeMetrics = () => textMetrics(frameRef.current) ?? { line: 24, offset: 0, now: 0 };
+  const edgeMetrics = () => textMetrics(frameRef.current!);
   const readEdge = (): ResizeRange => {
     const m = edgeMetrics();
     const least = Math.round(baseRows * m.line + m.offset);
@@ -1145,7 +1144,7 @@ export function Composer(props: ComposerProps): JSX.Element {
                 "aria-activedescendant": rest["aria-activedescendant"],
               }}
               data-slot="composer-rich"
-              className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 ps-3 pe-2", canExpand && !expanded && text === "" && "min-w-[min(6rem,100%)] basis-24", expanded && "w-full flex-auto")}
+              className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 ps-3 pe-2", canExpand && !expanded && text === "" && "min-w-[min(6rem,100%)] basis-24", blockLayout && "w-full flex-auto")}
             />
           ) : (
           <TextArea
@@ -1167,11 +1166,18 @@ export function Composer(props: ComposerProps): JSX.Element {
             onKeyDown={keyDown}
             onPaste={paste}
             aria-describedby={describedBy}
-            // Expanded, the text takes the whole width, and the buttons go on a row under it.
-            className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 [&_textarea]:ps-3 [&_textarea]:pe-2", canExpand && !expanded && text === "" && "min-w-[min(6rem,100%)] basis-24", expanded && "w-full flex-auto")}
+            className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 [&_textarea]:ps-3 [&_textarea]:pe-2", canExpand && !expanded && text === "" && "min-w-[min(6rem,100%)] basis-24", blockLayout && "w-full flex-auto")}
           />
           )}
-          <div className={cn("ms-auto flex shrink-0 items-center gap-0.5", canExpand ? "p-2" : "p-1")}>
+          <div
+            className={cn("ms-auto flex shrink-0 items-center gap-0.5", canExpand ? "p-2" : "p-1", blockLayout && "box-border w-full justify-end border-t border-border")}
+            onMouseDown={(event) => {
+              if (event.target !== event.currentTarget || disabled) return;
+              event.preventDefault();
+              focusText();
+              if (!richOn) textareaRef.current!.setSelectionRange(text.length, text.length);
+            }}
+          >
             {canExpand && (
               <Tooltip
                 content={

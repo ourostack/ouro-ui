@@ -1,13 +1,26 @@
 import { useRef, useState, type JSX, type ReactNode, type SVGProps } from "react";
 import { Composer, type ComposerEditor } from "@/registry/ouro/components/ouro/composer/composer";
+import { Autocomplete, type AutocompleteTrigger } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
+import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
+import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { Toolbar } from "@/registry/ouro/components/ouro/toolbar/toolbar";
 import { announce } from "@/registry/ouro/lib/ouro/announce";
 
 // The live demo at the top of docs/composer/: the component as an app would use it, with its props, nothing else.
 
 const draft = "@[Noor](noor), let's make Friday a little special.\n\nFor the table:\n- Warm bread and something sparkling\n- Your favourite cake\n\nOur evening:\n1. Meet in the garden at six.\n2. Stay for [the sunset](https://example.com/friday).\n\n**I'll bring the lanterns.**";
+const people: AutocompleteTrigger[] = [{
+  char: "@",
+  label: "People",
+  items: [
+    { value: "noor", label: "Noor" },
+    { value: "avery", label: "Avery" },
+    { value: "jules", label: "Jules" },
+  ],
+}];
 
 function icon(path: ReactNode) {
   return function Icon(props: SVGProps<SVGSVGElement>) {
@@ -25,53 +38,85 @@ const NumbersIcon = icon(<path d="M10 6h10M10 12h10M10 18h10M4 5l1.5-1v5M4 14h3l
 
 export default function ComposerDemo(): JSX.Element {
   const editor = useRef<ComposerEditor>(null);
+  const input = useRef<HTMLTextAreaElement>(null);
+  const [text, setText] = useState(draft);
   const [expanded, setExpanded] = useState(true);
   const [height, setHeight] = useState<number | null>(null);
   const [sent, setSent] = useState<string>();
   const [receiptOpen, setReceiptOpen] = useState(false);
   return (
     <div className="grid w-full max-w-lg gap-4">
-      <Composer
-        editorRef={editor}
-        label="Plan a Friday gathering"
-        placeholder="What's next?"
-        format="rich"
-        defaultValue={draft}
-        expanded={expanded}
-        onExpandedChange={setExpanded}
-        expandLabel="Long compose"
-        expandedRows={8}
-        expandedMaxRows={16}
-        maxRows={6}
-        resizable
-        resizeLabel="Resize your draft"
-        tallest={() => Math.min(480, Math.floor((window.visualViewport?.height ?? window.innerHeight) * 0.6))}
-        height={height}
-        onHeightChange={setHeight}
-        toolbar={
-          <Toolbar
-            label="Message formatting"
-            size="sm"
-            keepFocus
-            items={[
-              { label: "Bold", icon: BoldIcon, hideLabel: true, shortcut: ["mod", "b"], onClick: () => editor.current?.format("bold") },
-              { label: "Italic", icon: ItalicIcon, hideLabel: true, shortcut: ["mod", "i"], onClick: () => editor.current?.format("italic") },
-              { type: "separator" },
-              { label: "Bulleted list", icon: BulletsIcon, hideLabel: true, onClick: () => editor.current?.format("bullets") },
-              { label: "Numbered list", icon: NumbersIcon, hideLabel: true, onClick: () => editor.current?.format("numbers") },
-            ]}
-          />
-        }
-        onSend={(text) => {
-          setSent(text);
-          setReceiptOpen(false);
-          setExpanded(false);
-          setHeight(null);
-          announce("Sent in this demo");
-        }}
-      />
+      <Autocomplete triggers={people}>
+        <Composer
+          ref={input}
+          editorRef={editor}
+          label="Plan a Friday gathering"
+          placeholder="What's next?"
+          format="rich"
+          value={text}
+          onValueChange={(next) => {
+            setText(next);
+            setSent(undefined);
+            setReceiptOpen(false);
+          }}
+          expanded={expanded}
+          onExpandedChange={setExpanded}
+          expandLabel={expanded ? "Collapse composer" : "Expand composer"}
+          description={<span>Type @ for people. Select text, then <Kbd keys={["mod", "k"]} /> to link.</span>}
+          expandedRows={8}
+          expandedMaxRows={16}
+          maxRows={6}
+          resizable
+          resizeLabel="Resize your draft"
+          tallest={() => Math.min(480, Math.floor((window.visualViewport?.height ?? window.innerHeight) * 0.6))}
+          height={height}
+          onHeightChange={setHeight}
+          toolbar={
+            <Toolbar
+              label="Message formatting"
+              size="sm"
+              keepFocus
+              items={[
+                { label: "Bold", icon: BoldIcon, hideLabel: true, shortcut: ["mod", "b"], onClick: () => editor.current?.format("bold") },
+                { label: "Italic", icon: ItalicIcon, hideLabel: true, shortcut: ["mod", "i"], onClick: () => editor.current?.format("italic") },
+                { type: "separator" },
+                { label: "Bulleted list", icon: BulletsIcon, hideLabel: true, onClick: () => editor.current?.format("bullets") },
+                { label: "Numbered list", icon: NumbersIcon, hideLabel: true, onClick: () => editor.current?.format("numbers") },
+              ]}
+            />
+          }
+          onSend={(text) => {
+            setSent(text);
+            setReceiptOpen(false);
+            announce("Sent in this demo. Draft kept.");
+          }}
+        />
+      </Autocomplete>
+      {(sent !== undefined || text !== draft) && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {sent !== undefined && <Text size="sm" tone="secondary">Sent in this demo. Draft kept.</Text>}
+          {text !== draft && (
+            <Button
+              variant="plain"
+              tone="secondary"
+              size="sm"
+              onClick={() => {
+                input.current?.focus();
+                setText(draft);
+                setSent(undefined);
+                setReceiptOpen(false);
+                setHeight(null);
+                setExpanded(true);
+                announce("Example restored");
+              }}
+            >
+              Restore example
+            </Button>
+          )}
+        </div>
+      )}
       {sent !== undefined && (
-        <Collapsible title="Sent in this demo - view Markdown" open={receiptOpen} onOpenChange={setReceiptOpen}>
+        <Collapsible title="View sent Markdown" open={receiptOpen} onOpenChange={setReceiptOpen}>
           <CodeBlock title="Markdown" language="markdown" code={sent} wrap />
         </Collapsible>
       )}
