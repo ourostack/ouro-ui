@@ -52,13 +52,32 @@ const squircleHostScroll: BrowserCommand<[{ y: number | null }]> = async (ctx, {
   return { scroll, top: bounds.y };
 };
 
+const observedPages = new WeakSet<object>();
 const cornerImageRoute: BrowserCommand<[{ data: string | null }]> = async (ctx, { data }) => {
   const url = "https://images.invalid/picture.png";
+  if (!observedPages.has(ctx.page)) {
+    observedPages.add(ctx.page);
+    ctx.page.on("request", (request) => {
+      if (request.url() === url) console.log("IMAGE REQUEST", request.url());
+    });
+    ctx.page.on("requestfailed", (request) => {
+      if (request.url() === url) console.log("IMAGE REQUEST FAILED", JSON.stringify(request.failure()));
+    });
+    ctx.page.on("response", (response) => {
+      if (response.url() === url) console.log("IMAGE RESPONSE", response.status());
+    });
+  }
   await ctx.page.unroute(url);
   if (data !== null) {
-    await ctx.page.route(url, (route) => route.fulfill({
-      status: 200, contentType: "image/png", body: Buffer.from(data.split(",")[1]!, "base64"),
-    }));
+    await ctx.page.route(url, async (route) => {
+      console.log("IMAGE ROUTE HIT", route.request().url());
+      try {
+        await route.fulfill({ status: 200, contentType: "image/png", body: Buffer.from(data.split(",")[1]!, "base64") });
+      } catch (error) {
+        console.log("IMAGE ROUTE ERROR", String(error));
+        throw error;
+      }
+    });
   }
 };
 
