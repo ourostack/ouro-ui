@@ -77,7 +77,7 @@ const listClass =
  *
  * @internal
  */
-const stickyListClass = "sticky top-0 z-20 bg-[color:var(--ouro-scroller-surface,var(--muted))]";
+const stickyListClass = "sticky top-0 z-20 bg-[color:var(--ouro-scroller-surface,var(--muted))] [--ouro-tabs-muted-ink:color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
 
 /**
  * A tab: 44px tall with 16px text on a coarse pointer, stepping down to 36px and 14px from
@@ -98,7 +98,7 @@ const tabClass =
   "group/tab press relative m-0 box-border inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap " +
   "h-(--ouro-tab-h) px-3 [--ouro-tab-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-tab-h:calc(var(--spacing)*9)] pointer-fine:min-h-ouro-5 " +
   "pointer-coarse:min-h-ouro-11 pointer-coarse:min-w-ouro-11 justify-center data-[orientation=vertical]:justify-start " +
-  "rounded-ouro-md border-0 bg-transparent text-base font-medium text-muted-foreground sm:pointer-fine:text-sm " +
+  "rounded-ouro-md border-0 bg-transparent text-base font-medium text-(--ouro-tabs-muted-ink,var(--muted-foreground)) sm:pointer-fine:text-sm " +
   "forced-colors:border forced-colors:border-solid " +
   "select-none touch-manipulation [-webkit-tap-highlight-color:transparent] " +
   "not-data-disabled:not-data-active:pointer-fine:hover:text-foreground data-active:text-foreground " +
