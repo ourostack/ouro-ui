@@ -1,0 +1,1 @@
+- Composer [leaves an untouched resize edge's sizing to the browser's frame instead of forcing layout during mount](registry/ouro/components/ouro/composer/composer.resize.test.tsx "verify:testExists(registry/ouro/components/ouro/composer/composer.resize.test.tsx::Composer resizable edge > leaves a fresh edge's sizing and frame reads to the browser's frame)").

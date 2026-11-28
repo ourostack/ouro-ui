@@ -520,17 +520,32 @@ describe("ThemePicker", () => {
 });
 
 describe("ThemePicker popover", () => {
-  it("centres the compact wordmark's cap height in its trigger", async () => {
-    const el = await render(<ThemePicker presets={presets} presentation="popover" defaultPreset="pearl" />);
-    const trigger = el.querySelector<HTMLElement>('[data-ouro-part="trigger"]')!;
-    const name = trigger.querySelector<HTMLElement>('[data-shows="pearl"] [data-slot="theme-picker-name"]')!;
-    const style = getComputedStyle(name);
-    const context = document.createElement("canvas").getContext("2d")!;
-    context.font = style.font;
-    const metrics = context.measureText("H");
-    const inkCentre = name.getBoundingClientRect().top + (parseFloat(style.lineHeight) - metrics.fontBoundingBoxAscent - metrics.fontBoundingBoxDescent) / 2 + metrics.fontBoundingBoxAscent - metrics.actualBoundingBoxAscent / 2;
-    const box = trigger.getBoundingClientRect();
-    expect(Math.abs(inkCentre - box.top - box.height / 2)).toBeLessThanOrEqual(2);
+  it.each([16, 18, 20])("centres the compact wordmark's cap height in its trigger at a %spx root", async (size) => {
+    const before = html.style.fontSize;
+    html.style.fontSize = `${size}px`;
+    try {
+      const el = await render(<ThemePicker presets={presets} presentation="popover" defaultPreset="pearl" />);
+      const trigger = el.querySelector<HTMLElement>('[data-ouro-part="trigger"]')!;
+      const name = trigger.querySelector<HTMLElement>('[data-shows="pearl"] [data-slot="theme-picker-name"]')!;
+      for (const family of ["ui-sans-serif, system-ui, sans-serif", "Georgia, serif", "ui-monospace, monospace"]) {
+        name.style.setProperty("--font-wordmark", family);
+        const style = getComputedStyle(name);
+        const context = document.createElement("canvas").getContext("2d")!;
+        context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+        const metrics = context.measureText("H");
+        const range = document.createRange();
+        range.selectNodeContents(name);
+        const line = range.getBoundingClientRect();
+        const trimmed = style.getPropertyValue("text-box-trim");
+        const inkCentre = trimmed && trimmed !== "none"
+          ? line.top + line.height / 2
+          : name.getBoundingClientRect().top + (parseFloat(style.lineHeight) - metrics.fontBoundingBoxAscent - metrics.fontBoundingBoxDescent) / 2 + metrics.fontBoundingBoxAscent - metrics.actualBoundingBoxAscent / 2;
+        const box = trigger.getBoundingClientRect();
+        expect(Math.abs(inkCentre - box.top - box.height / 2), `${family} at ${size}px`).toBeLessThanOrEqual(2);
+      }
+    } finally {
+      html.style.fontSize = before;
+    }
   });
 
   it("shows the chosen wordmark, opens the looks, and closes on Escape with focus back on the button", async () => {

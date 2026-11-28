@@ -1,8 +1,7 @@
 import { useRef, useState, type JSX, type ReactNode, type SVGProps } from "react";
 import { Composer, type ComposerEditor } from "@/registry/ouro/components/ouro/composer/composer";
+import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import { Toolbar } from "@/registry/ouro/components/ouro/toolbar/toolbar";
-import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
-import { toast } from "@/registry/ouro/lib/ouro/toast";
 
 // The live demo at the top of docs/composer/: the component as an app would use it, with its props, nothing else.
 
@@ -27,12 +26,14 @@ export default function ComposerDemo(): JSX.Element {
   const room = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [height, setHeight] = useState<number | null>(null);
+  const [sent, setSent] = useState<string>();
   return (
-    <div ref={room} className="flex h-[min(16rem,60vh)] w-full max-w-lg flex-col justify-end">
+    <div className="grid w-full max-w-lg gap-4">
+      <div ref={room} className="flex h-[min(16rem,60vh)] flex-col justify-end">
       <Composer
         editorRef={editor}
         label="Plan a Friday gathering"
-        placeholder="What shall we do next Friday?"
+        placeholder="What's next?"
         format="rich"
         defaultValue={draft}
         expanded={expanded}
@@ -59,13 +60,14 @@ export default function ComposerDemo(): JSX.Element {
             ]}
           />
         }
-        onSend={() => {
+        onSend={(text) => {
+          setSent(text);
           setExpanded(false);
           setHeight(null);
-          toast("Plan sent");
         }}
       />
-      <Toaster avoid="[data-ouro='composer']" />
+      </div>
+      {sent !== undefined && <CodeBlock title="Sent Markdown" language="markdown" code={sent} wrap />}
     </div>
   );
 }

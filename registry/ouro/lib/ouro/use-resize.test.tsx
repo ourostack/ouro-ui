@@ -1,4 +1,5 @@
 import { createRoot, type Root } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useResize, type ResizeRange } from "@/registry/ouro/lib/ouro/use-resize";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -34,6 +35,20 @@ afterEach(async () => {
 });
 
 describe("useResize", () => {
+  it("reads its initial range in the browser's frame, not the mount commit", async () => {
+    const read = vi.fn(() => range);
+    function InitialEdge() {
+      const { props } = useResize({ label: "Resize", read, onResize: () => {} });
+      return <div {...props} data-test-harness />;
+    }
+    const container = document.body.appendChild(document.createElement("div"));
+    root = createRoot(container);
+    flushSync(() => root!.render(<InitialEdge />));
+    expect(read).not.toHaveBeenCalled();
+    await expect.poll(() => read.mock.calls.length).toBe(1);
+    expect(container.firstElementChild!.getAttribute("aria-valuenow")).toBe("100");
+  });
+
   it("drags in whole steps, marks the edge while it drags, and lands once on release", async () => {
     const { edge, capture } = await shown();
     await pointer(edge, "pointerdown", { clientY: 300 });

@@ -394,6 +394,7 @@ const draftLimit = 50;
 const frameClass =
   "relative box-border flex min-w-0 flex-col rounded-ouro-lg border border-solid border-input bg-card text-card-foreground " +
   "ouro-field-cue outline-ring outline-offset-0 has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-solid has-[[data-ouro-composer-editor]:focus-visible]:outline-2 has-[[data-ouro-composer-editor]:focus-visible]:outline-solid " +
+  "has-[[data-ouro-part=resize-edge]:focus-visible]:outline-2 has-[[data-ouro-part=resize-edge]:focus-visible]:outline-solid " +
   "[&_textarea:focus-visible]:outline-0 group/frame " +
   // --ouro-composer-inset needs no grow-start override: animation-fill-mode both already
   // applies the reveal keyframe's own "from" (--ouro-composer-gap) the instant data-ouro-moving is
@@ -407,14 +408,13 @@ const frameClass =
   "data-[ouro-moving=grow]:motion-safe:animate-[ouro-composer-reveal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] " +
   "data-[ouro-moving=shrink]:motion-safe:animate-[ouro-composer-conceal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] data-[ouro-moving=shrink]:justify-end";
 
-// The resize edge sits over the frame's top border: 8px tall, 4px above it. Its line shows on a mouse's hover, on keyboard focus and
-// while it is dragged, by opacity and colour only; the height itself never animates.
+// The resize edge sits over the frame's top border: 8px tall, 4px above it. The grip brightens on hover, focus and drag;
+// keyboard focus outlines the frame, never a separate rail.
 const resizeEdgeClass =
-  "group/edge absolute inset-x-0 -top-1 z-10 flex h-2 cursor-ns-resize touch-none items-center justify-center rounded-ouro-sm outline-ring " +
-  "focus-visible:outline-2 focus-visible:outline-solid";
+  "group/edge absolute inset-x-0 -top-1 z-10 flex h-2 cursor-ns-resize touch-none items-center justify-center rounded-ouro-sm outline-0";
 const resizeLineClass =
-  "pointer-events-none block h-0.5 w-8 rounded-ouro-sm bg-ring opacity-40 transition-opacity duration-(--ouro-duration-fast) ease-[ease] " +
-  "pointer-fine:group-hover/edge:w-full pointer-fine:group-hover/edge:opacity-60 group-data-[ouro-edge]/edge:w-full group-data-[ouro-edge]/edge:opacity-100";
+  "pointer-events-none block h-1 w-8 rounded-ouro-sm bg-ring opacity-40 transition-opacity duration-(--ouro-duration-fast) ease-[ease] " +
+  "pointer-fine:group-hover/edge:opacity-60 group-data-[ouro-edge]/edge:opacity-100";
 
 // The toolbar fades and slides up into place when the box expands, and out when it collapses; with
 // reduced motion it only fades in.
@@ -692,7 +692,7 @@ export function Composer(props: ComposerProps): JSX.Element {
   const expanded = expandedProp ?? ownExpanded;
   const baseRows = expanded ? expandedRows : rowsProp;
   const baseMaxRows = expanded ? expandedMaxRows : maxRowsProp;
-  // The text's lines and padding as drawn, which a height in px is counted in; measured before paint once the edge is on.
+  // A held height needs the text's line metrics before paint; an untouched edge needs no measurement.
   const [metrics, setMetrics] = useState<{ line: number; offset: number } | undefined>();
   const [ownHeight, setOwnHeight] = useState<number | null>(defaultHeight ?? null);
   const [dragLines, setDragLines] = useState<number | null>(null);
@@ -802,6 +802,7 @@ export function Composer(props: ComposerProps): JSX.Element {
   useLayoutEffect(() => {
     // Stryker disable next-line ConditionalExpression: heldLines reads the metrics only while resizable, so measuring without the edge changes nothing drawn.
     if (!resizable) return;
+    if (heldHeight === null) return;
     const next = textMetrics(frameRef.current);
     // Stryker disable next-line ConditionalExpression: a changed offset alone is re-read by the next dependency change, and only a restyle between renders could tell.
     if (next && (metrics?.line !== next.line || metrics.offset !== next.offset)) setMetrics(next);
@@ -913,6 +914,8 @@ export function Composer(props: ComposerProps): JSX.Element {
       });
       return;
     }
+    // WebKit's plain fallback may fit itself again before that first frame has measured the box.
+    if (height.current.expanded === expanded && Number.isNaN(height.current.px)) return;
     const shown = running ? running.full - clipTop(frame) : frame.offsetHeight;
     running?.end(true);
     const toolbarElement = frame.querySelector<HTMLElement>("[data-ouro-composer-toolbar]");
@@ -1103,7 +1106,7 @@ export function Composer(props: ComposerProps): JSX.Element {
           </div>
         )}
         {/* The text's padding is the textarea's own, out to the frame's edge, so a press anywhere around the text takes the caret where it lands. At rest the padding makes the text row as tall as the actions' (the send button, lg, and its padding), so one line sits centred beside the icons; the actions stay at the bottom as the text grows. */}
-        <div data-ouro-composer-body="" className="flex min-w-0 flex-wrap items-end [--ouro-composer-action-h:calc(var(--spacing)*11)] [--ouro-composer-lh:1.5rem] [--ouro-composer-py:calc((var(--ouro-composer-action-h)+var(--spacing)*2-var(--ouro-composer-lh))/2)] [&_:is(textarea,[data-ouro-composer-editor],[data-ouro-composer-placeholder])]:[--ouro-text-area-py:var(--ouro-composer-py)] sm:[--ouro-composer-action-h:calc(var(--spacing)*9)] sm:pointer-fine:[--ouro-composer-lh:1.25rem]">
+        <div data-ouro-composer-body="" className={cn("flex min-w-0 flex-wrap items-end [--ouro-composer-action-h:calc(var(--spacing)*11)] [--ouro-composer-lh:1.5rem] [--ouro-composer-py:calc((var(--ouro-composer-action-h)+var(--spacing)*2-var(--ouro-composer-lh))/2)] [&_:is(textarea,[data-ouro-composer-editor],[data-ouro-composer-placeholder])]:[--ouro-text-area-py:var(--ouro-composer-py)] sm:[--ouro-composer-action-h:calc(var(--spacing)*9)] sm:pointer-fine:[--ouro-composer-lh:1.25rem]", canExpand && !expanded && text === "" && "items-center")}>
           {ActiveEditor ? (
             <ActiveEditor
               handleRef={richRef}
@@ -1140,7 +1143,7 @@ export function Composer(props: ComposerProps): JSX.Element {
                 "aria-activedescendant": rest["aria-activedescendant"],
               }}
               data-slot="composer-rich"
-              className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 ps-3 pe-2", expanded && "w-full flex-auto")}
+              className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 ps-3 pe-2", canExpand && !expanded && text === "" && "min-w-[min(6rem,100%)] basis-24", expanded && "w-full flex-auto")}
             />
           ) : (
           <TextArea
@@ -1163,7 +1166,7 @@ export function Composer(props: ComposerProps): JSX.Element {
             onPaste={paste}
             aria-describedby={describedBy}
             // Expanded, the text takes the whole width, and the buttons go on a row under it.
-            className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 [&_textarea]:ps-3 [&_textarea]:pe-2", expanded && "w-full flex-auto")}
+            className={cn("min-w-[min(12rem,100%)] flex-1 basis-48 [&_textarea]:ps-3 [&_textarea]:pe-2", canExpand && !expanded && text === "" && "min-w-[min(6rem,100%)] basis-24", expanded && "w-full flex-auto")}
           />
           )}
           <div className={cn("ms-auto flex shrink-0 items-center gap-0.5", canExpand ? "p-2" : "p-1")}>
@@ -1179,7 +1182,7 @@ export function Composer(props: ComposerProps): JSX.Element {
                 <Button
                   data-ouro-control="composer"
                   data-ouro-part="expand"
-                  variant="plain"
+                  variant={expanded ? "soft" : "plain"}
                   tone="secondary"
                   aria-label={expandLabel}
                   aria-pressed={expanded}
@@ -1190,7 +1193,6 @@ export function Composer(props: ComposerProps): JSX.Element {
                   onClick={toggleExpanded}
                 >
                   <ExpandIcon expanded={expanded} />
-                  {expandLabel}
                 </Button>
               </Tooltip>
             )}
@@ -1238,7 +1240,7 @@ export function Composer(props: ComposerProps): JSX.Element {
         </span>
       )}
       {expanded && (
-        <div id={sendHintId} data-ouro-composer-send-hint="" className="flex items-center justify-end gap-1 px-1 text-xs text-muted-foreground">
+        <div id={sendHintId} data-slot="composer-send-hint" data-ouro-composer-send-hint="" className="flex items-center justify-end gap-1 px-1 text-xs text-muted-foreground">
           <Kbd keys={["mod", "enter"]} />
           <span>to send</span>
         </div>

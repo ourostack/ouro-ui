@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { commands, server, userEvent } from "vitest/browser";
@@ -6,6 +7,7 @@ import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
 import { preloadRichEditor } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { expectMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
+import { watchLayoutReads } from "@/registry/ouro/lib/ouro/testing/layout-reads";
 
 const roots: Root[] = [];
 let hosts: HTMLElement[] = [];
@@ -54,6 +56,24 @@ const wholeLines = (textarea: HTMLElement) => (height(textarea) - offset(textare
 const label = "Resize the reply box";
 
 describe("Composer resizable edge", () => {
+  it("leaves a fresh edge's sizing and frame reads to the browser's frame", async () => {
+    const host = document.body.appendChild(document.createElement("div"));
+    hosts.push(host);
+    const root = createRoot(host);
+    roots.push(root);
+    const tallest = vi.fn(() => 400);
+    const watch = watchLayoutReads();
+    try {
+      flushSync(() => root.render(<Composer label="Reply" resizable tallest={tallest} onSend={() => {}} />));
+    } finally {
+      watch.stop();
+    }
+    const frame = host.querySelector("[data-ouro-composer-frame]")!;
+    expect(tallest).not.toHaveBeenCalled();
+    expect(watch.reads.filter((read) => read.target === frame && ["offsetHeight", "clientHeight", "getBoundingClientRect"].includes(read.name))).toEqual([]);
+    await expect.poll(() => tallest.mock.calls.length).toBe(1);
+  });
+
   it("is a focusable horizontal separator named by resizeLabel, with its range in px that refreshes on focus", async () => {
     const view = await render(<Composer label="Reply" resizable resizeLabel={label} rows={2} maxRows={6} onSend={() => {}} />);
     const edge = view.edge;
@@ -242,6 +262,16 @@ describe("Composer resizable edge", () => {
     view.edge.focus();
     await userEvent.keyboard("{ArrowDown}");
     await expect.poll(() => wholeLines(view.textarea)).toBeCloseTo(3, 1);
+  });
+
+  it("keeps resize focus on the frame and its grip short", async () => {
+    const view = await render(<Composer label="Reply" resizable resizeLabel={label} onSend={() => {}} />);
+    await act(async () => view.edge.focus());
+    const frame = view.edge.closest<HTMLElement>("[data-ouro-composer-frame]")!;
+    const grip = view.edge.querySelector<HTMLElement>('[data-ouro-part="resize-line"]')!;
+    expect(getComputedStyle(frame).outlineWidth).toBe("2px");
+    expect(getComputedStyle(view.edge).outlineWidth).toBe("0px");
+    expect(grip.getBoundingClientRect().width).toBeLessThan(view.edge.getBoundingClientRect().width);
   });
 
   it("fades its line in on a drag with opacity only, at rest and with reduced motion", async () => {

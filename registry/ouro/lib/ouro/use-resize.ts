@@ -71,8 +71,11 @@ export function useResize({ label, read, onResize, grow = "up" }: ResizeOptions)
     latest.current = { read, onResize };
   });
   const refresh = useCallback(() => setValues(latest.current.read()), []);
-  // The edge says its values from the start, and again each time it takes focus and each time it moves the box.
-  useLayoutEffect(refresh, [refresh]);
+  // Initial values wait for layout; focus and presses still read the current range immediately.
+  useLayoutEffect(() => {
+    const frame = requestAnimationFrame(refresh);
+    return () => cancelAnimationFrame(frame);
+  }, [refresh]);
   const land = (px: number, settled: boolean) => {
     latest.current.onResize(px, settled);
     if (settled) refresh();

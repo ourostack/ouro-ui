@@ -1072,23 +1072,33 @@ describe("Composer expanded", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("keeps the expand action quiet in either mode, names it visibly, and preserves text focus on a press", async () => {
+  it("keeps the expand action quiet in either mode, marks its mode without a border, and preserves text focus on a press", async () => {
     const { host } = await render(
       <>
         <Composer label="Reply" defaultExpanded={false} onSend={() => {}} />
-        <Button variant="plain" tone="secondary" aria-label="Plain" data-test-harness="">p</Button>
+        <Button variant="plain" tone="secondary" aria-label="Plain" data-test-harness="plain">p</Button>
+        <Button variant="soft" tone="secondary" aria-label="Selected" data-test-harness="selected">s</Button>
       </>,
     );
     const look = (element: Element) => ["border-top-color", "color", "background-color"].map((property) => getComputedStyle(element).getPropertyValue(property));
-    const plain = host.querySelector("[data-test-harness]")!;
-    expect(expandButton()!.textContent).toBe("Expand");
+    const plain = host.querySelector('[data-test-harness="plain"]')!;
+    const selected = host.querySelector('[data-test-harness="selected"]')!;
+    expect(expandButton()!.textContent).toBe("");
     expect(look(expandButton()!)).toEqual(look(plain));
     await userEvent.click(expandButton()!);
-    await expect.poll(() => look(expandButton()!)).toEqual(look(plain));
+    await userEvent.hover(host);
+    await expect.poll(() => look(expandButton()!)).toEqual(look(selected));
     const down = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
     expandButton()!.dispatchEvent(down);
     expect(down.defaultPrevented).toBe(true);
     expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("keeps an empty quick reply and its actions on one line on a phone", async () => {
+    const { textarea, send } = await render(<Composer label="Reply" defaultExpanded={false} onSend={() => {}} />, 320);
+    const text = textarea.getBoundingClientRect();
+    const button = send.getBoundingClientRect();
+    expect(Math.abs(text.top + text.height / 2 - button.top - button.height / 2)).toBeLessThanOrEqual(2);
   });
 
   it("can expand with onExpandedChange alone, and hides the toolbar of a collapsed composer the app controls without listening", async () => {

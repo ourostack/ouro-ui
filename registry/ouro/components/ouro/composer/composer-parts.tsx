@@ -322,7 +322,7 @@ class MentionNode extends DecoratorNode<null> {
     person.dataset.ouroMention = "";
     person.contentEditable = "false";
     person.textContent = this.__name;
-    person.className = "rounded-ouro-sm bg-primary/10 px-1 py-0.5 font-medium text-[color-mix(in_oklab,var(--primary)_80%,var(--foreground))]";
+    person.className = "rounded-ouro-sm bg-primary/10 px-1 py-0.5 font-semibold text-[color-mix(in_oklab,var(--primary)_80%,var(--foreground))]";
     return person;
   }
   // Stryker disable next-line BlockStatement: a mention never changes, and a node that is never dirty is never asked
