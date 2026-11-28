@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { dirname, join, matchesGlob } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { scratchDir } from "./scratch.mjs";
 import { changedLines, dryRunMinutes, runtimeIdentity, inScope, mutationRunners, HEAVY_TEST_SECONDS, SHARD_TARGET_SECONDS, shardUnits, spanningMutants, splitRange, unitChanges, unitExclusions, countDisables, describeSurvivor, disableProblems, estimateMutants, mutateRanges, mutates, parseShard, runtimeSource, survivors, testFilesFor } from "./mutation.mjs";
 import { parse } from "@babel/parser";
 import traverse from "@babel/traverse";
@@ -664,8 +664,8 @@ test("dryRunKey changes with a mutated file, a test file, the harness, a lib fil
 });
 
 test("a stored dry run is used only under the key it was kept with, and a missing, other or unreadable file is a miss", () => {
-  const dir = mkdtempSync(join(tmpdir(), "dry-run-"));
-  try {
+  const dir = scratchDir("dry-run-");
+  {
     const file = join(dir, "sub", "dry.json");
     assert.equal(storedDryRun("k", file), null);
     assert.equal(storedDryRun(undefined, file), null);
@@ -675,8 +675,6 @@ test("a stored dry run is used only under the key it was kept with, and a missin
     assert.equal(storedDryRun("other", file), null);
     keepDryRun([{ id: "t" }], "k", file);
     assert.equal(storedDryRun("k", join(dir, "sub")), null);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
   }
 });
 
