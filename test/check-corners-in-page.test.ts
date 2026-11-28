@@ -1,7 +1,11 @@
+import { createElement } from "react";
+import { createRoot } from "react-dom/client";
 import { afterAll, afterEach, beforeAll, expect, it, vi } from "vitest";
 import { commands } from "vitest/browser";
 import { findCornerIssues } from "@/registry/ouro/check/corner-check";
 import { findSquirclePaint, type PaintClip } from "@/registry/ouro/check/squircle-paint";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { forceSquircleFallback } from "./squircle-fallback";
 
 const state = window as unknown as { __ouroPaintCapture?: (clip: PaintClip) => Promise<string>; __ouroCheckRef?: number };
@@ -1351,6 +1355,21 @@ it("keeps a glass surface's curved shadow distinct from an escaping child", asyn
     root.querySelector(".glass")!.insertAdjacentHTML("beforeend", '<span style="position:absolute;left:-6px;top:-6px;width:10px;height:10px;background:#c30"></span>');
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("button.glass.rounded-ouro-control");
   } finally {
+    restore();
+  }
+}, paintTimeout);
+
+it("keeps real glass buttons' curved shadows distinct from square paint", async () => {
+  const restore = forceSquircleFallback();
+  const host = render('<div style="padding:24px;background:var(--muted)"></div>');
+  const root = createRoot(host.firstElementChild!);
+  try {
+    await act(async () => root.render(createElement(Button, { variant: "glass", tone: "secondary" }, "Example")));
+    expect(await findSquirclePaint()).toEqual([]);
+    host.querySelector("button")!.insertAdjacentHTML("beforeend", '<span style="position:absolute;left:-6px;top:-6px;width:10px;height:10px;background:#c30"></span>');
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("button.press.relative.isolate");
+  } finally {
+    await act(async () => root.unmount());
     restore();
   }
 }, paintTimeout);
