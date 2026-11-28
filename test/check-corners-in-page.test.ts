@@ -773,6 +773,21 @@ it("keeps a round badge in a cut-out distinct from leaking square paint", async 
   }
 }, paintTimeout);
 
+it("keeps a round badge's fractional antialiasing separate from its cut-out", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render(`<div class="frame rounded-[24%]" style="position:fixed;left:41px;top:309px;width:112px;height:112px">
+      <div class="surface rounded-[44%]" style="position:absolute;inset:0;background:#dce5ef;--sq-notch:move to calc(100% + 12.2px) calc(100% - 8.9px), arc to calc(100% - 30px) calc(100% - 8.9px) of 21.1px, arc to calc(100% + 12.2px) calc(100% - 8.9px) of 21.1px, close"></div>
+      <span class="badge" style="position:absolute;right:-6.6px;bottom:-6.6px;width:31px;height:31px;border-radius:9999px"><svg viewBox="0 0 16 16" style="display:block;width:100%;height:100%"><circle cx="8" cy="8" r="8" fill="#149b55"></circle></svg></span>
+    </div>`);
+    expect(await findSquirclePaint()).toEqual([]);
+    root.querySelector(".badge")!.insertAdjacentHTML("beforeend", '<span style="position:absolute;right:-4px;top:-4px;width:8px;height:8px;background:#d11"></span>');
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.frame.rounded-[24%]");
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
 it("keeps a native shadow and its probe separate from a descendant's external paint", async () => {
   const root = render('<div style="position:relative;width:160px;height:120px"><div style="position:absolute;inset:0"></div><div class="surface" data-ouro-paint-solo="original" style="position:absolute;inset:0;background:#fff;border-radius:28px;corner-shape:squircle;box-shadow:0 4px 12px #0008"></div></div>');
   const surface = root.querySelector<HTMLElement>(".surface")!;
