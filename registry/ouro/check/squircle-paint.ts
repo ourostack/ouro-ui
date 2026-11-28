@@ -215,6 +215,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           if (stable && difference(a.data, stable.data, index) >= 2) continue;
           const px = clip.x + (x + 0.5) * clip.width / a.width;
           const py = clip.y + (y + 0.5) * clip.height / a.height;
+          const dx = (left ? cornerX - px : px - cornerX) / (corner.x * rect.width / width);
+          const dy = (top ? cornerY - py : py - cornerY) / (corner.y * rect.height / height);
+          if (dx <= 0 || dy <= 0 || dx ** 4 + dy ** 4 <= 1) continue;
           const outsideX = px < rect.left || px >= rect.right;
           const outsideY = py < rect.top || py >= rect.bottom;
           const outsideCorner = outsideX || outsideY;
