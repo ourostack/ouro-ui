@@ -5,6 +5,7 @@ import { Avatar } from "@/registry/ouro/components/ouro/avatar/avatar";
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import { EmojiText, type EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { Lightbox } from "@/registry/ouro/components/ouro/lightbox/lightbox";
+import { Link } from "@/registry/ouro/components/ouro/link/link";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { Message, type MessageAction, type MessageBubble } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
@@ -628,6 +629,40 @@ export const QuoteContext: Story = {
       </Message>
       <Message variant="chat" role="user" name="Priya Okafor" time="9:45 AM" dateTime="2026-05-04T09:45" quote={{ author: "Theo Brandt", excerpt: "I have one. I will bring it with the speakers.", at: "2026-05-04T09:43:00Z", atText: "9:43 AM", onActivate: () => {} }}>
         Perfect, thank you.
+      </Message>
+    </Surface>
+  ),
+};
+
+export const WithLinkedQuote: Story = {
+  render: () => (
+    <Surface>
+      <Message id="lantern-thread" variant="post" role="assistant" name="Fern Moss" subject="Lantern delivery" time="9:20 AM">
+        Confirm the delivery window here.
+      </Message>
+      <Message id="lantern-note" tabIndex={-1} variant="chat" role="assistant" name="Fern Moss" time="9:30 AM" dateTime="2026-11-27T09:30:00Z">
+        The lanterns arrive at noon.
+      </Message>
+      <Message
+        variant="chat"
+        role="user"
+        name="Robin Vale"
+        time="9:35 AM"
+        quote={{
+          author: "Fern Moss",
+          excerpt: "The lanterns arrive at noon.",
+          at: "2026-11-27T09:30:00Z",
+          atText: "Today",
+          href: "#lantern-note",
+          onOpen: () => {
+            const target = document.getElementById("lantern-note");
+            target?.scrollIntoView({ behavior: "instant", block: "nearest" });
+            target?.focus({ preventScroll: true });
+          },
+          context: <>Replied in thread: <Link href="#lantern-thread" inline tone="secondary">Lantern delivery</Link></>,
+        }}
+      >
+        I will clear a shelf.
       </Message>
     </Surface>
   ),

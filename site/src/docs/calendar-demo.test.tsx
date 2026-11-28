@@ -310,6 +310,7 @@ describe("the calendar page", () => {
   });
 
   it("names no key on a touch screen, and keeps the Undo toast reachable when Go to date opens over it", async () => {
+    freezeWeekday();
     const real = window.matchMedia.bind(window);
     vi.stubGlobal("matchMedia", (query: string) => (query === "(pointer: coarse)" ? ({ matches: true, media: query, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList) : real(query)));
     try {

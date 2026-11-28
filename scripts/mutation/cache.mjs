@@ -111,9 +111,15 @@ export const strykerTimeout = (netSeconds) => 1.5 * netSeconds + 10;
 /**
  * How many shards a pull request's mutation run takes: the fewest from `min` that plan every shard
  * (`planShards`) at `target` estimated seconds or under, at most `max`. More changed lines, or slower
- * tests behind them, take more shards, so each finishes well inside the job's time limit.
+ * tests behind them, take more shards, so each finishes well inside the job's time limit. Never more
+ * shards than there are units to plan: the rest would start, find nothing to mutate and end.
  */
 export function shardCount(files, seconds, { min, max, target }) {
+  const units = Object.keys(files).length;
+  if (units > 0) {
+    min = Math.min(min, units);
+    max = Math.min(max, units);
+  }
   for (let count = min; count < max; count += 1) {
     const shards = planShards(files, count, seconds);
     if (Math.max(0, ...shards.map((shard) => shardCost(shard, files, seconds))) <= target) return count;
