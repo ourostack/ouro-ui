@@ -454,6 +454,19 @@ export const BehindBackdrop: Story = {
   ),
 };
 
+/**
+ * A chat app's reply box with a resize edge (`resizable`, named by `resizeLabel`): drag the top edge from the press, or focus it
+ * and press ArrowUp and ArrowDown for a line, Home for the smallest and End for the largest. The text lands on whole lines, and
+ * `onHeightChange` reports the height it holds, or `null` at its smallest, so the app can keep it (`height` or `defaultHeight`).
+ */
+export const Resizable: Story = {
+  render: () => (
+    <Surface>
+      <Composer label="Reply to Mia" resizable resizeLabel="Resize the reply box" rows={2} maxRows={8} defaultValue="See you Saturday" onSend={() => {}} />
+    </Surface>
+  ),
+};
+
 /** Sending is off and says why; the person can still write. Enter says the reason again. */
 export const SendingOff: Story = {
   render: () => (

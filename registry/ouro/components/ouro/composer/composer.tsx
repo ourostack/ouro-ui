@@ -17,6 +17,8 @@ import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { insertText } from "@/registry/ouro/lib/ouro/insert-text";
 import { ariaKeyShortcuts } from "@/registry/ouro/lib/ouro/key-shortcuts";
+import { TouchTarget } from "@/registry/ouro/lib/ouro/touch-target";
+import { useResize, type ResizeRange } from "@/registry/ouro/lib/ouro/use-resize";
 import { useMergedRef } from "@/registry/ouro/lib/ouro/refs";
 import { useDevWarnings } from "@/registry/ouro/lib/ouro/use-dev-messages";
 import { usePlatform } from "@/registry/ouro/lib/ouro/use-platform";
@@ -248,6 +250,27 @@ export interface ComposerOwnProps {
   expandedRows?: number | undefined;
   /** Lines the expanded box grows to before it scrolls. @default 20 */
   expandedMaxRows?: number | undefined;
+  /**
+   * Puts an edge along the box's top that the person drags, or reaches with the keyboard, to make the text taller: ArrowUp and
+   * ArrowDown move it by a line, Home takes it to the `rows` height and End to its ceiling. It lands on whole lines, counts the
+   * text's padding and border, and the box keeps the height after a send. Name it with `resizeLabel`, and keep the height with
+   * `height` and `onHeightChange`, or start it with `defaultHeight`.
+   *
+   * @example
+   * <Composer resizable resizeLabel="Resize the reply box" onHeightChange={(px) => save(px)} />
+   */
+  resizable?: boolean | undefined;
+  /** The resize edge's name, read aloud. Use it with `resizable`. @default "Resize the message box" */
+  resizeLabel?: string | undefined;
+  /**
+   * The text's height in px, for a composer whose app keeps it; pair it with `onHeightChange`. `null` is the `rows` height.
+   * It lands on the nearest whole line.
+   */
+  height?: number | null | undefined;
+  /** The text's starting height in px, for a composer that keeps it itself. */
+  defaultHeight?: number | null | undefined;
+  /** Called when the person lets go of the edge, or presses a key on it, with the height the text holds in px, or `null` at the `rows` height. */
+  onHeightChange?: ((height: number | null) => void) | undefined;
   /** Lines the box starts with; it grows as the person writes. @default 1 */
   rows?: number | undefined;
   /** Lines it grows to before it scrolls. @default 10 */
@@ -347,6 +370,8 @@ export interface ComposerOwnProps {
   sendDisabled?: { 'Use <Composer sendDisabledReason="Sending is off">': never };
   /** Not a prop. The message a reply quotes is `quote`: `<Composer quote={{ author: "Ana", excerpt: "Lunch?", onRemove }}>`. */
   replyTo?: { 'Use <Composer quote={{ author: "Ana", excerpt: "Lunch?", onRemove }}>': never };
+  /** Not a prop. A composer with a resize edge takes `resizable`: `<Composer resizable resizeLabel="Resize the box">`. */
+  resize?: { 'Use <Composer resizable resizeLabel="Resize the box">': never };
   /** Not a prop. A composer that expands takes `defaultExpanded` or `onExpandedChange`: `<Composer defaultExpanded={false}>`. */
   expandable?: { 'Use <Composer defaultExpanded={false}> or expanded with onExpandedChange': never };
 }
@@ -375,6 +400,15 @@ const frameClass =
   "data-[ouro-moving=grow]:motion-safe:animate-[ouro-composer-reveal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] " +
   "data-[ouro-moving=shrink]:motion-safe:animate-[ouro-composer-conceal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] data-[ouro-moving=shrink]:justify-end";
 
+// The resize edge sits over the frame's top border: 8px tall, 4px above it. Its line shows on a mouse's hover, on keyboard focus and
+// while it is dragged, by opacity and colour only; the height itself never animates.
+const resizeEdgeClass =
+  "group/edge absolute inset-x-0 -top-1 z-10 flex h-2 cursor-ns-resize touch-none items-center rounded-ouro-sm outline-ring " +
+  "focus-visible:outline-2 focus-visible:outline-solid";
+const resizeLineClass =
+  "pointer-events-none block h-0.5 w-full rounded-ouro-sm bg-ring opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] " +
+  "pointer-fine:group-hover/edge:opacity-60 group-data-[ouro-edge]/edge:opacity-100";
+
 // The toolbar fades and slides up into place when the box expands, and out when it collapses; with
 // reduced motion it only fades in.
 const toolbarClass =
@@ -395,6 +429,27 @@ const quoteBodyClass = "flex min-w-0 flex-1 items-center gap-2 p-1.5";
 const quoteButtonClass =
   `${quoteBodyClass} m-0 cursor-pointer rounded-ouro-inner [--ouro-fr:var(--radius-ouro-lg)] [--ouro-fi:0.5rem] border-0 bg-transparent text-start font-[inherit] text-inherit pointer-fine:hover:bg-accent ` +
   "outline-ring outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
+
+/** The text's line height and its padding and border in px, and its height now. */
+function textMetrics(frame: HTMLElement | null): { line: number; offset: number; now: number } | undefined {
+  const text = frame?.querySelector<HTMLElement>("textarea, [data-ouro-composer-editor]");
+  if (!text) return undefined;
+  const style = getComputedStyle(text);
+  const size = parseFloat(style.fontSize);
+  const line = parseFloat(style.lineHeight) || size * 1.5;
+  const offset = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
+  return { line, offset, now: text.getBoundingClientRect().height };
+}
+
+function ComposerEdge({ label, read, onResize }: { label: string; read: () => ResizeRange; onResize: (px: number, settled: boolean) => void }): JSX.Element {
+  const { props } = useResize({ label, read, onResize });
+  return (
+    <div {...props} data-ouro-control="composer" data-slot="composer-resize-edge" data-ouro-part="resize-edge" className={resizeEdgeClass}>
+      <TouchTarget />
+      <span aria-hidden="true" data-slot="composer-resize-line" data-ouro-part="resize-line" className={resizeLineClass} />
+    </div>
+  );
+}
 
 /**
  * What the quote shows: the bar, the avatar, the author and the excerpt. Screen readers hear the
@@ -579,6 +634,11 @@ export function Composer(props: ComposerProps): JSX.Element {
     expandLabel = "Expand",
     expandedRows = 6,
     expandedMaxRows = 20,
+    resizable = false,
+    resizeLabel = "Resize the message box",
+    height: heightProp,
+    defaultHeight,
+    onHeightChange,
     rows: rowsProp = 1,
     maxRows: maxRowsProp = 10,
     name,
@@ -600,6 +660,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     sendDisabled,
     replyTo,
     expandable: expandableHint,
+    resize: resizeHint,
     ...rest
   } = props;
   const [initialQuote, setInitialQuote] = useState(quote);
@@ -609,8 +670,16 @@ export function Composer(props: ComposerProps): JSX.Element {
   // The person can expand and collapse it: the composer holds the state, or the app listens.
   const canExpand = expandedProp === undefined ? expandable : onExpandedChange !== undefined;
   const expanded = expandedProp ?? ownExpanded;
-  const rows = expanded ? expandedRows : rowsProp;
-  const maxRows = expanded ? expandedMaxRows : maxRowsProp;
+  const baseRows = expanded ? expandedRows : rowsProp;
+  const baseMaxRows = expanded ? expandedMaxRows : maxRowsProp;
+  // The text's lines and padding as drawn, which a height in px is counted in; measured before paint once the edge is on.
+  const [metrics, setMetrics] = useState<{ line: number; offset: number } | undefined>();
+  const [ownHeight, setOwnHeight] = useState<number | null>(defaultHeight ?? null);
+  const [dragLines, setDragLines] = useState<number | null>(null);
+  const heldHeight = heightProp === undefined ? ownHeight : heightProp;
+  const heldLines = resizable && metrics ? Math.round(((heldHeight ?? 0) - metrics.offset) / metrics.line) : 0;
+  const rows = Math.max(baseRows, dragLines ?? heldLines);
+  const maxRows = Math.max(baseMaxRows, rows);
   // The frame, and its height after the last render, from which it grows or shrinks when the box expands or collapses.
   const frameRef = useRef<HTMLDivElement | null>(null);
   const height = useRef<{ expanded: boolean; px: number } | null>(null);
@@ -710,6 +779,33 @@ export function Composer(props: ComposerProps): JSX.Element {
   const richOn = formatMode === "rich" && rich !== undefined;
   // Stryker disable next-line LogicalOperator: richOn is true only when rich is loaded, so either side alone reads the same.
   const ActiveEditor = richOn && rich ? rich.Editor : undefined;
+  useLayoutEffect(() => {
+    // Stryker disable next-line ConditionalExpression: heldLines reads the metrics only while resizable, so measuring without the edge changes nothing drawn.
+    if (!resizable) return;
+    const next = textMetrics(frameRef.current);
+    // Stryker disable next-line ConditionalExpression: a changed offset alone is re-read by the next dependency change, and only a restyle between renders could tell.
+    if (next && (metrics?.line !== next.line || metrics.offset !== next.offset)) setMetrics(next);
+  }, [resizable, metrics, baseRows, ownHeight, heldHeight]);
+  // Stryker disable next-line ObjectLiteral: the text is drawn whenever the edge is, so the fallback only keeps a read or press before the first paint from throwing.
+  const edgeMetrics = () => textMetrics(frameRef.current) ?? { line: 24, offset: 0, now: 0 };
+  const readEdge = (): ResizeRange => {
+    const m = edgeMetrics();
+    const least = Math.round(baseRows * m.line + m.offset);
+    const most = Math.max(Math.round(baseMaxRows * m.line + m.offset), Math.floor(window.innerHeight * 0.6));
+    return { least, most, step: m.line, offset: m.offset, now: Math.round(m.now) };
+  };
+  const resizeTo = (px: number, settled: boolean) => {
+    const m = edgeMetrics();
+    const lines = Math.round((px - m.offset) / m.line);
+    if (!settled) {
+      setDragLines(lines);
+      return;
+    }
+    setDragLines(null);
+    const next = lines <= baseRows ? null : Math.round(lines * m.line + m.offset);
+    setOwnHeight(next);
+    onHeightChange?.(next);
+  };
   const focusText = () => (richOn ? richRef.current!.focus() : textareaRef.current!.focus({ preventScroll: true }));
   const id = useId();
   const hasAttachments = Children.toArray(attachments).length > 0;
@@ -739,6 +835,7 @@ export function Composer(props: ComposerProps): JSX.Element {
           loading !== undefined && ["loading is not a prop", "<Composer sending>"],
           sendDisabled !== undefined && ["sendDisabled is not a prop; say why sending is off", '<Composer sendDisabledReason="Sending is off">'],
           replyTo !== undefined && ["replyTo is not a prop; the message a reply quotes is quote", '<Composer quote={{ author: "Ana", excerpt: "Lunch?", onRemove }}>'],
+          resizeHint !== undefined && ["resize is not a prop; a composer with a resize edge takes resizable", '<Composer resizable resizeLabel="Resize the box">'],
           expandableHint !== undefined && ["expandable is not a prop; defaultExpanded or onExpandedChange shows the expand button", "<Composer defaultExpanded={false}>"],
         ]
       : /* istanbul ignore next @preserve -- production only */ undefined,
@@ -953,6 +1050,7 @@ export function Composer(props: ComposerProps): JSX.Element {
   return (
     <div data-ouro="composer" data-expanded={expanded ? "" : undefined} data-sending={sending ? "" : undefined} data-send-disabled={sendDisabledReason !== undefined ? "" : undefined} className={cn("box-border flex min-w-0 flex-col gap-2", className)}>
       <div ref={frameRef} data-ouro-composer-frame="" data-ouro-part="frame" className={frameClass}>
+        {resizable && <ComposerEdge label={resizeLabel} read={readEdge} onResize={resizeTo} />}
         {toolbar && (
           <div data-ouro-composer-toolbar="" data-ouro-part="toolbar" className={toolbarClass}>
             {toolbar}

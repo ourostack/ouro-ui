@@ -403,6 +403,12 @@ test("registryDependencies are the same-repo items each item imports, as full un
   }
 });
 
+test("the squircle build helper installs its relative curve dependency without installing the plugin with Inspector", () => {
+  assert.deepEqual(item("lib-squircle-corners").registryDependencies, [repo("lib-squircle-curve")]);
+  assert.ok(item("inspector").registryDependencies.includes(repo("lib-squircle-curve")));
+  assert.ok(!item("inspector").registryDependencies.includes(repo("lib-squircle-corners")));
+});
+
 test("Ouro AX items depend on the ax items they import", () => {
   assert.equal(itemForFile("registry/ouro/ax/ax-command.ts"), "ax-command");
   assert.equal(itemForFile("registry/ouro/ax/help.ts"), "ax-cli");

@@ -8,13 +8,13 @@ Every Ouro HX component and every core claim, on web, Apple, Android and Windows
 
 | | Web | Apple | Android | Windows |
 |---|---|---|---|---|
-| Kit | this repository | [ourostack/ouro-ui-apple v1.10.1](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.10.1 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v1.10.1") | [ourostack/ouro-ui-android v0.12.1](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.12.1 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.12.1") | [ourostack/ouro-ui-windows v0.12.1](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.12.1 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.12.1") |
+| Kit | this repository | [ourostack/ouro-ui-apple v1.12.0](https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.12.0 "verify:equals(scripts/parity-data/platforms.json#apple.tag)=v1.12.0") | [ourostack/ouro-ui-android v0.12.1](https://github.com/ourostack/ouro-ui-android/releases/tag/v0.12.1 "verify:equals(scripts/parity-data/platforms.json#android.tag)=v0.12.1") | [ourostack/ouro-ui-windows v0.12.1](https://github.com/ourostack/ouro-ui-windows/releases/tag/v0.12.1 "verify:equals(scripts/parity-data/platforms.json#windows.tag)=v0.12.1") |
 
-Components: Web has 136 of 140, Apple has 21 of 140, Android has 27 of 140, Windows has 30 of 140.[^matrix]
+Components: Web has 138 of 142, Apple has 21 of 142, Android has 27 of 142, Windows has 30 of 142.[^matrix]
 
 Claims covered: Web 7 of 14, Apple 14 of 14, Android 7 of 14, Windows 7 of 14.[^matrix]
 
-Gap cells: 367.[^matrix]
+Gap cells: 373.[^matrix]
 
 ### Components
 
@@ -156,6 +156,8 @@ Gap cells: 367.[^matrix]
 | [freshness](https://ui.ouroboros.bot/docs/freshness/) | `freshness` | Not yet | Not yet | Not yet |
 | [preview-bar](https://ui.ouroboros.bot/docs/preview-bar/) | `preview-bar` | Not yet | Not yet | Not yet |
 | [build-chip](https://ui.ouroboros.bot/docs/build-chip/) | `build-chip` | Not yet | Not yet | Not yet |
+| [tool-call](https://ui.ouroboros.bot/docs/tool-call/) | `tool-call` | Not yet | Not yet | Not yet |
+| [tool-call-group](https://ui.ouroboros.bot/docs/tool-call-group/) | `tool-call-group` | Not yet | Not yet | Not yet |
 | immersive-controls | Not yet | `OuroImmersiveControls` | Not yet | Not yet |
 | list-button | Not yet | Not yet | Not yet | `OuroListButton` |
 | nav-button | Not yet | Not yet | Not yet | `OuroNavButton` |

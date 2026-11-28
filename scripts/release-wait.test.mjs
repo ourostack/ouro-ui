@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { LIMIT_MINUTES, pendingWait } from "./release-wait.mjs";
+import { LIMIT_MINUTES, landed, pendingWait } from "./release-wait.mjs";
 
 // The commits, their change lines and the clock are passed in: no git, no network.
 const NOW = Date.UTC(2026, 10, 17, 12, 0, 0);
@@ -32,4 +32,12 @@ test("release wait: no commit brings a fresh change line, so nothing is waiting"
   ];
   assert.equal(pendingWait(commits, TAG_LINES, linesFrom(commits), NOW), null);
   assert.equal(pendingWait([], TAG_LINES, () => [], NOW), null);
+});
+
+test("release wait: a queued commit counts from when it landed on main, whatever its committer time", () => {
+  const commits = [{ sha: "queued", time: NOW / 1000 - 71 * 60 }];
+  const runs = [{ sha: "queued", createdAt: new Date(NOW - 4 * 60_000).toISOString() }];
+  assert.deepEqual(pendingWait(commits, TAG_LINES, () => ["- New: x"], NOW, LIMIT_MINUTES, runs), { sha: "queued", minutes: 4, over: false });
+  assert.equal(pendingWait(commits, TAG_LINES, () => ["- New: x"], NOW).minutes, 71, "with no push run the committer time stands");
+  assert.deepEqual(landed(commits[0], [{ sha: "other", createdAt: "2026-01-01T00:00:00Z" }]), commits[0]);
 });
