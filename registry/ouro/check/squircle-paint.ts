@@ -21,9 +21,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     { key: "bl", property: "BottomLeft", shape: "bottom-left" },
   ] as const;
   const counter = window as unknown as { __ouroCheckRef?: number };
+  const nextRef = () => counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
   const ref = (el: Element) => {
-    counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
-    const id = `p${counter.__ouroCheckRef}`;
+    const id = `p${nextRef()}`;
     el.setAttribute("data-ouro-check-ref", `${el.getAttribute("data-ouro-check-ref") ?? ""} ${id}`.trim());
     return id;
   };
@@ -72,7 +72,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
   const notchedBadges = (el: HTMLElement, siblings: HTMLElement[], bounds: DOMRect, initial: NonNullable<ReturnType<typeof geometry>>, hasOutline: boolean) => {
     const sameBox = (rect: DOMRect) =>
       [rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5);
-    const candidates = [...el.querySelectorAll<HTMLElement>("*"), ...siblings].filter((candidate) => {
+    const candidates = [...el.querySelectorAll("*"), ...siblings].filter((candidate): candidate is HTMLElement => {
       if (!(candidate instanceof HTMLElement)) return false;
       const rect = candidate.getBoundingClientRect();
       if (rect.width < 2 || Math.abs(rect.width - rect.height) > 0.5 || rect.width > Math.min(bounds.width, bounds.height) / 2) return false;
@@ -432,8 +432,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             // Compare with the surface alone to separate its own shadow or outline from another layer's paint.
             const attribute = "data-ouro-paint-solo";
             const previous = el.getAttribute(attribute);
-            counter.__ouroCheckRef = (counter.__ouroCheckRef ?? 0) + 1;
-            const marker = `p${counter.__ouroCheckRef}`;
+            const marker = `p${nextRef()}`;
             const probe = new CSSStyleSheet();
             probe.replaceSync(`[${attribute}="${marker}"] *, [${attribute}="${marker}"]::before, [${attribute}="${marker}"]::after { opacity: 0 !important; transition: none !important; }`);
             const originalStyle = el.getAttribute("style");

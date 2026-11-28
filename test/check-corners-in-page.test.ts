@@ -344,6 +344,30 @@ it("distinguishes a transparent hit area from its full-size painted surface", as
   }
 }, paintTimeout);
 
+it("does not treat a painted border, outline, or pseudo-element as an empty hit area", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render(`<style>.painted-hit::before { content:""; position:absolute; inset:0; background:#ddd; }</style>
+      <div id="hit" class="rounded-ouro-xl" style="position:relative;width:160px;height:120px">
+        <div style="position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:#b44939"></div>
+      </div>`);
+    const hit = root.querySelector<HTMLElement>("#hit")!;
+    const found = async () => (await findSquirclePaint()).some((issue) => issue.element.startsWith("div#hit.rounded-ouro-xl"));
+    hit.style.border = "2px solid transparent";
+    expect(await found()).toBe(false);
+    hit.style.borderColor = "#345";
+    expect(await found()).toBe(true);
+    hit.style.border = "";
+    hit.style.outline = "2px solid #345";
+    expect(await found()).toBe(true);
+    hit.style.outline = "";
+    hit.classList.add("painted-hit");
+    expect(await found()).toBe(true);
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
 it("keeps absent inline styles absent when an opaque sibling hides the surface", async () => {
   const root = render(`<style>
     .cover-stage { position:relative; width:160px; height:120px; }
@@ -513,10 +537,23 @@ it("distinguishes a curved independent SVG stroke from a square one", async () =
   const restore = forceSquircleFallback();
   try {
     const { path, radius } = outlinedSurface();
-    path.style.vectorEffect = "non-scaling-stroke";
+    path.setAttribute("style", "vector-effect: non-scaling-stroke ;");
+    const original = path.getAttribute("style");
     expect(await findSquirclePaint()).toEqual([]);
-    expect(path.style.vectorEffect).toBe("non-scaling-stroke");
+    expect(path.getAttribute("style")).toBe(original);
     path.setAttribute("d", `M 0 ${radius} V 0 H ${radius}`);
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-ouro-xl");
+    expect(path.getAttribute("style")).toBe(original);
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
+it("does not excuse a filled SVG shape beside a curved independent stroke", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const { path } = outlinedSurface();
+    path.parentElement!.insertAdjacentHTML("beforeend", '<rect x="-8" y="-8" width="8" height="8" fill="#b44939"></rect><rect fill="none" stroke="none" width="1" height="1"></rect>');
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-ouro-xl");
   } finally {
     restore();
