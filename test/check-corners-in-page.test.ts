@@ -1388,10 +1388,21 @@ it("keeps a glass surface's curved shadow distinct from an escaping child", asyn
 
 it("keeps real glass buttons' curved shadows distinct from square paint", async () => {
   const restore = forceSquircleFallback();
-  const host = render('<div style="padding:24px;background:var(--muted)"></div>');
-  const root = createRoot(host.firstElementChild!);
+  const host = render("");
+  host.style.left = "16px";
+  host.style.top = "16px";
+  const root = createRoot(host);
+  const icon = () => createElement("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, "aria-hidden": true },
+    createElement("path", { d: "M5 12h14M13 6l6 6-6 6" }));
   try {
-    await act(async () => root.render(createElement(Button, { variant: "glass", tone: "secondary" }, "Example")));
+    await act(async () => root.render(createElement("div", {
+      style: { background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", borderRadius: "calc(var(--radius) + 4px)", padding: 24 },
+    }, createElement("div", {
+      style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, padding: 24, borderRadius: 16, background: "var(--muted)" },
+    },
+    createElement(Button, { variant: "glass", tone: "secondary", "aria-label": "Back" }, createElement(icon)),
+    createElement(Button, { variant: "glass", tone: "secondary", startIcon: icon }, "Example"),
+    createElement(Button, { variant: "glass", tone: "secondary", "aria-expanded": true, endIcon: icon }, "More")))));
     expect(await findSquirclePaint()).toEqual([]);
     host.querySelector("button")!.insertAdjacentHTML("beforeend", '<span style="position:absolute;left:-6px;top:-6px;width:10px;height:10px;background:#c30"></span>');
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("button.press.relative.isolate");
