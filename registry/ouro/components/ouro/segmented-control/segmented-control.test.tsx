@@ -72,6 +72,21 @@ describe("SegmentedControl", () => {
     await expect.element(page.getByText("View", { exact: true })).toBeVisible();
   });
 
+  it("nests the selected segment's corners inside the track at different spacings", async () => {
+    const { host, thumb } = await render(<SegmentedControl label="View" items={items} />);
+    const track = host.querySelector<HTMLElement>('[role="radiogroup"]')!;
+    const radius = (element: HTMLElement) => {
+      const style = getComputedStyle(element);
+      return parseFloat(style.getPropertyValue("--sq-tl")) || parseFloat(style.borderTopLeftRadius);
+    };
+    host.style.setProperty("--radius", "20px");
+    for (const spacing of [4, 2]) {
+      host.style.setProperty("--spacing", `${spacing}px`);
+      const inset = thumb.getBoundingClientRect().left - track.getBoundingClientRect().left;
+      expect(radius(thumb)).toBeCloseTo(radius(track) - inset, 1);
+    }
+  });
+
   it("hides the label visually with hideLabel, and still names the group", async () => {
     const { host } = await render(<SegmentedControl label="View" hideLabel items={items} />);
     await expect.element(page.getByRole("radiogroup", { name: "View" })).toBeInTheDocument();
