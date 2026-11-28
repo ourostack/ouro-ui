@@ -319,6 +319,36 @@ it("activates the compiled fallback in both browser engines", async () => {
   }
 }, paintTimeout);
 
+it("keeps overlapping fallback surfaces separate while checking each one's paint", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render('<div style="display:flex"><div class="surface rounded-ouro-xl" style="position:relative;width:48px;height:48px;background:#579"></div><div class="surface rounded-ouro-xl" style="position:relative;width:48px;height:48px;margin-left:-8px;background:#c65"></div></div>');
+    expect(await findSquirclePaint()).toEqual([]);
+    const second = root.querySelectorAll<HTMLElement>(".surface")[1]!;
+    second.style.clipPath = "none";
+    second.innerHTML = '<div style="position:absolute;inset:0;background:#0a5"></div>';
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-ouro-xl");
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
+it("finds a fallback surface's own square outline and shadow without changing its inline style", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render('<div class="surface rounded-ouro-xl" style="width:160px;height:120px"></div>');
+    const surface = root.querySelector<HTMLElement>(".surface")!;
+    for (const effect of ["outline:6px solid #c65", "box-shadow:0 0 0 6px #c65"]) {
+      surface.style.cssText = `width:160px;height:120px;border-radius:0;clip-path:none;${effect}`;
+      const original = surface.getAttribute("style");
+      expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-ouro-xl");
+      expect(surface.getAttribute("style")).toBe(original);
+    }
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
 it("checks a single squircle corner, accepts raw PNG data, and restores existing effects", async () => {
   const root = render('<div class="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px 0 0 0;corner-shape:squircle;opacity:.9;outline:2px solid red;box-shadow:0 2px 3px #000;transition:opacity 1s;clip-path:inset(0)"><div style="position:absolute;inset:0;background:#f40"></div></div>');
   const surface = root.querySelector<HTMLElement>(".surface")!;

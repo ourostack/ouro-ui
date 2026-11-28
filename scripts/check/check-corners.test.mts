@@ -288,6 +288,29 @@ test("squircle-paint finds a square sibling exposed when the fallback clips a co
   }
 });
 
+test("squircle-paint finds a surface's own square paint outside its fallback corners", async () => {
+  const generated = await styles(`
+    body { margin: 0; background: white; }
+    .surface { position: absolute; left: 60px; top: 60px; width: 200px; height: 140px; border-radius: 32px; box-shadow: 0 0 0 6px #b44939; }
+  `);
+  const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-check-native-shape: squircle)");
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+    await bindCapture(tab);
+    try {
+      await tab.setContent(`<style>${css}</style><div class="surface"></div>`);
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: a curved shadow`);
+      for (const paint of ["background:#b44939", "border:6px solid #b44939", "outline:6px solid #b44939", "box-shadow:0 0 0 6px #b44939"]) {
+        await tab.locator(".surface").evaluate((el, value) => { el.style.cssText = `border-radius:0;clip-path:none;box-shadow:none;${value}`; }, paint);
+        assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, `${engine.name()}: ${paint}`);
+      }
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
 test("squircle-paint finds a sibling control protruding from a rounded pane's corner", async () => {
   const browser = await chromium.launch({ headless: true });
   const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
@@ -305,6 +328,30 @@ test("squircle-paint finds a sibling control protruding from a rounded pane's co
     }
   } finally {
     await browser.close();
+  }
+});
+
+test("squircle-paint checks overlapping rounded surfaces independently", async () => {
+  const generated = await styles(`
+    body { margin: 0; background: white; }
+    .row { position: absolute; left: 60px; top: 60px; display: flex; }
+    .surface { position: relative; width: 48px; height: 48px; border-radius: 40%; background: #557799; }
+    .surface + .surface { margin-left: -8px; background: #b44939; }
+    .leak { position: absolute; inset: 0; background: #4a9; }
+  `);
+  const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-check-native-shape: squircle)");
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+    await bindCapture(tab);
+    try {
+      await tab.setContent(`<style>${css}</style><div class="row"><div class="surface"></div><div class="surface"></div></div>`);
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], engine.name());
+      await tab.locator(".surface").last().evaluate((el) => { el.style.clipPath = "none"; el.innerHTML = '<div class="leak"></div>'; });
+      assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, `${engine.name()}: a separate surface still catches its own leak`);
+    } finally {
+      await browser.close();
+    }
   }
 });
 
