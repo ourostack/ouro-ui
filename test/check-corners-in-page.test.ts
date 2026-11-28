@@ -1048,6 +1048,20 @@ it("does not mistake the next line of a wrapped inline surface for corner paint"
   expect(await findSquirclePaint()).toEqual([]);
 }, paintTimeout);
 
+it("ignores a border pixel straddling the inside of a fractional box edge", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render('<div style="position:fixed;left:120px;top:50px;width:100px;height:60px;background:rgb(28,28,30)"><div class="surface rounded-[9px]" style="position:absolute;left:30.515625px;top:16.484375px;box-sizing:border-box;width:45.484375px;height:19.03125px;background:rgb(28,28,30);border:1px solid rgb(70,70,72)"></div></div>');
+    expect(await findSquirclePaint()).toEqual([]);
+    const surface = root.querySelector<HTMLElement>(".surface")!;
+    surface.style.clipPath = "none";
+    surface.insertAdjacentHTML("beforeend", '<span style="position:absolute;left:0;top:0;width:8px;height:8px;background:#d11"></span>');
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-[9px]");
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
 it("checks surfaces larger than the viewport and leaves no temporary style attribute", async () => {
   const root = render(`<style>.surface { width:${innerWidth + 100}px; height:${innerHeight + 100}px; background:#fff; border-radius:28px; corner-shape:squircle; }</style><div class="surface"></div>`);
   const surface = root.querySelector(".surface")!;
