@@ -265,7 +265,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const delta = difference(a.data, fragmented ? c.data : own && (native || outsideCorner) ? own.data : outsideCorner ? c.data : b.data, index);
           const behind = difference(b.data, c.data, index);
           if (delta < 2 || (!fragmented && !outsideCorner && behind > 4)) continue;
-          if (outsideCorner && noEffects && roundedEffects[cornerIndex] && difference(a.data, noEffects.data, index) >= 2 && difference(noEffects.data, c.data, index) < 2) continue;
+          if (noEffects && roundedEffects[cornerIndex] && difference(a.data, noEffects.data, index) >= 2 && difference(noEffects.data, c.data, index) < 2) continue;
           if (outsideCorner && difference(a.data, c.data, index) < 2) continue;
           if (!fragmented && outsideCorner && difference(a.data, b.data, index) < 2) continue;
           if (own && noStrokes && difference(a.data, noStrokes.data, index) >= 2 && difference(noStrokes.data, own.data, index) < 2 &&
