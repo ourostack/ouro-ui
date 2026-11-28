@@ -318,6 +318,52 @@ describe("findDesignIssues: nested-frame", () => {  it("finds a frame hugging a 
     expect(of("nested-frame")).toEqual([]);
   });
 
+  it("finds a visible outline or ring on a lighter card, but not an offset or invisible edge", () => {
+    render(`
+      <div style="display:grid;grid-template-columns:repeat(2, 180px);gap:20px;width:380px;padding:20px;border:1px solid #888;background:#ddd">
+        <div id="outline" style="height:60px;background:#fff;outline:1px solid #888">Outline</div>
+        <div id="ring" style="height:60px;background:#fff;box-shadow:0 0 0 1px #888">Ring</div>
+        <div style="height:60px;background:#fff;outline:1px solid #888;outline-offset:3px">Offset</div>
+        <div style="height:60px;background:#fff;box-shadow:0 0 0 1px #fff">Invisible</div>
+      </div>`);
+    expect(of("nested-frame").map((issue) => issue.element)).toEqual(["div#outline in div", "div#ring in div"]);
+  });
+
+  it("does not guess a surface under a gradient, filter, backdrop filter or blend", () => {
+    render(`
+      <div style="display:grid;grid-template-columns:repeat(2, 200px);gap:12px">
+        <div style="height:120px;padding:20px;border:1px solid #888;background:linear-gradient(#ddd,#bbb)">
+          <div style="height:60px;border:1px solid #888;background:#fff8">Gradient</div>
+        </div>
+        <div style="height:120px;padding:20px;border:1px solid #888;background:#ddd;filter:brightness(.9)">
+          <div style="height:60px;border:1px solid #888;background:#fff">Filter</div>
+        </div>
+        <div style="height:120px;padding:20px;border:1px solid #888;background:#ddd;backdrop-filter:blur(1px)">
+          <div style="height:60px;border:1px solid #888;background:#fff">Backdrop filter</div>
+        </div>
+        <div style="height:120px;padding:20px;border:1px solid #888;background:#ddd;mix-blend-mode:multiply">
+          <div style="height:60px;border:1px solid #888;background:#fff">Blend</div>
+        </div>
+      </div>`);
+    expect(of("nested-frame")).toEqual([]);
+  });
+
+  it("composites translucent surfaces over the dark page canvas", async () => {
+    document.documentElement.style.background = "transparent";
+    document.body.style.background = "transparent";
+    render(`
+      <div style="width:300px;height:160px;padding:20px;border:1px solid #888;background:#0008">
+        <div id="card" style="width:180px;height:60px;border:1px solid #444;background:#fff8">Notes</div>
+      </div>`);
+    await commands.emulateMedia({ colorScheme: "dark" });
+    try {
+      document.documentElement.style.colorScheme = "dark";
+      expect(of("nested-frame").map((issue) => issue.element)).toEqual(["div#card in div"]);
+    } finally {
+      await commands.emulateMedia({ colorScheme: "light" });
+    }
+  });
+
   it("passes a framed editor but still finds a framed card that contains a field", () => {
     render(`
       <div style="width:360px;padding:20px;border:1px solid #888;background:#ddd">

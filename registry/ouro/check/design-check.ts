@@ -219,15 +219,15 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
   // The actual solid surface, with translucent fills and group opacity composited over their ancestors. A picture,
   // gradient or filter that affects the result cannot be represented by one colour, so an edge over it is not guessed.
   const surfaces = new WeakMap<Element, [number, number, number] | null>();
-  const surfaceOf = (el: Element | null): [number, number, number] | null => {
-    const known = el ? surfaces.get(el) : undefined;
+  const surfaceOf = (el: Element): [number, number, number] | null => {
+    const known = surfaces.get(el);
     if (known !== undefined) return known;
     const colour: [number, number, number] = [0, 0, 0];
     let alpha = 0;
-    for (let n = el; n; n = n.parentElement) {
+    for (let n: Element | null = el; n; n = n.parentElement) {
       const s = getComputedStyle(n);
       if ((s.backgroundImage !== "none" && alpha < 0.999) || s.filter !== "none" || (s.backdropFilter && s.backdropFilter !== "none") || s.mixBlendMode !== "normal") {
-        if (el) surfaces.set(el, null);
+        surfaces.set(el, null);
         return null;
       }
       const fill = rgba(s.backgroundColor);
@@ -240,7 +240,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     }
     const canvas = matchMedia("(prefers-color-scheme: dark)").matches && /dark/.test(getComputedStyle(document.documentElement).colorScheme) ? 18 : 255;
     const result = colour.map((channel) => channel + canvas * (1 - alpha)) as [number, number, number];
-    if (el) surfaces.set(el, result);
+    surfaces.set(el, result);
     return result;
   };
   const colourDistance = (a: number[], b: number[]) => Math.abs(a[0]! - b[0]!) + Math.abs(a[1]! - b[1]!) + Math.abs(a[2]! - b[2]!);
@@ -424,7 +424,7 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
         && Math.min(drawn.bottom, o.bottom) - Math.max(drawn.top, o.top) > 1;
       let lighter = false;
       if (!hugs && inside && !inner.matches("button, input, select, textarea, [role=button], [role=combobox]") && rgba(getComputedStyle(inner).backgroundColor)[3] > 0) {
-        const [surface, behind] = [surfaceOf(inner), surfaceOf(inner.parentElement)];
+        const [surface, behind] = [surfaceOf(inner), surfaceOf(inner.parentElement!)];
         if (surface && behind && colourDistance(surface, behind) > 12 && hsl(surface).l > hsl(behind).l) {
           const editors = [...inner.querySelectorAll('textarea, select, input:not([type="hidden"]), [role="textbox"], [contenteditable="true"]')].filter((el) => visibleSet.has(el));
           const noHeading = !inner.querySelector("h1, h2, h3, h4, h5, h6, [role=heading]");
