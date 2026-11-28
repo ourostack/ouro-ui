@@ -97,6 +97,14 @@ describe("SegmentedControl", () => {
     }
   });
 
+  it("keeps the glass thumb round when controls use another corner shape", async () => {
+    const { host, thumb } = await render(<SegmentedControl label="View" items={items} glass />);
+    host.style.setProperty("--ouro-control-corner-shape", "squircle");
+    const style = getComputedStyle(thumb);
+    expect(style.getPropertyValue("--corner-shape").trim()).toBe("round");
+    expect(parseFloat(style.borderTopLeftRadius)).toBeGreaterThanOrEqual(thumb.getBoundingClientRect().height / 2);
+  });
+
   it("hides the label visually with hideLabel, and still names the group", async () => {
     const { host } = await render(<SegmentedControl label="View" hideLabel items={items} />);
     await expect.element(page.getByRole("radiogroup", { name: "View" })).toBeInTheDocument();
