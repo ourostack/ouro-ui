@@ -218,11 +218,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           if (stable && difference(a.data, stable.data, index) >= 2) continue;
           const px = clip.x + (x + 0.5) * clip.width / a.width;
           const py = clip.y + (y + 0.5) * clip.height / a.height;
-          // A fragment also owns the antialiased pixel straddling its rectangular edge.
-          if (otherFragments.some((other) =>
-            px >= other.left - clip.width / a.width / 2 && px < other.right + clip.width / a.width / 2 &&
-            py >= other.top - clip.height / a.height / 2 && py < other.bottom + clip.height / a.height / 2,
-          )) continue;
+          if (otherFragments.some((other) => px >= other.left && px < other.right && py >= other.top && py < other.bottom)) continue;
           const dx = (left ? cornerX - px : px - cornerX) / (corner.x * rect.width / width);
           const dy = (top ? cornerY - py : py - cornerY) / (corner.y * rect.height / height);
           if (dx <= 0 || dy <= 0 || dx ** 4 + dy ** 4 <= 1) continue;
@@ -373,15 +369,11 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     const ownEffects = style.boxShadow !== "none" || style.outlineStyle !== "none";
     const scaleX = bounds.width / initial.width;
     const scaleY = bounds.height / initial.height;
-    const inlineRects = style.display === "inline" ? [...el.getClientRects()] : [];
     const siblings = [...(el.parentElement?.children ?? [])].filter((other): other is HTMLElement => {
       if (!(other instanceof HTMLElement) || other === el || !visible(other)) return false;
       const rect = other.getBoundingClientRect();
       if (!other.offsetWidth || !other.offsetHeight || getComputedStyle(other).transform !== transform ||
         Math.abs(rect.width / other.offsetWidth - scaleX) > 0.01 || Math.abs(rect.height / other.offsetHeight - scaleY) > 0.01) return false;
-      if (inlineRects.length > 1 && !inlineRects.some((fragment) =>
-        rect.left < fragment.right && rect.right > fragment.left && rect.top < fragment.bottom && rect.bottom > fragment.top,
-      )) return false;
       const sameBox = [rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5);
       const otherGeometry = geometry(other);
       if (otherGeometry) {
