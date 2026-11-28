@@ -312,13 +312,15 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     return colorContext.getImageData(0, 0, 1, 1).data[3]!;
   };
   const opaque = (color: string) => alpha(color) === 255;
-  const hasPaint = (element: Element) => {
+  const hasPaint = (element: Element, corner?: number) => {
     if (element.matches("img, video, canvas, svg")) return true;
     const paintedStyle = (style: CSSStyleDeclaration) => {
       if (style.backgroundImage !== "none" || alpha(style.backgroundColor) > 0 || style.boxShadow !== "none" ||
         (style.backdropFilter || "none") !== "none") return true;
       if (style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0 && alpha(style.outlineColor) > 0) return true;
-      return (["Top", "Right", "Bottom", "Left"] as const).some((side) =>
+      const sides = corner === undefined ? ["Top", "Right", "Bottom", "Left"] as const :
+        [corner < 2 ? "Top" : "Bottom", corner === 0 || corner === 3 ? "Left" : "Right"] as const;
+      return sides.some((side) =>
         style[`border${side}Style`] !== "none" && parseFloat(style[`border${side}Width`]) > 0 && alpha(style[`border${side}Color`]) > 0,
       );
     };
@@ -373,6 +375,15 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       return width > 0 && height > 0 &&
         [rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5);
     });
+    const fullBox = (other: Element) => {
+      const rect = other.getBoundingClientRect();
+      return [rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5);
+    };
+    const surfaceLayers = [...el.querySelectorAll("*"), ...siblings, ...outlines].filter((other) => visible(other) && fullBox(other));
+    for (const [index, corner] of initial.corners.entries()) {
+      if (corner.squircle && !hasPaint(el, index) && !surfaceLayers.some((other) => hasPaint(other, index))) corner.squircle = false;
+    }
+    if (!initial.corners.some((corner) => corner.squircle)) continue;
     const strokes = outlines.flatMap((svg) => [...svg.querySelectorAll<SVGGraphicsElement>("path, rect, circle, ellipse, line, polyline, polygon, use")].flatMap((node) => {
       const stroke = getComputedStyle(node);
       const width = parseFloat(stroke.strokeWidth);

@@ -641,7 +641,7 @@ it("detects a low-contrast square and a descendant outline beyond the surface", 
 }, paintTimeout);
 
 it("detects alpha-only paint against a transparent background", async () => {
-  render('<div style="width:160px;height:120px;border-radius:28px;corner-shape:squircle"></div>');
+  render('<div style="position:relative;width:160px;height:120px;border-radius:28px;corner-shape:squircle"><div style="position:absolute;inset:0;background:#000"></div></div>');
   const image = (painted: boolean, clip: PaintClip) => {
     const canvas = document.createElement("canvas");
     canvas.width = clip.width;
@@ -1208,7 +1208,11 @@ it("ignores an unpainted rounded focus wrapper around a smaller control", async 
     <div style="position:absolute;right:0;bottom:0;width:24px;height:24px;background:#d11"></div>
   </div>`);
   const wrapper = root.querySelector<HTMLElement>(".wrapper")!;
+  const child = wrapper.firstElementChild as HTMLElement;
   expect(await findSquirclePaint()).toEqual([]);
+  child.style.cssText = "position:absolute;inset:0;background:#d11";
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.wrapper");
+  child.style.cssText = "position:absolute;right:0;bottom:0;width:24px;height:24px;background:#d11";
   wrapper.style.background = "#fff";
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.wrapper");
 }, paintTimeout);
