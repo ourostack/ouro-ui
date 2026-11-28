@@ -20,6 +20,7 @@ import {
   rootClass,
   segmentClass,
   thumbClass,
+  thumbClipClass,
 } from "@/registry/ouro/components/ouro/segmented-control/segmented-control-styles";
 
 /** One segment. */
@@ -360,7 +361,9 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
         // Stryker disable next-line ConditionalExpression,LogicalOperator: fullWidth is tested on the plain group; the glass class sets its own look
         className={cn(groupClass, glass && glassGroupClass, fullWidth && "grid w-full")}
       >
-        <span aria-hidden="true" data-ouro-segment-thumb="" className={thumbClass} style={thumbStyle} />
+        <span aria-hidden="true" className={thumbClipClass}>
+          <span data-ouro-segment-thumb="" className={thumbClass} style={thumbStyle} />
+        </span>
         {items.map((item) => (
           <Segment
             key={item.value}

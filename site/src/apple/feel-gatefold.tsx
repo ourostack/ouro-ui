@@ -17,7 +17,7 @@ const SIDES: Side[] = ["before", "after"];
 
 /** Where the panel sits in each 675×900 capture, as the blur crops left it unblurred. */
 const RING: Record<Side, CSSProperties> = {
-  before: { left: "85.9%", top: "60.2%", width: "14.1%", height: "38.4%" },
+  before: { left: "85.9%", top: "60.2%", width: "calc(14.1% + var(--feel-ring-tail))", height: "38.4%" },
   after: { left: "24%", top: "60.2%", width: "52.1%", height: "38.4%" },
 };
 

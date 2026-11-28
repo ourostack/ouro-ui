@@ -629,10 +629,10 @@ describe("SegmentedControl", () => {
     expect(style().transitionTimingFunction).toBe("cubic-bezier(0.77, 0, 0.175, 1), cubic-bezier(0.77, 0, 0.175, 1), ease");
     r.segments[0]!.focus();
     await userEvent.keyboard("{ArrowRight}");
-    expect(r.thumb.parentElement!.hasAttribute("data-ouro-keyboard")).toBe(true);
+    expect(r.thumb.closest('[role="radiogroup"]')!.hasAttribute("data-ouro-keyboard")).toBe(true);
     expect(style().transitionProperty).toBe("none");
     await userEvent.click(r.segments[2]!);
-    expect(r.thumb.parentElement!.hasAttribute("data-ouro-keyboard")).toBe(false);
+    expect(r.thumb.closest('[role="radiogroup"]')!.hasAttribute("data-ouro-keyboard")).toBe(false);
     expect(style().transitionProperty).toBe("inset-inline-start, inset-inline-end, opacity");
   });
 

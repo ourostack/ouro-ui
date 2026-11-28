@@ -310,8 +310,13 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
       if (!covered && !(/hidden|clip/.test(outside.overflowX) && /hidden|clip/.test(outside.overflowY)) && outside.clipPath === "none") return false;
     }
     const own = getComputedStyle(inner.el!);
-    return own.boxShadow === "none" && (own.outlineStyle === "none" || parseFloat(own.outlineWidth) === 0) &&
-      (["Top", "Right", "Bottom", "Left"] as const).every((side) => own[`border${side}Style`] === "none" || parseFloat(own[`border${side}Width`]) === 0);
+    const horizontal = index === 0 || index === 3 ? "Left" : "Right";
+    const vertical = index < 2 ? "Top" : "Bottom";
+    const shadowCovered = own.boxShadow === "none" || (
+      !/\binset\b/.test(own.boxShadow) && own.backgroundImage === "none" &&
+      rgba(own.backgroundColor)[3] === 255 && Number(own.opacity) === 1
+    );
+    return shadowCovered && !paintedOutline(own) && !paintedSide(own, horizontal) && !paintedSide(own, vertical);
   };
   // An unpainted clip can supply the visible corner; keep intersecting curves when neither contains the other.
   const dominates = (a: Corner, b: Corner): boolean => {
@@ -380,7 +385,7 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
         const norm = ((1 - Math.max(0, dx) / oc.x) ** exponent + (1 - Math.max(0, dy) / oc.y) ** exponent) ** (1 / exponent);
         const distanceInside = norm < 1 ? (1 / norm - 1) * Math.hypot(oc.x - dx, oc.y - dy) : 0;
         if (distanceInside > 5) continue;
-        if (clippedCorner(inner, outer, index)) break;
+        if (clippedCorner(inner, outer, index) && dominates(oc, corner)) break;
         const innerPaint = paintedCorner(inner, index);
         if (innerPaint === false) break;
         const outerPaint = paintedCorner(outer, index);
