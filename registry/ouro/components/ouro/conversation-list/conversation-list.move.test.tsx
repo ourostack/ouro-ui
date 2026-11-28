@@ -44,7 +44,8 @@ const sections: ConversationListSection[] = [
 const row = (host: HTMLElement, title: string) =>
   [...host.querySelectorAll<HTMLButtonElement>('[data-ouro-part="row"]')].find((button) => button.querySelector("[data-ouro-conversation-title]")!.textContent!.startsWith(title))!;
 const header = (host: HTMLElement, title: string) => [...host.querySelectorAll<HTMLButtonElement>('[data-ouro-part="section"]')].find((button) => button.textContent === title)!;
-const lit = (host: HTMLElement) => [...host.querySelectorAll('[data-drop="into"]')].map((el) => el.textContent);
+const lit = (host: HTMLElement) => [...host.querySelectorAll('[data-ouro-part="section"][data-drop="into"]')].map((el) => el.textContent);
+const litRows = (host: HTMLElement) => [...host.querySelectorAll('[data-ouro-part="row"][data-drop="into"]')].map((el) => el.querySelector("[data-ouro-conversation-title]")!.textContent);
 const lifted = (host: HTMLElement) => [...host.querySelectorAll("[data-dragging]")].map((el) => el.querySelector("[data-ouro-conversation-title]")?.textContent);
 const said = () => document.querySelector("[data-ouro-announcer]")?.textContent ?? "";
 const middle = (element: Element) => {
@@ -82,7 +83,7 @@ async function key(target: Element, init: KeyboardEventInit) {
 const list = (extra: Partial<Parameters<typeof ConversationList>[0]> = {}) => <ConversationList label="Chats" items={items} sections={sections} onSelect={() => {}} {...extra} />;
 
 describe("ConversationList row move", () => {
-  it("lifts a row dragged with a mouse, highlights the header of the section under the pointer, and reports the row and the section once on release", async () => {
+  it("lifts a row dragged with a mouse, lights the section under the pointer, its header and its rows, and reports the row and the section once on release", async () => {
     const onItemMove = vi.fn();
     const { host } = await render(list({ onItemMove }));
     const standup = row(host, "Standup");
@@ -94,16 +95,20 @@ describe("ConversationList row move", () => {
     expect(getComputedStyle(slot).zIndex).toBe("10");
     expect(getComputedStyle(slot).boxShadow).not.toBe("none");
     expect(lit(host)).toEqual(["Projects"]);
+    expect(litRows(host)).toEqual(["Garden club"]);
     expect(getComputedStyle(header(host, "Projects")).outlineStyle).toBe("solid");
     expect(getComputedStyle(header(host, "Projects")).backgroundColor).not.toBe(resting);
+    expect(getComputedStyle(row(host, "Garden club")).backgroundColor).toBe(getComputedStyle(header(host, "Projects")).backgroundColor);
     await pointer(window, "pointermove", ...middle(row(host, "Trail crew")));
     expect(lit(host)).toEqual(["Favorites"]);
+    expect(litRows(host)).toEqual(["Trail crew", "Design reviewDesign review, weekly"]);
     expect(onItemMove).not.toHaveBeenCalled();
     await pointer(window, "pointerup", ...middle(row(host, "Trail crew")));
     expect(onItemMove).toHaveBeenCalledTimes(1);
     expect(onItemMove).toHaveBeenCalledWith("work", "favorites");
     expect(lifted(host)).toEqual([]);
     expect(lit(host)).toEqual([]);
+    expect(litRows(host)).toEqual([]);
     expect(slot.style.transform).toBe("");
     // The app moves the row; the list draws it where the items say.
     expect(standup.closest("[data-ouro-conversation-section]")!.getAttribute("data-ouro-conversation-section")).toBe("recent");
@@ -139,6 +144,7 @@ describe("ConversationList row move", () => {
     expect(await key(document.body, { key: "Escape" })).toEqual({ prevented: true, heard: false });
     expect(lifted(host)).toEqual([]);
     expect(lit(host)).toEqual([]);
+    expect(litRows(host)).toEqual([]);
     expect(standup.closest("li")!.style.transform).toBe("");
     await pointer(window, "pointermove", ...middle(header(host, "Favorites")));
     expect(lit(host)).toEqual([]);

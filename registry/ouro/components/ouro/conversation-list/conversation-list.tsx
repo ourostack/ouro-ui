@@ -251,11 +251,11 @@ export interface ConversationListOwnProps {
   onSectionsReorder?: ((ids: string[], move: ConversationListSectionMove) => void) | undefined;
   /**
    * Called with a row's `id` and a section's when the person drags the row with a mouse onto a section that
-   * `acceptsItems`. While it is dragged the row follows the pointer and the header of the section it would land in is
-   * highlighted; Escape puts it back. A click still selects the row, and a finger or pen still scrolls and long-presses
-   * it. The app moves the row: the list shows it where `items` puts it. Give the row a `menu` entry that moves it too,
-   * for the keyboard and screen readers.
-   * @claim "While it is dragged the row follows the pointer" registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx::ConversationList row move > lifts a row dragged with a mouse, highlights the header of the section under the pointer, and reports the row and the section once on release)
+   * `acceptsItems`. While it is dragged the row follows the pointer and the section it would land in is highlighted, its
+   * header and its rows; Escape puts it back. A click still selects the row, and a finger or pen still scrolls and
+   * long-presses it. The app moves the row: the list shows it where `items` puts it. Give the row a `menu` entry that
+   * moves it too, for the keyboard and screen readers.
+   * @claim "While it is dragged the row follows the pointer" registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx::ConversationList row move > lifts a row dragged with a mouse, lights the section under the pointer, its header and its rows, and reports the row and the section once on release)
    * @claim "Escape puts it back" registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx::ConversationList row move > puts the row back and reports nothing on Escape or a cancelled pointer)
    * @claim "A click still selects the row, and a finger or pen still scrolls" registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx::ConversationList row move > selects a row on a click and not on the click that ends a drag, and drags no row with a finger or pen)
    * @example
@@ -342,6 +342,7 @@ const controlClass =
 // with the system's selected-item look (Highlight, with HighlightText for its text) rather than a plain border.
 const rowClass =
   "gap-3 aria-[current=true]:bg-[color:var(--ouro-row-selected,color-mix(in_oklab,var(--accent)_94%,var(--foreground)))] aria-[current=true]:text-accent-foreground " +
+  "data-[drop=into]:bg-[color:var(--ouro-row-selected,color-mix(in_oklab,var(--accent)_94%,var(--foreground)))] data-[drop=into]:text-accent-foreground " +
   "forced-colors:aria-[current=true]:forced-color-adjust-none forced-colors:aria-[current=true]:bg-[Highlight] forced-colors:aria-[current=true]:text-[HighlightText]";
 // The open row keeps its highlight under the pointer and while pressed: the plain rows' muted
 // hover would make it look closed, and their hover ring would make it look raised off the list
@@ -349,8 +350,8 @@ const rowClass =
 // and drop its hover shadow, so the open row is marked by its selected fill alone.
 const currentClass =
   "pointer-fine:group-hover/row:bg-[color:var(--ouro-row-selected-hover,color-mix(in_oklab,var(--accent)_86%,var(--foreground)))] pointer-fine:group-hover/row:[box-shadow:none] active:bg-[color:var(--ouro-row-selected-pressed,color-mix(in_oklab,var(--accent)_75%,var(--foreground)))] pointer-fine:hover:active:bg-[color:var(--ouro-row-selected-pressed,color-mix(in_oklab,var(--accent)_75%,var(--foreground)))]";
-// A section header is lit as the place a dragged row would land: the open row's fill and a ring, where a dragged section
-// shows a line between headers instead.
+// A section header is lit as the place a dragged row would land: the open row's fill and a ring, and its rows the fill,
+// where a dragged section shows a line between headers instead.
 const headerClass =
   "gap-1.5 py-1.5 text-sm data-[drop=into]:bg-[color:var(--ouro-row-selected,color-mix(in_oklab,var(--accent)_94%,var(--foreground)))] data-[drop=into]:text-accent-foreground data-[drop=into]:outline-2 data-[drop=into]:outline-solid";
 // A dragged header or row is lifted off the list, as Reorderable lifts a row.
@@ -1323,8 +1324,9 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
   // The header takes a mouse's drag only, so a finger's touch moves on it stay the page's scroll.
   const { ref: gripRef, ...headerDrag } = gesture;
 
-  // Dragging a row with a mouse onto a section that takes rows: the row follows the pointer, and the header of the section
-  // it would land in lights. A finger or pen scrolls and long-presses the row as before.
+  // Dragging a row with a mouse onto a section that takes rows: the row follows the pointer, and the section it would land
+  // in lights, its header and its rows, since the row it carries may cover the header. A finger or pen scrolls and
+  // long-presses the row as before.
   type Into = { id: string; title: string; el: HTMLElement; top: number; bottom: number };
   const carry = useRef<{ item: ConversationListItem; mouse: boolean; own: HTMLElement; spots: Into[]; to: Into | undefined; cancelled: boolean; stop?: () => void } | null>(null);
   const rowGesture = useDrag({
@@ -1338,14 +1340,18 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     onStart: () => {
       const held = carry.current!;
       if (!held.mouse) return false;
-      // A section takes the row from its header to its last row drawn; one whose header is not drawn takes none.
+      // A section takes the row from its header to its last row drawn; one whose header is not drawn takes none. Each of
+      // its parts drawn is a spot, so all of them light.
       for (const { section } of groupsShown) {
         if (section.acceptsItems !== true || section.id === held.item.section) continue;
         const group = listRef.current!.querySelector(`[data-ouro-conversation-section="${CSS.escape(section.id)}"]`);
-        const el = group?.querySelector<HTMLElement>('[data-ouro-part="section"]');
-        if (!el) continue;
-        const boxes = [el, ...group!.querySelectorAll('[data-ouro-part="row"]')].map((part) => part.getBoundingClientRect());
-        held.spots.push({ id: section.id, title: section.title, el, top: Math.min(...boxes.map((box) => box.top)), bottom: Math.max(...boxes.map((box) => box.bottom)) });
+        const header = group?.querySelector<HTMLElement>('[data-ouro-control="conversation-list"][data-ouro-part="section"]');
+        if (!header) continue;
+        const parts = [header, ...group!.querySelectorAll<HTMLElement>('[data-ouro-control="conversation-list"][data-ouro-part="row"]')];
+        const boxes = parts.map((part) => part.getBoundingClientRect());
+        const top = Math.min(...boxes.map((box) => box.top));
+        const bottom = Math.max(...boxes.map((box) => box.bottom));
+        for (const el of parts) held.spots.push({ id: section.id, title: section.title, el, top, bottom });
       }
       if (held.spots.length === 0) return false;
       lift(held);
@@ -1358,7 +1364,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
       // Stryker disable next-line EqualityOperator: a pointer exactly on a section's top or bottom edge may land in it or not.
       held.to = held.spots.find((spot) => event.clientY >= spot.top && event.clientY < spot.bottom);
       for (const spot of held.spots) {
-        if (spot === held.to) spot.el.setAttribute("data-drop", "into");
+        if (spot.id === held.to?.id) spot.el.setAttribute("data-drop", "into");
         else spot.el.removeAttribute("data-drop");
       }
     },
