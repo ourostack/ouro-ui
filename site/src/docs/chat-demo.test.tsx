@@ -171,6 +171,9 @@ describe("the chat app page", () => {
   it.each(["light", "dark"] as const)("separates the list and conversation with a surface step in %s", async (scheme) => {
     await page.viewport(3840, 2160);
     setScheme(scheme);
+    const root = document.documentElement;
+    const background = root.style.getPropertyValue("--background");
+    if (scheme === "light") root.style.setProperty("--background", "#f8f8fc");
     try {
       await renderPage("/docs/chat-demo/");
       const demo = document.querySelector<HTMLElement>("[data-site-chat-demo]")!;
@@ -182,6 +185,8 @@ describe("the chat app page", () => {
       await page.getByRole("radio", { name: "Empty" }).click();
       expect(paneIssues()).toEqual([]);
     } finally {
+      if (background) root.style.setProperty("--background", background);
+      else root.style.removeProperty("--background");
       await page.viewport(390, 844);
     }
   });
