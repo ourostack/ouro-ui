@@ -17,7 +17,7 @@ test("squircle corners: a rounded rule gets a sibling that records its radii and
   const out = await run("@layer utilities{.card{border-radius:12px}}");
   assert.match(out, /^@layer squircle-corners;@property --sq-notch/);
   assert.match(out, /\.card\{--sq-tl:12px;--sq-tr:12px;--sq-br:12px;--sq-bl:12px;border-radius:calc\(12px \* 0\.543\)/);
-  assert.match(out, /@layer squircle-corners\{@supports \(corner-shape: squircle\)\{\.card\{corner-shape:squircle\}\}/);
+  assert.match(out, /@layer squircle-corners\{@supports \(corner-shape: squircle\)\{\.card\{corner-shape:var\(--sq-shape-tl, squircle\)/);
   assert.match(out, /--sq-clip:shape\(nonzero from -9999px -9999px.*move to 0 var\(--sq-tl\), curve by/);
   assert.match(out, /close, var\(--sq-notch, move to 0 0, close\)\);clip-path:var\(--sq-clip\)\}/);
 });
@@ -219,6 +219,8 @@ test("squircle corners: native shapes follow a later circle and a still-later sq
     .squircle { border-radius: 20px; }
     .circle { border-radius: 50%; }
     .later { border-radius: 12px; }
+    .one-round { border-top-left-radius: 50% !important; }
+    .explicit { corner-shape: bevel; }
   `);
   const browser = await chromium.launch({ headless: true });
   const tab = await browser.newPage();
@@ -228,6 +230,14 @@ test("squircle corners: native shapes follow a later circle and a still-later sq
     assert.ok(["round", "superellipse(1)"].includes(await shape()), "the later circle remains round");
     await tab.locator(".surface").evaluate((element) => { element.classList.add("later"); });
     assert.equal(await shape(), "superellipse(2)", "the still-later squircle wins");
+    await tab.locator(".surface").evaluate((element) => { element.className = "surface squircle one-round later"; });
+    const corners = await tab.locator(".surface").evaluate((element) =>
+      ["top-left", "top-right", "bottom-right", "bottom-left"].map((corner) => globalThis.getComputedStyle(element).getPropertyValue(`corner-${corner}-shape`)),
+    );
+    assert.ok(["round", "superellipse(1)"].includes(corners[0]), "an important round longhand keeps its corner");
+    assert.deepEqual(corners.slice(1), ["superellipse(2)", "superellipse(2)", "superellipse(2)"], "other corners stay squircles");
+    await tab.locator(".surface").evaluate((element) => { element.classList.add("explicit"); });
+    assert.ok(["bevel", "superellipse(0)"].includes(await shape()), "an explicit corner shape still wins");
   } finally {
     await browser.close();
   }
@@ -264,7 +274,7 @@ test("squircleCornersDedupe: merges two source files' complete squircle-corners 
   const out = dedupe(bundled);
   // one merged layer, one corner-shape rule and one --sq-clip rule, covering every selector from both files
   assert.equal((out.match(/@layer squircle-corners\{/g) ?? []).length, 1);
-  assert.equal((out.match(/corner-shape:squircle\}/g) ?? []).length, 1);
+  assert.equal((out.match(/corner-shape:var\(--sq-shape-tl, squircle\)/g) ?? []).length, 1);
   assert.equal((out.match(/--sq-clip:/g) ?? []).length, 1);
   for (const sel of [".a", ".b", ".c"]) assert.match(out, new RegExp(`${sel}[,{]`));
 });
@@ -273,7 +283,7 @@ test("squircleCornersDedupe: within one chunk, collapses the same selector list 
   const a = await run("@layer utilities{.a{border-radius:8px}}");
   const out = dedupe(a + a);
   assert.equal((out.match(/@layer squircle-corners\{/g) ?? []).length, 1);
-  assert.equal((out.match(/corner-shape:squircle\}/g) ?? []).length, 1);
+  assert.equal((out.match(/corner-shape:var\(--sq-shape-tl, squircle\)/g) ?? []).length, 1);
   assert.equal((out.match(/--sq-clip:/g) ?? []).length, 1);
   const layer = out.match(/@layer squircle-corners\{(.*?)\}\}(?=@layer squircle-corners;|$)/s)[1];
   assert.equal((layer.match(/\.a/g) ?? []).length, 2); // once per @supports fallback group, not once per source file

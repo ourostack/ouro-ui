@@ -51,7 +51,7 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
       const root = input as Node;
       const selectors = new Set<string>();
       type Declaration = { prop: string; value: string; important?: boolean };
-      type Group = { key: string; declarations: Declaration[]; selectors: string[]; last: Node };
+      type Group = { key: string; declarations: Declaration[]; shapes: Declaration[]; selectors: string[]; last: Node };
       const groups = new Map<Node, Group[]>();
       root.walkRules((rule) => {
         if (skipped(rule)) return;
@@ -63,10 +63,12 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
           const squircle = corners.some((c) => c !== null && !isRound(c.value, rule));
           included ||= squircle;
           const declarations: Declaration[] = [];
+          const shapes: Declaration[] = [];
           const radii = corners.map((c, i) => {
             if (c === null) return null;
             const round = isRound(c.value, rule);
             declarations.push({ prop: `--sq-${KEYS[i]}`, value: round ? "0px" : c.value, important: c.important });
+            shapes.push({ prop: `--sq-shape-${KEYS[i]}`, value: round ? "round" : "squircle", important: c.important });
             return { value: round ? c.value : `calc(${c.value} * ${ENCLOSING_CIRCLE})`, important: c.important };
           });
           if (squircle) {
@@ -78,7 +80,7 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
           }
           let byParent = groups.get(rule.parent!);
           if (!byParent) groups.set(rule.parent!, (byParent = []));
-          const key = JSON.stringify(declarations);
+          const key = JSON.stringify([declarations, shapes]);
           const previous = byParent.at(-1);
           const nodes = rule.parent!.nodes ?? [];
           const between = previous ? nodes.slice(nodes.indexOf(previous.last) + 1, nodes.indexOf(rule)) : [];
@@ -86,7 +88,7 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
             (node.type === "rule" && cornersOf(node).every((corner) => corner === null) &&
               !(node.nodes ?? []).some((decl) => decl.type === "decl" && (decl.prop === "all" || decl.prop?.startsWith("--sq-")))));
           let group = previous && previous.key === key && safe ? previous : undefined;
-          if (!group) byParent.push((group = { key, declarations, selectors: [], last: rule }));
+          if (!group) byParent.push((group = { key, declarations, shapes, selectors: [], last: rule }));
           const list = rule.selectors ?? [rule.selector!];
           group.selectors.push(...(direction ? list.map((selector) => directionSelector(selector, direction)) : list));
           group.last = rule;
@@ -99,6 +101,7 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
           for (const selector of selectorGroups(group.selectors).reverse()) {
             const sibling = { selector, nodes: group.declarations };
             const wrap = { name: "supports", params: MISSING, nodes: [sibling] };
+            group.last.after({ name: "supports", params: "(corner-shape: squircle)", nodes: [{ selector, nodes: group.shapes }] });
             group.last.after(wrap);
           }
         }
@@ -108,12 +111,13 @@ function squircleCorners(): { postcssPlugin: string; OnceExit(root: unknown): vo
         name: "layer",
         params: "squircle-corners",
         nodes: [
-          { name: "supports", params: "(corner-shape: squircle)", nodes: lists.map((selector) => ({ selector, nodes: [{ prop: "corner-shape", value: "squircle" }] })) },
+          { name: "supports", params: "(corner-shape: squircle)", nodes: lists.map((selector) => ({ selector, nodes: [{ prop: "corner-shape", value: KEYS.map((key) => `var(--sq-shape-${key}, squircle)`).join(" ") }] })) },
           { name: "supports", params: MISSING, nodes: lists.map((selector) => ({ selector, nodes: [{ prop: "--sq-clip", value: clipPath() }, { prop: "clip-path", value: "var(--sq-clip)" }] })) },
         ],
       };
       root.append(layer);
       for (const k of KEYS) root.prepend({ name: "property", params: `--sq-${k}`, nodes: [{ prop: "syntax", value: '"<length-percentage>"' }, { prop: "inherits", value: "false" }, { prop: "initial-value", value: "0px" }] });
+      for (const k of KEYS) root.prepend({ name: "property", params: `--sq-shape-${k}`, nodes: [{ prop: "syntax", value: '"*"' }, { prop: "inherits", value: "false" }, { prop: "initial-value", value: "squircle" }] });
       root.prepend({ name: "property", params: "--sq-notch", nodes: [{ prop: "syntax", value: '"*"' }, { prop: "inherits", value: "false" }] });
       root.prepend({ name: "layer", params: "squircle-corners" });
     },
