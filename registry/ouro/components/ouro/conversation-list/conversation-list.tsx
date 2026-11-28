@@ -629,7 +629,7 @@ function MoreButton({ rowKey, name, moreLabel, onMore, className }: { rowKey: st
       )}
     >
       <TouchTarget fine />
-      <span aria-hidden="true">…</span>
+      <span aria-hidden="true">⋯</span>
       <span className="sr-only">
         {moreLabel} {name}
       </span>

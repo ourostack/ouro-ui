@@ -28,6 +28,9 @@ import type { PageIssue } from "./size-check.ts";
 //   off-centre-text    one line of words in a control (a button, a tab, a field's value or placeholder) whose cap
 //                      height sits more than `textSlackPx` off the control's middle, as a placeholder pushed low by
 //                      uneven padding does; a writing area tall enough for two lines starts at its top, and is left alone
+//   off-centre-ink     a control holding a thing other than words (an icon, a picture, or a typed glyph such as "…")
+//                      whose ink sits more than `inkSlackPx` off the control's middle, across or down: an icon read by
+//                      what its drawing covers, a glyph by where its strokes fall, so a typed "…" on its baseline is low
 //   baked-corner       (readCorners) a picture or video whose own pixels draw a corner of another colour, such as a
 //                      screen recording of a window with its dark corner, inside the page's frame
 //   type-scale         more text sizes, or more font weights in running text or in headings, than a type scale holds
@@ -74,6 +77,8 @@ interface DesignOptions {
    * whose line box sits a little off its cap height, as shadcn's nova preset does.
    */
   fieldSlackPx?: number;
+  /** How far, in pixels, the ink of a control's icon, picture or glyph may sit from the control's middle, across or down. */
+  inkSlackPx?: number;
   /** The limit on a page's text sizes and font weights. */
   maxSizes?: number;
   maxWeights?: number;
@@ -110,7 +115,7 @@ interface CornerReading {
   corners: string[];
 }
 
-function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5, readingPx = 24, cornerShape = CSS.supports("corner-shape", "squircle"), squirclePx = 4, lineGapPx = 6, badgeSlackPx = 0.75, textSlackPx = 2.5, fieldSlackPx = 1.5 }: DesignOptions = {}): PageIssue[] {
+function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin = 240, headingRoom = 0.5, hugPx = 6, maxSizes = 10, maxWeights = 3, maxShadows = 5, readingPx = 24, cornerShape = CSS.supports("corner-shape", "squircle"), squirclePx = 4, lineGapPx = 6, badgeSlackPx = 0.75, textSlackPx = 2.5, fieldSlackPx = 1.5, inkSlackPx = 1 }: DesignOptions = {}): PageIssue[] {
   const issues: PageIssue[] = [];
   const counter = window as unknown as { __ouroCheckRef?: number };
   const ref = (el: Element) => {
@@ -657,6 +662,72 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
     const dy = (baseline - (cap / 2) * scale - middle) / scale;
     if (Math.abs(dy) > (field || editor ? fieldSlackPx : textSlackPx)) {
       issues.push({ ref: ref(el), rule: "off-centre-text", element: `${describe(el)}${quoted(el)}`, detail: `its ${placeholder ? "placeholder" : "text"} sits ${Math.abs(dy).toFixed(1)}px ${dy < 0 ? "high" : "low"}, by its cap height: even the padding above and below it, and centre it on its cap height, not its line box` });
+    }
+  }
+
+  // off-centre-ink: a control that holds a thing other than words (an icon, a picture, or a typed glyph such as "…", "·"
+  // or "+") whose ink sits off the control's middle, across or down. Ink, not boxes: an icon by what its drawing covers,
+  // a glyph by where its strokes fall, so a typed "…" resting on its baseline reads as low. Words are off-centre-text's,
+  // and emoji, whose ink the canvas can't read, are left alone. A count or a dot laid over the control is its own thing.
+  for (const el of visible.filter((el) => el.matches("button, [role=button], [role=tab]") && !optedOut(el, "off-centre-ink"))) {
+    const b = el.getBoundingClientRect();
+    const scale = b.height / (el as HTMLElement).offsetHeight;
+    if (b.width <= 1 || b.height <= 1 || b.height > 72 * scale) continue;
+    const inFlow = (n: Element) => {
+      for (let a: Element | null = n; a && a !== el; a = a.parentElement) if (/^(absolute|fixed)$/.test(getComputedStyle(a).position)) return false;
+      return true;
+    };
+    const drawn = (n: Element) => {
+      const r = n.getBoundingClientRect();
+      return r.width > 1 && r.height > 1 && n.checkVisibility({ opacityProperty: true, visibilityProperty: true }) && inFlow(n);
+    };
+    let ink: { left: number; top: number; right: number; bottom: number } | null = null;
+    const add = (left: number, top: number, right: number, bottom: number) => {
+      ink = ink ? { left: Math.min(ink.left, left), top: Math.min(ink.top, top), right: Math.max(ink.right, right), bottom: Math.max(ink.bottom, bottom) } : { left, top, right, bottom };
+    };
+    let hasWords = false;
+    const glyphs = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = glyphs.nextNode() as Text | null; n && !hasWords; n = glyphs.nextNode() as Text | null) {
+      const text = n.textContent!.trim();
+      if (!text || !drawn(n.parentElement!)) continue;
+      if (/[\p{L}\p{N}\p{Extended_Pictographic}]/u.test(text)) hasWords = true;
+      else {
+        const range = document.createRange();
+        const start = n.textContent!.indexOf(text);
+        range.setStart(n, start);
+        range.setEnd(n, start + text.length);
+        const line = range.getBoundingClientRect();
+        const ts = getComputedStyle(n.parentElement!);
+        context.font = `${ts.fontStyle} ${ts.fontWeight} ${ts.fontSize} ${ts.fontFamily}`;
+        const m = context.measureText(text);
+        const baseline = line.top + m.fontBoundingBoxAscent * scale;
+        add(line.left - m.actualBoundingBoxLeft * scale, baseline - m.actualBoundingBoxAscent * scale, line.left + m.actualBoundingBoxRight * scale, baseline + m.actualBoundingBoxDescent * scale);
+      }
+    }
+    if (hasWords) continue;
+    for (const svg of el.querySelectorAll("svg")) {
+      if (svg.parentElement?.closest("svg") || !drawn(svg)) continue;
+      const box = svg.getBBox();
+      const ctm = svg.getScreenCTM();
+      if (!ctm || (!box.width && !box.height)) continue;
+      const corners = [[box.x, box.y], [box.x + box.width, box.y], [box.x, box.y + box.height], [box.x + box.width, box.y + box.height]].map(([x, y]) => new DOMPoint(x, y).matrixTransform(ctm));
+      add(Math.min(...corners.map((p) => p.x)), Math.min(...corners.map((p) => p.y)), Math.max(...corners.map((p) => p.x)), Math.max(...corners.map((p) => p.y)));
+    }
+    for (const media of el.querySelectorAll("img, canvas, video")) {
+      if (!drawn(media)) continue;
+      const r = media.getBoundingClientRect();
+      add(r.left, r.top, r.right, r.bottom);
+    }
+    const found = ink as { left: number; top: number; right: number; bottom: number } | null;
+    if (!found) continue;
+    const s = getComputedStyle(el);
+    const middleX = b.left + (px(s.borderLeftWidth) + (el as HTMLElement).clientWidth / 2) * scale;
+    const middleY = b.top + (px(s.borderTopWidth) + (el as HTMLElement).clientHeight / 2) * scale;
+    const dx = ((found.left + found.right) / 2 - middleX) / scale;
+    const dy = ((found.top + found.bottom) / 2 - middleY) / scale;
+    const off = [Math.abs(dy) > inkSlackPx ? `${Math.abs(dy).toFixed(1)}px ${dy < 0 ? "high" : "low"}` : "", Math.abs(dx) > inkSlackPx ? `${Math.abs(dx).toFixed(1)}px to the ${dx < 0 ? "left" : "right"}` : ""].filter(Boolean);
+    if (off.length) {
+      issues.push({ ref: ref(el), rule: "off-centre-ink", element: `${describe(el)}${quoted(el)}`, detail: `its ink sits ${off.join(" and ")} of its middle: centre what it draws, not its box, and draw a more or overflow control as an icon, never a typed "…", which rests on the text's baseline` });
     }
   }
 
