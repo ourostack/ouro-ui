@@ -107,6 +107,9 @@ it("distinguishes inherited from declared nested corner tokens without changing 
   const inner = root.querySelector<HTMLElement>(".inner")!;
   expect(findCornerIssues()[0]?.detail).toContain("0px, expected 24px");
   expect(wrapper.hasAttribute("style")).toBe(false);
+  wrapper.setAttribute("style", "color: red;");
+  expect(findCornerIssues()[0]?.detail).toContain("0px, expected 24px");
+  expect(wrapper.getAttribute("style")).toBe("color: red;");
   wrapper.setAttribute("style", "color : red ; --sq-tl:24px !important;");
   const original = wrapper.getAttribute("style");
   expect(findCornerIssues()[0]?.detail).toContain("0px, expected 24px");
@@ -149,7 +152,7 @@ it("keeps a neighbor in the gap between wrapped inline fragments", async () => {
 
 it("keeps an independent pill and a hairline inside an unpainted squircle", async () => {
   render(`<div style="position:relative;width:160px;height:120px;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px">
-    <div style="position:absolute;left:30px;top:40px;width:100px;height:20px;border-radius:50%;background:#c65"></div>
+    <div style="position:absolute;left:30px;top:40px;width:100px;height:20px;border-radius:50%"><div style="width:100%;height:100%;border-radius:inherit;background:#c65"></div></div>
     <div style="position:absolute;left:30px;top:70px;width:40px;height:0;border-top:1px solid #c65"></div>
   </div>`);
   expect(await findSquirclePaint()).toEqual([]);
@@ -184,6 +187,34 @@ it("attributes protruding pseudo-elements without changing hit-test styles", asy
   surface.classList.add("shadow");
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.shadow");
   expect(surface.getAttribute("style")).toBe(original);
+  const computed = window.getComputedStyle.bind(window);
+  const styles = vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
+    const style = computed(element, pseudo);
+    if (element === surface && !pseudo) {
+      Object.defineProperty(style, "filter", { value: "" });
+      Object.defineProperty(style, "textShadow", { value: "" });
+    }
+    return style;
+  });
+  try {
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.shadow");
+  } finally {
+    styles.mockRestore();
+  }
+  surface.style.filter = "blur(1px)";
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.shadow");
+}, paintTimeout);
+
+it("detects protruding pseudo paint beside an SVG shadow", async () => {
+  const root = render(`<style>.surface::before { content:""; position:absolute; left:-12px; top:-12px; width:8px; height:8px; background:#c65; }</style>
+    <div style="position:relative;width:160px;height:120px">
+      <div class="surface" style="position:absolute;inset:0;background:#fff;border-radius:15.204px;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px"></div>
+      <svg class="shadow" style="position:absolute;inset:0;width:160px;height:120px;border-radius:15.204px;box-shadow:0 2px 6px #0005"></svg>
+    </div>`);
+  const svg = root.querySelector("svg")!;
+  const original = svg.getAttribute("style");
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+  expect(svg.getAttribute("style")).toBe(original);
 }, paintTimeout);
 
 it("ignores a neighboring raster change while finding real paint beyond the box", async () => {
