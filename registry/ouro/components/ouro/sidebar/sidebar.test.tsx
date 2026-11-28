@@ -152,12 +152,37 @@ describe("Sidebar", () => {
     expect(getComputedStyle(link.querySelector("[data-ouro-sidebar-badge]")!).backgroundColor).toBe(pageSurface);
     await userEvent.hover(link);
     await expect.poll(() => getComputedStyle(link).backgroundColor).toBe(pageSurface);
+    const collapse = page.getByRole("button", { name: "Collapse sidebar" });
+    await userEvent.hover(collapse);
+    await expect.poll(() => getComputedStyle(collapse.element()).backgroundColor).toBe(paneSurface);
     await commands.emulateMedia({ forcedColors: "active" });
     try {
       expect(parseFloat(getComputedStyle(nav!).borderInlineEndWidth)).toBeGreaterThan(0);
     } finally {
       await commands.emulateMedia({ forcedColors: "none" });
     }
+  });
+
+  it("uses the muted badge and accent hover on the drawer's page surface", async () => {
+    await page.viewport(390, 844);
+    await render(<Sidebar label="Main" sections={[{ items: [{ label: "Inbox", href: "/inbox", badge: 12 }] }]} />);
+    await userEvent.click(page.getByRole("button", { name: "Menu", exact: true }));
+    const dialog = page.getByRole("dialog");
+    await expect.element(dialog).toBeVisible();
+    const link = dialog.getByRole("link", { name: "Inbox 12" });
+    const sample = document.createElement("span");
+    dialog.element().append(sample);
+    sample.style.backgroundColor = "var(--muted)";
+    const muted = getComputedStyle(sample).backgroundColor;
+    sample.style.backgroundColor = "var(--accent)";
+    const accent = getComputedStyle(sample).backgroundColor;
+    sample.style.color = "var(--accent-foreground)";
+    const accentForeground = getComputedStyle(sample).color;
+    sample.remove();
+    expect(getComputedStyle(link.element().querySelector("[data-ouro-sidebar-badge]")!).backgroundColor).toBe(muted);
+    await userEvent.hover(link);
+    await expect.poll(() => getComputedStyle(link.element()).backgroundColor).toBe(accent);
+    await expect.poll(() => getComputedStyle(link.element()).color).toBe(accentForeground);
   });
 
   it("keeps its fixed sizes at a compact --spacing: the current bar, a group's chevron and the collapse button's icon", async () => {
