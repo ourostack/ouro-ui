@@ -404,7 +404,7 @@ it("keeps paint inside an inverse cutout while detecting paint above its edge", 
 });
 
 it("recognizes panes whose corners are covered by an ancestor's inverse cutout", () => {
-  render(`<div style="display:flow-root;width:160px;height:120px;background:#eef4fa;border-top-left-radius:17.376px;--sq-tl:32px;clip-path:inset(0)">
+  const root = render(`<div style="display:flow-root;width:160px;height:120px;background:#eef4fa;border-top-left-radius:17.376px;--sq-tl:32px;clip-path:inset(0)">
     <div style="position:relative;margin:4px;width:152px;height:112px;background:#789">
       <div style="position:absolute;inset:0;display:flex;background:#567">
         <div style="width:50%;height:100%;background:#345"></div><div style="width:50%;height:100%;background:#678"></div>
@@ -412,6 +412,8 @@ it("recognizes panes whose corners are covered by an ancestor's inverse cutout",
       <div style='position:absolute;inset:0;background:#eef4fa;--sq-tl:28px;clip-path:path(evenodd, "M 0 0 H 152 V 112 H 0 Z M 0 28 C 0 17.164 -.2576 9.1672 4.4548 4.4548 C 9.1672 -.2576 17.164 0 28 0 H 152 V 112 H 0 Z")'></div>
     </div>
   </div>`);
+  expect(findCornerIssues()).toEqual([]);
+  root.append(root.firstElementChild!.cloneNode(true));
   expect(findCornerIssues()).toEqual([]);
 });
 
@@ -944,12 +946,14 @@ it("keeps a removed style attribute absent when calibrating a fallback shadow", 
   const surface = root.querySelector<HTMLElement>(".surface")!;
   const capture = state.__ouroPaintCapture!;
   let removed = false;
+  let captures = 0;
   state.__ouroPaintCapture = async (clip) => {
     const image = await capture(clip);
+    captures++;
     if (!removed) {
       surface.removeAttribute("style");
       removed = true;
-    }
+    } else if (captures === 2) surface.setAttribute("style", "");
     return image;
   };
   try {
