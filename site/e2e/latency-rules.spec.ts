@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { EVENT_TIMING_STEP, LATENCY, expectPressesWithinBudget, forgetSteadySlowRunner, hostBusy, hostTicks, loaded, manyRemeasured, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, slowRunnerMessage, splitPaint, splitPress, steadySlow, summarise, describeFrame, thinMargin } from "./latency";
+import { EVENT_TIMING_STEP, LATENCY, expectPressesWithinBudget, forgetSteadySlowRunner, hostBusy, hostTicks, loaded, manyRemeasured, expectWithinBudget, measure, morePresses, p95Bound, pastCap, runnerFactor, slowRunnerMessage, takeThrottle, throttleApplied, THROTTLE_RETAKES, splitPaint, splitPress, steadySlow, summarise, describeFrame, thinMargin } from "./latency";
 
 // The latency budget's rules (site/e2e/latency.ts), on made-up samples and on a page whose button is slow on purpose:
 // a control is pressed more only when all its presses together could be within budget, every press is judged, and a
@@ -294,4 +294,17 @@ test("a slow press no long animation frame holds has no split", () => {
 
 test("a long animation frame that ended before a press's handlers does not hold its rendering", () => {
   expect(splitPaint({ startTime: 1000, processingEnd: 1011, duration: 112 }, [{ startTime: 950, duration: 50 }])).toBeNull();
+});
+
+test("a throttle that never applies fails as a harness error naming the throttle, after its retakes, never as a latency result", async () => {
+  expect(throttleApplied(30, 10)).toBe(true);
+  expect(throttleApplied(11, 10)).toBe(false);
+  let sessions = 0;
+  // Every loop reads the same time: the throttle never slows the page.
+  const page = {
+    evaluate: async () => 10,
+    context: () => ({ newCDPSession: async () => (sessions += 1, { send: async () => undefined, detach: async () => undefined }) }),
+  } as unknown as Page;
+  await expect(takeThrottle(page, 4, "menu on /")).rejects.toThrow(/harness error, not a latency result: the 4× CPU throttle did not apply to menu on \//);
+  expect(sessions).toBe(THROTTLE_RETAKES + 1);
 });
