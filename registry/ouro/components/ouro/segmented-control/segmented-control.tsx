@@ -1,7 +1,7 @@
 "use client";
 
 import { Toggle } from "@base-ui/react/toggle";
-import { useEffect, useId, useRef, useState, type CSSProperties, type JSX, type KeyboardEvent, type ReactNode, type Ref } from "react";
+import { useEffect, useId, useRef, useState, type JSX, type KeyboardEvent, type ReactNode, type Ref } from "react";
 import { useAppearanceClassNameCheck } from "@/registry/ouro/lib/ouro/class-name-check";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
@@ -148,7 +148,7 @@ function Segment(props: {
       )}
       {/* sr-only alone: beside relative, which sets position too, the hidden label could stay in the row and push the icon aside. */}
       <span data-slot="segmented-control-label" className={glass && !selected && item.icon !== undefined ? "sr-only" : "relative min-w-0 truncate"}>{item.label}</span>
-      {item.count !== undefined && (glass ? selected : true) && (
+      {item.count !== undefined && (!glass || selected) && (
         <span data-slot="segmented-control-count" className={countClass}>
           {item.count}
         </span>
@@ -218,9 +218,6 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
     name,
     className,
     ref,
-    // Guard props (hint types), dropped here so they never reach the DOM.
-    options,
-    onChange,
   } = props;
   useAppearanceClassNameCheck(
     "SegmentedControl",
@@ -242,8 +239,8 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
           const known = (candidate: string | undefined) => candidate === undefined || items.some((item) => item.value === candidate);
           const first = items[0]?.value ?? "…";
           return [
-            options !== undefined && ["options is not a prop", "<SegmentedControl items={[{ value, label }]}>"],
-            onChange !== undefined && ["onChange is not a prop", "<SegmentedControl onValueChange={(value) => …}>"],
+            props.options !== undefined && ["options is not a prop", "<SegmentedControl items={[{ value, label }]}>"],
+            props.onChange !== undefined && ["onChange is not a prop", "<SegmentedControl onValueChange={(value) => …}>"],
             !known(value) && [`value="${value}" matches no item`, `<SegmentedControl value="${first}">`],
             !known(defaultValue) && [
               `defaultValue="${defaultValue}" matches no item`,
@@ -284,7 +281,6 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
     if (checked) checked.focus();
   }, [selected, labelId]);
   // Each label shows whole; when the control has less room than its labels need, they spill out of it, and development says so.
-  const spillKey = useRef({});
   useEffect(() => {
     /* istanbul ignore else @preserve -- the else path exists only in production bundles; scripts/dev-strip.test.mjs covers it */
     if (process.env.NODE_ENV !== "production") {
@@ -299,7 +295,7 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
           "SegmentedControl",
           `its labels need ${need}px and it has ${room}px, so they spill out of it`,
           `{ value: "${longest.value}", label: "${longest.label.split(" ")[0]}" }`,
-          spillKey.current,
+          arrowed,
         );
       });
       // The room is the root's width; new labels run this effect again.
@@ -325,9 +321,6 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
     // Stryker disable next-line OptionalChaining: target is always inside segments
     segments[target]?.focus();
   };
-  const thumbStyle = {
-    opacity: index === -1 ? 0 : undefined,
-  } as CSSProperties;
   return (
     <div data-ouro="segmented-control" className={cn(rootClass, fullWidth && "justify-items-stretch", revealOnHover && revealClass, className)}>
       <span id={labelId} className={cn(labelClass, hideLabel && "sr-only")}>
@@ -352,15 +345,17 @@ export function SegmentedControl(props: SegmentedControlProps): JSX.Element {
         }}
         onBlurCapture={(event) => {
           // Focus leaving the group (by pointer, say) ends the arrow key's move.
-          if (!event.currentTarget.contains(event.relatedTarget)) arrowed.current = false;
           // It also ends what the person asked for here: a check the app makes after this is its own.
-          if (!event.currentTarget.contains(event.relatedTarget)) asked.current.clear();
+          if (!event.currentTarget.contains(event.relatedTarget)) {
+            arrowed.current = false;
+            asked.current.clear();
+          }
         }}
         data-glass={glass ? "" : undefined}
         // Stryker disable next-line ConditionalExpression,LogicalOperator: fullWidth is tested on the plain group; the glass class sets its own look
         className={cn(groupClass, glass && glassGroupClass, fullWidth && "grid w-full")}
       >
-        <span aria-hidden="true" data-ouro-segment-thumb="" className={thumbClass} style={thumbStyle} />
+        <span aria-hidden="true" data-ouro-segment-thumb="" className={thumbClass} style={index === -1 ? { opacity: 0 } : undefined} />
         {items.map((item) => (
           <Segment
             key={item.value}

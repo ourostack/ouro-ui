@@ -3306,6 +3306,7 @@ jobs:
         with:
           node-version: 24
           cache: ""
+      - *npm-day-old
       # The prepared app is a function of the files below, so a commit that changes none of them
       # restores the app an earlier commit prepared and checked (a cache is saved only by a job that
       # passed), and the prepare steps are skipped. A commit that changes some restores the newest
@@ -3317,8 +3318,9 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/app.tar.zst
-          key: install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-${{ hashFiles('registry/**', 'docs/**', 'test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/readme-steps.mjs', 'scripts/shard.mjs', 'scripts/test-impact.mjs', 'scripts/upgrade-note.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml', 'README.md', 'UPGRADING.md') }}
+          key: install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-${{ hashFiles('scripts/install-delta.mjs') }}-${{ hashFiles('registry/**', 'docs/**', 'test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/readme-steps.mjs', 'scripts/shard.mjs', 'scripts/test-impact.mjs', 'scripts/upgrade-note.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml', 'README.md', 'UPGRADING.md') }}
           restore-keys: |
+            install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-${{ hashFiles('scripts/install-delta.mjs') }}-
             install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-
       # npm's download cache, seeded from the newest earlier one, so a changed registry file does not
       # download every package again.
@@ -3381,8 +3383,41 @@ jobs:
         run: |
           status=0
           OURO_DELTA=1 OURO_PREPARE_ONLY=1 OURO_SKIP_CHECKS=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF" || status=$?
-          # 75: the restored app cannot be proved to equal a full add (a file moved or went, a
-          # dependency changed), so start again from the base and add everything.
+          # A CSS-only ouro-base change can keep the earlier app only after replacing its whole
+          # stylesheet with one from a freshly prepared or exact-key cached base.
+          if [ "$status" -eq 75 ] && [ -f "$OURO_APP/.ouro-added.json" ]; then
+            refresh_registry="$RUNNER_TEMP/install-refresh"
+            mkdir -p "$refresh_registry"
+            node scripts/registry.mts --out "$refresh_registry/registry.json" --deps "$refresh_registry/r/{name}.json"
+            npx --yes shadcn@4.21.1 build "$refresh_registry/registry.json" --output "$refresh_registry/r" --cwd "$PWD"
+            refresh_plan=$(node scripts/install-delta.mjs refresh-plan "$refresh_registry/r" "$OURO_APP/.ouro-added.json")
+            if [ "$refresh_plan" = refresh ]; then
+              previous="${OURO_APP}-before-refresh"
+              mv "$OURO_APP" "$previous"
+              if [ -f "$RUNNER_TEMP/base.tar.zst" ]; then
+                tar -I zstd -xf "$RUNNER_TEMP/base.tar.zst" -C "$(dirname "$OURO_APP")"
+              else
+                OURO_BASE_ONLY=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF"
+              fi
+              refresh_status=0
+              node scripts/install-delta.mjs refresh "$refresh_registry/r" "$previous" "$OURO_APP" || refresh_status=$?
+              if [ "$refresh_status" -eq 0 ]; then
+                rm -rf "$OURO_APP"
+                mv "$previous" "$OURO_APP"
+              elif [ "$refresh_status" -eq 75 ]; then
+                rm -rf "$previous"
+              else
+                exit "$refresh_status"
+              fi
+              status=0
+              OURO_DELTA=1 OURO_PREPARE_ONLY=1 OURO_SKIP_CHECKS=1 scripts/install-test.sh "$VARIANT" "$OURO_APP" "$REF" || status=$?
+            elif [ "$refresh_plan" != full ]; then
+              echo "Unknown install delta refresh plan: $refresh_plan"
+              exit 1
+            fi
+          fi
+          # 75: the restored app cannot be proved to equal a full add, so start again from the
+          # base and add everything.
           if [ "$status" -eq 75 ]; then
             rm -rf "$OURO_APP"
             if [ -f "$RUNNER_TEMP/base.tar.zst" ]; then
