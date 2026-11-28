@@ -131,10 +131,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           return points.every(([x, y]) => !document.elementsFromPoint(x, y).includes(surface));
         } finally {
           restore(surface, "pointer-events", prior);
-          if (surface.getAttribute("style") !== original && surface.style.cssText === normalized) {
-            if (original === null) surface.removeAttribute("style");
-            else surface.setAttribute("style", original);
-          }
+          restoreStyle(surface, original, normalized);
         }
       });
     });
@@ -269,6 +266,12 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     if (saved.value) el.style.setProperty(property, saved.value, saved.priority);
     else el.style.removeProperty(property);
   };
+  const restoreStyle = (el: InlineElement, original: string | null, normalized: string) => {
+    if (el.getAttribute("style") !== original && el.style.cssText === normalized) {
+      if (original === null) el.removeAttribute("style");
+      else el.setAttribute("style", original);
+    }
+  };
   const hasInlineStyle = (el: Element): el is InlineElement => "style" in el && el.style instanceof CSSStyleDeclaration;
   const inverseCutout = (el: HTMLElement, shape: NonNullable<ReturnType<typeof geometry>>) => {
     if (getComputedStyle(el).clipPath === "none") return false;
@@ -294,10 +297,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       });
     } finally {
       restore(el, "pointer-events", previous);
-      if (el.getAttribute("style") !== original && el.style.cssText === normalized) {
-        if (original === null) el.removeAttribute("style");
-        else el.setAttribute("style", original);
-      }
+      restoreStyle(el, original, normalized);
     }
   };
   const colorContext = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
@@ -478,10 +478,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               if (previous === null) el.removeAttribute(attribute);
               else el.setAttribute(attribute, previous);
               for (const { property, saved } of radii) restore(el, property, saved);
-              if (el.getAttribute("style") !== originalStyle && el.style.cssText === normalizedStyle) {
-                if (originalStyle === null) el.removeAttribute("style");
-                else el.setAttribute("style", originalStyle);
-              }
+              restoreStyle(el, originalStyle, normalizedStyle);
               for (const override of overrides) {
                 if (override.node.getAttribute("style") === override.temporary || override.node.getAttribute("style") === override.style) {
                   override.node.setAttribute("style", override.style);
@@ -542,10 +539,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               for (const { node, style, normalized, opacity, transition } of saved) {
                 restore(node, "opacity", opacity);
                 restore(node, "transition", transition);
-                if (node.getAttribute("style") !== style && node.style.cssText === normalized) {
-                  if (style === null) node.removeAttribute("style");
-                  else node.setAttribute("style", style);
-                }
+                restoreStyle(node, style, normalized);
               }
             }
             differs = await differences(actual, masked, hidden, solo, null, [], withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native);
@@ -571,10 +565,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
                 for (const { badge, style, normalized, opacity, transition } of saved) {
                   restore(badge, "opacity", opacity);
                   restore(badge, "transition", transition);
-                  if (badge.getAttribute("style") !== style && badge.style.cssText === normalized) {
-                    if (style === null) badge.removeAttribute("style");
-                    else badge.setAttribute("style", style);
-                  }
+                  restoreStyle(badge, style, normalized);
                 }
               }
               differs = await differences(actual, masked, hidden, solo, withoutBadges, badges.map((badge) => badge.getBoundingClientRect()), withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native);
@@ -589,13 +580,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       for (const position of scroll) position.node.scrollTo({ left: position.left, top: position.top, behavior: "instant" });
       window.scrollTo({ left: windowScroll.x, top: windowScroll.y, behavior: "instant" });
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      for (const layer of layers) {
-        const currentStyle = layer.el.getAttribute("style");
-        if (currentStyle !== layer.originalStyle && layer.el.style.cssText === layer.normalizedStyle) {
-          if (layer.originalStyle === null) layer.el.removeAttribute("style");
-          else layer.el.setAttribute("style", layer.originalStyle);
-        }
-      }
+      for (const layer of layers) restoreStyle(layer.el, layer.originalStyle, layer.normalizedStyle);
     }
     if (found) {
       const corner = ["top left", "top right", "bottom right", "bottom left"][found.corner]!;
