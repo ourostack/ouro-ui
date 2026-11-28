@@ -18,10 +18,14 @@ export async function openStory(page: Page, id: string): Promise<void> {
   await page.locator("#storybook-root > *").first().waitFor();
   // The story's play function, done: it brings the story to the state it shows (a bar on a post, an open menu), and a
   // spec that acts while it still runs races it.
-  const phase = await page.waitForFunction(() => {
+  // Storybook goes on to "afterEach" (its accessibility check, which the story-wide test runs already) once the story is
+  // "completed", and polling can miss that one phase, so every phase from it on counts as done: waiting for "finished"
+  // makes each spec wait for axe too, which a loaded WebKit can take past the spec's budget.
+  const done = ["completed", "afterEach", "finished", "errored", "aborted"];
+  const phase = await page.waitForFunction((done) => {
     const render = (window as { __STORYBOOK_PREVIEW__?: { currentRender?: { phase?: string } } }).__STORYBOOK_PREVIEW__?.currentRender;
-    return render === undefined || ["completed", "finished", "errored", "aborted"].includes(render.phase ?? "") ? (render?.phase ?? "finished") : null;
-  });
+    return render === undefined || done.includes(render.phase ?? "") ? (render?.phase ?? "finished") : null;
+  }, done);
   const ended = await phase.jsonValue();
   if (ended === "errored" || ended === "aborted") throw new Error(`openStory: ${id} did not finish rendering (${ended})`);
   // A font starts loading when a layout first uses it, so lay the story out before asking.
