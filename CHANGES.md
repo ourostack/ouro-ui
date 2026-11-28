@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: [ConversationList rows can be dragged into a section](registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx "verify:testExists(registry/ouro/components/ouro/conversation-list/conversation-list.move.test.tsx::ConversationList row move > lifts a row dragged with a mouse, lights the section under the pointer, its header and its rows, and reports the row and the section once on release)"): give the list `onItemMove` and mark sections `acceptsItems`, and a row dragged with a mouse onto one of them reports `onItemMove(id, sectionId)`; a click, a finger and a pen work as before.
