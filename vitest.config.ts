@@ -15,6 +15,7 @@ import { commands } from "./registry/ouro/lib/ouro/testing/commands.ts";
 import { ouroTestProjects } from "./registry/ouro/lib/ouro/testing/vitest.ts";
 import { quarantinedFilesNow } from "./scripts/quarantined-files.mjs";
 import { conformanceCommands } from "./test/conformance/commands.ts";
+import { squircleCommands } from "./test/squircle-command.ts";
 
 const quarantinedList = quarantinedFilesNow();
 const quarantinedOnly = process.env["OURO_QUARANTINED_ONLY"] === "1";
@@ -140,6 +141,7 @@ export default defineConfig({
         ...project,
         test: {
           ...project.test,
+          browser: { ...project.test?.browser, commands: { ...project.test?.browser?.commands, ...squircleCommands, ...(mutation ? mutationCommands : {}) } },
           // A whole-file quarantine entry's file runs only in the one non-blocking job (OURO_QUARANTINED_ONLY=1).
           ...(quarantinedOnly ? { include: quarantinedList } : {}),
           exclude: [...(project.test?.exclude ?? configDefaults.exclude), themeTests, conformanceTests, ...(quarantinedOnly ? [] : quarantinedList)],
@@ -149,7 +151,6 @@ export default defineConfig({
                 // side and fails one finger test at random (issue #3982): one file at a time.
                 ...(project.test?.name === "ouro-touch" ? { fileParallelism: false } : {}),
                 setupFiles: [...[project.test?.setupFiles ?? []].flat(), "./scripts/mutation/setup.ts"],
-                browser: { ...project.test?.browser, commands: { ...project.test?.browser?.commands, ...mutationCommands } },
               }
             : {}),
         },
