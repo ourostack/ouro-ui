@@ -1013,6 +1013,12 @@ it("skips a fixed painted corner entirely outside the viewport", async () => {
   expect(await findSquirclePaint()).toEqual([]);
 }, paintTimeout);
 
+it("does not mistake the next line of a wrapped inline surface for corner paint", async () => {
+  const root = render('<div style="width:180px;font:16px/24px sans-serif"><code id="inline" style="background:#dde4ed;border-radius:8px;corner-shape:squircle;--sq-tl:8px;--sq-tr:8px;--sq-br:8px;--sq-bl:8px">A long example with several words that wraps onto another line and ends here.</code></div>');
+  expect(root.querySelector("#inline")!.getClientRects().length).toBeGreaterThan(1);
+  expect(await findSquirclePaint()).toEqual([]);
+}, paintTimeout);
+
 it("checks surfaces larger than the viewport and leaves no temporary style attribute", async () => {
   const root = render(`<style>.surface { width:${innerWidth + 100}px; height:${innerHeight + 100}px; background:#fff; border-radius:28px; corner-shape:squircle; }</style><div class="surface"></div>`);
   const surface = root.querySelector(".surface")!;
