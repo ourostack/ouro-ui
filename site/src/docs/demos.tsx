@@ -9,3 +9,10 @@ const modules = import.meta.glob<{ default: () => JSX.Element }>("./demos/*.demo
 export const demos: Record<string, LazyExoticComponent<() => JSX.Element>> = Object.fromEntries(
   Object.entries(modules).map(([path, load]) => [path.replace(/^\.\/demos\/(.+)\.demo\.tsx$/, "$1"), lazy(load)]),
 );
+
+// Page-only compositions stay outside the shell's import closure and the index's tiny previews.
+const pageModules = import.meta.glob<{ default: () => JSX.Element }>("./demos/*.page-demo.tsx");
+export const pageDemos: typeof demos = {
+  ...demos,
+  ...Object.fromEntries(Object.entries(pageModules).map(([path, load]) => [path.replace(/^\.\/demos\/(.+)\.page-demo\.tsx$/, "$1"), lazy(load)])),
+};

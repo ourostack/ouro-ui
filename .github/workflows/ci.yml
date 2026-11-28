@@ -307,7 +307,7 @@ jobs:
       # Whether the browser shards run at all (scripts/ci-relevance.mjs browser): a pull request into
       # main whose every changed file is one the browser tests never read (a change fragment, a
       # Node script test, an end-to-end spec, another workflow) skips them, and so the coverage they
-      # measure and the fallback shards; the coverage, ci and motion-coverage checks still report.
+      # measure and the fallback shards; the coverage and ci checks still report.
       # Anything else, and a diff that cannot be read, runs them, as every other event does.
       - id: browser
         name: Can the change reach the browser shards?
@@ -694,7 +694,7 @@ jobs:
           fi
       # The motion evidence that run wrote, one partition per Vitest project and shard
       # (scripts/motion-reporter.mts), uploaded before the subset runs below rewrite it. The
-      # motion-coverage job merges it.
+      # motion-coverage step of the ci job merges it.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: motion-browser-${{ matrix.shard }}
@@ -1240,7 +1240,7 @@ jobs:
     # reduced pull request that falls short, a line may be covered only by another component's
     # tests, so the browser-fallback shards run the full suite to decide (scripts/test-impact.mjs
     # coverage), and the ci check holds their merged coverage to 100% instead. Its outputs say which,
-    # for the motion-coverage job. When the plan skipped the browser shards, it passes with nothing
+    # for the ci job's motion step. When the plan skipped the browser shards, it passes with nothing
     # measured (`ran=false`). Part of the ci check.
     needs: [plan, browser]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
@@ -1354,7 +1354,7 @@ jobs:
           else
             node scripts/test-impact.mjs coverage "$RUNNER_TEMP/coverage" "$COMPONENTS" --shards "$BROWSER_SHARDS"
           fi
-      # Unless the full suite decides in the fallback shards (the motion-coverage job then reads theirs),
+      # Unless the full suite decides in the fallback shards (the ci job's motion step then reads theirs),
       # the motion maps are held here, beside the merged coverage, so no job waits after this one for them.
       - if: env.BROWSER_RUN == 'true' && steps.tests.outputs.fallback != 'true'
         env:
@@ -1380,7 +1380,7 @@ jobs:
     # that passed in every shard (Dialog's 65ch measure, 814 px against 800, on #321). Each shard runs
     # the files whose measured times make up its share and its slice of the sliced suites
     # (scripts/vitest-shards.mts), and uploads its coverage, which the ci job merges and holds to
-    # 100%, and its motion evidence, which motion-coverage reads in place of the browser shards'.
+    # 100%, and its motion evidence, which the ci job's motion step reads in place of the browser shards'.
     # The headroom reporter judges it with the same HEADROOM_CHANGED scope as the browser shards, so
     # a test over half its timeout in a file the pull request did not touch only reports, never fails.
     # Part of the ci check.
@@ -1680,7 +1680,7 @@ jobs:
     # too and their merged coverage, the full suite's, reaches 100% (scripts/coverage-merge.mjs); or,
     # when the plan skipped the browser shards, the design shards or the screen-reader lane because nothing they read changed,
     # without them. Its
-    # outputs tell motion-coverage which shards' motion evidence to read, if any.
+    # outputs say which part of the run decided, for ci-budget.
     needs: [plan, checks, attribution, design, browser, subsets, scripts, scripts-browser, check-node, check-node-merge, coverage, browser-fallback, screen-reader]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
@@ -1848,92 +1848,28 @@ jobs:
         name: Full suite coverage
         run: |
           node scripts/coverage-merge.mjs "$RUNNER_TEMP/coverage" --shards "$FALLBACK_SHARDS"
-  motion-coverage:
-    # Holds every component.json "motion" map complete against the records the browser tests
-    # made (scripts/motion-coverage.mts): each declared property ran, nothing undeclared ran,
-    # each named test recorded its state, and each motion state was proved with reduced motion.
-    # --expect names each Vitest project the browser shards run, once per shard, so a missing or
-    # doubled partition fails (scripts/workflows.test.mjs derives the list from vitest.config.ts);
-    # when the full suite decided, the browser-fallback shards' partitions instead.
-    # A reduced pull request still runs every project; it ran only some components' tests, so
-    # --stems holds only their maps complete (the ci job's `stems`).
-    # When the plan skipped the browser shards (nothing they read changed), no motion was recorded
-    # and no map changed, so it passes without reading any.
-    # It reads the coverage job's outputs and the shards' artifacts directly, so it runs beside the ci check, not after it;
-    # the ci check still holds every part, and a failed shard fails that check. Skipped fallback shards are no failure.
-    needs: [plan, browser, coverage, browser-fallback]
-    if: ${{ !cancelled() && needs.coverage.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.browser.result) && contains(fromJSON('["success","skipped"]'), needs.browser-fallback.result) }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      actions: read
-    env:
-      MOTION_PARTITIONS: ouro-chromium:11,ouro-webkit:11,ouro-touch:11,site:11
-      FULL_SUITE_PARTITIONS: ouro-chromium:28,ouro-webkit:28,ouro-touch:28,site:28
-      REDUCED: ${{ needs.coverage.outputs.reduced }}
-      STEMS: ${{ needs.coverage.outputs.stems }}
-      FALLBACK: ${{ needs.coverage.outputs.fallback }}
-      BROWSER_RUN: ${{ needs.plan.outputs.browser != 'false' && needs.coverage.outputs.fallback == 'true' }}
-    steps:
-      - if: env.BROWSER_RUN == 'false'
-        run: echo "Nothing to read here, since the browser shards did not run, or the coverage job held their motion evidence itself."
-      - id: checkout
-        if: env.BROWSER_RUN == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 1
-        continue-on-error: true
-        env:
-          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
-          GIT_TRACE_CURL_NO_DATA: "1"
-          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
-        with:
-          persist-credentials: false
-      - *checkout-stalled
-      - id: checkout-again
-        if: steps.checkout.outcome == 'failure'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 1
-        continue-on-error: true
-        env:
-          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
-          GIT_TRACE_CURL_NO_DATA: "1"
-          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
-        with:
-          persist-credentials: false
-      - *checkout-stalled-again
-      - id: checkout-last
-        if: steps.checkout-again.outcome == 'failure'
-        continue-on-error: true
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        timeout-minutes: 1
-        env:
-          GIT_TRACE_CURL: /tmp/ouro-checkout-trace.log
-          GIT_TRACE_CURL_NO_DATA: "1"
-          GIT_TRACE_PACKET: /tmp/ouro-checkout-packets.log
-        with:
-          persist-credentials: false
-      - *checkout-tarball
-      # scripts/motion-coverage.mts reads no package, so this job runs it with node, as the motion:coverage script does, and installs none.
-      - if: env.BROWSER_RUN == 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          cache: ""
-      # Each browser test job's artifact lands in a folder of its own, so no partition overwrites another.
-      - if: env.BROWSER_RUN == 'true'
+      # Holds every component.json "motion" map complete against the records the browser tests
+      # made (scripts/motion-coverage.mts): each declared property ran, nothing undeclared ran,
+      # each named test recorded its state, and each motion state was proved with reduced motion.
+      # Only the full suite's (browser-fallback) records are read here; otherwise the coverage job
+      # held the browser shards' motion evidence itself. --expect names each Vitest project once per
+      # shard, so a missing or doubled partition fails (scripts/workflows.test.mjs derives the list from vitest.config.ts).
+      # A reduced pull request still runs every project; it ran only some components' tests, so
+      # --stems holds only their maps complete.
+      - if: env.FALLBACK == 'true' && needs.browser-fallback.result == 'success'
+        name: Motion coverage
         env:
           GH_TOKEN: ${{ github.token }}
-          PREFIX: ${{ needs.coverage.outputs.fallback == 'true' && 'motion-fallback-' || 'motion-browser-' }}
-        run: node scripts/download-newest-artifacts.mjs "$PREFIX" "$RUNNER_TEMP/motion"
-      - if: env.BROWSER_RUN == 'true'
-        name: Motion coverage
+          FULL_SUITE_PARTITIONS: ouro-chromium:28,ouro-webkit:28,ouro-touch:28,site:28
+          REDUCED: ${{ needs.coverage.outputs.reduced }}
+          STEMS: ${{ needs.coverage.outputs.stems }}
         run: |
-          if [ "$FALLBACK" = true ]; then MOTION_PARTITIONS=$FULL_SUITE_PARTITIONS; fi
+          # Each browser test job's artifact lands in a folder of its own, so no partition overwrites another.
+          node scripts/download-newest-artifacts.mjs motion-fallback- "$RUNNER_TEMP/motion"
           if [ "$REDUCED" = true ]; then
-            node scripts/motion-coverage.mts --dir "$RUNNER_TEMP/motion" --expect "$MOTION_PARTITIONS" --stems "$STEMS"
+            node scripts/motion-coverage.mts --dir "$RUNNER_TEMP/motion" --expect "$FULL_SUITE_PARTITIONS" --stems "$STEMS"
           else
-            node scripts/motion-coverage.mts --dir "$RUNNER_TEMP/motion" --expect "$MOTION_PARTITIONS"
+            node scripts/motion-coverage.mts --dir "$RUNNER_TEMP/motion" --expect "$FULL_SUITE_PARTITIONS"
           fi
   themes-shard:
     # Every story passes axe under shadcn's nova and vega presets and Spoonjoy's cookbook theme
@@ -4246,7 +4182,7 @@ jobs:
     # runs, and the runner time the run took from the shared pool. A required check (ruleset
     # 24881709) that fails only a pull request: on a merge group or a push it only warns, so it
     # never bounces a queue entry.
-    needs: [plan, ci, quarantined-files, fresh-main, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-current, install-github]
+    needs: [plan, ci, quarantined-files, fresh-main, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-latest, install-upgrade, install-current, install-github]
     if: ${{ !cancelled() && needs.plan.outputs.tested != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -4354,8 +4290,8 @@ jobs:
     # Each need is named: a job's if: counts every job above it in needs.*.result, so one skipped fallback shard
     # upstream made !contains(needs.*.result, 'skipped') false on every run.
     name: Full suite passed on tree ${{ needs.plan.outputs.tree }}
-    needs: [plan, ci, quarantined-files, motion-coverage, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-upgrade, install-current]
-    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.plan.result == 'success' && needs.ci.result == 'success' && needs.quarantined-files.result == 'success' && needs.motion-coverage.result == 'success' && needs.themes.result == 'success' && needs.conformance.result == 'success' && needs.mutation.result == 'success' && needs.visual.result == 'success' && needs.registry.result == 'success' && needs.e2e.result == 'success' && needs.theme-install.result == 'success' && needs.latency.result == 'success' && needs.lighthouse.result == 'success' && needs.install-gate.result == 'success' && needs.install.result == 'success' && needs.install-upgrade.result == 'success' && needs.install-current.result == 'success' && needs.plan.outputs.tree != '' && needs.plan.outputs.full != 'false' && needs.plan.outputs.browser != 'false' && needs.plan.outputs.design != 'false' && needs.plan.outputs.installs == 'here' && needs.plan.outputs.heavy == 'here' && needs.ci.outputs.fallback != 'true' }}
+    needs: [plan, ci, quarantined-files, themes, conformance, mutation, visual, registry, e2e, theme-install, latency, lighthouse, install-gate, install, install-upgrade, install-current]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.plan.result == 'success' && needs.ci.result == 'success' && needs.quarantined-files.result == 'success' && needs.themes.result == 'success' && needs.conformance.result == 'success' && needs.mutation.result == 'success' && needs.visual.result == 'success' && needs.registry.result == 'success' && needs.e2e.result == 'success' && needs.theme-install.result == 'success' && needs.latency.result == 'success' && needs.lighthouse.result == 'success' && needs.install-gate.result == 'success' && needs.install.result == 'success' && needs.install-upgrade.result == 'success' && needs.install-current.result == 'success' && needs.plan.outputs.tree != '' && needs.plan.outputs.full != 'false' && needs.plan.outputs.browser != 'false' && needs.plan.outputs.design != 'false' && needs.plan.outputs.installs == 'here' && needs.plan.outputs.heavy == 'here' && needs.ci.outputs.fallback != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
