@@ -14,6 +14,8 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
   type Saved = { value: string; priority: string };
   type InlineElement = Element & { style: CSSStyleDeclaration };
   const capture = (window as unknown as { __ouroPaintCapture?: PaintCapture }).__ouroPaintCapture;
+  const diagnostic = (window as unknown as { __ouroPaintDiagnostic?: (data: { actual: string; hidden: string; masked: string; solo: string | null; restored: string; rect: DOMRect; clip: PaintClip; point: object; html: string }) => Promise<void> }).__ouroPaintDiagnostic;
+  let pixelIndex = 0;
   if (!capture) throw new Error("squircle-paint needs a screenshot capture supplied by its host");
   const names = [
     { key: "tl", property: "TopLeft", shape: "top-left" },
@@ -256,6 +258,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             if (edge) continue;
           }
           if (delta >= 64 || (x > startX && row[x - 1]) || previous[x]) {
+            pixelIndex = index;
             return { corner: cornerIndex, x: Math.round(px - rect.left), y: Math.round(py - rect.top) };
           }
           row[x] = 1;
@@ -376,9 +379,6 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
         [rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5);
     });
     const surfaceLayers = [...el.querySelectorAll("*"), ...siblings, ...outlines].filter(visible);
-    const independent = surfaceLayers.filter((other): other is HTMLElement =>
-      other instanceof HTMLElement && geometry(other) !== null && hasPaint(other),
-    );
     const suppliesCorner = (other: Element, corner: Corner, index: number) => {
       const rect = other.getBoundingClientRect();
       if ([rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5)) return true;
@@ -388,9 +388,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       return rect.left < left + corner.x * scaleX && rect.right > left && rect.top < top + corner.y * scaleY && rect.bottom > top;
     };
     for (const [index, corner] of initial.corners.entries()) {
-      if (corner.squircle && !hasPaint(el, index) && !surfaceLayers.some((other) =>
-        !independent.some((surface) => surface.contains(other)) && suppliesCorner(other, corner, index) && hasPaint(other, index),
-      )) corner.squircle = false;
+      if (corner.squircle && !hasPaint(el, index) && !surfaceLayers.some((other) => suppliesCorner(other, corner, index) && hasPaint(other, index))) corner.squircle = false;
     }
     if (!initial.corners.some((corner) => corner.squircle)) continue;
     const strokes = outlines.flatMap((svg) => [...svg.querySelectorAll<SVGGraphicsElement>("path, rect, circle, ellipse, line, polyline, polygon, use")].flatMap((node) => {
@@ -599,12 +597,60 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               }
             }
             let changed = false;
+            let restoredFrame: string | null = null;
             if (differs) {
               const restored = await capture(clip);
+              restoredFrame = restored;
               differs = await differences(actual, masked, hidden, solo, withoutBadges, badgeRects, withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native, restored);
               changed = !differs;
             }
-            if (differs) { found = differs; break; }
+            if (differs) {
+              const rgba = (await Promise.all([actual, masked, hidden, ...(solo ? [solo] : []), restoredFrame!].map(pixels))).map((image) => [...image.data.slice(pixelIndex, pixelIndex + 4)]);
+              if (el.getAttribute("data-variant") === "glass") {
+                const index = pixelIndex;
+                const label = el.querySelector<HTMLElement>('[data-slot="button-label"]');
+                const readings: Record<string, number[]> = {};
+                const sample = async (name: string, node: HTMLElement, property: string, value: string) => {
+                  const saved = save(node, property);
+                  node.style.setProperty(property, value, "important");
+                  readings[name] = [...(await pixels(await capture(clip))).data.slice(index, index + 4)];
+                  restore(node, property, saved);
+                };
+                if (label) {
+                  await sample("label-transparent", label, "opacity", "0");
+                  await sample("label-isolation-auto", label, "isolation", "auto");
+                  await sample("label-visible", label, "opacity", "1");
+                  const svg = label.querySelector<SVGElement>("svg");
+                  if (svg) {
+                    const saved = save(svg, "opacity");
+                    svg.style.setProperty("opacity", "0", "important");
+                    readings["svg-transparent"] = [...(await pixels(await capture(clip))).data.slice(index, index + 4)];
+                    restore(svg, "opacity", saved);
+                  }
+                }
+                await sample("no-backdrop", el, "backdrop-filter", "none");
+                await sample("no-shadow", el, "box-shadow", "none");
+                await sample("no-isolation", el, "isolation", "auto");
+                await sample("overflow-hidden", el, "overflow", "hidden");
+                await sample("no-clip", el, "clip-path", "none");
+                const sheet = new CSSStyleSheet();
+                sheet.replaceSync('[data-ouro-glass-diagnostic]::before, [data-ouro-glass-diagnostic]::after { opacity:0 !important }');
+                el.setAttribute("data-ouro-glass-diagnostic", "");
+                document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+                readings["pseudo-transparent"] = [...(await pixels(await capture(clip))).data.slice(index, index + 4)];
+                document.adoptedStyleSheets = document.adoptedStyleSheets.filter((current) => current !== sheet);
+                el.removeAttribute("data-ouro-glass-diagnostic");
+                console.log("GLASS-PROPERTIES", JSON.stringify({ point: differs, rgba, readings }));
+              }
+              const properties = (node: Element) => {
+                const s = getComputedStyle(node), before = getComputedStyle(node, "::before"), after = getComputedStyle(node, "::after");
+                return { html: node.outerHTML.slice(0, 800), rect: node.getBoundingClientRect().toJSON(), radius: s.borderRadius, shape: s.cornerShape, clip: s.clipPath, background: s.backgroundColor, shadow: s.boxShadow, outline: s.outline, backdrop: s.backdropFilter, opacity: s.opacity, before: [before.content, before.opacity, before.backgroundColor], after: [after.content, after.opacity, after.backgroundColor] };
+              };
+              console.log("SQUIRCLE-DIAGNOSTIC", JSON.stringify({ target: describe(el), point: differs, rgba, computed: properties(el), children: [...el.children].map(properties), rect: r.toJSON(), clip, corners: initial.corners }));
+              await diagnostic?.({ actual, hidden, masked, solo, restored: restoredFrame!, rect: r.toJSON(), clip, point: differs, html: el.outerHTML });
+              found = differs;
+              break;
+            }
             if (!changed) break;
           }
           if (found) break;
