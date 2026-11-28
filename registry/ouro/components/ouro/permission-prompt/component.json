@@ -1,0 +1,10 @@
+{
+  "order": 2800,
+  "components": ["permission-prompt"],
+  "controls": {
+    "permission-prompt": [
+      {"part": "deny", "role": "button", "portal": false},
+      {"part": "allow", "role": "button", "portal": false}
+    ]
+  }
+}
