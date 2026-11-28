@@ -1014,8 +1014,10 @@ it("skips a fixed painted corner entirely outside the viewport", async () => {
 }, paintTimeout);
 
 it("does not mistake the next line of a wrapped inline surface for corner paint", async () => {
-  const root = render('<div style="width:180px;font:16px/24px sans-serif"><code id="inline" style="background:#dde4ed;border-radius:8px;corner-shape:squircle;--sq-tl:8px;--sq-tr:8px;--sq-br:8px;--sq-bl:8px">A long example with several words that wraps onto another line and ends here.</code></div>');
-  expect(root.querySelector("#inline")!.getClientRects().length).toBeGreaterThan(1);
+  const root = render('<div style="width:220px;font:16px/24px monospace"><span style="display:inline-block;width:165px"></span><code id="inline" style="background:#dde4ed;border-radius:8px;corner-shape:squircle;--sq-tl:8px;--sq-tr:8px;--sq-br:8px;--sq-bl:8px"><span>one/</span><wbr><span>several-more-words</span></code></div>');
+  const fragments = root.querySelector("#inline")!.getClientRects();
+  expect(fragments.length).toBeGreaterThan(1);
+  expect(fragments[0]!.left).toBeGreaterThan(fragments[fragments.length - 1]!.left);
   expect(await findSquirclePaint()).toEqual([]);
 }, paintTimeout);
 
