@@ -1,0 +1,1 @@
+- Fix: [Kbd keeps its corner radius within its height at small text sizes](registry/ouro/components/ouro/kbd/kbd.test.tsx "verify:testExists(registry/ouro/components/ouro/kbd/kbd.test.tsx::Kbd > keeps the corner radius within half the key's height at small text sizes)").

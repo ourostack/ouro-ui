@@ -376,6 +376,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
         [rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5);
     });
     const surfaceLayers = [...el.querySelectorAll("*"), ...siblings, ...outlines].filter(visible);
+    const independent = surfaceLayers.filter((other): other is HTMLElement =>
+      other instanceof HTMLElement && geometry(other) !== null && hasPaint(other),
+    );
     const suppliesCorner = (other: Element, corner: Corner, index: number) => {
       const rect = other.getBoundingClientRect();
       if ([rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5)) return true;
@@ -385,7 +388,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       return rect.left < left + corner.x * scaleX && rect.right > left && rect.top < top + corner.y * scaleY && rect.bottom > top;
     };
     for (const [index, corner] of initial.corners.entries()) {
-      if (corner.squircle && !hasPaint(el, index) && !surfaceLayers.some((other) => suppliesCorner(other, corner, index) && hasPaint(other, index))) corner.squircle = false;
+      if (corner.squircle && !hasPaint(el, index) && !surfaceLayers.some((other) =>
+        !independent.some((surface) => surface.contains(other)) && suppliesCorner(other, corner, index) && hasPaint(other, index),
+      )) corner.squircle = false;
     }
     if (!initial.corners.some((corner) => corner.squircle)) continue;
     const strokes = outlines.flatMap((svg) => [...svg.querySelectorAll<SVGGraphicsElement>("path, rect, circle, ellipse, line, polyline, polygon, use")].flatMap((node) => {
