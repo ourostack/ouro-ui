@@ -1108,6 +1108,7 @@ test("squircle-paint finds a fallback surface's own square outline and hard shad
     body { margin: 0; background: #eef4fa; }
     .surface { position: absolute; left: 60px; top: 60px; width: 200px; height: 140px; border-radius: 32px; background: #557799; }
     .broken { clip-path: none !important; }
+    .square-clip { clip-path: inset(0) !important; }
     .outline { outline: 6px solid #cc6655; }
     .shadow { box-shadow: 0 0 0 6px #cc6655; }
     .control { position: absolute; width: 8px; height: 8px; background: #149b55; }
