@@ -44,10 +44,20 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     }
     return true;
   };
+  const dimensions = (el: HTMLElement, style = getComputedStyle(el)) => {
+    const length = (value: string) => parseFloat(value) || 0;
+    const inset = style.boxSizing === "border-box" ? [0, 0] : [
+      length(style.paddingLeft) + length(style.paddingRight) + length(style.borderLeftWidth) + length(style.borderRightWidth),
+      length(style.paddingTop) + length(style.paddingBottom) + length(style.borderTopWidth) + length(style.borderBottomWidth),
+    ];
+    return {
+      width: style.width.endsWith("px") ? length(style.width) + inset[0]! : el.offsetWidth,
+      height: style.height.endsWith("px") ? length(style.height) + inset[1]! : el.offsetHeight,
+    };
+  };
   const geometry = (el: HTMLElement) => {
     const style = getComputedStyle(el);
-    const width = el.offsetWidth;
-    const height = el.offsetHeight;
+    const { width, height } = dimensions(el, style);
     if (width < 2 || height < 2) return null;
     const length = (value: string, dimension: number) => value.endsWith("%") ? parseFloat(value) * dimension / 100 : parseFloat(value) || 0;
     const corners = names.map(({ key, property, shape }) => {
@@ -102,10 +112,11 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       })) return false;
       if (!visible(candidate)) return false;
       const style = getComputedStyle(candidate);
+      const { width, height } = dimensions(candidate, style);
       return names.every(({ property }) => {
         const [x, y] = style[`border${property}Radius`].split(/\s+/);
         const length = (value: string, dimension: number) => value.endsWith("%") ? parseFloat(value) * dimension / 100 : parseFloat(value) || 0;
-        return length(x!, candidate.offsetWidth) >= candidate.offsetWidth / 2 && length(y ?? x!, candidate.offsetHeight) >= candidate.offsetHeight / 2;
+        return length(x!, width) >= width / 2 && length(y ?? x!, height) >= height / 2;
       });
     });
     if (candidates.length === 0) return [];
@@ -367,13 +378,14 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     });
   };
   const round = (element: HTMLElement) => {
-    const radius = Math.min(element.offsetWidth, element.offsetHeight) / 2;
-    if (radius < 1) return false;
     const style = getComputedStyle(element);
+    const { width, height } = dimensions(element, style);
+    const radius = Math.min(width, height) / 2;
+    if (radius < 1) return false;
     const length = (value: string, dimension: number) => value.endsWith("%") ? parseFloat(value) * dimension / 100 : parseFloat(value) || 0;
     return names.every(({ property }) => {
       const [x, y = x] = style[`border${property}Radius`].split(/\s+/);
-      return length(x!, element.offsetWidth) >= radius && length(y!, element.offsetHeight) >= radius;
+      return length(x!, width) >= radius && length(y!, height) >= radius;
     });
   };
   const issues: PageIssue[] = [];
@@ -394,8 +406,10 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     const siblings = [...(el.parentElement?.children ?? [])].filter((other): other is HTMLElement => {
       if (!(other instanceof HTMLElement) || other === el || !visible(other)) return false;
       const rect = other.getBoundingClientRect();
-      if (!other.offsetWidth || !other.offsetHeight || getComputedStyle(other).transform !== transform ||
-        Math.abs(rect.width / other.offsetWidth - scaleX) > 0.01 || Math.abs(rect.height / other.offsetHeight - scaleY) > 0.01) return false;
+      const otherStyle = getComputedStyle(other);
+      const { width, height } = dimensions(other, otherStyle);
+      if (!width || !height || otherStyle.transform !== transform ||
+        Math.abs(rect.width / width - scaleX) > 0.01 || Math.abs(rect.height / height - scaleY) > 0.01) return false;
       if (inlineRects.length > 1 && !inlineRects.some((fragment) =>
         rect.left < fragment.right && rect.right > fragment.left && rect.top < fragment.bottom && rect.bottom > fragment.top,
       )) return false;
@@ -433,7 +447,8 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       if (!(other instanceof HTMLElement)) return false;
       if (siblings.includes(other)) return false;
       if (geometry(other) !== null && hasPaint(other)) return true;
-      return !hasPaint(el) && Math.abs(other.offsetWidth - other.offsetHeight) > 0.5 &&
+      const { width, height } = dimensions(other);
+      return !hasPaint(el) && Math.abs(width - height) > 0.5 &&
         round(other) && (hasPaint(other) || [...other.querySelectorAll("*")].some((child) => hasPaint(child)));
     });
     const suppliesCorner = (other: Element, corner: Corner, index: number) => {
@@ -534,8 +549,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
                 const pad = 2 * (outline + shadowLengths.reduce((sum, value) => sum + Math.abs(parseFloat(value)), 0));
                 if (pad > 0) {
                   const rect = sourceRects[index]!;
-                  const scale = source instanceof HTMLElement && source.offsetWidth && source.offsetHeight
-                    ? Math.max(1, rect.width / source.offsetWidth, rect.height / source.offsetHeight) : 1;
+                  const size = source instanceof HTMLElement ? dimensions(source, computed) : null;
+                  const scale = size && size.width && size.height
+                    ? Math.max(1, rect.width / size.width, rect.height / size.height) : 1;
                   effectBounds.push({ rect, pad: pad * scale });
                 }
                 for (const pseudo of ["::before", "::after"]) {
@@ -670,8 +686,8 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             for (const layer of active) {
               const layerRect = layer.el.getBoundingClientRect();
               const layerStyle = getComputedStyle(layer.el);
-              const layerWidth = layer.el instanceof HTMLElement ? layer.el.offsetWidth : parseFloat(layerStyle.width);
-              const layerHeight = layer.el instanceof HTMLElement ? layer.el.offsetHeight : parseFloat(layerStyle.height);
+              const { width: layerWidth, height: layerHeight } = layer.el instanceof HTMLElement
+                ? dimensions(layer.el, layerStyle) : { width: parseFloat(layerStyle.width), height: parseFloat(layerStyle.height) };
               const layerScaleX = layerRect.width / layerWidth;
               const layerScaleY = layerRect.height / layerHeight;
               const regions = fragments.map((fragment) => {
@@ -728,8 +744,8 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
                 const rect = layer.el.getBoundingClientRect();
                 if (![rect.left - r.left, rect.top - r.top, rect.right - r.right, rect.bottom - r.bottom].every((distance) => Math.abs(distance) < 0.5)) return false;
                 const layerStyle = getComputedStyle(layer.el);
-                const width = layer.el instanceof HTMLElement ? layer.el.offsetWidth : parseFloat(layerStyle.width);
-                const height = layer.el instanceof HTMLElement ? layer.el.offsetHeight : parseFloat(layerStyle.height);
+                const { width, height } = layer.el instanceof HTMLElement
+                  ? dimensions(layer.el, layerStyle) : { width: parseFloat(layerStyle.width), height: parseFloat(layerStyle.height) };
                 if (!(width > 0 && height > 0)) return false;
                 const [x, y = x] = layerStyle[`border${names[index]!.property}Radius`].split(/\s+/);
                 return length(x!, width) * rect.width / width + 0.5 >= corner.x * scaleX * 0.543 &&
