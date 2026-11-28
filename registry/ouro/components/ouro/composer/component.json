@@ -25,6 +25,7 @@
   "controls": {
     "composer": [
       {"part": "editor", "role": "textbox", "portal": false},
+      {"part": "link", "role": "link", "portal": false},
       {"part": "quote", "role": "button", "portal": false},
       {"part": "remove", "role": "button", "portal": false},
       {"part": "expand", "role": "button", "portal": false},

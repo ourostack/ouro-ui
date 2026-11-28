@@ -522,7 +522,7 @@ export const EmojiTokens: Story = {
 export const Rich: Story = {
   render: () => (
     <Surface>
-      <Composer label="Write a message" format="rich" defaultValue="Ship **it** on _Friday_" placeholder="Write a message" onSend={() => {}} />
+      <Composer label="Write a message" format="rich" defaultValue="Ship **it** on _Friday_ with [the plan](https://example.com/plan)." placeholder="Write a message" onSend={() => {}} />
     </Surface>
   ),
   play: async ({ canvasElement }) => {

@@ -21,9 +21,12 @@ import { Popover } from "@/registry/ouro/components/ouro/popover/popover";
 import { TextField } from "@/registry/ouro/components/ouro/text-field/text-field";
 import { attachRef } from "@/registry/ouro/lib/ouro/refs";
 import { cn } from "@/registry/ouro/lib/ouro/cn";
+import { controlRef } from "@/registry/ouro/lib/ouro/control-ref";
 
 export { RichEditor };
 export type { RichEditorHandle, RichEditorProps };
+
+const markLink = controlRef("composer", "link");
 
 // Composer's rich mode, loaded only once a composer asks for it, so a page that never does pays for none of Lexical.
 
@@ -1006,6 +1009,9 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         },
         COMMAND_PRIORITY_HIGH,
       ),
+      editor.registerMutationListener(LinkNode, (nodes) => {
+        for (const key of nodes.keys()) markLink(editor.getElementByKey(key));
+      }),
       editor.registerUpdateListener(({ tags }) => {
         const markdown = toMarkdown(editor);
         setEmpty(markdown === "");

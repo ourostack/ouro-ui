@@ -79,6 +79,8 @@ describe("Composer rich Markdown insertion", () => {
     expect(editor.querySelector("[data-ouro-mention]")?.textContent).toBe("Noor");
     expect(editor.querySelector("strong")?.textContent).toBe("Ask");
     expect(editor.querySelector("a")?.getAttribute("href")).toBe("https://example.test/lunch");
+    expect(editor.querySelector("a")?.getAttribute("data-ouro-control")).toBe("composer");
+    expect(editor.querySelector("a")?.getAttribute("data-ouro-part")).toBe("link");
     expect(document.activeElement).toBe(editor);
     expect(control.selectionStart).toBe(control.value.indexOf(" after"));
     expect(control.selectionEnd).toBe(control.selectionStart);
