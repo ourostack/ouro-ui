@@ -400,6 +400,33 @@ test("squircle-paint treats wrapped inline fragments as separate painted boxes",
   }
 });
 
+test("squircle-paint separates distant fractional inline fragments and still finds a leaking end", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: 390, height: 300 }, deviceScaleFactor: 2 });
+  const tab = await context.newPage();
+  await bindCapture(tab);
+  try {
+    await tab.setContent(`<style>
+      body { margin: 0; background: #fffaf7; }
+      .line { position: absolute; left: 16px; top: 100.609375px; width: 350px; font: 16px/21px sans-serif; }
+      .prefix { display: inline-block; width: 301.375px; }
+      code { font: 14px/20px monospace; background: #f5f5f7; border-radius: 4.806px; corner-shape: squircle; padding: 0.1em 0.3em; }
+    </style><div class="line"><span class="prefix"></span><code>alpha beta</code></div>`);
+    const rects = await tab.locator("code").evaluate((el) => [...el.getClientRects()].map((rect) => rect.toJSON()));
+    assert.equal(rects.length, 2);
+    assert.ok(rects[0]!.left - rects[1]!.right > 200);
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+    await tab.locator("code").evaluate((el) => {
+      const line = el.closest(".line")!.getBoundingClientRect();
+      const fragment = el.getClientRects()[0]!;
+      el.insertAdjacentHTML("beforeend", `<span style="position:absolute;left:${fragment.left - line.left}px;top:${fragment.top - line.top}px;width:5px;height:5px;background:#b44939"></span>`);
+    });
+    assert.equal((await tab.evaluate(findSquirclePaint)).length, 1);
+  } finally {
+    await browser.close();
+  }
+});
+
 test("squircle-paint passes adjacent native buttons at a fractional edge", async () => {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
