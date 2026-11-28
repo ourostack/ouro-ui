@@ -265,7 +265,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const delta = difference(a.data, fragmented ? c.data : own && (native || outsideCorner) ? own.data : outsideCorner ? c.data : b.data, index);
           const behind = difference(b.data, c.data, index);
           if (delta < 2 || (!fragmented && !outsideCorner && behind > 4)) continue;
-          if (outsideCorner && noEffects && roundedEffects[cornerIndex] && difference(a.data, noEffects.data, index) >= 2 && difference(noEffects.data, c.data, index) < 2) continue;
+          if (noEffects && roundedEffects[cornerIndex] && difference(a.data, noEffects.data, index) >= 2 && difference(noEffects.data, c.data, index) < 2) continue;
           if (outsideCorner && difference(a.data, c.data, index) < 2) continue;
           if (!fragmented && outsideCorner && difference(a.data, b.data, index) < 2) continue;
           if (own && noStrokes && difference(a.data, noStrokes.data, index) >= 2 && difference(noStrokes.data, own.data, index) < 2 &&
@@ -407,14 +407,12 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       }
       if (sameBox) return true;
       if (rect.width > bounds.width + 0.5 || rect.height > bounds.height + 0.5) return false;
-      return (inlineRects.length > 1 ? inlineRects : [bounds]).some((box) =>
-        initial.corners.some((corner, index) => {
-          if (!corner.squircle) return false;
-          const left = index === 0 || index === 3 ? box.left : box.right - corner.x * scaleX;
-          const top = index < 2 ? box.top : box.bottom - corner.y * scaleY;
-          return rect.left < left + corner.x * scaleX && rect.right > left && rect.top < top + corner.y * scaleY && rect.bottom > top;
-        }),
-      );
+      return initial.corners.some((corner, index) => {
+        if (!corner.squircle) return false;
+        const left = index === 0 || index === 3 ? bounds.left : bounds.right - corner.x * scaleX;
+        const top = index < 2 ? bounds.top : bounds.bottom - corner.y * scaleY;
+        return rect.left < left + corner.x * scaleX && rect.right > left && rect.top < top + corner.y * scaleY && rect.bottom > top;
+      });
     });
     const outlines = svgLayers.filter((svg) => {
       if (el.contains(svg)) return false;
@@ -508,8 +506,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const active = layers.filter((layer) => layer.el === el || !(layer.el instanceof HTMLElement) || !covers(layer.el, r));
           const sources = [...new Set(active.flatMap((layer) => [layer.el, ...layer.el.querySelectorAll("*")]))].filter(visible);
           const sourceRects = sources.map((source) => source.getBoundingClientRect());
-          let effectBounds: { rect: DOMRect; pad: number }[] | undefined;
-          let unboundedEffect = false;
+          let hasEscapingEffect: boolean | undefined;
           let hasPseudo = false;
           let blockedHit = false;
           let stopHit: (() => void) | undefined;
@@ -517,35 +514,24 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             if (sourceRects.some((rect) => {
               return px >= rect.left - 0.5 && px < rect.right + 0.5 && py >= rect.top - 0.5 && py < rect.bottom + 0.5;
             })) return true;
-            const unbounded = (computed: CSSStyleDeclaration) =>
+            const escaping = (computed: CSSStyleDeclaration) =>
+              computed.boxShadow !== "none" || computed.outlineStyle !== "none" ||
               (computed.filter || "none") !== "none" || (computed.textShadow || "none") !== "none" ||
               computed.borderImageOutset.split(/\s+/).some((value) => parseFloat(value) > 0);
-            if (!effectBounds) {
-              effectBounds = [];
-              for (const [index, source] of sources.entries()) {
+            if (hasEscapingEffect === undefined) {
+              hasEscapingEffect = false;
+              for (const source of sources) {
                 const computed = getComputedStyle(source);
-                if (computed.display === "list-item" || unbounded(computed)) unboundedEffect = true;
-                const shadowLengths = computed.boxShadow === "none" ? [] : computed.boxShadow.match(/-?(?:\d+|\d*\.\d+)px/g) ?? [];
-                const outline = computed.outlineStyle === "none" ? 0 :
-                  Math.abs(parseFloat(computed.outlineWidth) || 0) + Math.abs(parseFloat(computed.outlineOffset) || 0);
-                const pad = 2 * (outline + shadowLengths.reduce((sum, value) => sum + Math.abs(parseFloat(value)), 0));
-                if (pad > 0) {
-                  const rect = sourceRects[index]!;
-                  const scale = source instanceof HTMLElement && source.offsetWidth && source.offsetHeight
-                    ? Math.max(1, rect.width / source.offsetWidth, rect.height / source.offsetHeight) : 1;
-                  effectBounds.push({ rect, pad: pad * scale });
-                }
+                if (computed.display === "list-item" || escaping(computed)) hasEscapingEffect = true;
                 for (const pseudo of ["::before", "::after"]) {
                   const style = getComputedStyle(source, pseudo);
                   if (style.content === "none" || style.content === "normal") continue;
                   hasPseudo = true;
-                  if (style.boxShadow !== "none" || style.outlineStyle !== "none" || unbounded(style)) unboundedEffect = true;
+                  if (escaping(style)) hasEscapingEffect = true;
                 }
               }
             }
-            if (unboundedEffect || effectBounds.some(({ rect, pad }) =>
-              px >= rect.left - pad && px < rect.right + pad && py >= rect.top - pad && py < rect.bottom + pad,
-            )) return true;
+            if (hasEscapingEffect) return true;
             if (!hasPseudo) return false;
             if (!stopHit) {
               const attribute = "data-ouro-paint-hit";
