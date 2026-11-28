@@ -8,15 +8,18 @@ import NavigationRailDemo from "./navigation-rail.demo";
 let root: Root | undefined;
 let host: HTMLDivElement | undefined;
 let size: { width: number; height: number };
+let wasDark: boolean;
 
 afterEach(async () => {
   await act(async () => root?.unmount());
   host?.remove();
+  document.documentElement.classList.toggle("dark", wasDark);
   await page.viewport(size.width, size.height);
 });
 
 it.each(["light", "dark"] as const)("separates the navigation rail from its content without a border in %s", async (scheme) => {
   size = { width: innerWidth, height: innerHeight };
+  wasDark = document.documentElement.classList.contains("dark");
   await page.viewport(3840, 2160);
   host = document.createElement("div");
   if (scheme === "dark") host.className = "dark";
@@ -29,4 +32,25 @@ it.each(["light", "dark"] as const)("separates the navigation rail from its cont
   expect(parseFloat(getComputedStyle(content).borderInlineStartWidth)).toBe(0);
   expect(findDesignIssues({}).filter((issue) =>
     issue.rule === "pane-edge" && host!.querySelector(`[data-ouro-check-ref~="${issue.ref}"]`))).toEqual([]);
+});
+
+it.each([
+  [390, 844, false],
+  [1440, 900, false],
+  [1440, 900, true],
+])("separates the rail demo's surfaces without an inner frame at %spx by %spx (dark: %s)", async (width, height, dark) => {
+  size = { width: innerWidth, height: innerHeight };
+  wasDark = document.documentElement.classList.contains("dark");
+  await page.viewport(width, height);
+  document.documentElement.classList.toggle("dark", dark);
+  host = document.createElement("div");
+  host.style.width = "100%";
+  document.body.append(host);
+  root = createRoot(host);
+  await act(async () => root!.render(<NavigationRailDemo />));
+
+  const outer = host.firstElementChild as HTMLElement;
+  const inner = outer.children[1] as HTMLElement;
+  expect(getComputedStyle(inner).backgroundColor).not.toBe(getComputedStyle(outer).backgroundColor);
+  expect(findDesignIssues().filter(({ rule }) => rule === "nested-frame")).toEqual([]);
 });
