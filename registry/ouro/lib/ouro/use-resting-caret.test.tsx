@@ -691,8 +691,8 @@ describe("resting caret geometry fixtures", () => {
 
     it("places the caret with the next word when that word wraps beyond the preceding space", async () => {
       const box = await editor();
-      box.style.width = "80px";
-      box.value = "A BBBB";
+      box.style.width = "160px";
+      box.value = `A ${"M".repeat(24)}`;
       box.setSelectionRange(2, 2);
       const reference = document.createElement("div");
       const style = getComputedStyle(box);
@@ -705,6 +705,11 @@ describe("resting caret geometry fixtures", () => {
       range.setEnd(reference.firstChild!, 3);
       const glyph = range.getBoundingClientRect();
       const referenceBox = reference.getBoundingClientRect();
+      const first = document.createRange();
+      first.setStart(reference.firstChild!, 0);
+      first.setEnd(reference.firstChild!, 1);
+      // The fixture only proves anything when the word after the caret moves to the next line.
+      expect(glyph.top - first.getBoundingClientRect().top).toBeGreaterThan(glyph.height / 2);
       const caret = (await hold(box)).getBoundingClientRect();
       const field = box.getBoundingClientRect();
       expect(Math.abs(caret.top - field.top - glyph.top + referenceBox.top)).toBeLessThanOrEqual(1);
