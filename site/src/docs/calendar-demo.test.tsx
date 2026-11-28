@@ -8,9 +8,16 @@ beforeAll(async () => {
 });
 
 afterEach(async () => {
+  vi.useRealTimers();
   await cleanupPage();
   setScheme("light");
 });
+
+// The demo seeds Monday to Friday and a phone opens on today, so a phone case pins the date to a Wednesday; timers and animation stay real.
+const freezeWeekday = () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date(2026, 10, 25, 10, 0, 0));
+};
 
 const eventTitles = () => document.querySelectorAll("[data-site-calendar-demo] [data-ouro='time-grid'] [data-event-id], [data-site-calendar-demo] [data-ouro='time-grid'] button[aria-label*=', ']").length;
 
@@ -306,6 +313,7 @@ describe("the calendar page", () => {
     const real = window.matchMedia.bind(window);
     vi.stubGlobal("matchMedia", (query: string) => (query === "(pointer: coarse)" ? ({ matches: true, media: query, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList) : real(query)));
     try {
+      freezeWeekday();
       await page.viewport(390, 844);
       await renderPage("/docs/calendar-demo/");
       await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
@@ -348,6 +356,7 @@ describe("the calendar page", () => {
   });
 
   it("puts focus in the grid after Delete on a phone, not on the page body", async () => {
+    freezeWeekday();
     await page.viewport(390, 844);
     await renderPage("/docs/calendar-demo/");
     await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
@@ -363,6 +372,7 @@ describe("the calendar page", () => {
   });
 
   it("puts focus in the grid after Delete even when the sheet takes ages to close", async () => {
+    freezeWeekday();
     await page.viewport(390, 844);
     await renderPage("/docs/calendar-demo/");
     await expect.poll(() => document.querySelector('[data-ouro="time-grid"] [data-ouro-part="event"]')).not.toBeNull();
