@@ -369,6 +369,14 @@ it("reads an inverse cutout at each physical corner", () => {
   }
 });
 
+it("does not mistake an inverse corner cover for a rounded painted surface", async () => {
+  const root = render(`<div class="cover" style='position:relative;width:160px;height:120px;background:#eef4fa;--sq-tl:28px;clip-path:path(evenodd, "M 0 0 H 160 V 120 H 0 Z M 0 28 C 0 17.164 -.2576 9.1672 4.4548 4.4548 C 9.1672 -.2576 17.164 0 28 0 H 160 V 120 H 0 Z")'></div>`);
+  const cover = root.querySelector(".cover")!;
+  const original = cover.getAttribute("style");
+  expect(await findSquirclePaint()).toEqual([]);
+  expect(cover.getAttribute("style")).toBe(original);
+}, paintTimeout);
+
 it("keeps paint inside an inverse cutout while detecting paint above its edge", () => {
   const root = render(`<style>
     .cut-outer { position:relative; width:160px; height:120px; background:#eef4fa; border-top-left-radius:17.376px; --sq-tl:32px; clip-path:inset(0); }
@@ -494,6 +502,24 @@ it("does not treat a painted border, outline, or pseudo-element as an empty hit 
     hit.insertAdjacentHTML("beforeend", '<canvas width="160" height="120" style="position:absolute;inset:0"></canvas>');
     hit.querySelector("canvas")!.getContext("2d")!.fillRect(0, 0, 160, 120);
     expect(await found()).toBe(true);
+    hit.innerHTML = '<div style="position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:#b44939"></div>';
+    hit.style.clipPath = "";
+    const computed = window.getComputedStyle.bind(window);
+    const spy = vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
+      const style = computed(element, pseudo);
+      return element === hit && !pseudo ? new Proxy(style, {
+        get(target, property) {
+          if (property === "backdropFilter") return "";
+          const value = Reflect.get(target, property, target);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      }) : style;
+    });
+    try {
+      expect(await found()).toBe(false);
+    } finally {
+      spy.mockRestore();
+    }
   } finally {
     restore();
   }
@@ -650,7 +676,7 @@ it("keeps a native shadow and its probe separate from a descendant's external pa
   const child = surface.firstElementChild as HTMLElement;
   const childStyle = child.getAttribute("style");
   surface.insertAdjacentHTML("beforeend", '<span style="transition:opacity 1s !important"></span>');
-  const transitionOnly = surface.lastElementChild!;
+  const transitionOnly = surface.querySelector<HTMLElement>("span")!;
   const transitionStyle = transitionOnly.getAttribute("style");
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
   expect(child.getAttribute("style")).toBe(childStyle);
@@ -677,6 +703,19 @@ it("keeps a native shadow and its probe separate from a descendant's external pa
     };
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
     expect(child.getAttribute("style")).toBe(updatedStyle);
+    captures = 0;
+    state.__ouroPaintCapture = async (clip) => {
+      const image = await capture(clip);
+      if (++captures === 2) {
+        child.setAttribute("style", updatedStyle.replaceAll(";", " ;"));
+        transitionOnly.style.color = "blue";
+      }
+      return image;
+    };
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+    expect(child.getAttribute("style")).toBe(updatedStyle);
+    expect(transitionOnly.style.color).toBe("blue");
+    expect(transitionOnly.style.getPropertyPriority("transition-property")).toBe("important");
   } finally {
     state.__ouroPaintCapture = capture;
   }
@@ -754,6 +793,31 @@ it("finds separate paint beside a curved independent SVG stroke", async () => {
     surface.insertAdjacentHTML("beforeend", '<div style="position:absolute;left:-12px;top:-12px;width:8px;height:8px;background:#b44939"></div>');
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-ouro-xl");
   } finally {
+    restore();
+  }
+}, paintTimeout);
+
+it("preserves changes to an independent SVG stroke while measuring it", async () => {
+  const restore = forceSquircleFallback();
+  const capture = state.__ouroPaintCapture!;
+  try {
+    const { path, radius } = outlinedSurface();
+    path.setAttribute("d", `M 0 ${radius} V 0 H ${radius}`);
+    let changed = false;
+    state.__ouroPaintCapture = async (clip) => {
+      const image = await capture(clip);
+      if (!changed && path.style.opacity === "0") {
+        path.style.stroke = "blue";
+        changed = true;
+      }
+      return image;
+    };
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-ouro-xl");
+    expect(changed).toBe(true);
+    expect(path.style.stroke).toBe("blue");
+    expect(path.style.opacity).toBe("");
+  } finally {
+    state.__ouroPaintCapture = capture;
     restore();
   }
 }, paintTimeout);
@@ -869,6 +933,28 @@ it("preserves an inline style removed while the painted layer is captured", asyn
   } finally {
     state.__ouroPaintCapture = capture;
     restore();
+  }
+}, paintTimeout);
+
+it("keeps a removed style attribute absent when calibrating a fallback shadow", async () => {
+  const root = render('<style>.surface { position:relative; width:160px; height:120px; background:#fff; border-radius:2px; --sq-tl:28px; box-shadow:0 2px 6px #0004; }</style><div class="surface"></div>');
+  const surface = root.querySelector<HTMLElement>(".surface")!;
+  const capture = state.__ouroPaintCapture!;
+  let removed = false;
+  state.__ouroPaintCapture = async (clip) => {
+    const image = await capture(clip);
+    if (!removed) {
+      surface.removeAttribute("style");
+      removed = true;
+    }
+    return image;
+  };
+  try {
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+    expect(removed).toBe(true);
+    expect(surface.hasAttribute("style")).toBe(false);
+  } finally {
+    state.__ouroPaintCapture = capture;
   }
 }, paintTimeout);
 
