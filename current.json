@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-28T02:31:25.098Z",
+  "generatedAt": "2026-11-28T03:04:53.423Z",
   "releases": {
     "web": {
       "name": "Ouro UI",
@@ -14,8 +14,8 @@
     },
     "apple": {
       "name": "Ouro UI for Apple",
-      "tag": "v1.11.0",
-      "url": "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.11.0"
+      "tag": "v1.12.0",
+      "url": "https://github.com/ourostack/ouro-ui-apple/releases/tag/v1.12.0"
     },
     "windows": {
       "name": "Ouro UI for Windows",
@@ -155,21 +155,21 @@
     },
     {
       "repo": "ourostack/gatefold",
-      "state": "current",
+      "state": "pr",
       "pins": [
         {
           "file": "Packages/GatefoldCloud/Package.resolved",
           "follows": "apple",
           "current": "1.11.0",
-          "latest": "v1.11.0",
-          "behind": false
+          "latest": "v1.12.0",
+          "behind": true
         },
         {
           "file": "project.yml",
           "follows": "apple",
           "current": "1.11.0",
-          "latest": "v1.11.0",
-          "behind": false
+          "latest": "v1.12.0",
+          "behind": true
         },
         {
           "file": "tools/ouro-actions/dist-manifest.json",
@@ -179,7 +179,10 @@
           "behind": false
         }
       ],
-      "pr": null
+      "pr": {
+        "number": 674,
+        "url": "https://github.com/ourostack/gatefold/pull/674"
+      }
     },
     {
       "repo": "ourostack/hackamore",
@@ -267,21 +270,21 @@
     },
     {
       "repo": "ourostack/ouro-md",
-      "state": "current",
+      "state": "pr",
       "pins": [
         {
           "file": "Package.resolved",
           "follows": "apple",
           "current": "1.11.0",
-          "latest": "v1.11.0",
-          "behind": false
+          "latest": "v1.12.0",
+          "behind": true
         },
         {
           "file": "Package.swift",
           "follows": "apple",
           "current": "1.11.0",
-          "latest": "v1.11.0",
-          "behind": false
+          "latest": "v1.12.0",
+          "behind": true
         },
         {
           "file": "tools/ouro-actions/dist-manifest.json",
@@ -291,7 +294,10 @@
           "behind": false
         }
       ],
-      "pr": null
+      "pr": {
+        "number": 239,
+        "url": "https://github.com/ourostack/ouro-md/pull/239"
+      }
     },
     {
       "repo": "ourostack/ouro-work-substrate",
@@ -382,24 +388,27 @@
     },
     {
       "repo": "spoonjoy/spoonjoy-apple",
-      "state": "current",
+      "state": "pr",
       "pins": [
         {
           "file": "Package.swift",
           "follows": "apple",
           "current": "1.11.0",
-          "latest": "v1.11.0",
-          "behind": false
+          "latest": "v1.12.0",
+          "behind": true
         },
         {
           "file": "Spoonjoy.xcodeproj/project.pbxproj",
           "follows": "apple",
           "current": "1.11.0",
-          "latest": "v1.11.0",
-          "behind": false
+          "latest": "v1.12.0",
+          "behind": true
         }
       ],
-      "pr": null
+      "pr": {
+        "number": 476,
+        "url": "https://github.com/spoonjoy/spoonjoy-apple/pull/476"
+      }
     },
     {
       "repo": "spoonjoy/spoonjoy-v2",
