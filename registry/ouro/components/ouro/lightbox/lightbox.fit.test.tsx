@@ -403,12 +403,42 @@ describe("Lightbox fit", () => {
     // Wider, at the same height: the picture keeps its size and moves, and the controls with it, placed in the viewer's
     // own pixels while it is drawn at half its size, as it is partway through growing from the thumbnail.
     const header = dialog.querySelector<HTMLElement>("[data-ouro-lightbox-header]")!;
-    const before = header.style.insetInlineEnd;
+    const before = getComputedStyle(header).insetInlineEnd;
     dialog.style.scale = "0.5";
     await page.viewport(1500, 800);
-    await expect.poll(() => header.style.insetInlineEnd).not.toBe(before);
+    await expect.poll(() => getComputedStyle(header).insetInlineEnd).not.toBe(before);
     dialog.style.scale = "";
     expect(onCorner(dialog)).toEqual({ right: true, top: true });
+  });
+
+  it.each(["ltr", "rtl"])("keeps the controls centered when a resized picture moves back into its slide, %s", async (direction) => {
+    document.documentElement.dir = direction;
+    try {
+      const host = await render(true);
+      await userEvent.click(thumbnail(host));
+      await settled();
+      const dialog = popup()!;
+      const viewport = dialog.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")!;
+      const img = dialog.querySelector<HTMLImageElement>("[data-ouro-lightbox-figure] > img")!;
+      const header = dialog.querySelector<HTMLElement>("[data-ouro-lightbox-header]")!;
+      await expect.poll(() => onCorner(dialog)).toEqual({ right: true, top: true });
+
+      viewport.style.scrollSnapType = "none";
+      viewport.scrollLeft = direction === "rtl" ? -32 : 32;
+      expect(Math.abs(viewport.scrollLeft)).toBe(32);
+      const width = img.style.width;
+      expect(parseFloat(width)).toBeGreaterThan(2);
+      const before = header.style.insetInlineEnd;
+      img.style.width = `${parseFloat(width) - 2}px`;
+      await expect.poll(() => header.style.insetInlineEnd).not.toBe(before);
+      const during = header.style.insetInlineEnd;
+      img.style.width = width;
+      await expect.poll(() => header.style.insetInlineEnd).not.toBe(during);
+      viewport.scrollLeft = 0;
+      await expect.poll(() => onCorner(dialog)).toEqual({ right: true, top: true });
+    } finally {
+      document.documentElement.dir = "";
+    }
   });
 
   it("puts the controls on the picture's top-left corner right to left", async () => {

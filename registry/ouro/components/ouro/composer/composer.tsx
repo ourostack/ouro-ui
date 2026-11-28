@@ -556,6 +556,8 @@ const onServer = () => false;
  * Use `TextArea` instead for a long text that is saved rather than sent, and `Message` for
  * a message once it is sent.
  *
+ * For native-host quiet reading, see the [Resting caret guide](https://ui.ouroboros.bot/docs/resting-caret/).
+ *
  * @group Chat
  * @see https://ui.ouroboros.bot/docs/composer
  *

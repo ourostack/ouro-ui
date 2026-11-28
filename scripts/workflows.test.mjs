@@ -3175,7 +3175,7 @@ const calendarLog = logLines("install (shadcn@latest, nova)", [
   "##[error]Process completed with exit code 1.",
 ]);
 const diveTitle = "pressing Dive > ends early on a click, which reaches nothing under the water, or on the button under it";
-const diveLog = logLines("browser (5/11)", [
+const diveLog = logLines(browserJob(5), [
   ` FAIL   site (chromium)  site/src/voyage/dive/dive.test.tsx > ${diveTitle}`,
   " Test Files  1 failed | 75 passed (76)",
   "      Tests  1 failed | 3284 passed | 4 skipped (3289)",
@@ -3203,7 +3203,7 @@ test("the quarantine reads a job's failed Vitest tests from its log, and anythin
 });
 
 const latencyTitle = "interaction latency › the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4× slower CPU";
-const latencyLog = logLines("browser (5/11)", [
+const latencyLog = logLines(browserJob(5), [
   `  ✘  1 [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › ${latencyTitle} (1.2s)`,
   "  1) [chromium] › site/e2e/site-menu.latency.spec.ts:42:3 › interaction latency › the menu on / opens within 100 ms (p95 of 20 or 40, median within 128 ms) on a phone with a 4× slower CPU",
   "    Error: expected p95 to be below 100ms, measured 142ms",

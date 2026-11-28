@@ -680,8 +680,8 @@ function followPictureCorner(head: HTMLElement, shown: number): () => void {
     // The popup's scale as it grows from the thumbnail.
     const unit = box.width / popup.offsetWidth;
     head.style.top = `${Math.round((pic.top - box.top) / unit + cornerInset)}px`;
-    // The picture is centred, so it is as far from the popup's end as from its start, in either direction.
-    head.style.insetInlineEnd = `${Math.round((box.right - pic.right) / unit + cornerInset)}px`;
+    // Keep the centred position relative to the popup as it changes, even if the slide moves without resizing.
+    head.style.insetInlineEnd = `calc(50% - ${pic.width / unit / 2}px + ${cornerInset}px)`;
   };
   // Stryker disable next-line CallExpression: the observer's first call places them too, and a test cannot catch the frame between.
   place();
