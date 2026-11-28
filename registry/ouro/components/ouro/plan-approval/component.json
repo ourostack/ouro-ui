@@ -1,0 +1,12 @@
+{
+  "order": 2810,
+  "components": ["plan-approval"],
+  "controls": {
+    "plan-approval": [
+      {"part": "request-changes", "role": "button", "portal": false},
+      {"part": "approve", "role": "button", "portal": false},
+      {"part": "cancel", "role": "button", "portal": false},
+      {"part": "send", "role": "button", "portal": false}
+    ]
+  }
+}
