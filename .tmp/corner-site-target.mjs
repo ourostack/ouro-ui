@@ -35,7 +35,7 @@ try {
       "line-height", "letter-spacing", "padding", "box-sizing", "white-space",
       "word-break", "overflow-wrap", "border-radius", "corner-shape",
     ].map((property) => [property, style.getPropertyValue(property)]));
-    element.textContent = "several small signs show a series of quiet ideas along the winding road";
+    element.textContent = (element.textContent ?? "").replace(/[a-z]/g, "a").replace(/[A-Z]/g, "A").replace(/[0-9]/g, "3");
     return {
       distance, rect: rect.toJSON(), text: element.textContent, html: element.outerHTML,
       parent: element.parentElement.outerHTML.slice(0, 3000),
