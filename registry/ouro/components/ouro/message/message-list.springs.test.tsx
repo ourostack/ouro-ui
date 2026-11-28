@@ -605,6 +605,29 @@ describe("MessageList springs", () => {
     expectAtRest(messages());
   });
 
+  it("keeps newly visible messages settling through a long fling frame until scrollend", async () => {
+    const { scroller, messages } = await render(<Chat count={100} />);
+    await scrollInCode(scroller, scroller.scrollHeight / 2);
+    const frames = holdFrames();
+    finger(scroller, "touchstart", scroller.getBoundingClientRect().top + 120);
+    scroller.scrollTop -= 30;
+    scroller.dispatchEvent(new Event("scroll"));
+    frames.step(16);
+    const previous = messages().filter((message) => message.hasAttribute("data-ouro-settling"));
+    expect(previous.length).toBeGreaterThan(0);
+
+    scroller.scrollTop -= scroller.clientHeight * 3;
+    scroller.dispatchEvent(new Event("scroll"));
+    frames.step(600);
+    expect(previous.every((message) => !message.hasAttribute("data-ouro-settling"))).toBe(true);
+    expect(scroller.querySelector("[data-ouro-settling]")).not.toBeNull();
+    expect(messages().every((message) => shiftOf(message) === 0)).toBe(true);
+
+    scroller.dispatchEvent(new Event("scrollend"));
+    frames.step(16);
+    expectAtRest(messages());
+  });
+
   it("rests once the reader's scroll has ended, though the list then scrolls itself, after which WebKit sends no scrollend", async () => {
     const { scroller, messages } = await render(<Chat count={60} />);
     await scrollInCode(scroller, scroller.scrollHeight - scroller.clientHeight - 60);
