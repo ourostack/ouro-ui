@@ -667,6 +667,24 @@ it("detects a protruding sibling without reporting an inset one", async () => {
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
 }, paintTimeout);
 
+it("keeps a round badge in a painted cutout but finds an uncovered corner", async () => {
+  const shape = "M 0 32 C 0 19.616 -.2944 10.4768 5.0912 5.0912 C 10.4768 -.2944 19.616 0 32 0 H 48 C 60.384 0 69.5232 -.2944 74.9088 5.0912 C 80.2944 10.4768 80 19.616 80 32 V 48 C 80 60.384 80.2944 69.5232 74.9088 74.9088 C 69.5232 80.2944 60.384 80 48 80 H 32 C 19.616 80 10.4768 80.2944 5.0912 74.9088 C -.2944 69.5232 0 60.384 0 48 Z";
+  const notch = "M 88 75 A 13 13 0 1 1 62 75 A 13 13 0 1 1 88 75 Z";
+  const radius = "border-radius:17.376px;--sq-tl:32px;--sq-tr:32px;--sq-br:32px;--sq-bl:32px";
+  const root = render(`<div class="frame" style="position:relative;width:80px;height:80px;${radius}">
+    <div class="surface" style='position:absolute;inset:0;background:#dce5ef;${radius};clip-path:path(evenodd, "${shape} ${notch}")'></div>
+    <div class="badge" style="position:absolute;right:-5px;bottom:-5px;width:20px;height:20px;border-radius:50%;corner-shape:round;background:#149b55"></div>
+  </div>`);
+  const frame = root.querySelector<HTMLElement>(".frame")!;
+  const surface = root.querySelector<HTMLElement>(".surface")!;
+  expect(await findSquirclePaint()).toEqual([]);
+  frame.insertAdjacentHTML("beforeend", '<div style="position:absolute;left:-6px;top:-6px;width:8px;height:8px;background:#b44939"></div>');
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.frame");
+  frame.lastElementChild!.remove();
+  surface.style.clipPath = `path("${shape}")`;
+  expect(await findSquirclePaint()).not.toEqual([]);
+}, paintTimeout);
+
 it("keeps a round badge in a cut-out distinct from leaking square paint", async () => {
   const restore = forceSquircleFallback();
   try {
