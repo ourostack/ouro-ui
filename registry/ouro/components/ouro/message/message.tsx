@@ -868,7 +868,7 @@ export function Message(props: MessageProps): JSX.Element {
     );
   const notSent = failed !== false && (
     <div data-ouro-message-failed="" className={cn("flex max-w-full flex-wrap items-center gap-x-1 text-xs", variant === "post" && postRow)}>
-      <span id={failedId} className="inline-flex items-center gap-1 font-medium text-destructive">
+      <span id={failedId} className="inline-flex items-center gap-1 font-medium text-destructive [[data-ouro=message-list]_&]:text-[color-mix(in_oklab,var(--destructive)_80%,var(--foreground))]">
         <NotSentIcon aria-hidden="true" className="size-ouro-3_5 shrink-0" />
         {failedLabel}
       </span>
