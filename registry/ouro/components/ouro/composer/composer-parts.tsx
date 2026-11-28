@@ -1142,7 +1142,7 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
         data-slot="composer-rich-editor"
         data-ouro-composer-editor=""
         // Lines are read from the font, so the box grows from `rows` to `maxRows` as the textarea does.
-        style={{ minHeight: `${rows}lh`, maxHeight: `${maxRows}lh` }}
+        style={{ minHeight: `calc(${rows} * var(--ouro-composer-lh))`, maxHeight: `calc(${maxRows} * var(--ouro-composer-lh))` }}
         // The capture phase is before the editor's own listener, so a key the composer takes never reaches it.
         // Stryker disable next-line BlockStatement: a press places its own caret after focus, so the flag only spares the end-of-text one.
         onPointerDownCapture={() => {

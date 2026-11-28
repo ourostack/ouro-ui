@@ -292,6 +292,7 @@ describe("Composer", () => {
     await userEvent.click(textarea);
     expect(getComputedStyle(frame).outlineStyle).toBe("solid");
     expect(getComputedStyle(frame).outlineWidth).toBe("2px");
+    expect(getComputedStyle(frame).outlineOffset).toBe("0px");
     expect(getComputedStyle(textarea).outlineWidth).toBe("0px");
     expect(getComputedStyle(frame).borderTopStyle).toBe("solid");
     expect(getComputedStyle(textarea).borderTopWidth).toBe("0px");
@@ -1064,19 +1065,19 @@ describe("Composer expanded", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("draws the pressed expand button as an outlined primary Button, and the other as a plain one, and keeps focus in the text on a press", async () => {
+  it("keeps the expand action quiet in either mode, names it visibly, and preserves text focus on a press", async () => {
     const { host } = await render(
       <>
         <Composer label="Reply" defaultExpanded={false} onSend={() => {}} />
-        <Button variant="outline" tone="primary" aria-label="Outlined" data-test-harness="">o</Button>
         <Button variant="plain" tone="secondary" aria-label="Plain" data-test-harness="">p</Button>
       </>,
     );
     const look = (element: Element) => ["border-top-color", "color", "background-color"].map((property) => getComputedStyle(element).getPropertyValue(property));
-    const [outlined, plain] = [...host.querySelectorAll("[data-test-harness]")];
-    expect(look(expandButton()!)).toEqual(look(plain!));
+    const plain = host.querySelector("[data-test-harness]")!;
+    expect(expandButton()!.textContent).toBe("Expand");
+    expect(look(expandButton()!)).toEqual(look(plain));
     await userEvent.click(expandButton()!);
-    await expect.poll(() => look(expandButton()!)).toEqual(look(outlined!));
+    await expect.poll(() => look(expandButton()!)).toEqual(look(plain));
     const down = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
     expandButton()!.dispatchEvent(down);
     expect(down.defaultPrevented).toBe(true);

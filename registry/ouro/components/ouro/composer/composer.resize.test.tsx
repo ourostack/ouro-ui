@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { commands, server, userEvent } from "vitest/browser";
 import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
+import { preloadRichEditor } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { expectMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 
@@ -154,6 +155,19 @@ describe("Composer resizable edge", () => {
     expect(wholeLines(view.textarea)).toBeCloseTo(3, 1);
   });
 
+  it("keeps a rich frame under tallest using the editor's rendered line height", async () => {
+    style("[data-ouro-composer-frame] { line-height: 24px; } [data-ouro-composer-editor] { --ouro-composer-lh: 20px; line-height: 20px; }");
+    await preloadRichEditor();
+    const view = await render(<Composer label="Reply" format="rich" resizable tallest={() => 400} defaultExpanded toolbar={<span>Formatting</span>} onSend={() => {}} />);
+    const frame = view.edge.closest<HTMLElement>("[data-ouro-composer-frame]")!;
+    await expect.poll(() => frame.querySelector("[data-ouro-composer-editor]")).not.toBeNull();
+    const editor = frame.querySelector<HTMLElement>("[data-ouro-composer-editor]")!;
+    await act(async () => view.edge.focus());
+    await userEvent.keyboard("{End}");
+    expect(height(frame)).toBeLessThanOrEqual(400);
+    expect(wholeLines(editor)).toBeCloseTo(Math.round(wholeLines(editor)), 1);
+  });
+
   it("leaves a controlled height to the app: a key reports the new height and the box stays until the app sets it", async () => {
     const onHeightChange = vi.fn();
     const view = await render(<Composer label="Reply" resizable resizeLabel={label} rows={1} height={100} onHeightChange={onHeightChange} onSend={() => {}} />);
@@ -234,7 +248,8 @@ describe("Composer resizable edge", () => {
     const view = await render(<Composer label="Reply" resizable resizeLabel={label} rows={1} maxRows={6} onSend={() => {}} />);
     const fast = parseDuration(getComputedStyle(document.documentElement).getPropertyValue("--ouro-duration-fast"));
     const lineEl = view.edge.querySelector<HTMLElement>('[data-ouro-part="resize-line"]')!;
-    expect(getComputedStyle(lineEl).opacity).toBe("0");
+    expect(getComputedStyle(lineEl).opacity).toBe("0.4");
+    expect(lineEl.getBoundingClientRect().width).toBeLessThan(view.edge.getBoundingClientRect().width);
     try {
       for (const reduced of [false, true]) {
         await commands.emulateMedia({ reducedMotion: reduced ? "reduce" : "no-preference" });
@@ -243,7 +258,7 @@ describe("Composer resizable edge", () => {
         await expectMotion(lineEl, { stem: "composer", state: "data-dragging", properties: { opacity: fast }, reduced });
         view.edge.removeAttribute("data-dragging");
         view.edge.removeAttribute("data-ouro-edge");
-        await expect.poll(() => getComputedStyle(lineEl).opacity).toBe("0");
+        await expect.poll(() => getComputedStyle(lineEl).opacity).toBe("0.4");
       }
     } finally {
       await commands.emulateMedia({ reducedMotion: "no-preference" });

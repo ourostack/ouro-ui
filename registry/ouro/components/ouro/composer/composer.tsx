@@ -392,7 +392,7 @@ const draftLimit = 50;
 // text has focus; the textarea inside draws neither.
 const frameClass =
   "relative box-border flex min-w-0 flex-col rounded-ouro-lg border border-solid border-input bg-card text-card-foreground " +
-  "ouro-field-cue outline-ring outline-offset-2 has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-solid has-[[data-ouro-composer-editor]:focus-visible]:outline-2 has-[[data-ouro-composer-editor]:focus-visible]:outline-solid " +
+  "ouro-field-cue outline-ring outline-offset-0 has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-solid has-[[data-ouro-composer-editor]:focus-visible]:outline-2 has-[[data-ouro-composer-editor]:focus-visible]:outline-solid " +
   "[&_textarea:focus-visible]:outline-0 group/frame " +
   "data-[ouro-moving=grow]:motion-safe:animate-[ouro-composer-reveal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] " +
   "data-[ouro-moving=shrink]:motion-safe:animate-[ouro-composer-conceal_var(--ouro-duration-slow)_var(--ouro-ease-drawer)_both] data-[ouro-moving=shrink]:justify-end";
@@ -400,11 +400,11 @@ const frameClass =
 // The resize edge sits over the frame's top border: 8px tall, 4px above it. Its line shows on a mouse's hover, on keyboard focus and
 // while it is dragged, by opacity and colour only; the height itself never animates.
 const resizeEdgeClass =
-  "group/edge absolute inset-x-0 -top-1 z-10 flex h-2 cursor-ns-resize touch-none items-center rounded-ouro-sm outline-ring " +
+  "group/edge absolute inset-x-0 -top-1 z-10 flex h-2 cursor-ns-resize touch-none items-center justify-center rounded-ouro-sm outline-ring " +
   "focus-visible:outline-2 focus-visible:outline-solid";
 const resizeLineClass =
-  "pointer-events-none block h-0.5 w-full rounded-ouro-sm bg-ring opacity-0 transition-opacity duration-(--ouro-duration-fast) ease-[ease] " +
-  "pointer-fine:group-hover/edge:opacity-60 group-data-[ouro-edge]/edge:opacity-100";
+  "pointer-events-none block h-0.5 w-8 rounded-ouro-sm bg-ring opacity-40 transition-opacity duration-(--ouro-duration-fast) ease-[ease] " +
+  "pointer-fine:group-hover/edge:w-full pointer-fine:group-hover/edge:opacity-60 group-data-[ouro-edge]/edge:w-full group-data-[ouro-edge]/edge:opacity-100";
 
 // The toolbar fades and slides up into place when the box expands, and out when it collapses; with
 // reduced motion it only fades in.
@@ -1155,8 +1155,8 @@ export function Composer(props: ComposerProps): JSX.Element {
                 <Button
                   data-ouro-control="composer"
                   data-ouro-part="expand"
-                  variant={expanded ? "outline" : "plain"}
-                  tone={expanded ? "primary" : "secondary"}
+                  variant="plain"
+                  tone="secondary"
                   aria-label={expandLabel}
                   aria-pressed={expanded}
                   aria-keyshortcuts={ariaKeyShortcuts(composerShortcuts.expand, platform)}
@@ -1166,6 +1166,7 @@ export function Composer(props: ComposerProps): JSX.Element {
                   onClick={toggleExpanded}
                 >
                   <ExpandIcon expanded={expanded} />
+                  {expandLabel}
                 </Button>
               </Tooltip>
             )}
