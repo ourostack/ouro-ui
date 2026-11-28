@@ -1,0 +1,1 @@
+- ThemePicker [centres the compact wordmark in its trigger](registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx "verify:testExists(registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx::ThemePicker popover > centres the compact wordmark's cap height in its trigger)").

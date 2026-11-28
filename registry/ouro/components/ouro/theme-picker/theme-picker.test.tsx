@@ -520,6 +520,19 @@ describe("ThemePicker", () => {
 });
 
 describe("ThemePicker popover", () => {
+  it("centres the compact wordmark's cap height in its trigger", async () => {
+    const el = await render(<ThemePicker presets={presets} presentation="popover" defaultPreset="pearl" />);
+    const trigger = el.querySelector<HTMLElement>('[data-ouro-part="trigger"]')!;
+    const name = trigger.querySelector<HTMLElement>('[data-shows="pearl"] [data-slot="theme-picker-name"]')!;
+    const style = getComputedStyle(name);
+    const context = document.createElement("canvas").getContext("2d")!;
+    context.font = style.font;
+    const metrics = context.measureText("H");
+    const inkCentre = name.getBoundingClientRect().top + (parseFloat(style.lineHeight) - metrics.fontBoundingBoxAscent - metrics.fontBoundingBoxDescent) / 2 + metrics.fontBoundingBoxAscent - metrics.actualBoundingBoxAscent / 2;
+    const box = trigger.getBoundingClientRect();
+    expect(Math.abs(inkCentre - box.top - box.height / 2)).toBeLessThanOrEqual(2);
+  });
+
   it("shows the chosen wordmark, opens the looks, and closes on Escape with focus back on the button", async () => {
     const el = await render(
       <ThemePicker presets={three} presentation="popover" defaultPreset="dusk">
