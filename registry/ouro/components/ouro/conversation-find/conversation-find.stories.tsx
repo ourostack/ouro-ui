@@ -11,10 +11,14 @@ const lines = ["Lunch at noon?", "Nothing to add.", "Café for lunch, or LUNCH o
 /** A conversation under its find bar, wired the way an app does: the list reports, the bar steps. */
 function FindableChat(): JSX.Element {
   const [query, setQuery] = useState("lunch");
-  const [current, setCurrent] = useState<number | null>(0);
+  // Starts on the match nearest where the list opens (its newest message), the same as find landing on the
+  // closest hit to the caret. The first match sits far enough above it that revealing it with the list this
+  // short would leave the "Jump to latest" pill, which floats over the viewport's own edge rather than the
+  // document's, with no message-sized gap left anywhere to land clear of it.
+  const [current, setCurrent] = useState<number | null>(2);
   const [report, setReport] = useState<MessageListFindReport>({ count: 0, current: null, partial: false });
   return (
-    <div style={{ display: "grid", gap: 8, maxWidth: 480, background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", padding: 8 }}>
+    <div style={{ display: "grid", gap: "var(--ouro-gap-min)", maxWidth: 480, background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", padding: "var(--ouro-gap-min)" }}>
       <ConversationFind
         label="Find in conversation"
         query={query}
@@ -44,7 +48,7 @@ function LongFindableChat(): JSX.Element {
   const [current, setCurrent] = useState(0);
   const [report, setReport] = useState<MessageListFindReport>({ count: 0, current: null, partial: false });
   return (
-    <div style={{ display: "grid", gap: 8, maxWidth: 480, background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", padding: 8 }}>
+    <div style={{ display: "grid", gap: "var(--ouro-gap-min)", maxWidth: 480, background: "var(--background)", color: "var(--foreground)", border: "1px solid var(--border)", padding: "var(--ouro-gap-min)" }}>
       <ConversationFind label="Find in conversation" query="lunch" onQueryChange={() => {}} count={report.count} current={report.current} partial={report.partial} onCurrentChange={setCurrent} onClose={() => {}} />
       <MessageList label="Chat" style={{ height: 240 }} find={{ query: "lunch", current }} onFindMatches={setReport}>
         {Array.from({ length: 300 }, (_, index) => (
@@ -65,9 +69,9 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** The bar over a conversation: three of the five messages hold "lunch". */
+/** The bar over a conversation: three of the five messages hold "lunch", current on the nearest one. */
 export const WithMessageList: Story = {
-  args: { label: "Find in conversation", query: "lunch", onQueryChange: () => {}, count: 3, current: 0, onCurrentChange: () => {}, onClose: () => {} },
+  args: { label: "Find in conversation", query: "lunch", onQueryChange: () => {}, count: 3, current: 2, onCurrentChange: () => {}, onClose: () => {} },
   render: () => <FindableChat />,
 };
 

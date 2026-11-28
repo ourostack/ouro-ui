@@ -243,6 +243,8 @@ export interface ConversationListOwnProps {
   onSectionsReorder?: ((ids: string[], move: ConversationListSectionMove) => void) | undefined;
   /** The `id` of the open conversation. Its row is highlighted and marked `aria-current`. */
   selectedId?: string | null | undefined;
+  /** Whether a changed selection brings its row into view. Disable for an automatic restore that must retain the viewport. @default true */
+  revealSelection?: boolean | undefined;
   /**
    * Called with a row's `id` when it is chosen by a click, a tap, Enter or Space. A handler that takes a second
    * parameter also gets the click, so the app can check `event.isTrusted` or `event.metaKey`; a one-parameter
@@ -685,6 +687,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     reorderLabel = "Move section",
     reorderMessages,
     selectedId,
+    revealSelection = true,
     onSelect,
     empty = "Nothing here yet",
     density: densityProp = "comfortable",
@@ -996,7 +999,7 @@ export function ConversationList(props: ConversationListProps): JSX.Element {
     if (!windowed) return;
     // The open conversation's row comes to the middle of the view when it opens out of view, as it may not have
     // rendered yet; one that opens in view stays where it is.
-    if (opened !== current) opening.current = true;
+    if (opened !== current) opening.current = revealSelection;
     // Measures what rendered, moves focus to the row the keyboard reached once it has, keeps a row that must show in
     // view while the heights around it settle, and renders the slots in view; on every render, scroll and resize.
     sync.current = () => {

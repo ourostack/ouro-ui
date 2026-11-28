@@ -1,0 +1,1 @@
+- ToolCall: [shows its output on a surface without a second border, keeping its edge in forced colours](registry/ouro/components/ouro/tool-call/tool-call.test.tsx "verify:testExists(registry/ouro/components/ouro/tool-call/tool-call.test.tsx::ToolCall > shows output on a surface without a second border, keeping its edge in forced colours)").
