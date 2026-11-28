@@ -26,6 +26,7 @@ import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 import { isMoving } from "@/registry/ouro/lib/ouro/testing/settled";
+import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -187,6 +188,10 @@ describe("Inspector geometry", () => {
       surface.style.borderRadius = `${fallback ? 40 * 0.543 : 40}px`;
       if (fallback) {
         for (const corner of ["tl", "tr", "br", "bl"]) surface.style.setProperty(`--sq-${corner}`, "40px");
+        const clip = /--sq-clip:\s*([^;]+)/.exec(await pageCss())![1]!;
+        surface.style.setProperty("--sq-clip", clip);
+        surface.style.clipPath = "var(--sq-clip)";
+        surface.style.setProperty("corner-shape", "round");
       } else surface.style.setProperty("corner-shape", "squircle");
       await xray();
       await drawn(1);
@@ -197,8 +202,100 @@ describe("Inspector geometry", () => {
       expect(curve.isPointInStroke(new DOMPoint(0.5, 0.5))).toBe(false);
       const circular = 40 * (1 - Math.SQRT1_2) + 0.5;
       expect(curve.isPointInStroke(new DOMPoint(circular, circular))).toBe(false);
+      if (fallback) {
+        expect(document.elementFromPoint(100 + diagonal - 1, 200 + diagonal - 1)).not.toBe(surface);
+        expect(document.elementFromPoint(100 + diagonal + 1, 200 + diagonal + 1)).toBe(surface);
+      }
+    });
+
+    it(`clamps asymmetric corner radii together and keeps a zero corner square, ${fallback ? "fallback" : "native"}`, async () => {
+      const surface = component(100, 200, 100, 60);
+      surface.style.borderRadius = "80px 40px 0px 20px";
+      if (fallback) {
+        for (const [corner, radius] of [["tl", 80], ["tr", 40], ["br", 0], ["bl", 20]]) surface.style.setProperty(`--sq-${corner}`, `${radius}px`);
+      } else surface.style.setProperty("corner-shape", "squircle");
+      await xray();
+      await drawn(1);
+      const curve = outlines()[0]!.querySelector("path")!;
+      const diagonal = (radius: number) => (radius * 0.6 - 0.5) * (1 - 2 ** -0.25);
+      for (const [x, y] of [[0.5 + diagonal(80), 0.5 + diagonal(80)], [99.5 - diagonal(40), 0.5 + diagonal(40)], [0.5 + diagonal(20), 59.5 - diagonal(20)], [99.5, 59.5]]) {
+        expect(curve.isPointInStroke(new DOMPoint(x, y))).toBe(true);
+      }
     });
   }
+
+  it("resolves elliptical percentage radii and mixed percentage fallback lengths on their own axes", async () => {
+    const surface = component(100, 200, 200, 100);
+    surface.style.borderTopLeftRadius = "20% 30%";
+    surface.style.borderTopRightRadius = "30px";
+    surface.style.setProperty("--sq-tr", "calc(10% + 10px)");
+    surface.style.setProperty("corner-top-left-shape", "squircle");
+    await xray();
+    await drawn(1);
+    const curve = outlines()[0]!.querySelector("path")!;
+    const diagonal = 1 - 2 ** -0.25;
+    expect(curve.isPointInStroke(new DOMPoint(0.5 + 39.5 * diagonal, 0.5 + 29.5 * diagonal))).toBe(true);
+    expect(curve.isPointInStroke(new DOMPoint(199.5 - 29.5 * diagonal, 0.5 + 19.5 * diagonal))).toBe(true);
+  });
+
+  it("resolves CSS min, max and clamp radii instead of adding their terms", async () => {
+    const surface = component(100, 200, 200, 100);
+    surface.style.borderTopLeftRadius = "min(40px, 20%)";
+    surface.style.borderTopRightRadius = "max(10px, 15%)";
+    surface.style.borderBottomRightRadius = "clamp(10px, 20%, 30px)";
+    surface.style.setProperty("corner-shape", "squircle");
+    await xray();
+    await drawn(1);
+    const curve = outlines()[0]!.querySelector("path")!;
+    const diagonal = 1 - 2 ** -0.25;
+    for (const [x, y] of [[0.5 + 39.5 * diagonal, 0.5 + 19.5 * diagonal], [199.5 - 29.5 * diagonal, 0.5 + 14.5 * diagonal], [199.5 - 29.5 * diagonal, 99.5 - 19.5 * diagonal]]) {
+      expect(curve.isPointInStroke(new DOMPoint(x, y))).toBe(true);
+    }
+  });
+
+  it("keeps circular capsules round when the engine serializes their radius in exponent notation", async () => {
+    const surface = component(100, 200, 200, 40);
+    surface.style.borderRadius = "calc(infinity * 1px)";
+    surface.style.setProperty("corner-shape", "round");
+    await xray();
+    await drawn(1);
+    const curve = outlines()[0]!.querySelector("path")!;
+    const diagonal = 19.5 * (1 - Math.SQRT1_2) + 0.5;
+    expect(curve.isPointInStroke(new DOMPoint(diagonal, diagonal))).toBe(true);
+    expect(curve.isPointInStroke(new DOMPoint(0.5, 0.5))).toBe(false);
+  });
+
+  it("cuts text gaps through curved corners without removing the rest of the curve", async () => {
+    const surface = component(100, 200, 200, 100);
+    surface.style.borderRadius = "40px";
+    surface.style.setProperty("corner-shape", "squircle");
+    const text = line("corner", 102, 202);
+    await xray();
+    await drawn(1);
+    const svg = outlines()[0]!.querySelector("svg")!;
+    // Rasterize the actual outline with its text mask, independently of the page's text and tags.
+    const copy = svg.cloneNode(true) as SVGSVGElement;
+    copy.setAttribute("width", "200");
+    copy.setAttribute("height", "100");
+    copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    copy.setAttribute("fill", "none");
+    copy.setAttribute("stroke", "black");
+    const image = new Image();
+    image.src = `data:image/svg+xml;base64,${btoa(new XMLSerializer().serializeToString(copy))}`;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = 200;
+    canvas.height = 100;
+    const context = canvas.getContext("2d")!;
+    context.drawImage(image, 0, 0);
+    const pixels = context.getImageData(0, 0, 200, 100).data;
+    const alpha = (x: number, y: number) => pixels[(y * 200 + x) * 4 + 3]!;
+    for (let y = Math.ceil(text.top - 200); y < Math.floor(text.bottom - 200); y++) {
+      for (let x = Math.ceil(text.left - 100); x < Math.floor(text.right - 100); x++) expect(alpha(x, y)).toBe(0);
+    }
+    expect(alpha(193, 6)).toBeGreaterThan(0);
+    expect(alpha(199, 0)).toBe(0);
+  });
 
   it("breaks each edge of an outline where a line of text crosses it, a pixel wider on each side, and nowhere else", async () => {
     component(100, 200, 200, 100);
@@ -1819,6 +1916,7 @@ describe("Inspector", () => {
     await rerender(<Opened buttonTop={500} badgeTop={922 - badgeHeight / 2} spotlight="badge" />);
     await expect.poll(() => into.mock.calls.length).toBe(1);
     expect(into.mock.contexts[0]).toBe(badge);
+    await expect.poll(() => Math.abs(badge.getBoundingClientRect().top + badgeHeight / 2 - scrollportMiddle()) < 2).toBe(true);
     await act(async () => roots.splice(0).forEach((root) => root.unmount()));
     scrollTo({ top: 0, behavior: "instant" });
     into.mockClear();
@@ -1956,6 +2054,19 @@ describe("Inspector", () => {
     await render(<Page open={false} />);
     expect(layer()).toBeNull();
     expect(renderToString(<Inspector open onOpenChange={() => {}} docsHref={docsHref} />)).toBe("");
+  });
+
+  it("reads no component layout or corner styles and starts no observers while closed", async () => {
+    const read = vi.spyOn(window, "getComputedStyle");
+    const box = vi.spyOn(Element.prototype, "getBoundingClientRect");
+    const resize = vi.spyOn(ResizeObserver.prototype, "observe");
+    const mutations = vi.spyOn(MutationObserver.prototype, "observe");
+    await render(<Inspector open={false} onOpenChange={() => {}} />);
+    await frame();
+    expect(box).not.toHaveBeenCalled();
+    expect(read.mock.calls.filter(([element]) => element !== document.documentElement)).toEqual([]);
+    expect(resize).not.toHaveBeenCalled();
+    expect(mutations).not.toHaveBeenCalled();
   });
 
   it("names a guessed prop, and has no messages for valid props", async () => {
