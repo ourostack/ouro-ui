@@ -171,6 +171,21 @@ it("finds a square child beside an independently shadowed rounded layer", async 
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
 }, paintTimeout);
 
+it("attributes protruding pseudo-elements without changing hit-test styles", async () => {
+  const root = render(`<style>
+    .surface::before { content:""; position:absolute; left:-12px; top:-12px; width:8px; height:8px; background:#c65; }
+    .shadow::before { box-shadow:0 0 3px #000; }
+  </style><div class="surface" data-ouro-paint-hit="existing" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px;pointer-events:none !important"></div>`);
+  const surface = root.querySelector<HTMLElement>(".surface")!;
+  const original = surface.getAttribute("style");
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+  expect(surface.getAttribute("style")).toBe(original);
+  expect(surface.getAttribute("data-ouro-paint-hit")).toBe("existing");
+  surface.classList.add("shadow");
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.shadow");
+  expect(surface.getAttribute("style")).toBe(original);
+}, paintTimeout);
+
 it("ignores a neighboring raster change while finding real paint beyond the box", async () => {
   const root = render('<div id="surface" style="position:relative;width:160px;height:120px;background:white;border-radius:28px;corner-shape:squircle;box-shadow:0 4px 12px #0008"></div>');
   const surface = root.querySelector<HTMLElement>("#surface")!;
@@ -295,6 +310,27 @@ it("compares the visible curves through an unpainted clipping layer", () => {
   expect(findCornerIssues()).toEqual([]);
   shape(tile, 14, true);
   expect(findCornerIssues()[0]?.detail).toContain("incompatible clipping curves");
+  if (CSS.supports("corner-shape", "bevel")) {
+    shape(clip, 24, true);
+    clip.style.setProperty("corner-shape", "bevel");
+    shape(tile, 32);
+    expect(findCornerIssues()[0]?.detail).toContain("incompatible clipping curves");
+    shape(clip, 24);
+    shape(tile, 32, true);
+    tile.style.setProperty("corner-shape", "bevel");
+    expect(findCornerIssues()[0]?.detail).toContain("incompatible clipping curves");
+  }
+  if (CSS.supports("corner-shape", "squircle")) {
+    shape(clip, 24, true);
+    shape(tile, 24, true);
+    clip.style.borderRadius = "12px / 24px";
+    tile.style.borderRadius = "24px / 12px";
+    clip.style.setProperty("corner-shape", "squircle");
+    tile.style.setProperty("corner-shape", "squircle");
+    expect(findCornerIssues()[0]?.detail).toContain("incompatible clipping curves");
+    tile.style.borderRadius = "32px / 12px";
+    expect(findCornerIssues()[0]?.detail).toContain("incompatible clipping curves");
+  }
 });
 
 it("treats a picture clipped at the top corners as the frame's paint", async () => {
