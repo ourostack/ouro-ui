@@ -256,7 +256,9 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             if (edge) continue;
           }
           if (delta >= 64 || (x > startX && row[x - 1]) || previous[x]) {
-            return { corner: cornerIndex, x: Math.round(px - rect.left), y: Math.round(py - rect.top) };
+            const rgba = (image: typeof a | null) => image && [...image.data.slice(index, index + 4)];
+            return { corner: cornerIndex, x: Math.round(px - rect.left), y: Math.round(py - rect.top),
+              debug: { actual: rgba(a), masked: rgba(b), hidden: rgba(c), solo: rgba(own), native, outsideCorner, behind, delta } };
           }
           row[x] = 1;
         }
@@ -411,7 +413,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     const scroll = [...function* () { for (let n = el.parentElement; n; n = n.parentElement) yield n; }()]
       .map((node) => ({ node, left: node.scrollLeft, top: node.scrollTop }));
     const windowScroll = { x: scrollX, y: scrollY };
-    let found: { corner: number; x: number; y: number } | null = null;
+    let found: { corner: number; x: number; y: number; debug: object } | null = null;
     try {
       for (const layer of layers) layer.el.style.setProperty("transition", "none", "important");
       const blocks: ScrollLogicalPosition[] = el.getBoundingClientRect().height > innerHeight ? ["start", "end"] : ["nearest"];
@@ -599,7 +601,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     }
     if (found) {
       const corner = ["top left", "top right", "bottom right", "bottom left"][found.corner]!;
-      issues.push({ ref: ref(el), rule: "squircle-paint", element: describe(el), detail: `paint shows outside the ${corner} squircle corner at (${found.x}, ${found.y})` });
+      issues.push({ ref: ref(el), rule: "squircle-paint", element: describe(el), detail: `paint shows outside the ${corner} squircle corner at (${found.x}, ${found.y}) ${JSON.stringify(found.debug)}` });
     }
   }
   return issues;
