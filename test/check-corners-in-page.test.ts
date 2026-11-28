@@ -1793,12 +1793,27 @@ it("keeps a selected segment and its shadow inside the track's corners", async (
   host.style.setProperty("--shadow-sm", "0 4px 8px rgba(0,0,0,.4)");
   const root = createRoot(host);
   try {
-    await act(async () => root.render(createElement(SegmentedControl, {
-      label: "View",
-      items: [{ value: "one", label: "One" }, { value: "two", label: "Two" }],
-    })));
-    host.querySelector<HTMLElement>('[role="radiogroup"]')!.id = "segment-track";
-    expect((await findSquirclePaint()).map((issue) => issue.element)).not.toContain("div#segment-track.relative.isolate.m-0");
+    for (const fallback of [false, true]) {
+      const restore = fallback ? forceSquircleFallback() : () => {};
+      try {
+        for (const value of ["one", "two"]) {
+          await act(async () => root.render(createElement(SegmentedControl, {
+            label: "View",
+            items: [{ value: "one", label: "One" }, { value: "two", label: "Two" }],
+            value,
+            onValueChange: () => {},
+          })));
+          host.querySelector<HTMLElement>('[role="radiogroup"]')!.id = "segment-track";
+          const thumb = host.querySelector<HTMLElement>("[data-ouro-segment-thumb]")!;
+          const shadow = getComputedStyle(thumb, "::before");
+          expect(shadow.content).not.toBe("none");
+          expect(shadow.boxShadow).not.toBe("none");
+          expect((await findSquirclePaint()).map((issue) => issue.element)).not.toContain("div#segment-track.relative.isolate.m-0");
+        }
+      } finally {
+        restore();
+      }
+    }
   } finally {
     await act(async () => root.unmount());
   }

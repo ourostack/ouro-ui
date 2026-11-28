@@ -1,4 +1,4 @@
-export { countClass, glassGroupClass, groupClass, iconClass, labelClass, ownLook, revealClass, rootClass, segmentClass, thumbClass, thumbClipClass };
+export { countClass, glassGroupClass, groupClass, iconClass, labelClass, ownLook, revealClass, rootClass, segmentClass, thumbClass };
 
 // Class strings for SegmentedControl, apart from the component so its file exports only
 // components (React Fast Refresh). Class strings are literal so the app's Tailwind finds
@@ -46,9 +46,6 @@ const groupClass =
   "h-(--ouro-segmented-h) [--ouro-segmented-h:calc(var(--spacing)*11)] sm:pointer-fine:[--ouro-segmented-h:calc(var(--spacing)*9)] " +
   "rounded-ouro-control bg-muted forced-colors:border forced-colors:border-solid";
 
-/** Clips the thumb's shadow to the track without clipping the segments' focus outlines. @internal */
-const thumbClipClass = "pointer-events-none absolute inset-0 -z-1 overflow-hidden rounded-[inherit] [corner-shape:inherit]";
-
 /**
  * The raised thumb behind the pressed segment, whose edges it takes by CSS anchor positioning
  * (the pressed segment is the anchor, Baseline since January 2026): no measuring, and server
@@ -60,14 +57,15 @@ const thumbClipClass = "pointer-events-none absolute inset-0 -z-1 overflow-hidde
  * @claim "no measuring, and server HTML already has it right" registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx verify:testExists(registry/ouro/components/ouro/segmented-control/segmented-control.test.tsx::SegmentedControl > keeps the label id and pressed state in server HTML and hydrates without a mismatch)
  */
 const thumbClass =
-  "absolute top-0.5 bottom-0.5 rounded-[max(0px,calc(var(--ouro-control-r)-var(--spacing)*0.5))] " +
+  "pointer-events-none absolute top-0.5 bottom-0.5 -z-1 overflow-clip [overflow-clip-margin:calc(var(--spacing)*0.5)] " +
+  "rounded-[max(0px,calc(var(--ouro-control-r)-var(--spacing)*0.5))] " +
   "[--corner-shape:var(--ouro-control-corner-shape,var(--ouro-corner-shape))] [corner-shape:var(--ouro-control-corner-shape,var(--ouro-corner-shape))] " +
   "[position-anchor:--ouro-segment] start-[anchor(start)] end-[anchor(end)] " +
   "bg-background dark:bg-[color-mix(in_oklab,var(--foreground)_16%,var(--muted))] " +
   // Comes after dark:, so under forced colours the fill is Highlight in either theme: the dark fill
   // would otherwise win the cascade and be forced to Canvas, leaving HighlightText unreadable on it.
   "forced-colors:bg-[Highlight] forced-colors:dark:bg-[Highlight] " +
-  "shadow-(--shadow-sm) " +
+  "before:absolute before:inset-0 before:rounded-[inherit] before:[corner-shape:inherit] before:shadow-(--shadow-sm) " +
   "[transition:inset-inline-start_var(--ouro-duration-base)_var(--ouro-ease-in-out),inset-inline-end_var(--ouro-duration-base)_var(--ouro-ease-in-out),opacity_var(--ouro-duration-fast)_ease] " +
   "motion-reduce:[transition:opacity_var(--ouro-duration-fast)_ease] in-data-ouro-keyboard:[transition:none]";
 
