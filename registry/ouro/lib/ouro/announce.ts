@@ -1,5 +1,5 @@
 let region: HTMLElement | undefined;
-let timer: (() => void) | undefined;
+let timer: ReturnType<typeof setTimeout> | undefined;
 
 /**
  * Delay before a message is written: after creating the region (Safari drops text
@@ -81,19 +81,16 @@ export function announce(
   const target = getRegion();
   // Clear first and set the text after the delay, so an identical message is a change.
   target.textContent = "";
-  timer?.();
-  // Keep the matching clock when a test or app replaces the global timer functions.
-  const clear = globalThis.clearTimeout.bind(globalThis);
+  clearTimeout(timer);
   const pending = setTimeout(() => {
     timer = undefined;
     target.textContent = message;
     onWrite?.();
   }, Math.max(DELAY_MS, delayMs));
-  const cancel = () => clear(pending);
-  timer = cancel;
+  timer = pending;
   return () => {
-    if (timer !== cancel) return;
-    cancel();
+    if (timer !== pending) return;
+    clearTimeout(pending);
     timer = undefined;
   };
 }

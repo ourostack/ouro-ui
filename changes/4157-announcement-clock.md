@@ -1,1 +1,0 @@
-- Fixed: A pending live announcement is cancelled with the clock that scheduled it, even when the clock changes ([test](registry/ouro/lib/ouro/announce.test.ts "verify:testExists(registry/ouro/lib/ouro/announce.test.ts::announce > replaces a pending message even when the clock changes between calls)")).

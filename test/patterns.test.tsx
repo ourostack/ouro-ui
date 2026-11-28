@@ -281,12 +281,19 @@ describe("ListDetailPage", () => {
   });
 
   it("shows the entry a row's press chooses, and marks that row shown", async () => {
-    await render(<ListDetailPage />);
-    await userEvent.click(row("Lentil soup"));
-    await expect.element(page.getByRole("heading", { level: 2, name: "Lentil soup" })).toBeVisible();
-    await expect.element(row("Lentil soup")).toHaveAttribute("aria-current", "true");
-    expect(row("Braised short ribs").element().hasAttribute("aria-current")).toBe(false);
-    expect(section().getAttribute("aria-label")).toBe("Lentil soup");
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      await render(<ListDetailPage />);
+      await userEvent.click(row("Lentil soup"));
+      await expect.element(page.getByRole("heading", { level: 2, name: "Lentil soup" })).toBeVisible();
+      await expect.element(row("Lentil soup")).toHaveAttribute("aria-current", "true");
+      expect(row("Braised short ribs").element().hasAttribute("aria-current")).toBe(false);
+      expect(section().getAttribute("aria-label")).toBe("Lentil soup");
+      // Finish this selection's announcement before the next test starts watching.
+      await act(() => vi.advanceTimersByTimeAsync(1500));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("says which entry is showing when a row is chosen beside the list, where focus stays in the list, and says nothing on a phone, where focus moves to the heading", async () => {
