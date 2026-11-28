@@ -1051,12 +1051,13 @@ it("does not mistake the next line of a wrapped inline surface for corner paint"
 it("ignores a border pixel straddling the inside of a fractional box edge", async () => {
   const restore = forceSquircleFallback();
   try {
-    const root = render('<div style="position:fixed;left:120px;top:50px;width:100px;height:60px;background:rgb(28,28,30)"><div class="surface rounded-[9px]" style="position:absolute;left:30.515625px;top:16.484375px;box-sizing:border-box;width:45.484375px;height:19.03125px;background:rgb(28,28,30);border:1px solid rgb(70,70,72)"></div></div>');
-    expect(await findSquirclePaint()).toEqual([]);
+    const root = render('<div style="position:fixed;left:120px;top:50px;width:100px;height:60px;background:rgb(28,28,30)"><div class="surface rounded-ouro-sm" style="position:absolute;left:30.515625px;top:16.484375px;box-sizing:border-box;width:45.484375px;height:19.03125px;--radius-ouro-sm:9px;background:rgb(28,28,30);border:1px solid rgb(70,70,72)"></div></div>');
     const surface = root.querySelector<HTMLElement>(".surface")!;
+    expect(parseFloat(getComputedStyle(surface).getPropertyValue("--sq-br"))).toBe(9);
+    expect(await findSquirclePaint()).toEqual([]);
     surface.style.clipPath = "none";
-    surface.insertAdjacentHTML("beforeend", '<span style="position:absolute;left:0;top:0;width:8px;height:8px;background:#d11"></span>');
-    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-[9px]");
+    surface.insertAdjacentHTML("beforeend", '<span style="position:absolute;left:-5px;top:-5px;width:12px;height:12px;background:#d11"></span>');
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-ouro-sm");
   } finally {
     restore();
   }
