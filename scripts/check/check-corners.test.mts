@@ -453,6 +453,37 @@ async function bindCapture(tab: Page) {
   );
 }
 
+test("squircle-paint keeps fractional border boxes when masking a native corner", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const tab = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  let checkNative = true;
+  try {
+    await tab.exposeBinding("__ouroPaintCapture", async ({ page: current }, clip: PaintClip) => {
+      const intact = !checkNative || await current.evaluate(() => {
+        const el = document.querySelector<HTMLElement>(".surface")!;
+        if (!el.style.clipPath.startsWith("path(")) return true;
+        const r = el.getBoundingClientRect();
+        return el.contains(document.elementFromPoint(r.right - .625, r.bottom - 1.625));
+      });
+      assert.equal(intact, true, "the ideal mask must retain a point inside the native corner");
+      return (await current.screenshot({ clip, scale: "device", animations: "disabled" })).toString("base64");
+    });
+    await tab.setContent('<style>body{margin:0;background:white}.surface{position:absolute;left:17px;top:349.875px;box-sizing:border-box;width:145.375px;height:31px;border:1px solid #bbb;background:#e8e4dc;border-radius:5px;corner-shape:squircle}</style><div class="surface"></div>');
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+    checkNative = false;
+    await tab.locator(".surface").evaluate((el) => {
+      el.style.borderRadius = "16px";
+      el.style.height = "64px";
+      const leak = document.createElement("span");
+      leak.style.cssText = "position:absolute;inset:-1px;background:red";
+      el.append(leak);
+    });
+    assert.equal((await tab.evaluate(findSquirclePaint)).length, 1, "a real square child still leaks");
+  } finally {
+    await browser.close();
+  }
+});
+
 test("squircle-paint measures fills, borders, outlines, shadows and pseudo-elements on the actual background", async () => {
   const css = await styles(`
     body { margin: 0; background: linear-gradient(110deg, #f8f3e7, #dce8f4); }
