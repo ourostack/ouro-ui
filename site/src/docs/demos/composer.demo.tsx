@@ -1,12 +1,12 @@
 import { useRef, useState, type JSX, type ReactNode, type SVGProps } from "react";
 import { Composer, type ComposerEditor } from "@/registry/ouro/components/ouro/composer/composer";
-import { Message } from "@/registry/ouro/components/ouro/message/message";
-import { Text } from "@/registry/ouro/components/ouro/text/text";
 import { Toolbar } from "@/registry/ouro/components/ouro/toolbar/toolbar";
+import { Toaster } from "@/registry/ouro/components/ouro/toast/toaster";
+import { toast } from "@/registry/ouro/lib/ouro/toast";
 
 // The live demo at the top of docs/composer/: the component as an app would use it, with its props, nothing else.
 
-const draft = "@[Noor](noor), garden party?\n\n- Bring cake\n\n1. Meet at six\n2. Stay for [sunset](https://example.com/friday)";
+const draft = "@[Noor](noor), garden party?\n- Bring cake\n1. Meet at six\n2. Stay for [sunset](https://example.com/friday)";
 
 function icon(path: ReactNode) {
   return function Icon(props: SVGProps<SVGSVGElement>) {
@@ -25,24 +25,23 @@ const NumbersIcon = icon(<path d="M10 6h10M10 12h10M10 18h10M4 5l1.5-1v5M4 14h3l
 export default function ComposerDemo(): JSX.Element {
   const editor = useRef<ComposerEditor>(null);
   const box = useRef<HTMLTextAreaElement>(null);
-  const [sent, setSent] = useState<string[]>([]);
+  const [value, setValue] = useState(draft);
+  const [expanded, setExpanded] = useState(false);
   const [height, setHeight] = useState<number | null>(null);
   return (
     <div className="grid w-full max-w-lg gap-4">
-      {sent.map((message, index) => (
-        <Message key={index} variant="chat" role="user" name="You">
-          <Text className="whitespace-pre-wrap">{message}</Text>
-        </Message>
-      ))}
       <Composer
         ref={box}
         editorRef={editor}
         label="Plan a Friday gathering"
         placeholder="What shall we do next Friday?"
         format="rich"
-        defaultValue={draft}
-        defaultExpanded={false}
+        value={value}
+        onValueChange={setValue}
+        expanded={expanded}
+        onExpandedChange={setExpanded}
         expandLabel="Long compose"
+        expandedRows={4}
         maxRows={6}
         resizable
         resizeLabel="Resize your draft"
@@ -63,11 +62,23 @@ export default function ComposerDemo(): JSX.Element {
             ]}
           />
         }
-        onSend={() => {
-          setSent((messages) => [...messages, box.current!.value]);
+        onSend={(text) => {
+          setValue("");
+          setExpanded(false);
           setHeight(null);
+          toast("Plan sent", {
+            action: {
+              label: "Undo",
+              onClick: () => {
+                setValue(text);
+                setExpanded(expanded);
+                box.current?.focus();
+              },
+            },
+          });
         }}
       />
+      <Toaster />
     </div>
   );
 }

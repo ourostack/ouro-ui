@@ -804,8 +804,9 @@ describe("Composer rich mode", () => {
     expect(editor.getAttribute("aria-disabled")).toBeNull();
     expect(editor.getAttribute("aria-readonly")).toBeNull();
     expect(editor.spellcheck).toBe(true);
-    expect(editor.style.minHeight).toBe("2lh");
-    expect(editor.style.maxHeight).toBe("5lh");
+    const sizing = getComputedStyle(editor);
+    expect(parseFloat(sizing.minHeight)).toBeCloseTo(2 * parseFloat(sizing.lineHeight), 1);
+    expect(parseFloat(sizing.maxHeight)).toBeCloseTo(5 * parseFloat(sizing.lineHeight), 1);
     expect(host.querySelector("[data-ouro-composer-placeholder]")?.getAttribute("aria-hidden")).toBe("true");
     expect(getComputedStyle(editor.parentElement!).position).toBe("relative");
     editor.focus();
