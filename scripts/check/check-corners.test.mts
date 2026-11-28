@@ -368,6 +368,7 @@ test("squircle-paint treats wrapped inline fragments as separate painted boxes",
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
   const tab = await context.newPage();
+  tab.on("console", (message) => console.log(message.text()));
   await bindCapture(tab);
   try {
     await tab.setContent(`<style>
