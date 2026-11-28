@@ -217,6 +217,22 @@ it("detects protruding pseudo paint beside an SVG shadow", async () => {
   expect(svg.getAttribute("style")).toBe(original);
 }, paintTimeout);
 
+it("separates an unrelated changing overlay from a surface with a pseudo-element", async () => {
+  const root = render(`<style>
+    .stage { position:relative; left:20px; top:20px; width:160px; height:120px; }
+    .surface { position:absolute; inset:0; background:#cdd7df; border-radius:18px; clip-path:inset(0 round 18px);
+      --sq-tl:18px; --sq-tr:18px; --sq-br:18px; --sq-bl:18px; }
+    .surface::before { content:""; position:absolute; left:80px; top:50px; width:8px; height:8px; background:#c65; }
+    .overlay { position:absolute; left:10px; top:10px; width:20px; height:20px; background:#1d1d1f; }
+    .stage:has(.surface[style*="clip-path"]) + .overlay, .stage:has(.surface[data-ouro-paint-solo]) + .overlay { background:#2e2e30; }
+    .stage:has(.surface[style*="opacity: 0"]) + .overlay { background:#272729; }
+  </style><div class="stage"><div class="surface"></div></div><div class="overlay"></div>`);
+  const surface = root.querySelector(".surface")!;
+  expect(await findSquirclePaint()).toEqual([]);
+  expect(surface.hasAttribute("data-ouro-paint-hit")).toBe(false);
+  expect(surface.hasAttribute("style")).toBe(false);
+}, paintTimeout);
+
 it("ignores a neighboring raster change while finding real paint beyond the box", async () => {
   const root = render('<div id="surface" style="position:relative;width:160px;height:120px;background:white;border-radius:28px;corner-shape:squircle;box-shadow:0 4px 12px #0008"></div>');
   const surface = root.querySelector<HTMLElement>("#surface")!;
