@@ -609,19 +609,22 @@ describe("MessageList springs", () => {
     const { scroller, messages } = await render(<Chat count={100} />);
     await scrollInCode(scroller, scroller.scrollHeight / 2);
     const frames = holdFrames();
-    finger(scroller, "touchstart", scroller.getBoundingClientRect().top + 120);
+    const pointer = scroller.getBoundingClientRect().top + 120;
+    finger(scroller, "touchstart", pointer);
     scroller.scrollTop -= 30;
     scroller.dispatchEvent(new Event("scroll"));
     frames.step(16);
     const previous = messages().filter((message) => message.hasAttribute("data-ouro-settling"));
     expect(previous.length).toBeGreaterThan(0);
 
-    scroller.scrollTop -= scroller.clientHeight * 3;
+    const untouched = messages()[10]!;
+    scroller.scrollTop += laidOut(untouched).middle - pointer;
     scroller.dispatchEvent(new Event("scroll"));
     frames.step(600);
     expect(previous.every((message) => !message.hasAttribute("data-ouro-settling"))).toBe(true);
     expect(scroller.querySelector("[data-ouro-settling]")).not.toBeNull();
     expect(messages().every((message) => shiftOf(message) === 0)).toBe(true);
+    expectAtRest([untouched]);
 
     scroller.dispatchEvent(new Event("scrollend"));
     frames.step(16);
