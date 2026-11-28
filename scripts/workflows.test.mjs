@@ -701,7 +701,7 @@ function runGithubInstall(npxBody, env = {}) {
     writeFileSync(join(bin, name), `#!/usr/bin/env bash\n${body}\n`);
     chmodSync(join(bin, name), 0o755);
   };
-  stub("git", `case "$*" in *" archive "*) tar -C "${tree}" -cf - . ;; *"rev-parse HEAD"*) echo abc123 ;; *) exit 0 ;; esac`);
+  stub("git", `case "$*" in *" archive "*) a="$BIN/tree.tar"; tar -C "${tree}" -cf "$a" . && cat "$a" ;; *"rev-parse HEAD"*) echo abc123 ;; *) exit 0 ;; esac`);
   stub("npm", `echo "npm $*" >> "${calls}"`);
   stub("pnpm", `echo "pnpm $* in $(basename "$PWD")" >> "${calls}"`);
   stub("npx", npxBody);
