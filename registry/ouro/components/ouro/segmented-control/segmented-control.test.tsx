@@ -86,6 +86,10 @@ describe("SegmentedControl", () => {
       const inset = thumb.getBoundingClientRect().left - track.getBoundingClientRect().left;
       expect(radius(thumb)).toBeCloseTo(radius(track) - inset, 1);
     }
+    host.style.setProperty("--ouro-control-radius", "1px");
+    host.style.setProperty("--spacing", "4px");
+    await settled(thumb);
+    expect(radius(thumb)).toBe(0);
   });
 
   it("keeps the track's themed corner shape on the selected segment", async () => {
