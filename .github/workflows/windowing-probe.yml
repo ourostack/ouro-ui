@@ -1,4 +1,4 @@
-name: Corner diagnostic probe
+name: Corner target probe
 on:
   workflow_dispatch:
 permissions:
@@ -13,12 +13,8 @@ jobs:
         OURO_SYSTEM_PACKAGES: image
     strategy:
       fail-fast: false
-      max-parallel: 4
       matrix:
-        include:
-          - name: avatar
-            project: ouro-chromium
-            selector: "Avatar/Presence"
+        kind: [site]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -28,19 +24,26 @@ jobs:
         with:
           node-version: 24
       - run: pnpm i --frozen-lockfile
-      - name: Inspect painted corners
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Run targeted probe
         shell: bash
         env:
-          PROJECT: ${{ matrix.project }}
-          SELECTOR: ${{ matrix.selector }}
+          KIND: ${{ matrix.kind }}
         run: |
           set -o pipefail
           mkdir -p .tmp
-          pnpm exec vitest run test/stories.test.tsx --project "$PROJECT" -t "$SELECTOR has no paint outside" 2>&1 | tee .tmp/corner-diagnostic.log
+          case "$KIND" in
+            site) pnpm site:build && node .tmp/corner-inline-repro.mjs ;;
+            edge) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium --project ouro-webkit -t 'captures paint at the bottom edge' ;;
+            priority) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium -t 'keeps a native shadow and its probe separate' ;;
+            fixture) node --test --test-name-pattern='rounded surface in the nested-frame pass fixture' scripts/check/check-corners.test.mts ;;
+            stories) pnpm exec vitest run test/stories.test.tsx --project ouro-chromium --project ouro-webkit -t '(AppWindow/InContext|Avatar/Shapes|Button/Glass|Combobox/Tags|Message/ReplyActions|Command/SearchMatches) has no paint outside' ;;
+          esac 2>&1 | tee .tmp/corner-target.log
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: corner-diagnostic-${{ matrix.name }}
+          name: corner-target-${{ matrix.kind }}
           path: |
-            .tmp/corner-diagnostic.log
-            .tmp/corner-images/
+            .tmp/corner-target.log
+            .tmp/corner-site/report.json
+            .tmp/corner-site/summary.md
