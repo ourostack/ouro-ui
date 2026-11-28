@@ -10,6 +10,7 @@ import { Card } from "@/registry/ouro/components/ouro/card/card";
 import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { ThreadSummary } from "@/registry/ouro/components/ouro/message/thread-summary";
+import { ReactionBar } from "@/registry/ouro/components/ouro/reaction-bar/reaction-bar";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
 import { ReadReceipt } from "@/registry/ouro/components/ouro/read-receipt/read-receipt";
 import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
@@ -486,3 +487,30 @@ for (const [name, css] of Object.entries(themes)) {
     });
   }
 }
+
+it("keeps a selected reaction and soft badge readable on tinted scrollers with a warm primary", async () => {
+  const host = document.createElement("div");
+  host.style.cssText = "--background:#fbfaf4;--muted:#e8e9df;--primary:#9b6834;--foreground:#28231d;background:var(--background)";
+  document.body.append(host);
+  mounted.push(host);
+  const root = createRoot(host);
+  roots.push(root);
+  await act(async () => root.render(
+    <>
+      <ScrollArea label="Items">
+        <Badge tone="primary" variant="soft">Ready</Badge>
+      </ScrollArea>
+      <MessageList label="Conversation">
+        <Message variant="post" role="assistant" name="Guide" footer={<ReactionBar reactions={[{ key: "like", label: "Like", emoji: "+", count: 3, mine: true }]} onReact={() => {}} />}>
+          Hello
+        </Message>
+      </MessageList>
+    </>,
+  ));
+  const targets = host.querySelectorAll('[data-ouro="badge"]');
+  expect(targets).toHaveLength(2);
+  for (const element of targets) {
+    const behind = backdrop(element);
+    expect(ratio(over(getComputedStyle(element).color, behind), behind)).toBeGreaterThanOrEqual(4.5);
+  }
+});

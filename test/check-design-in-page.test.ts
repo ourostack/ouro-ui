@@ -423,6 +423,36 @@ describe("findDesignIssues: cut-off-edge", () => {
     expect(of("cut-off-edge")).toEqual([]);
   });
 
+  it("recognizes horizontal fades on either edge without hiding an unfaded edge", () => {
+    render(`
+      <div style="position:relative;width:340px;height:100px;background:#eee">
+        <div id="right-fade" style="width:260px;height:80px;overflow:auto;background:#eee">
+          <div style="width:600px;height:80px">A long row of notes</div>
+        </div>
+        <div aria-hidden="true" style="position:absolute;top:0;left:240px;width:20px;height:80px;pointer-events:none;background:linear-gradient(to left,#eee,transparent)"></div>
+      </div>
+      <div style="position:relative;width:340px;height:100px;background:#eee">
+        <div id="left-fade" style="width:260px;height:80px;overflow:auto;background:#eee">
+          <div style="width:600px;height:80px">Another long row of notes</div>
+        </div>
+        <div aria-hidden="true" style="position:absolute;top:0;left:0;width:20px;height:80px;pointer-events:none;background:linear-gradient(to right,#eee,transparent)"></div>
+      </div>`);
+    host.querySelector<HTMLElement>("#left-fade")!.scrollLeft = 40;
+    expect(of("cut-off-edge")).toEqual([
+      expect.objectContaining({ element: "div#left-fade", detail: expect.stringMatching(/^content is clipped at the right into/) }),
+    ]);
+  });
+
+  it("does not report a scroll edge hidden behind an ancestor's clip", () => {
+    render(`
+      <div style="width:180px;height:100px;overflow:hidden;background:#eee">
+        <div id="hidden-edge" style="width:240px;height:80px;overflow:auto;background:#eee">
+          <div style="width:600px;height:80px">A long row of notes</div>
+        </div>
+      </div>`);
+    expect(of("cut-off-edge")).toEqual([]);
+  });
+
   it("passes a scrolling strip whose content paints a different surface at the edge", () => {
     render(`
       <div style="width:340px;height:120px;background:#fff">
