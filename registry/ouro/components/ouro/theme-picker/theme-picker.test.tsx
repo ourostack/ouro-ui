@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { ThemePicker, type ThemePickerProps } from "@/registry/ouro/components/ouro/theme-picker/theme-picker";
 import { pressTab } from "@/registry/ouro/lib/ouro/testing/tab";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -532,15 +532,30 @@ describe("ThemePicker popover", () => {
         const style = getComputedStyle(node);
         return parseFloat(style.getPropertyValue("--sq-tl")) || parseFloat(style.borderTopLeftRadius);
       };
-      const outer = trigger.getBoundingClientRect();
-      const inner = wordmark.getBoundingClientRect();
-      const difference = radius(trigger) - radius(wordmark);
-      expect(Math.abs(difference - (inner.left - outer.left))).toBeLessThanOrEqual(1);
-      expect(Math.abs(difference - (inner.top - outer.top))).toBeLessThanOrEqual(1);
-      expect(Math.abs(difference - (outer.bottom - inner.bottom))).toBeLessThanOrEqual(1);
+      for (const width of [390, 1280]) {
+        await page.viewport(width, 844);
+        for (const spacing of ["0.25rem", "0.2rem"]) {
+          el.style.setProperty("--spacing", spacing);
+          for (const height of ["", "36px"]) {
+            if (height) trigger.style.setProperty("--ouro-tp-h", height);
+            else trigger.style.removeProperty("--ouro-tp-h");
+            for (const direction of ["ltr", "rtl"] as const) {
+              el.dir = direction;
+              const outer = trigger.getBoundingClientRect();
+              const inner = wordmark.getBoundingClientRect();
+              const difference = radius(trigger) - radius(wordmark);
+              const start = direction === "ltr" ? inner.left - outer.left : outer.right - inner.right;
+              expect(Math.abs(difference - start)).toBeLessThanOrEqual(1);
+              expect(Math.abs(difference - (inner.top - outer.top))).toBeLessThanOrEqual(1);
+              expect(Math.abs(difference - (outer.bottom - inner.bottom))).toBeLessThanOrEqual(1);
+            }
+          }
+        }
+      }
     } finally {
       if (previous) html.style.setProperty("--radius", previous, priority);
       else html.style.removeProperty("--radius");
+      await page.viewport(390, 844);
     }
   });
 
