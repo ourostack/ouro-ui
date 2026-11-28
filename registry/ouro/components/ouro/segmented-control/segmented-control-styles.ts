@@ -59,7 +59,7 @@ const groupClass =
 const thumbClass =
   "pointer-events-none absolute top-0.5 bottom-0.5 -z-1 overflow-clip [overflow-clip-margin:calc(var(--spacing)*0.5)] " +
   "rounded-[max(0px,calc(var(--ouro-control-r)-var(--spacing)*0.5))] " +
-  "[--corner-shape:var(--ouro-control-corner-shape,var(--ouro-corner-shape))] [corner-shape:var(--corner-shape)] " +
+  "[--corner-shape:inherit] [corner-shape:inherit] " +
   "[position-anchor:--ouro-segment] start-[anchor(start)] end-[anchor(end)] " +
   "bg-background dark:bg-[color-mix(in_oklab,var(--foreground)_16%,var(--muted))] " +
   // Comes after dark:, so under forced colours the fill is Highlight in either theme: the dark fill
