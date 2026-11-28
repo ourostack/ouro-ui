@@ -346,22 +346,69 @@ describe("capsule measure", () => {
       style.remove();
       el.remove();
     });
-    it("rescans nothing for an added link that is no stylesheet, or a load that is no link's", async () => {
+    it("rescans nothing for non-stylesheet link loads or a load that is no link's", async () => {
       force();
+      const style = document.createElement("style");
+      style.textContent = ".non-sheet-cap { --sq-tl: var(--sq-half) }";
+      document.head.append(style);
       const stop = installSquircleCapsules(document);
       const rules = vi.spyOn(CSSStyleSheet.prototype, "cssRules", "get");
-      const icon = document.createElement("link");
-      icon.rel = "icon";
+      const all = vi.spyOn(Document.prototype, "querySelectorAll");
+      const href = URL.createObjectURL(new Blob([""], { type: "text/javascript" }));
+      const links = ["icon", "modulepreload", "preload"].map((rel) => {
+        const link = document.createElement("link");
+        link.rel = rel;
+        link.as = "script";
+        link.href = href;
+        return link;
+      });
       const wrap = document.createElement("div");
-      wrap.append(icon.cloneNode());
+      wrap.append(links[0]!.cloneNode());
       document.body.append(wrap);
-      document.head.append(icon);
+      document.head.append(...links);
+      for (const link of links) link.dispatchEvent(new Event("load"));
       wrap.dispatchEvent(new Event("load"));
+      document.dispatchEvent(new Event("load"));
       await settle();
       expect(rules).not.toHaveBeenCalled();
+      expect(all).not.toHaveBeenCalled();
       stop();
-      icon.remove();
+      URL.revokeObjectURL(href);
+      style.remove();
+      for (const link of links) link.remove();
       wrap.remove();
+    });
+
+    it("reads a preloaded sheet only after it becomes a stylesheet and draws its capsule", async () => {
+      force();
+      const el = document.createElement("div");
+      el.className = "preloaded-cap";
+      document.body.append(el);
+      const stop = installSquircleCapsules(document);
+      const rules = vi.spyOn(CSSStyleSheet.prototype, "cssRules", "get");
+      const all = vi.spyOn(Document.prototype, "querySelectorAll");
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as = "style";
+      const css = ".preloaded-cap { --sq-tl: var(--sq-half); width: 100px; height: 30px; display: block }";
+      link.href = URL.createObjectURL(new Blob([css], { type: "text/css" }));
+      let preloaded = false;
+      link.addEventListener("load", () => { preloaded = true; }, { once: true });
+      document.head.append(link);
+      await expect.poll(() => preloaded).toBe(true);
+      expect(link.sheet).toBeNull();
+      expect(rules).not.toHaveBeenCalled();
+      expect(all).not.toHaveBeenCalled();
+      expect(el.style.getPropertyValue("--sq-half")).toBe("");
+      link.rel = "stylesheet";
+      await expect.poll(() => el.style.getPropertyValue("--sq-half")).toBe("15px");
+      expect(link.sheet).not.toBeNull();
+      expect(rules).toHaveBeenCalled();
+      expect(all).toHaveBeenCalled();
+      stop();
+      URL.revokeObjectURL(link.href);
+      link.remove();
+      el.remove();
     });
 
     it("reads a stylesheet that arrives inside an added subtree", async () => {
