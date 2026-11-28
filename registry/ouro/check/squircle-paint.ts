@@ -206,6 +206,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const outsideX = px < rect.left || px >= rect.right;
           const outsideY = py < rect.top || py >= rect.bottom;
           const outsideCorner = outsideX || outsideY;
+          if (px < rect.left - 2 || px > rect.right + 2 || py < rect.top - 2 || py > rect.bottom + 2) continue;
           // A separate round badge in a real cut-out is not paint from the notched surface.
           if (noBadges && difference(a.data, noBadges.data, index) >= 2 && badges.some((badge) => {
             const dx = (px - (badge.left + badge.right) / 2) / (badge.width / 2 + 0.5);
@@ -213,8 +214,8 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             return dx * dx + dy * dy <= 1;
           })) continue;
           // A pixel straddling the box edge can contain the surface's own antialiasing.
-          if ((outsideX && Math.min(Math.abs(px - rect.left), Math.abs(px - rect.right)) < clip.width / a.width / 2) ||
-              (outsideY && Math.min(Math.abs(py - rect.top), Math.abs(py - rect.bottom)) < clip.height / a.height / 2)) continue;
+          if ((outsideX && Math.min(Math.abs(px - rect.left), Math.abs(px - rect.right)) <= clip.width / a.width / 2 + 0.001) ||
+              (outsideY && Math.min(Math.abs(py - rect.top), Math.abs(py - rect.bottom)) <= clip.height / a.height / 2 + 0.001)) continue;
           const delta = difference(a.data, own && (native || outsideCorner) ? own.data : outsideCorner ? c.data : b.data, index);
           const behind = difference(b.data, c.data, index);
           if (delta < 2 || (!outsideCorner && behind > 4)) continue;
@@ -271,6 +272,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       if (!other.offsetWidth || !other.offsetHeight || getComputedStyle(other).transform !== transform ||
         Math.abs(rect.width / other.offsetWidth - scaleX) > 0.01 || Math.abs(rect.height / other.offsetHeight - scaleY) > 0.01) return false;
       if ([rect.left - bounds.left, rect.top - bounds.top, rect.right - bounds.right, rect.bottom - bounds.bottom].every((distance) => Math.abs(distance) < 0.5)) return true;
+      if (geometry(other)) return false;
       if (rect.width > bounds.width + 0.5 || rect.height > bounds.height + 0.5) return false;
       return initial.corners.some((corner, index) => {
         if (!corner.squircle) return false;
@@ -348,15 +350,28 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
             const marker = `p${counter.__ouroCheckRef}`;
             const probe = document.createElement("style");
             probe.textContent = `[${attribute}="${marker}"] *, [${attribute}="${marker}"]::before, [${attribute}="${marker}"]::after { visibility: hidden !important; }`;
+            const originalStyle = el.getAttribute("style");
+            const normalizedStyle = el.style.cssText;
+            const radii = names.map(({ shape }) => ({ property: `border-${shape}-radius`, saved: save(el, `border-${shape}-radius`) }));
             try {
               el.setAttribute(attribute, marker);
               document.head.append(probe);
+              if (!initial.native) {
+                for (const [index, corner] of initial.corners.entries()) {
+                  if (corner.squircle) el.style.setProperty(radii[index]!.property, `${corner.x * 0.543}px ${corner.y * 0.543}px`, "important");
+                }
+              }
               for (const layer of active.slice(1)) layer.el.style.setProperty("opacity", "0", "important");
               return await capture(clip);
             } finally {
               probe.remove();
               if (previous === null) el.removeAttribute(attribute);
               else el.setAttribute(attribute, previous);
+              for (const { property, saved } of radii) restore(el, property, saved);
+              if (el.getAttribute("style") !== originalStyle && el.style.cssText === normalizedStyle) {
+                if (originalStyle === null) el.removeAttribute("style");
+                else el.setAttribute("style", originalStyle);
+              }
               for (const layer of active.slice(1)) restore(layer.el, "opacity", layer.saved.get("opacity")!);
             }
           };
