@@ -26,7 +26,7 @@ import { OuroProvider } from "@/registry/ouro/lib/ouro/ouro-provider";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import { expectMotion, expectNoMotion, parseDuration } from "@/registry/ouro/lib/ouro/testing/motion";
 import { isMoving } from "@/registry/ouro/lib/ouro/testing/settled";
-import { pageCss } from "@/registry/ouro/lib/ouro/testing/page-css";
+import { squircleCorner } from "@/registry/ouro/lib/ouro/squircle-curve";
 
 const roots: Root[] = [];
 let mounted: Element[] = [];
@@ -188,9 +188,8 @@ describe("Inspector geometry", () => {
       surface.style.borderRadius = `${fallback ? 40 * 0.543 : 40}px`;
       if (fallback) {
         for (const corner of ["tl", "tr", "br", "bl"]) surface.style.setProperty(`--sq-${corner}`, "40px");
-        const clip = /--sq-clip:\s*([^;]+)/.exec(await pageCss())![1]!;
-        surface.style.setProperty("--sq-clip", clip);
-        surface.style.clipPath = "var(--sq-clip)";
+        const points = squircleCorner.map(([x, y]) => `${x * 40} ${y * 40}`);
+        surface.style.clipPath = `path("M${points[0]}C${points.slice(1, 4).join(" ")}C${points.slice(4).join(" ")}H200V100H0Z")`;
         surface.style.setProperty("corner-shape", "round");
       } else surface.style.setProperty("corner-shape", "squircle");
       await xray();
@@ -263,6 +262,41 @@ describe("Inspector geometry", () => {
     const diagonal = 19.5 * (1 - Math.SQRT1_2) + 0.5;
     expect(curve.isPointInStroke(new DOMPoint(diagonal, diagonal))).toBe(true);
     expect(curve.isPointInStroke(new DOMPoint(0.5, 0.5))).toBe(false);
+  });
+
+  it("keeps a subpixel corner axis on the straight edge", async () => {
+    const surface = component(100, 200, 200, 100);
+    surface.style.borderTopLeftRadius = "0.25px 20px";
+    surface.style.setProperty("corner-shape", "squircle");
+    await xray();
+    await drawn(1);
+    const curve = outlines()[0]!.querySelector("path")!;
+    expect(curve.isPointInStroke(new DOMPoint(0.5, 5))).toBe(true);
+    expect(curve.isPointInStroke(new DOMPoint(5, 0.5))).toBe(true);
+  });
+
+  it("avoids measuring the CSS math probe for already resolved radii", async () => {
+    const surface = component(100, 200, 200, 100);
+    surface.style.borderRadius = "40px";
+    const read = vi.spyOn(window, "getComputedStyle");
+    await xray();
+    await drawn(1);
+    expect(read.mock.calls.filter(([element]) => element.getAttribute("data-slot") === "inspector-radius-value")).toHaveLength(0);
+  });
+
+  it("limits text masks to intersecting lines with one pixel of clearance on every side", async () => {
+    const surface = component(100, 200, 200, 100);
+    surface.style.borderRadius = "40px";
+    const first = line("corner", 102, 202);
+    const second = line("middle", 160, 250);
+    line("outside", 320, 350);
+    await xray();
+    await drawn(1);
+    const bounds = outlines()[0]!.querySelector<SVGPathElement>("mask path")!.getBBox();
+    expect(bounds.x).toBeCloseTo(first.left - 100 - 1);
+    expect(bounds.y).toBeCloseTo(first.top - 200 - 1);
+    expect(bounds.width).toBeCloseTo(second.right - first.left + 2);
+    expect(bounds.height).toBeCloseTo(second.bottom - first.top + 2);
   });
 
   it("cuts text gaps through curved corners without removing the rest of the curve", async () => {

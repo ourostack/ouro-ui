@@ -411,13 +411,13 @@ function roundedFrame(box: DOMRect, style: CSSStyleDeclaration, radiusLength: Ra
     const start = points[0]!.join(" ");
     const end = points[6]!.join(" ");
     const curve = rx === 0 || ry === 0
-      ? `L${point(0, 0).join(" ")}L${end}`
+      ? `L${end}`
       : squircle
         ? `C${points.slice(1, 4).map((p) => p.join(" ")).join(" ")}C${points.slice(4).map((p) => p.join(" ")).join(" ")}`
         : `A${rx} ${ry} 0 0 1 ${end}`;
     return { start, curve };
   });
-  return corners.map(({ start, curve }, index) => `${index === 0 ? "M" : "L"}${start}${curve}`).join("") + "Z";
+  return corners.map(({ start, curve }, index) => `${index === 0 ? "M" : "L"}${start}${curve}`).join("");
 }
 
 // The frame's four edges as an SVG path in the outline's own pixels, with a gap wherever a line of
@@ -826,7 +826,7 @@ function InspectorLayer({
               <svg className="absolute inset-0 size-full overflow-visible">
                 <path d="" mask={`url(#${maskId}-${component.key})`} />
                 <defs>
-                  <mask id={`${maskId}-${component.key}`} maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%" style={{ maskType: "luminance" }} stroke="none">
+                  <mask id={`${maskId}-${component.key}`} maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%" stroke="none">
                     <rect width="100%" height="100%" fill="white" />
                     <path d="" fill="black" />
                   </mask>
