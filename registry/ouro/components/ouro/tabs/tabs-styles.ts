@@ -77,7 +77,7 @@ const listClass =
  *
  * @internal
  */
-const stickyListClass = "sticky top-0 z-20 bg-(--ouro-scroller-surface)";
+const stickyListClass = "sticky top-0 z-20 bg-[color:var(--ouro-scroller-surface,var(--muted))]";
 
 /**
  * A tab: 44px tall with 16px text on a coarse pointer, stepping down to 36px and 14px from
