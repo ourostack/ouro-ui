@@ -567,6 +567,27 @@ test("squircle-paint treats wrapped inline fragments as separate painted boxes",
   }
 });
 
+test("squircle-paint accepts native antialiasing on a wrapped inline surface", async () => {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+  const tab = await context.newPage();
+  await bindCapture(tab);
+  try {
+    await tab.setContent(`<style>
+      body { margin: 0; background: #000; }
+      .line { position: absolute; left: 486.4375px; top: 120.53125px; width: 160px; font: 16px/28px sans-serif; }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size-adjust: .46; background: #1c1c1e; color: #f5f5f7; border-radius: 5.40675px;
+        corner-shape: squircle; padding: .1em .3em; overflow-wrap: anywhere; }
+    </style><div class="line"><code>small bright ideas appear along several lines of made up text</code></div>`);
+    const rects = await tab.locator("code").evaluate((el) => [...el.getClientRects()]);
+    assert.ok(rects.length > 2);
+    assert.deepEqual(await tab.evaluate(findSquirclePaint), []);
+  } finally {
+    await browser.close();
+  }
+});
+
 test("squircle-paint separates distant fractional inline fragments and still finds a leaking end", async () => {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 390, height: 300 }, deviceScaleFactor: 2 });
