@@ -160,7 +160,7 @@ const badgeClass = "ms-auto shrink-0 rounded-ouro-sm px-1.5 text-xs leading-5 fo
 // A badge given as an element (`badge: <Badge>Idle</Badge>`) brings its own look, so it sits bare at the row's end (the label
 // takes the room before it):
 // the muted tag drawn around it too would be a frame in a frame, its corners off by the inner radius.
-const badgeSlot = (badge: ReactNode, onAccent: boolean) => (isValidElement(badge) ? undefined : cn(badgeClass, onAccent ? "bg-background" : "bg-muted"));
+const badgeSlot = (badge: ReactNode, onAccent?: boolean) => (isValidElement(badge) ? undefined : cn(badgeClass, onAccent ? "bg-background" : "bg-muted"));
 
 // A row: 44px with 16px text on a coarse pointer at every width, 36px with 14px text with a
 // fine one. A full-width row highlights while pressed instead of scaling.
@@ -168,11 +168,11 @@ const row =
   "relative m-0 box-border flex w-full min-h-ouro-11 pointer-fine:min-h-9 cursor-pointer items-center gap-3 rounded-ouro-md border-0 forced-colors:border forced-colors:border-solid bg-transparent px-3 py-2 " +
   "text-start font-[inherit] text-base pointer-fine:text-sm leading-5 font-medium text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] no-underline select-none touch-manipulation " +
   "[-webkit-tap-highlight-color:transparent] transition-colors duration-(--ouro-duration-fast) ease-[ease] " +
+  "pointer-fine:hover:bg-background pointer-fine:hover:text-foreground active:bg-background active:text-foreground " +
   "aria-[current=page]:font-semibold aria-[current=page]:text-foreground " +
   "aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-2 aria-[current=page]:before:start-0 aria-[current=page]:before:w-ouro-0_5 aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-current aria-[current=page]:before:content-[''] " +
   "forced-colors:aria-[current=page]:before:border-s-2 forced-colors:aria-[current=page]:before:border-solid forced-colors:aria-[current=page]:before:border-current " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
-const rowOnAccent = "pointer-fine:hover:bg-background pointer-fine:hover:text-foreground active:bg-background active:text-foreground";
 const rowOnPage = "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground active:bg-accent active:text-accent-foreground";
 const railRow = "justify-center px-0";
 const iconSlot = "flex size-ouro-5 shrink-0 items-center justify-center text-sm [&_svg]:size-ouro-5 [&_svg]:shrink-0";
@@ -303,7 +303,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
 
   const id = useId();
   /** One row's inside: icon (or the rail's letter), label and badge. */
-  const rowContent = (item: SidebarItem, rail: boolean, onAccent: boolean) => (
+  const rowContent = (item: SidebarItem, rail: boolean, onAccent?: boolean) => (
     <>
       {(item.icon !== undefined || rail) && (
         <span aria-hidden="true" className={iconSlot}>
@@ -350,7 +350,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
             onNavigate?.();
             item.onClick?.(event);
           }}
-          className={cn(row, onAccent ? rowOnAccent : rowOnPage, rail && railRow)}
+          className={cn(row, !onAccent && rowOnPage, rail && railRow)}
         >
           {rowContent(item, rail, onAccent)}
         </RouterLink>
@@ -363,7 +363,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
             onNavigate?.();
             item.onClick(event);
           }}
-          className={cn(row, onAccent ? rowOnAccent : rowOnPage, rail && railRow)}
+          className={cn(row, !onAccent && rowOnPage, rail && railRow)}
         >
           {rowContent(item, rail, onAccent)}
         </button>
@@ -394,8 +394,8 @@ export function Sidebar(props: SidebarProps): JSX.Element {
                     closeLabel={closeLabel}
                     trigger={
                       <Tooltip content={item.label} side="right">
-                        <button type="button" data-current={holdsCurrent ? "" : undefined} data-ouro-control="sidebar" data-ouro-part="group" className={cn(row, rowOnAccent, "data-current:text-foreground", railRow)}>
-                          {rowContent(item, true, true)}
+                        <button type="button" data-current={holdsCurrent ? "" : undefined} data-ouro-control="sidebar" data-ouro-part="group" className={cn(row, "data-current:text-foreground", railRow)}>
+                          {rowContent(item, true)}
                         </button>
                       </Tooltip>
                     }
@@ -406,7 +406,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
                         {child.badge !== undefined && (
                           <>
                             {" "}
-                            <span className={cn(badgeSlot(child.badge, false), "ms-2")}>{child.badge}</span>
+                            <span className={cn(badgeSlot(child.badge), "ms-2")}>{child.badge}</span>
                           </>
                         )}
                       </MenuItem>
@@ -427,7 +427,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
                   data-ouro-part="group"
                   data-current={holdsCurrent && !open ? "" : undefined}
                   onClick={() => setOpened({ ...opened, [key]: !open })}
-                  className={cn(row, place === "c" ? rowOnAccent : rowOnPage, "data-current:text-foreground")}
+                  className={cn(row, place === "d" && rowOnPage, "data-current:text-foreground")}
                 >
                   {rowContent(item, false, place === "c")}
                   <svg
