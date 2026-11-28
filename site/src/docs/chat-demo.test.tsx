@@ -1,6 +1,7 @@
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanupPage, describeViolations, pageScanTimeout, renderPage, scan, setScheme } from "../../test/render";
+import { findDesignIssues } from "@/registry/ouro/check/design-check";
 import { clearComposerDrafts } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { watchAnnouncements } from "@/registry/ouro/lib/ouro/testing/announcements";
 import { routes } from "../routes";
@@ -166,6 +167,24 @@ describe("the chat app page", () => {
     const violations = await scan();
     expect(violations, describeViolations(violations)).toEqual([]);
   }, pageScanTimeout);
+
+  it.each(["light", "dark"] as const)("separates the list and conversation with a surface step in %s", async (scheme) => {
+    await page.viewport(3840, 2160);
+    setScheme(scheme);
+    try {
+      await renderPage("/docs/chat-demo/");
+      const demo = document.querySelector<HTMLElement>("[data-site-chat-demo]")!;
+      demo.scrollIntoView({ block: "start" });
+      await expect.poll(() => demo.querySelector('[data-ouro="thread-layout"]')).not.toBeNull();
+      const paneIssues = () => findDesignIssues({}).filter((issue) =>
+        issue.rule === "pane-edge" && demo.querySelector(`[data-ouro-check-ref~="${issue.ref}"]`));
+      expect(paneIssues()).toEqual([]);
+      await page.getByRole("radio", { name: "Empty" }).click();
+      expect(paneIssues()).toEqual([]);
+    } finally {
+      await page.viewport(390, 844);
+    }
+  });
 
   it("keeps the list pane's divider under forced colours, as ConversationList draws no frame of its own", async () => {
     await commands.emulateMedia({ forcedColors: "active" });
