@@ -310,13 +310,13 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
       if (!covered && !(/hidden|clip/.test(outside.overflowX) && /hidden|clip/.test(outside.overflowY)) && outside.clipPath === "none") return false;
     }
     const own = getComputedStyle(inner.el!);
-    const horizontal = index === 0 || index === 3 ? "Left" : "Right";
-    const vertical = index < 2 ? "Top" : "Bottom";
+    const horizontalSide = index === 0 || index === 3 ? "Left" : "Right";
+    const verticalSide = index < 2 ? "Top" : "Bottom";
     const shadowCovered = own.boxShadow === "none" || (
       !/\binset\b/.test(own.boxShadow) && own.backgroundImage === "none" &&
       rgba(own.backgroundColor)[3] === 255 && Number(own.opacity) === 1
     );
-    return shadowCovered && !paintedOutline(own) && !paintedSide(own, horizontal) && !paintedSide(own, vertical);
+    return shadowCovered && !paintedOutline(own) && !paintedSide(own, horizontalSide) && !paintedSide(own, verticalSide);
   };
   // An unpainted clip can supply the visible corner; keep intersecting curves when neither contains the other.
   const dominates = (a: Corner, b: Corner): boolean => {
