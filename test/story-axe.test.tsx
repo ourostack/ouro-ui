@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import { Button } from "@/registry/ouro/components/ouro/button/button";
+import { Dialog } from "@/registry/ouro/components/ouro/dialog/dialog";
 import { Tooltip } from "@/registry/ouro/components/ouro/tooltip/tooltip";
 import { Toolbar } from "@/registry/ouro/components/ouro/toolbar/toolbar";
-import { scanStoryViolations } from "./story-axe";
-import { cleanupStories } from "./stories.tsx";
+import { scanStoryViolations, visitStoryOverlays } from "./story-axe";
+import { cleanupStories, renderStoryPage, settle } from "./stories.tsx";
 
 // The story scan reaches what a person's pointer reaches. Runs in Chromium and WebKit.
 
@@ -18,6 +20,24 @@ const Mic = () => (
     <path d="M12 2v12" />
   </svg>
 );
+
+it("visits both triggered and hover-opened overlays before closing them", async () => {
+  const host = await renderStoryPage(() => (
+    <>
+      <Dialog title="Details" trigger={<Button>Open details</Button>}>Details</Dialog>
+      <Tooltip content="Help text"><button type="button">Help</button></Tooltip>
+    </>
+  ));
+  await settle();
+  const phases: [string, boolean][] = [];
+  await visitStoryOverlays("Tooltip/Playground", host, async (phase, passing) => {
+    phases.push([phase, passing]);
+  });
+  expect(phases).toEqual([
+    ['with "Open details" open', false],
+    ['with the tooltip of "Help" open', true],
+  ]);
+}, 30_000);
 
 it("opens a tooltip in a toolbar that auto-hid before the scan reached it (#1856)", async () => {
   await page.viewport(390, 844);

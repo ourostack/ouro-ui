@@ -757,7 +757,36 @@ test("squircle-paint finds a surface's own square paint outside its fallback cor
   }
 });
 
-
+test("squircle-paint checks coincident rounded siblings without treating their shadows as square paint", async () => {
+  const generated = await styles(`
+    body { margin: 0; background: #dce5ef; }
+    .stage { position: absolute; left: 60px; top: 60px; width: 200px; height: 140px; }
+    .surface { position: absolute; inset: 0; border-radius: 32px; }
+    .raised { background: white; box-shadow: 0 4px 12px #0008; }
+    .narrow { border-radius: 8px; }
+  `);
+  const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-check-native-shape: squircle)");
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage({ viewport: { width: 390, height: 300 } });
+    await bindCapture(tab);
+    try {
+      await tab.setContent(`<style>${css}</style><div class="stage"><div class="surface raised"></div><div class="surface"></div></div>`);
+      assert.deepEqual(await tab.evaluate(findSquirclePaint), [], `${engine.name()}: a separate curved shadow`);
+      await tab.locator(".raised").evaluate((el) => {
+        el.innerHTML = '<div style="position:absolute;left:-12px;top:-12px;width:8px;height:8px;background:#b44939"></div>';
+      });
+      assert.ok((await tab.evaluate(findSquirclePaint)).some((issue) => issue.element.includes(".raised")), `${engine.name()}: the raised surface still has a leaking child`);
+      await tab.locator(".raised").evaluate((el) => {
+        el.replaceChildren();
+        el.classList.add("narrow");
+      });
+      assert.ok((await tab.evaluate(findSquirclePaint)).some((issue) => issue.element === "div.surface"), `${engine.name()}: a mismatched coincident surface protrudes`);
+    } finally {
+      await browser.close();
+    }
+  }
+});
 
 test("squircle-paint attributes a distant shadow separately from an overlapping overlay", async () => {
   for (const engine of [chromium, webkit]) {
@@ -1074,7 +1103,41 @@ test("squircle-paint reads the generated fallback in both browser engines", asyn
   }
 });
 
-
+test("squircle-paint finds a fallback surface's own square outline and hard shadow", async () => {
+  const generated = await styles(`
+    body { margin: 0; background: #eef4fa; }
+    .surface { position: absolute; left: 60px; top: 60px; width: 200px; height: 140px; border-radius: 32px; background: #557799; }
+    .broken { clip-path: none !important; }
+    .square-clip { clip-path: inset(0) !important; }
+    .outline { outline: 6px solid #cc6655; }
+    .shadow { box-shadow: 0 0 0 6px #cc6655; }
+    .control { position: absolute; width: 8px; height: 8px; background: #149b55; }
+  `);
+  const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-check-native-shape: squircle)");
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const context = await browser.newContext({ viewport: { width: 390, height: 300 }, deviceScaleFactor: 2 });
+    const tab = await context.newPage();
+    await bindCapture(tab);
+    try {
+      for (const effect of ["outline", "shadow"]) {
+        for (const clip of ["square-clip", "broken", ""]) {
+          await tab.setContent(`<style>${css}</style><div id="surface" class="surface ${effect} ${clip}"></div>`);
+          const found = await tab.evaluate(findSquirclePaint);
+          assert.equal(found.length, clip ? 1 : 0, `${engine.name()} ${effect}: ${clip || "clipped"}`);
+        }
+        for (const leaking of [false, true]) {
+          const position = leaking ? "left:73px;top:54px" : "left:100px;top:80px";
+          await tab.setContent(`<style>${css}</style><div id="surface" class="surface ${effect}"></div><div class="control" style="${position}"></div>`);
+          const found = await tab.evaluate(findSquirclePaint);
+          assert.equal(found.length, leaking ? 1 : 0, `${engine.name()} ${effect}: ${leaking ? "protruding" : "inset"} sibling`);
+        }
+      }
+    } finally {
+      await browser.close();
+    }
+  }
+});
 
 test("squircle-paint restores inline styles and scroll positions when a capture fails", async () => {
   const css = await styles(`
