@@ -72,6 +72,43 @@ describe("SegmentedControl", () => {
     await expect.element(page.getByText("View", { exact: true })).toBeVisible();
   });
 
+  it("nests the selected segment's corners inside the track at different spacings", async () => {
+    const { host, thumb } = await render(<SegmentedControl label="View" items={items} />);
+    const track = host.querySelector<HTMLElement>('[role="radiogroup"]')!;
+    const radius = (element: HTMLElement) => {
+      const style = getComputedStyle(element);
+      return parseFloat(style.getPropertyValue("--sq-tl")) || parseFloat(style.borderTopLeftRadius);
+    };
+    host.style.setProperty("--radius", "20px");
+    for (const spacing of [4, 2]) {
+      host.style.setProperty("--spacing", `${spacing}px`);
+      await settled(thumb);
+      const inset = thumb.getBoundingClientRect().left - track.getBoundingClientRect().left;
+      expect(radius(thumb)).toBeCloseTo(radius(track) - inset, 1);
+    }
+    host.style.setProperty("--ouro-control-radius", "1px");
+    host.style.setProperty("--spacing", "4px");
+    await settled(thumb);
+    expect(radius(thumb)).toBe(0);
+  });
+
+  it("keeps the track's themed corner shape on the selected segment", async () => {
+    const { host, thumb } = await render(<SegmentedControl label="View" items={items} />);
+    host.style.setProperty("--ouro-control-corner-shape", "superellipse(1.05)");
+    expect(getComputedStyle(thumb).getPropertyValue("--corner-shape").trim()).toBe("superellipse(1.05)");
+    if (CSS.supports("corner-shape", "superellipse(1.05)")) {
+      expect(getComputedStyle(thumb).getPropertyValue("corner-shape")).toContain("superellipse");
+    }
+  });
+
+  it("keeps the glass thumb round when controls use another corner shape", async () => {
+    const { host, thumb } = await render(<SegmentedControl label="View" items={items} glass />);
+    host.style.setProperty("--ouro-control-corner-shape", "squircle");
+    const style = getComputedStyle(thumb);
+    expect(style.getPropertyValue("--corner-shape").trim()).toBe("round");
+    expect(parseFloat(style.borderTopLeftRadius)).toBeGreaterThanOrEqual(thumb.getBoundingClientRect().height / 2);
+  });
+
   it("hides the label visually with hideLabel, and still names the group", async () => {
     const { host } = await render(<SegmentedControl label="View" hideLabel items={items} />);
     await expect.element(page.getByRole("radiogroup", { name: "View" })).toBeInTheDocument();
@@ -614,10 +651,10 @@ describe("SegmentedControl", () => {
     expect(style().transitionTimingFunction).toBe("cubic-bezier(0.77, 0, 0.175, 1), cubic-bezier(0.77, 0, 0.175, 1), ease");
     r.segments[0]!.focus();
     await userEvent.keyboard("{ArrowRight}");
-    expect(r.thumb.parentElement!.hasAttribute("data-ouro-keyboard")).toBe(true);
+    expect(r.thumb.closest('[role="radiogroup"]')!.hasAttribute("data-ouro-keyboard")).toBe(true);
     expect(style().transitionProperty).toBe("none");
     await userEvent.click(r.segments[2]!);
-    expect(r.thumb.parentElement!.hasAttribute("data-ouro-keyboard")).toBe(false);
+    expect(r.thumb.closest('[role="radiogroup"]')!.hasAttribute("data-ouro-keyboard")).toBe(false);
     expect(style().transitionProperty).toBe("inset-inline-start, inset-inline-end, opacity");
   });
 

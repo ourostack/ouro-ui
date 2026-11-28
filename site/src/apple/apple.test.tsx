@@ -279,6 +279,17 @@ describe("Ouro UI for Apple", () => {
     expect(document.querySelector("[data-shown] > .feel-verdict")?.textContent).toMatch(/^PASS inside the window/);
   });
 
+  it("continues the off-screen annotation beyond the clipped picture", async () => {
+    await renderPage("/apple/feel/");
+    const frame = document.querySelector<HTMLElement>(".feel-flip-screen")!;
+    const before = frame.querySelector<HTMLElement>(".feel-flip-layer:first-child .feel-flip-ring")!;
+    const after = frame.querySelector<HTMLElement>(".feel-flip-layer:last-child .feel-flip-ring")!;
+    const edge = frame.getBoundingClientRect().right;
+    expect(getComputedStyle(frame).overflowX).toBe("hidden");
+    expect(before.getBoundingClientRect().right).toBeGreaterThan(edge);
+    expect(after.getBoundingClientRect().right).toBeLessThan(edge);
+  });
+
   it("control: terminal runs a typed line and a suggested one, and refuses politely", async () => {
     await renderPage("/apple/reins/");
     const input = page.getByRole("textbox", { name: "Command" });

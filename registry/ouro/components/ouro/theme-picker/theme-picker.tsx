@@ -110,7 +110,7 @@ const squareClass =
 /** A look's wordmark: its name in its heading face and ink, on its paper, ending in a square of its primary. */
 function Wordmark({ preset, size }: { preset: ThemePreset; size: keyof typeof tileSizes }): JSX.Element {
   return (
-    <span aria-hidden="true" data-slot="theme-picker-wordmark" data-theme={preset.theme ?? preset.name} data-preset={preset.name} className={cn(tileClass, tileSizes[size])}>
+    <span aria-hidden="true" data-slot="theme-picker-wordmark" data-theme={preset.theme ?? preset.name} data-preset={preset.name} className={cn(tileClass, tileSizes[size], size === "sm" && "rounded-[max(0px,calc(var(--ouro-control-r)-var(--ouro-tp-inset)))]")}>
       <span data-slot="theme-picker-name" className={nameClass}>{preset.label}</span>
       <span data-slot="theme-picker-square" className={squareClass} />
     </span>
@@ -261,7 +261,7 @@ function ThemePickerView(
       <PopoverRoot modal={touch}>
         <PopoverTrigger
           render={
-            <Button variant="soft" tone="secondary" size="sm" data-slot="theme-picker-trigger" data-ouro-control="theme-picker" data-ouro-part="trigger" className="gap-ouro-2 ps-ouro-1 pe-ouro-2">
+            <Button variant="soft" tone="secondary" size="sm" data-slot="theme-picker-trigger" data-ouro-control="theme-picker" data-ouro-part="trigger" className="h-(--ouro-tp-h) gap-ouro-2 ps-[max(0px,calc(var(--ouro-tp-inset)-1px))] pe-ouro-2 [--ouro-tp-h:max(var(--ouro-button-h),calc(var(--ouro-size-7)+2px))] [--ouro-control-h:var(--ouro-tp-h)] [--ouro-tp-inset:calc((var(--ouro-tp-h)-var(--ouro-size-7))/2)]">
               {/* Every look's wordmark and name, the chosen one shown, so a page's own head script can show the kept one before hydration (data-shows). */}
               {presets.map((item) => (
                 <span key={item.name} data-shows={item.name} hidden={item !== current}>

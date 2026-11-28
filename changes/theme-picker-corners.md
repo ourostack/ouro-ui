@@ -1,0 +1,1 @@
+- Fix: [ThemePicker nests its chosen wordmark's corners inside the trigger at both screen sizes and compact spacing](registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx "verify:testExists(registry/ouro/components/ouro/theme-picker/theme-picker.test.tsx::ThemePicker popover > nests the chosen wordmark's corners inside the trigger)").

@@ -244,7 +244,7 @@ export function Repaint(): JSX.Element {
                   setMade(false);
                   setPreset(item.name, originOf(event));
                 }}
-                className="h-auto w-full p-1.5"
+                className="h-auto w-full p-3"
               >
                 <span className="site-specimen-face">
                   <Specimen preset={item.name} />

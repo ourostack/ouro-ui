@@ -9,6 +9,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import type { Browser, BrowserType, Page, Request } from "playwright";
+import { findCornerIssues, type CornerOptions } from "./corner-check.ts";
 import { findDesignIssues, listCornerMedia, mediaDrawn, readCorners, shownCorners, type CornerReading } from "./design-check.ts";
 import { findImageFades } from "./fade-check.ts";
 import { ALIASES, behindModal, boxOf, veiled, decodeImages, findFragmentFocusIssues, isReady, listAllowances, listenForReady, listPersonSignals, outline, runAxe, type Allowance, type Box } from "./in-page.ts";
@@ -20,6 +21,7 @@ import { findRepaints, listenForMotion, markWalkables, readMotion, resetMotion, 
 import { findOverlaps } from "./overlap-check.ts";
 import { globToRegExp, listPages, serve } from "./serve.ts";
 import { findSizeIssues, type ImageMeasure, type Measure, type PageIssue } from "./size-check.ts";
+import { findSquirclePaint, type PaintClip } from "./squircle-paint.ts";
 import { findTextIssues } from "./text-check.ts";
 import { findLayoutIssues } from "./layout-check.ts";
 import { findThemeIssues } from "./theme-check.ts";
@@ -180,6 +182,12 @@ interface Gate {
   // Where long lines are checked, and against what: a page glob (two stars for all pages) holds the page's prose, a
   // CSS selector ("main .chat-message") holds what it matches. Without one the rule is off.
   measure?: Record<string, string>;
+  // The host window's corner radius, in CSS pixels, when its edge lies outside the page.
+  windowRadius?: number;
+  // The host window's bounds in viewport CSS pixels, when its edges differ from the viewport.
+  windowBounds?: CornerOptions["windowBounds"];
+  // How far the host window extends beyond the viewport at every size, in CSS pixels.
+  windowInsets?: CornerOptions["windowInsets"];
   // false: walk nothing, so jank measures no page.
   walk?: boolean;
   // The states a page reaches by presses, each checked as a page of its own: the page as the check names it ("/" or
@@ -274,6 +282,8 @@ const LABELS: Record<string, string> = {
   "giant-picture": "giant picture",
   "cramped-heading": "cramped heading",
   "nested-frame": "frame in a frame",
+  "corners-nest": "corners do not nest",
+  "squircle-paint": "paint outside a squircle",
   "doubled-line": "line drawn twice",
   "count-badge": "count badge out of place",
   "off-centre-text": "text off centre",
@@ -345,6 +355,8 @@ const HINTS: Record<string, string> = {
   "giant-picture": "show the work itself (the component, a screenshot) or a small picture beside the words, not a banner",
   "cramped-heading": "give the heading room: more space above it than between it and what follows",
   "nested-frame": "drop the inner border and use a step between theme surface tokens; for mismatched corners, make the inner radius the outer one less the inset",
+  "corners-nest": "make each inner corner a squircle with the outer radius less its inset",
+  "squircle-paint": "clip every painted layer to the squircle's corner curve",
   "doubled-line": "keep one line: drop the inner divider where a frame or another divider already separates, or give the two room apart",
   "off-centre-text": "even the padding above and below the words, or centre the row with align-items: center rather than end, and centre a line on its cap height (text-box: trim-both cap alphabetic) where the font sits it high or low",
   "off-centre-ink": "centre the control's content with flex and align-items: center, give the icon an even box, and draw a more or overflow control as an icon, never a typed \u2026, which rests on the text's baseline",
@@ -1115,9 +1127,9 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       if (!ready) issues.push({ ref: "", rule: "not-ready", element: "the page", detail: `no ready signal in ${readyTimeout / 1000} s (ouro:ready, data-app-ready or a drawn h1)` });
       elements = await page.evaluate(`document.querySelectorAll("*").length`);
       // The rules that run at every page, size and theme below: overlap, size, image-fades, design, text, layout,
-      // theme, interaction, decision, wrap, panel, first-run, dead-zones, dark-art and corners (15), plus the ones
-      // that run only sometimes.
-      rulesRun = 15 + (measured ? 1 : 0) + (axe && axeAt.has(`${width}x${height}`) ? 1 : 0) + (inpAt === `${width}x${height} ${theme}` ? 2 : 0);
+      // theme, interaction, decision, wrap, panel, first-run, dead-zones, dark-art, image corners, nested corners and
+      // squircle paint (17), plus the ones that run only sometimes.
+      rulesRun = 17 + (measured ? 1 : 0) + (axe && axeAt.has(`${width}x${height}`) ? 1 : 0) + (inpAt === `${width}x${height} ${theme}` ? 2 : 0);
       // The loading measures first, before any rule scrolls: a script's scroll doesn't end largest-contentful-paint as a
       // person's does, so a picture far down that a later rule scrolls to would otherwise read as the first content.
       if (measured) {
@@ -1142,7 +1154,16 @@ async function check(options: CheckOptions): Promise<CheckResult> {
       await page.evaluate(decodeImages);
       shown.push(...(await page.evaluate(findSizeIssues, { measures: measuresFor(config, target.page) })));
       shown.push(...(await page.evaluate(findImageFades)));
-      shown.push(...(await page.evaluate(findDesignIssues, {})));
+      shown.push(...(await page.evaluate(findDesignIssues, { legacyCorners: false })));
+      shown.push(...(await page.evaluate(findCornerIssues, {
+        ...(config.windowRadius === undefined ? {} : { windowRadius: config.windowRadius }),
+        ...(config.windowBounds === undefined ? {} : { windowBounds: config.windowBounds }),
+        ...(config.windowInsets === undefined ? {} : { windowInsets: config.windowInsets }),
+      })));
+      await page.exposeBinding("__ouroPaintCapture", async ({ page: current }, clip: PaintClip) =>
+        (await current.screenshot({ clip, scale: "device", animations: "disabled", caret: "initial" })).toString("base64"),
+      );
+      shown.push(...(await page.evaluate(findSquirclePaint)));
       shown.push(...(await page.evaluate(findTextIssues)));
       shown.push(...(await page.evaluate(findLayoutIssues, {})));
       shown.push(...(await page.evaluate(findThemeIssues, {})));
@@ -1560,7 +1581,7 @@ interface Args {
 }
 
 const ABOUT = [
-  "ouro-check: checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken, blurry and stretched pictures and videos, pictures that fade into the page, pages that fail to load or draw, serious accessibility problems, and design problems: a banner where content belongs, a cramped heading, a frame inside a frame, a recording's own corner inside its frame, too many text sizes, weights or shadows, running text drawn too large to read, grey text on colour and a heading larger than the one above it; text that leaks a value (undefined, NaN, [object Object], an id, a translation key, TODO) or shows a time no one should read (Invalid Date, 1 January 1970, a raw timestamp); errors and warnings in the console and requests to the page's own server that fail; content the screen cuts off, the same control twice in view and a region that scrolls by a few pixels; a control that shows no keyboard focus and a light surface left on a dark page; a disabled control with no reason given; a linked card that a click on some spot of opens nothing, and a card whose revealed part moves the page; a first run's dead ends: a blank screen with no progress, a dialog that can be put away onto a blank or signed-out page, and an empty state shown while signed out; text that wraps by accident (a lone last word, a tall h1, a one-word line in big text, a heading broken by hand or held narrow) and hero art with no night twin; long lines only where ouro-check.json declares a measure; and narrow text, prose held by a max-width to under three quarters of a column at least 900px wide.",
+  "ouro-check: checks every page at every screen size, light and dark, for overlap, sideways scroll, clipped text, broken, blurry and stretched pictures and videos, pictures that fade into the page, pages that fail to load or draw, serious accessibility problems, and design problems: a banner where content belongs, a cramped heading, a frame inside a frame, mismatched nested corners and paint beyond squircle curves, a recording's own corner inside its frame, too many text sizes, weights or shadows, running text drawn too large to read, grey text on colour and a heading larger than the one above it; text that leaks a value (undefined, NaN, [object Object], an id, a translation key, TODO) or shows a time no one should read (Invalid Date, 1 January 1970, a raw timestamp); errors and warnings in the console and requests to the page's own server that fail; content the screen cuts off, the same control twice in view and a region that scrolls by a few pixels; a control that shows no keyboard focus and a light surface left on a dark page; a disabled control with no reason given; a linked card that a click on some spot of opens nothing, and a card whose revealed part moves the page; a first run's dead ends: a blank screen with no progress, a dialog that can be put away onto a blank or signed-out page, and an empty state shown while signed out; text that wraps by accident (a lone last word, a tall h1, a one-word line in big text, a heading broken by hand or held narrow) and hero art with no night twin; long lines only where ouro-check.json declares a measure; and narrow text, prose held by a max-width to under three quarters of a column at least 900px wide.",
   "A site on the web must move http:// to https:// and ask for HSTS. It measures layout shift, first content, the presses the app lists and jank as it walks each page (hovering cards, opening popups, scrolling and panning) against their budgets, and finds a control the first frames draw that a later frame swaps for another, with no input. It writes report.json, summary.md (with --handoff, handoff.md too), a contact sheet per page and a captioned close-up per finding. merge joins the out folders of a sharded run into one.",
 ];
 
@@ -1765,10 +1786,23 @@ async function readJson<T>(file: string): Promise<T> {
 }
 
 // What is wrong with a config's press and state settings, which JSON leaves unchecked: a string would read as its letters.
-function configProblem({ press, pressRepeat, pressAll, pressLimit, states, waive, firstRun, usability, decisions }: Gate): string | null {
+function configProblem({ press, pressRepeat, pressAll, pressLimit, states, waive, firstRun, usability, decisions, windowRadius, windowBounds, windowInsets }: Gate): string | null {
   const waived = Object.entries(waive ?? {}).find(([, rules]) => Object.hasOwn(Object(rules), "blurry-image"));
   if (waived)
     return `"waive" > "${waived[0]}" waives blurry-image, which cannot be waived: remove it, and give each picture it reports a larger source, or a srcset whose largest file covers its drawn width at 2x.`;
+  if (windowRadius !== undefined && !(typeof windowRadius === "number" && Number.isFinite(windowRadius) && windowRadius >= 0)) return '"windowRadius" takes the native window corner radius as a non-negative number of CSS pixels.';
+  if (windowBounds !== undefined && windowRadius === undefined) return '"windowBounds" also needs "windowRadius".';
+  if (windowInsets !== undefined && windowRadius === undefined) return '"windowInsets" also needs "windowRadius".';
+  if (windowBounds !== undefined && windowInsets !== undefined) return 'pass "windowBounds" or "windowInsets", not both.';
+  if (windowBounds !== undefined && (
+    typeof windowBounds !== "object" || windowBounds === null || Array.isArray(windowBounds) ||
+    ![windowBounds.x, windowBounds.y, windowBounds.width, windowBounds.height].every(Number.isFinite) ||
+    windowBounds.width <= 0 || windowBounds.height <= 0
+  )) return '"windowBounds" takes finite x and y and positive width and height in viewport CSS pixels.';
+  if (windowInsets !== undefined && (
+    typeof windowInsets !== "object" || windowInsets === null || Array.isArray(windowInsets) ||
+    ![windowInsets.top, windowInsets.right, windowInsets.bottom, windowInsets.left].every((value) => Number.isFinite(value) && value >= 0)
+  )) return '"windowInsets" takes non-negative top, right, bottom and left in CSS pixels.';
   if (press !== undefined && !(Array.isArray(press) && press.every((selector) => typeof selector === "string" && selector.trim() !== ""))) return '"press" takes a list of CSS selectors, such as ["[role=tab]"].';
   if (pressRepeat !== undefined && !(Number.isInteger(pressRepeat) && pressRepeat >= 1)) return '"pressRepeat" takes a whole number of presses, 1 or more.';
   if (pressAll !== undefined && typeof pressAll !== "boolean") return '"pressAll" takes true or false.';
