@@ -39,7 +39,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     if (el.closest("[hidden], template, .visually-hidden, .sr-only, details:not([open]) > :not(summary)")) return false;
     for (let n: Element | null = el; n && n !== document.documentElement; n = n.parentElement) {
       const style = getComputedStyle(n);
-      if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) <= 0.05) return false;
+      if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return false;
     }
     return true;
   };
