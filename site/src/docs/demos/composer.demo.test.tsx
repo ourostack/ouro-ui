@@ -1,6 +1,7 @@
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { page, userEvent } from "vitest/browser";
+import axe from "axe-core";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
 import ComposerDemo from "./composer.demo";
 
@@ -50,6 +51,7 @@ describe("ComposerDemo", () => {
     expect(message.querySelector("ul li")?.textContent).toBe("Warm bread and something sparkling");
     expect(message.querySelector('a[href="https://www.timeanddate.com/sun/"]')).not.toBeNull();
     expect(message.querySelector('[data-ouro="badge"]')?.textContent).toBe("Noor");
+    expect((await axe.run(message, { runOnly: ["color-contrast"] })).violations).toEqual([]);
     await userEvent.click(page.getByRole("button", { name: "Keep editing", exact: true }));
     expect(editor.checkVisibility()).toBe(true);
     expect(editor.textContent).toBe(before);

@@ -55,7 +55,7 @@ export default function ComposerPreview({ text }: { text: string }): JSX.Element
     return editor.getEditorState().read(() => $getRoot().getChildren().map((node) => <Fragment key={node.getKey()}>{draw(node)}</Fragment>));
   }, [text]);
   return (
-    <Message role="user" name="You" avatar={false} context="Sent in this demo">
+    <Message variant="chat" role="user" name="You" avatar={false} context="Sent in this demo">
       <div className="grid gap-3">{content}</div>
     </Message>
   );
