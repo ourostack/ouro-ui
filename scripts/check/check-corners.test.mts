@@ -386,6 +386,7 @@ test("squircle-paint finds a descendant's square fill beyond a squircle, but pas
     body { background: linear-gradient(110deg, #f8f3e7, #dce8f4); }
     .surface { position: relative; width: 220px; height: 140px; border-radius: 32px; background: #557799; }
     .broken { clip-path: none !important; }
+    .square-clip { clip-path: inset(0) !important; }
     .sound { overflow: hidden; }
     .fill { position: absolute; inset: 0; background: #cc6655; }
   `);
@@ -1119,10 +1120,10 @@ test("squircle-paint finds a fallback surface's own square outline and hard shad
     await bindCapture(tab);
     try {
       for (const effect of ["outline", "shadow"]) {
-        for (const broken of [true, false]) {
-          await tab.setContent(`<style>${css}</style><div id="surface" class="surface ${effect}${broken ? " broken" : ""}"></div>`);
+        for (const clip of ["square-clip", "broken", ""]) {
+          await tab.setContent(`<style>${css}</style><div id="surface" class="surface ${effect} ${clip}"></div>`);
           const found = await tab.evaluate(findSquirclePaint);
-          assert.equal(found.length, broken ? 1 : 0, `${engine.name()} ${effect}: ${broken ? "unclipped" : "clipped"}`);
+          assert.equal(found.length, clip ? 1 : 0, `${engine.name()} ${effect}: ${clip || "clipped"}`);
         }
         for (const leaking of [false, true]) {
           const position = leaking ? "left:73px;top:54px" : "left:100px;top:80px";
