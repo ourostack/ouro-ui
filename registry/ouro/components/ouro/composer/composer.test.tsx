@@ -1072,12 +1072,12 @@ describe("Composer expanded", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("keeps the expand action quiet in either mode, marks its mode without a border, and preserves text focus on a press", async () => {
+  it("keeps the expand action quiet in either mode, marks its mode by tone, and preserves text focus on a press", async () => {
     const { host } = await render(
       <>
         <Composer label="Reply" defaultExpanded={false} onSend={() => {}} />
         <Button variant="plain" tone="secondary" aria-label="Plain" data-test-harness="plain">p</Button>
-        <Button variant="soft" tone="secondary" aria-label="Selected" data-test-harness="selected">s</Button>
+        <Button variant="plain" tone="primary" aria-label="Selected" data-test-harness="selected">s</Button>
       </>,
     );
     const look = (element: Element) => ["border-top-color", "color", "background-color"].map((property) => getComputedStyle(element).getPropertyValue(property));

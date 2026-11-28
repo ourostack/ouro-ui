@@ -413,7 +413,7 @@ const frameClass =
 const resizeEdgeClass =
   "group/edge absolute inset-x-0 -top-1 z-10 flex h-2 cursor-ns-resize touch-none items-center justify-center rounded-ouro-sm outline-0";
 const resizeLineClass =
-  "pointer-events-none block h-1 w-8 rounded-ouro-sm bg-ring opacity-40 transition-opacity duration-(--ouro-duration-fast) ease-[ease] " +
+  "pointer-events-none block h-1 w-8 rounded-ouro-sm bg-muted-foreground opacity-40 transition-opacity duration-(--ouro-duration-fast) ease-[ease] " +
   "pointer-fine:group-hover/edge:opacity-60 group-data-[ouro-edge]/edge:opacity-100";
 
 // The toolbar fades and slides up into place when the box expands, and out when it collapses; with
@@ -451,10 +451,12 @@ function textMetrics(frame: HTMLElement | null): { line: number; offset: number;
 function ComposerEdge({ label, read, onResize }: { label: string; read: () => ResizeRange; onResize: (px: number, settled: boolean) => void }): JSX.Element {
   const { props } = useResize({ label, read, onResize });
   return (
-    <div {...props} data-ouro-control="composer" data-slot="composer-resize-edge" data-ouro-part="resize-edge" className={resizeEdgeClass}>
-      <TouchTarget />
-      <span aria-hidden="true" data-slot="composer-resize-line" data-ouro-part="resize-line" className={resizeLineClass} />
-    </div>
+    <Tooltip content={label}>
+      <div {...props} data-ouro-control="composer" data-slot="composer-resize-edge" data-ouro-part="resize-edge" className={resizeEdgeClass}>
+        <TouchTarget />
+        <span aria-hidden="true" data-slot="composer-resize-line" data-ouro-part="resize-line" className={resizeLineClass} />
+      </div>
+    </Tooltip>
   );
 }
 
@@ -1182,8 +1184,8 @@ export function Composer(props: ComposerProps): JSX.Element {
                 <Button
                   data-ouro-control="composer"
                   data-ouro-part="expand"
-                  variant={expanded ? "soft" : "plain"}
-                  tone="secondary"
+                  variant="plain"
+                  tone={expanded ? "primary" : "secondary"}
                   aria-label={expandLabel}
                   aria-pressed={expanded}
                   aria-keyshortcuts={ariaKeyShortcuts(composerShortcuts.expand, platform)}

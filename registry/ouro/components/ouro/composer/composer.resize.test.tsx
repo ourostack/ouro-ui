@@ -56,6 +56,12 @@ const wholeLines = (textarea: HTMLElement) => (height(textarea) - offset(textare
 const label = "Resize the reply box";
 
 describe("Composer resizable edge", () => {
+  it("names the resize action on hover, separately from long compose", async () => {
+    const view = await render(<Composer label="Reply" resizable resizeLabel={label} defaultExpanded={false} onSend={() => {}} />);
+    await userEvent.hover(view.edge);
+    await expect.poll(() => document.querySelector('[data-ouro="tooltip"]')?.textContent).toBe(label);
+  });
+
   it("leaves a fresh edge's sizing and frame reads to the browser's frame", async () => {
     const host = document.body.appendChild(document.createElement("div"));
     hosts.push(host);
