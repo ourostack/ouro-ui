@@ -859,21 +859,21 @@ it("captures paint at the bottom edge of the test viewport", async () => {
   const root = render('<div id="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px"><div style="position:absolute;inset:0;background:#f40"></div></div>');
   root.style.top = "auto";
   root.style.bottom = "0";
-  const original = await commands.squircleHostScroll(null);
+  const original = await commands.squircleHostScroll({ y: null });
   const capture = state.__ouroPaintCapture!;
   state.__ouroPaintCapture = async (clip) => {
-    const scrolled = await commands.squircleHostScroll(6);
+    const scrolled = await commands.squircleHostScroll({ y: 6 });
     expect(scrolled.scroll).toBeGreaterThan(0);
     expect(scrolled.top).toBeLessThan(0);
     const image = await capture(clip);
-    expect(await commands.squircleHostScroll(null)).toEqual(scrolled);
+    expect(await commands.squircleHostScroll({ y: null })).toEqual(scrolled);
     return image;
   };
   try {
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#surface");
   } finally {
     state.__ouroPaintCapture = capture;
-    await commands.squircleHostScroll(original.scroll);
+    await commands.squircleHostScroll({ y: original.scroll });
   }
 }, paintTimeout);
 

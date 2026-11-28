@@ -44,7 +44,7 @@ const squircleCapture: BrowserCommand<[PaintClip]> = async (ctx, clip) => {
   }
 };
 
-const squircleHostScroll: BrowserCommand<[number | null]> = async (ctx, y) => {
+const squircleHostScroll: BrowserCommand<[{ y: number | null }]> = async (ctx, { y }) => {
   if (y !== null) await ctx.page.evaluate((top) => window.scrollTo({ top, behavior: "instant" }), y);
   const scroll = await ctx.page.evaluate(() => scrollY);
   const bounds = await (await (await ctx.frame()).frameElement()).boundingBox();
@@ -67,7 +67,7 @@ export const squircleCommands = { squircleCapture, squircleHostScroll, cornerIma
 declare module "vitest/browser" {
   interface BrowserCommands {
     squircleCapture: (clip: PaintClip) => Promise<string>;
-    squircleHostScroll: (y: number | null) => Promise<{ scroll: number; top: number }>;
+    squircleHostScroll: (options: { y: number | null }) => Promise<{ scroll: number; top: number }>;
     cornerImageRoute: (options: { data: string | null }) => Promise<void>;
   }
 }
