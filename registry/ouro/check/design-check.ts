@@ -731,22 +731,10 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
       return rgba(style.backgroundColor)[3] > 0 || style.backgroundImage !== "none"
         || sideNames.some((side) => px(style.getPropertyValue(`border-${side}-width`)) >= 0.5);
     })) continue;
-    const gridPeers = /grid/.test(ps.display) ? children.map((el) => ({ el, r: el.getBoundingClientRect() })) : [];
+    const gridPeers = /grid/.test(ps.display) ? children.map((el) => el.getBoundingClientRect()) : [];
     for (const [index, { el: a, r: ar }] of panes.entries()) {
       for (const { el: b, r: br } of panes.slice(index + 1)) {
         if (optedOut(a, "pane-edge") || optedOut(b, "pane-edge")) continue;
-        if (gridPeers.length) {
-          const aBox = a.getBoundingClientRect();
-          const bBox = b.getBoundingClientRect();
-          const column = aBox.width >= bBox.width ? aBox : bBox;
-          const matchesColumn = (r: DOMRect) => Math.abs(r.width - column.width) <= 1 && Math.abs(r.height - column.height) <= 1;
-          const isGutter = (r: DOMRect) => r.width < column.width / 2 && Math.abs(r.height - column.height) <= 1;
-          const columns = gridPeers.filter(({ r }) => matchesColumn(r)).length;
-          const gutter = gridPeers.some(({ r }) => isGutter(r));
-          const gutterPair = (a.matches('[aria-hidden="true"]') && isGutter(aBox) && matchesColumn(bBox))
-            || (b.matches('[aria-hidden="true"]') && isGutter(bBox) && matchesColumn(aBox));
-          if (columns >= 3 && gutter && ((matchesColumn(aBox) && matchesColumn(bBox)) || gutterPair)) continue;
-        }
         const directions = [
           { first: a, second: b, f: ar, s: br, side: "right" as const, other: "left" as const, across: false },
           { first: b, second: a, f: br, s: ar, side: "right" as const, other: "left" as const, across: false },
@@ -759,6 +747,18 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
           return gap >= -0.5 && gap <= 3 && overlap >= 160;
         });
         if (!seam) continue;
+        if (gridPeers.length) {
+          const aBox = a.getBoundingClientRect();
+          const bBox = b.getBoundingClientRect();
+          const column = aBox.width >= bBox.width ? aBox : bBox;
+          const matchesColumn = (r: DOMRect) => Math.abs(r.width - column.width) <= 1 && Math.abs(r.height - column.height) <= 1;
+          const isGutter = (r: DOMRect) => r.width < column.width / 2 && Math.abs(r.height - column.height) <= 1;
+          const columns = gridPeers.filter(matchesColumn).length;
+          const gutter = gridPeers.some(isGutter);
+          const gutterPair = (a.matches('[aria-hidden="true"]') && isGutter(aBox) && matchesColumn(bBox))
+            || (b.matches('[aria-hidden="true"]') && isGutter(bBox) && matchesColumn(aBox));
+          if (columns >= 3 && gutter && ((matchesColumn(aBox) && matchesColumn(bBox)) || gutterPair)) continue;
+        }
         const { first, second, f, s, side, other, across } = seam;
         const at = across ? f.bottom : f.right;
         const from = across ? Math.max(f.left, s.left) : Math.max(f.top, s.top);
