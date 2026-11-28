@@ -7,7 +7,7 @@
         "data-expanded": {
           "kind": "motion",
           "parts": {
-            "frame": {"properties": ["clip-path"], "reduced": []},
+            "frame": {"properties": ["--ouro-composer-inset"], "reduced": []},
             "toolbar": {"properties": ["opacity", "transform"], "reduced": ["opacity"]}
           },
           "tests": ["registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded motion > clips and fades the box in over a moment, and only fades the toolbar in with reduced motion"]

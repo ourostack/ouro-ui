@@ -37,11 +37,13 @@ test("the files are plain CSS: no Tailwind at-rules, imports or nested rules", (
 test("ouro-base keeps every value of ouro-base.css, turns @theme inline into :root and leaves out its Tailwind utilities", () => {
   const source = readFileSync(join(repo, "registry/ouro/theme/ouro-base.css"), "utf8");
   const split = splitBase(source);
-  assert.deepEqual(split.utilities, ["rounded-full", "rounded-ouro-control", "rounded-ouro-control-md", "rounded-ouro-inner", "rounded-ouro-check", "press", "ouro-fade-end", "ouro-fade-start"]);
+  assert.deepEqual(split.utilities, ["rounded-full", "rounded-ouro-control", "rounded-ouro-control-md", "rounded-ouro-inner", "rounded-ouro-check", "press", "ouro-fade-end", "ouro-fade-start", "ouro-composer-clip"]);
   assert.deepEqual(
     split.keyframes.map((text) => /@keyframes\s+([\w-]+)/.exec(text)[1]),
-    ["ouro-spin", "ouro-composer-reveal", "ouro-composer-conceal", "ouro-composer-toolbar-in", "ouro-composer-toolbar-out", "ouro-composer-fade-in", "ouro-pulse", "ouro-progress", "ouro-skeleton-breathe", "ouro-hero-rise", "ouro-hero-fade", "ouro-moment-arrive"],
+    ["ouro-spin", "ouro-composer-reveal", "ouro-composer-conceal", "ouro-composer-toolbar-in", "ouro-composer-fade-in", "ouro-pulse", "ouro-progress", "ouro-skeleton-breathe", "ouro-hero-rise", "ouro-hero-fade", "ouro-moment-arrive"],
   );
+  assert.deepEqual(split.properties, ['@property --ouro-composer-inset {\n  syntax: "<length>";\n  inherits: false;\n  initial-value: 0;\n}']);
+  assert.ok(outputs["ouro-base.css"].includes(split.properties[0]), "ouro-base.css carries the registered properties");
   const css = outputs["ouro-base.css"];
   const root = parseBlocks(css.replace(/@media[^{]*\{[\s\S]*?\n\}/g, "").replace(/@(?:supports|container)[^{]*\{[\s\S]*?\n\}/g, "").replace(/@keyframes[\s\S]*$/, "")).find((block) => block.selector === ":root");
   const rootLines = declarations(root.body);
@@ -49,7 +51,7 @@ test("ouro-base keeps every value of ouro-base.css, turns @theme inline into :ro
     assert.ok(rootLines.includes(line), line);
   }
   for (const name of ["ouro-spin", "ouro-pulse", "ouro-progress", "ouro-skeleton-breathe"]) assert.ok(css.includes(`@keyframes ${name} {`), name);
-  assert.ok(css.includes("Tailwind utilities left out: rounded-full, rounded-ouro-control, rounded-ouro-control-md, rounded-ouro-inner, rounded-ouro-check, press, ouro-fade-end, ouro-fade-start."));
+  assert.ok(css.includes("Tailwind utilities left out: rounded-full, rounded-ouro-control, rounded-ouro-control-md, rounded-ouro-inner, rounded-ouro-check, press, ouro-fade-end, ouro-fade-start, ouro-composer-clip."));
   assert.equal(split.supports.length, 1);
   assert.match(split.supports[0], /^@supports \(corner-shape: squircle\) and \(clip-path: shape\(from 0 0, close\)\) \{\n {2}\[data-ouro-bite\] \{/);
   assert.ok(css.includes(split.supports[0]));
