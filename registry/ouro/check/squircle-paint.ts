@@ -194,7 +194,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     image.close();
     return { width: canvas.width, height: canvas.height, data: context.getImageData(0, 0, canvas.width, canvas.height).data };
   };
-  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, strokePads: { x: number; y: number }[], clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean, otherFragments: DOMRect[], fragmented: boolean, attributable: (x: number, y: number) => boolean, restored: string | null, withoutEffects: string | null, roundedEffects: boolean[], clippedEffects: boolean[]) => {
+  const differences = async (actual: string, masked: string, hidden: string, solo: string | null, withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, strokePads: { x: number; y: number }[], clip: PaintClip, rect: DOMRect, width: number, height: number, corners: Corner[], native: boolean, otherFragments: DOMRect[], fragmented: boolean, attributable: (x: number, y: number) => boolean, restored: string | null = null, withoutEffects: string | null = null, roundedEffects: boolean[] = []) => {
     const [a, b, c, own, noBadges, noStrokes, stable, noEffects] = await Promise.all([pixels(actual), pixels(masked), pixels(hidden), solo ? pixels(solo) : null, withoutBadges ? pixels(withoutBadges) : null, withoutStrokes ? pixels(withoutStrokes) : null, restored ? pixels(restored) : null, withoutEffects ? pixels(withoutEffects) : null]);
     if (a.width !== b.width || a.height !== b.height || a.width !== c.width || a.height !== c.height || (own && (a.width !== own.width || a.height !== own.height)) || (noBadges && (a.width !== noBadges.width || a.height !== noBadges.height)) || (noStrokes && (a.width !== noStrokes.width || a.height !== noStrokes.height)) || (stable && (a.width !== stable.width || a.height !== stable.height)) || (noEffects && (a.width !== noEffects.width || a.height !== noEffects.height))) {
       throw new Error("squircle-paint screenshots changed size during measurement");
@@ -265,7 +265,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const delta = difference(a.data, fragmented ? c.data : own && (native || outsideCorner) ? own.data : outsideCorner ? c.data : b.data, index);
           const behind = difference(b.data, c.data, index);
           if (delta < 2 || (!fragmented && !outsideCorner && behind > 4)) continue;
-          if ((outsideCorner || clippedEffects[cornerIndex]) && noEffects && roundedEffects[cornerIndex] && difference(a.data, noEffects.data, index) >= 2 && difference(noEffects.data, c.data, index) < 2) continue;
+          if (outsideCorner && noEffects && roundedEffects[cornerIndex] && difference(a.data, noEffects.data, index) >= 2 && difference(noEffects.data, c.data, index) < 2) continue;
           if (outsideCorner && difference(a.data, c.data, index) < 2) continue;
           if (!fragmented && outsideCorner && difference(a.data, b.data, index) < 2) continue;
           if (own && noStrokes && difference(a.data, noStrokes.data, index) >= 2 && difference(noStrokes.data, own.data, index) < 2 &&
@@ -690,12 +690,11 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               restore(layer.el, "opacity", layer.saved.get("opacity")!);
               restore(layer.el, "clip-path", layer.saved.get("clip-path")!);
             }
-            let clippedEffects: boolean[] = [];
             const compare = async (withoutBadges: string | null, badges: DOMRect[], withoutStrokes: string | null, restored: string | null = null, withoutEffects: string | null = null, roundedEffects: boolean[] = []) => {
               try {
                 for (const fragment of fragments) {
                   const otherFragments = fragments.filter((other) => other !== fragment).map((other) => other.rect);
-                  const result = await differences(actual, masked, hidden, solo, withoutBadges, badges, withoutStrokes, strokes, clip, fragment.rect, fragment.width, fragment.height, fragment.corners, initial.native, otherFragments, fragmented, attributable, restored, withoutEffects, roundedEffects, clippedEffects);
+                  const result = await differences(actual, masked, hidden, solo, withoutBadges, badges, withoutStrokes, strokes, clip, fragment.rect, fragment.width, fragment.height, fragment.corners, initial.native, otherFragments, fragmented, attributable, restored, withoutEffects, roundedEffects);
                   if (result) return { ...result, x: Math.round(result.x + fragment.rect.left - r.left), y: Math.round(result.y + fragment.rect.top - r.top) };
                 }
                 return null;
@@ -732,27 +731,6 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
                 return length(x!, width) * rect.width / width + 0.5 >= corner.x * scaleX * 0.543 &&
                   length(y!, height) * rect.height / height + 0.5 >= corner.y * scaleY * 0.543;
               }));
-              const original = el.getAttribute("style");
-              const normalized = el.style.cssText;
-              const pointer = save(el, "pointer-events");
-              try {
-                el.style.setProperty("pointer-events", "auto", "important");
-                // This point lies inside the fallback circle but outside the squircle.
-                const fraction = 0.015;
-                const circle = 0.543 - Math.sqrt(0.543 ** 2 - (0.543 - fraction) ** 2);
-                const squircle = 1 - (1 - (1 - fraction) ** 4) ** 0.25;
-                clippedEffects = initial.corners.map((corner, index) => {
-                  if (!ownEffects || corner.native) return true;
-                  const dx = fraction * corner.x * scaleX;
-                  const dy = (circle + squircle) / 2 * corner.y * scaleY;
-                  const x = index === 0 || index === 3 ? r.left + dx : r.right - dx;
-                  const y = index < 2 ? r.top + dy : r.bottom - dy;
-                  return x >= 0 && y >= 0 && x < innerWidth && y < innerHeight && !document.elementsFromPoint(x, y).includes(el);
-                });
-              } finally {
-                restore(el, "pointer-events", pointer);
-                restoreStyle(el, original, normalized);
-              }
               try {
                 // Repaint the restored surface before removing effects; Chromium can otherwise capture the previous mask.
                 await capture(clip);
