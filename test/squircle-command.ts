@@ -24,10 +24,21 @@ const squircleCapture: BrowserCommand<[PaintClip]> = async (ctx, clip) => {
   return `data:image/png;base64,${image.toString("base64")}`;
 };
 
-export const squircleCommands = { squircleCapture };
+const cornerImageRoute: BrowserCommand<[{ data: string | null }]> = async (ctx, { data }) => {
+  const url = "https://images.invalid/picture.png";
+  await ctx.page.unroute(url);
+  if (data !== null) {
+    await ctx.page.route(url, (route) => route.fulfill({
+      status: 200, contentType: "image/png", body: Buffer.from(data.split(",")[1]!, "base64"),
+    }));
+  }
+};
+
+export const squircleCommands = { squircleCapture, cornerImageRoute };
 
 declare module "vitest/browser" {
   interface BrowserCommands {
     squircleCapture: (clip: PaintClip) => Promise<string>;
+    cornerImageRoute: (options: { data: string | null }) => Promise<void>;
   }
 }
