@@ -351,7 +351,7 @@ function Screen(): JSX.Element {
             ))}
           </div>
         ) : (
-          <div className="h-full" style={narrow ? undefined : { minWidth: "36rem" }}>
+          <div className="h-full [--ouro-scroller-surface:var(--accent)]" style={narrow ? undefined : { minWidth: "36rem" }}>
           <TimeGrid
             label={label}
             date={date}

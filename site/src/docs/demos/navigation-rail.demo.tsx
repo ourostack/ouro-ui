@@ -35,7 +35,7 @@ export default function NavigationRailDemo(): JSX.Element {
           ...pages.slice(3).map(({ id, label, path }) => ({ label, icon: line(path), currentIcon: solid(path), current: view === id, onClick: () => setView(id) })),
         ]}
       />
-      <div className="m-2 ms-0 flex-1 rounded-lg border border-border bg-background p-4">
+      <div className="m-2 ms-0 flex-1 rounded-lg bg-background p-4">
         <Text>{pages.find((page) => page.id === view)!.label}</Text>
       </div>
     </div>
