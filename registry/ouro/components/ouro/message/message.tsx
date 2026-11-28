@@ -1193,9 +1193,9 @@ export function Message(props: MessageProps): JSX.Element {
               end ? "items-end" : "items-start",
               post && postRow,
               // The bar beside the bubble is absolutely positioned level with its top, so a bubble shorter than the bar
-              // (36px, 40px below the button's sm: breakpoint) would let it overflow past the row's own bottom edge,
-              // eating into the gap below: reserve the bar's height so a short bubble's row is never shorter than it (#3617).
-              !post && room && beside !== undefined && "min-h-10 sm:min-h-9",
+              // would let it overflow into the gap below: reserve its button's height, padding and forced-colour border.
+              !post && room && beside !== undefined &&
+                "min-h-[calc(max(var(--ouro-message-action-h),var(--ouro-size-6))_+_2*max(var(--spacing),4px)_+_var(--ouro-message-action-border))] [--ouro-message-action-h:calc(var(--spacing)*9)] [--ouro-message-action-border:0px] sm:[--ouro-message-action-h:calc(var(--spacing)*8)] forced-colors:[--ouro-message-action-border:2px]",
             )}
           >
             {contentBox}

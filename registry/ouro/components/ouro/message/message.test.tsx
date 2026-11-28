@@ -2247,10 +2247,14 @@ describe("Message actions", () => {
         await page.viewport(width, height);
         for (const spacing of ["0.25rem", "0.2rem"]) {
           host.style.setProperty("--spacing", spacing);
-          expect(box(rowOf(message)).height).toBeGreaterThanOrEqual(box(barOf(message)).height);
+          for (const forcedColors of ["none", "active"] as const) {
+            await commands.emulateMedia({ forcedColors });
+            expect(box(rowOf(message)).height).toBeGreaterThanOrEqual(box(barOf(message)).height);
+          }
         }
       }
     } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
       await page.viewport(390, 844);
     }
     const { message: bare } = await render(<Message variant="chat" role="assistant" name="Mara Quill" actionsPlacement="beside" attachments={<Attachment name="menu.pdf" />} />);
