@@ -3310,16 +3310,21 @@ jobs:
       # The prepared app is a function of the files below, so a commit that changes none of them
       # restores the app an earlier commit prepared and checked (a cache is saved only by a job that
       # passed), and the prepare steps are skipped. A commit that changes some restores the newest
-      # earlier app built from the same install scripts and fixture (the restore key), and the add
+      # earlier app built from the same install scripts and the fixtures its variants read (the restore
+      # key, whose narrow hash leads the key so it is a prefix of what main saves), and the add
       # below installs again only the items whose built content changed (scripts/install-delta.mjs).
+      # The last two restore keys are the earlier, wider ones, so the apps main saved before the narrower
+      # one existed still restore.
       # Only main saves these caches (every save in this job checks for main): a pull request
       # restores them, and a cache a pull request saves is readable by that pull request alone.
       - id: prepared
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/app.tar.zst
-          key: install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-${{ hashFiles('scripts/install-delta.mjs') }}-${{ hashFiles('registry/**', 'docs/**', 'test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/readme-steps.mjs', 'scripts/shard.mjs', 'scripts/test-impact.mjs', 'scripts/upgrade-note.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml', 'README.md', 'UPGRADING.md') }}
+          key: install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture/**', 'test/install-fixture-tests/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-${{ hashFiles('scripts/install-delta.mjs') }}-${{ hashFiles('registry/**', 'docs/**', 'test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/readme-steps.mjs', 'scripts/shard.mjs', 'scripts/test-impact.mjs', 'scripts/upgrade-note.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml', 'README.md', 'UPGRADING.md') }}
           restore-keys: |
+            install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture/**', 'test/install-fixture-tests/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-${{ hashFiles('scripts/install-delta.mjs') }}-
+            install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture/**', 'test/install-fixture-tests/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-
             install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-${{ hashFiles('scripts/install-delta.mjs') }}-
             install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-
       # npm's download cache, seeded from the newest earlier one, so a changed registry file does not

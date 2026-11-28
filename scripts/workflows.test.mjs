@@ -4123,6 +4123,21 @@ fi
   }
 });
 
+test("install prep's restore key reads only the fixtures its variants build from, so a change to another fixture still restores the earlier app", () => {
+  const block = ciJobs()["install-prep"];
+  const key = block.match(/key: (install-app-[^\n]*)/)[1];
+  const restore = block.split("restore-keys: |")[1].split("\n").filter((line) => line.trim().startsWith("install-app-")).map((line) => line.trim());
+  assert.equal(restore.length, 4);
+  for (const narrow of restore.slice(0, 2)) {
+    assert.ok(restore[0].startsWith(narrow.slice(0, narrow.indexOf("}}-") + 3)), "the narrow restore keys share the key's leading narrow hash");
+    assert.ok(narrow.includes("'test/install-fixture/**', 'test/install-fixture-tests/**'"), "they read the bare app and the shipped tests' setup");
+    for (const other of ["install-fixture-next", "install-fixture-upgrade", "install-fixture-themes", "install-fixture*"]) assert.ok(!narrow.includes(other), `the narrow restore key does not read ${other}`);
+  }
+  assert.ok(key.startsWith(restore[1].slice(0, -1)), "the narrow restore key is a prefix of the key, so it is one of what main saves");
+  assert.ok(restore.slice(2).every((line) => line.includes("'test/install-fixture*/**', 'scripts/install-test.sh'")), "the earlier, wider restore keys stay, so apps saved before still restore");
+  assert.ok(key.includes("'test/install-fixture*/**'"), "the exact key still reads every fixture");
+});
+
 test("install prep runs on a push to main whose tree passed, so main saves the prepared app the merge queue restores", () => {
   const block = ciJobs()["install-prep"];
   assert.doesNotMatch(block.match(/^ {4}if: (.+)$/m)[1], /tested/);
