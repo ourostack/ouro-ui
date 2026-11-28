@@ -160,6 +160,7 @@ describe("Ouro check's design rules", () => {
     assert.ok(findings.every((finding) => finding.page.includes("broken.html") && finding.gated));
     assert.deepEqual(new Set(findings.map(({ width, theme }) => `${width} ${theme}`)), new Set(["390 light", "390 dark", "1280 light", "1280 dark"]));
     assert.ok(findings.every((finding) => /\): .*theme surface tokens/.test(caption(finding))));
+    assert.ok(findings.every((finding) => /for mismatched corners, .*radius/.test(caption(finding))));
   });
 
   test("reports edge findings with their fixes at both sizes and themes", async () => {
