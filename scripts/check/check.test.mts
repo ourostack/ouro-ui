@@ -35,6 +35,11 @@ describe("Ouro check", () => {
     assert.deepEqual(result.findings.filter((f) => f.rule === "cut-off-edge"), []);
   });
 
+  test("the off-screen pass fixture gives its horizontal scroller a distinct surface", async () => {
+    const result = await check({ targets: [fixtures], pages: "off-screen-pass.html", out: dir("off-screen-edge"), sizes: two, themes: ["light"], measured: false, chromium, log: quiet });
+    assert.deepEqual(result.findings.filter((f) => f.rule === "cut-off-edge"), []);
+  });
+
   test("fragment-focus passes fragmentFocusScript as the item ships it, first in <body>, and names a copy a script adds to <head> as the page streams", async () => {
     // The pass page carries the item's own script, so the rule is tested against what apps install.
     assert.ok(readFileSync(join(fixtures, "fragment-focus-pass.html"), "utf8").includes(`<script>${fragmentFocusScript()}</script>`));
