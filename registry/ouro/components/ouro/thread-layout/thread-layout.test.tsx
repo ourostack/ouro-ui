@@ -134,7 +134,7 @@ describe("ThreadLayout", () => {
       const pane = host.querySelector<HTMLElement>("[data-ouro-thread-layout-conversation]")!;
       const railScroller = () => host.querySelector<HTMLElement>('[data-ouro="thread-rail"] [data-ouro-message-list-scroller]')!;
       const surface = document.createElement("div");
-      surface.style.backgroundColor = "var(--muted)";
+      surface.style.backgroundColor = "var(--background)";
       host.append(surface);
       expect(getComputedStyle(pane).backgroundColor).toBe(getComputedStyle(surface).backgroundColor);
       expect(getComputedStyle(pane).backgroundColor).not.toBe(getComputedStyle(railScroller()).backgroundColor);

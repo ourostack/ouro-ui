@@ -155,7 +155,7 @@ const iconClass = "size-[1.25em] shrink-0";
  * @internal
  */
 const overflowScrollerClass = cn(
-  "flex-nowrap overflow-x-auto overflow-y-hidden overscroll-x-contain " +
+  "flex-nowrap overflow-x-auto overflow-y-hidden overscroll-x-contain bg-muted " +
     "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden " +
     "forced-colors:rounded-ouro-md forced-colors:outline-1 forced-colors:outline-solid forced-colors:-outline-offset-1",
 );

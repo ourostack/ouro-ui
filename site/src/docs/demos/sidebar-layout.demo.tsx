@@ -13,7 +13,7 @@ export default function SidebarLayoutDemo(): JSX.Element {
     <div className="h-96 w-full overflow-auto">
       <SidebarLayout
         as="div"
-        className="min-h-96"
+        className="min-h-96 sm:[&_[data-ouro-sidebar-layout-sidebar]]:h-96"
         sidebar={
           <div className="h-96">
             <Sidebar
