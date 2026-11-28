@@ -201,21 +201,34 @@ it("reports an image position the browser cannot resolve", async () => {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 20;
   canvas.getContext("2d")!.fillRect(0, 0, 20, 20);
-  const root = render(`<div style="position:relative;width:160px;height:120px;background:#345;border-radius:24px;corner-shape:squircle"><img alt="" src="${canvas.toDataURL()}" style="position:absolute;inset:4px;width:152px;height:112px"></div>`);
+  const root = render(`<div style="position:relative;width:160px;height:120px;background:#345;border-radius:24px;corner-shape:squircle"><img alt="" src="${canvas.toDataURL()}" style="position:absolute;inset:4px;width:152px;height:112px;object-fit:contain"></div>`);
   const image = root.querySelector("img")!;
   await image.decode();
   const computed = window.getComputedStyle.bind(window);
+  let position = "left top";
   const spy = vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
     const style = computed(element, pseudo);
     return element === image ? new Proxy(style, {
       get(target, property) {
-        if (property === "objectPosition") return "unresolved-position";
+        if (property === "objectPosition") return position;
         const value = Reflect.get(target, property, target);
         return typeof value === "function" ? value.bind(target) : value;
       },
     }) : style;
   });
   try {
+    image.style.objectPosition = position;
+    expect(findCornerIssues()[0]?.detail).toContain("top left");
+    position = "right bottom";
+    image.style.objectPosition = position;
+    expect(findCornerIssues()[0]?.detail).toContain("bottom right");
+    position = "center center";
+    image.style.objectPosition = position;
+    expect(findCornerIssues()).toEqual([]);
+    position = "right 5px bottom 5px";
+    image.style.objectPosition = position;
+    expect(findCornerIssues()).toEqual([]);
+    position = "unresolved-position";
     expect(findCornerIssues()[0]?.detail).toContain("cannot resolve the image's object-position");
   } finally {
     spy.mockRestore();
@@ -739,6 +752,13 @@ it("checks a clipped squircle partly outside the viewport", async () => {
   }
 }, paintTimeout);
 
+it("captures paint at the bottom edge of the test viewport", async () => {
+  const root = render('<div id="surface" style="position:relative;width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"><div style="position:absolute;inset:0;background:#f40"></div></div>');
+  root.style.top = "auto";
+  root.style.bottom = "0";
+  expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#surface");
+}, paintTimeout);
+
 it("restores the surface when its screenshot capture fails", async () => {
   const root = render('<div id="surface" style="width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle"></div>');
   const surface = root.querySelector<HTMLElement>("#surface")!;
@@ -835,6 +855,28 @@ it("does not attribute changing background pixels outside the box to a surface",
   };
   const captures = ["red", "blue", "green"];
   state.__ouroPaintCapture = async (clip) => image(captures.shift()!, clip);
+  try {
+    expect(await findSquirclePaint()).toEqual([]);
+  } finally {
+    state.__ouroPaintCapture = (clip) => commands.squircleCapture(clip);
+  }
+});
+
+it("does not attribute a shadow probe's background difference to the surface", async () => {
+  render('<div style="width:160px;height:120px;background:#fff;border-radius:28px;corner-shape:squircle;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px;box-shadow:0 4px 12px #0008"></div>');
+  const image = (clip: PaintClip, outside: string) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = clip.width;
+    canvas.height = clip.height;
+    const context = canvas.getContext("2d")!;
+    context.fillStyle = "white";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = outside;
+    context.fillRect(2, 2, 8, 8);
+    return canvas.toDataURL("image/png");
+  };
+  const captures = ["red", "blue", "red", "red"];
+  state.__ouroPaintCapture = async (clip) => image(clip, captures.shift()!);
   try {
     expect(await findSquirclePaint()).toEqual([]);
   } finally {

@@ -7,7 +7,7 @@ const squircleCapture: BrowserCommand<[PaintClip]> = async (ctx, clip) => {
   const frameElement = await frame.frameElement();
   const bounds = await frameElement.boundingBox();
   if (!bounds) throw new Error("The test frame has no visible bounds.");
-  const viewport = await frame.evaluate(() => ({ width: innerWidth, height: innerHeight }));
+  const viewport = await frame.evaluate(() => ({ width: innerWidth, height: innerHeight, dpr: devicePixelRatio }));
   const scaleX = bounds.width / viewport.width;
   const scaleY = bounds.height / viewport.height;
   const image = await ctx.page.screenshot({
@@ -21,6 +21,10 @@ const squircleCapture: BrowserCommand<[PaintClip]> = async (ctx, clip) => {
       height: clip.height * scaleY,
     },
   });
+  const actual = { width: image.readUInt32BE(16), height: image.readUInt32BE(20) };
+  if (![1, viewport.dpr].some((scale) => Math.abs(actual.width - clip.width * scale) <= 1 && Math.abs(actual.height - clip.height * scale) <= 1)) {
+    throw new Error(`Test-frame capture did not cover its clip: ${JSON.stringify({ clip, bounds, viewport, page: ctx.page.viewportSize(), actual })}`);
+  }
   return `data:image/png;base64,${image.toString("base64")}`;
 };
 
