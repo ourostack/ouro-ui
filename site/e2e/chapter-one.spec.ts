@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { CHAPTER_TWO } from "../src/voyage/chapters/chapter-two-copy";
 import { ARTICLES, CHAPTER_ONE, CHAPTER_ONE_CONTROLS, CODE_SHEETS, codeLines, CREW, EXPEDITION, ONWARD, PARTS, SHIPYARD, SIGN, START_ORDER, YARD, type PartId, type SheetCopy } from "../src/voyage/chapters/copy";
-import { railStaysInView } from "./chapters";
+import { railStaysInView, scrollSettled } from "./chapters";
 import { diagnostics, watchHang } from "./diagnostics";
 import { watchToasts } from "./toasts";
 
@@ -26,24 +26,6 @@ async function open(page: Page): Promise<void> {
   await page.locator("#chapter-one").scrollIntoViewIfNeeded();
   await expect(page.locator("#chapter-one[data-chapter-ready]")).toBeAttached();
   await scrollSettled(page);
-}
-
-/** Waits until the page stops scrolling: the site scrolls smoothly, and the sticky header moves with it until it lands, so a press that starts mid-scroll ends on the header's wrapper, not the control. */
-async function scrollSettled(page: Page): Promise<void> {
-  await page.evaluate(
-    () =>
-      new Promise<void>((resolve) => {
-        let last = scrollY;
-        let still = 0;
-        const frame = () => {
-          still = scrollY === last ? still + 1 : 0;
-          last = scrollY;
-          if (still >= 30) resolve();
-          else requestAnimationFrame(frame);
-        };
-        requestAnimationFrame(frame);
-      }),
-  );
 }
 
 const shipyard = (page: Page) => page.locator("[data-composition='shipyard']");

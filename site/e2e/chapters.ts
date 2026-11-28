@@ -5,12 +5,31 @@ import { diagnostics } from "./diagnostics";
 // What the chapters' end-to-end specs share: opening the voyage at a chapter once it has hydrated,
 // a composition's Code sheet, and the census of operable elements.
 
-/** Opens the voyage and scrolls to a chapter, waiting for it to hydrate. */
+/** Opens the voyage and scrolls to a chapter, waiting for it to hydrate and for the page to stop scrolling. */
 export async function openChapter(page: Page, id: string): Promise<void> {
   await page.goto("nautilus/");
   await expect(page.locator("html[data-site-ready]")).toBeAttached();
   await page.locator(`#${id}`).scrollIntoViewIfNeeded();
   await expect(page.locator(`#${id}[data-chapter-ready]`)).toBeAttached();
+  await scrollSettled(page);
+}
+
+/** Waits until the page stops scrolling: the site scrolls smoothly, and the sticky header moves with it until it lands, so a press that starts mid-scroll ends on the header's wrapper, not the control. */
+export async function scrollSettled(page: Page): Promise<void> {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        let last = scrollY;
+        let still = 0;
+        const frame = () => {
+          still = scrollY === last ? still + 1 : 0;
+          last = scrollY;
+          if (still >= 30) resolve();
+          else requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+      }),
+  );
 }
 
 /**
