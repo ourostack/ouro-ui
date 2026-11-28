@@ -70,6 +70,8 @@ export interface OuroStoryParameters {
   mode?: string;
   /** Storybook's layout: the frame Ouro check gives the story (`fullscreen` none, the others 1rem of padding). */
   layout?: string;
+  /** Hold a continuously updating story's intervals while checking its shown state. */
+  ouroCheck?: { holdIntervals?: boolean };
   conformance?: ConformanceParameters;
 }
 

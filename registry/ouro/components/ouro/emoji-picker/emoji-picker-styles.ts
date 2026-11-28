@@ -178,10 +178,10 @@ const toneOptionClass =
 const bodyClass = "relative grid min-h-0 grid-cols-[minmax(0,1fr)] gap-2";
 
 /** The grid's scrolling area, as tall as its rows. @internal */
-const scrollerClass = "relative box-border h-full min-h-0 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]";
+const scrollerClass = "relative box-border h-full min-h-0 overflow-y-auto overscroll-contain bg-muted dark:bg-background [scrollbar-gutter:stable]";
 
 /** A category's heading, which stays at the top while its emoji scroll under it. @internal */
-const headingClass = "sticky top-0 z-1 m-0 bg-popover px-1 py-1 text-xs leading-4 font-medium text-muted-foreground";
+const headingClass = "sticky top-0 z-1 m-0 bg-muted dark:bg-background px-1 py-1 text-xs leading-4 font-medium text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))]";
 
 /**
  * A category's emoji, eight to a row. @internal

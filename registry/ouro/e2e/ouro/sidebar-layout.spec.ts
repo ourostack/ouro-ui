@@ -16,7 +16,7 @@ test("the sidebar layout starts with a skip link that moves focus to the page", 
 test("on a phone the sidebar layout shows a top bar whose menu button opens the sidebar", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openStory(page, "navigation-sidebarlayout--in-context");
-  await expect(page.getByText("Kitchen of Ari")).toBeVisible();
+  await expect(page.getByText("My kitchen")).toBeVisible();
   await page.getByRole("button", { name: "Menu" }).click();
   await expect(page.getByRole("dialog").getByRole("link", { name: "Cookbooks" })).toBeVisible();
 });

@@ -127,6 +127,129 @@ async function settled() {
 }
 
 describe("Sidebar", () => {
+  it("leaves no empty header when none is supplied", async () => {
+    const { nav } = await render(<Sidebar label="Main" collapsible={false} sections={[{ items: [{ label: "Inbox", href: "/inbox" }] }]} />);
+    expect(nav!.children).toHaveLength(1);
+    expect(nav!.firstElementChild?.hasAttribute("data-ouro-sidebar-scroll")).toBe(true);
+  });
+
+  it("uses a surface step, not a line, beside the page and at its scrolling edges", async () => {
+    const { nav } = await render(<Sidebar label="Main" sections={[{ items: [{ label: "Inbox", href: "/inbox", badge: 12 }] }]} header="Search" footer="Account" />);
+    const sample = document.createElement("span");
+    nav!.append(sample);
+    sample.style.backgroundColor = "var(--accent)";
+    const paneSurface = getComputedStyle(sample).backgroundColor;
+    expect(getComputedStyle(nav!).backgroundColor).toBe(paneSurface);
+    expect(getComputedStyle(nav!).borderInlineEndWidth).toBe("0px");
+    sample.style.backgroundColor = "var(--background)";
+    const pageSurface = getComputedStyle(sample).backgroundColor;
+    sample.remove();
+    const scroller = nav!.querySelector<HTMLElement>("[data-ouro-sidebar-scroll]")!;
+    expect(getComputedStyle(scroller).backgroundColor).toBe(paneSurface);
+    expect(getComputedStyle(scroller.previousElementSibling!).backgroundColor).toBe(pageSurface);
+    expect(getComputedStyle(scroller.nextElementSibling!).backgroundColor).toBe(pageSurface);
+    const link = page.getByRole("link", { name: "Inbox 12" }).element();
+    expect(getComputedStyle(link.querySelector("[data-ouro-sidebar-badge]")!).backgroundColor).toBe(pageSurface);
+    await userEvent.hover(link);
+    await expect.poll(() => getComputedStyle(link).backgroundColor).toBe(pageSurface);
+    const collapse = page.getByRole("button", { name: "Collapse sidebar" });
+    await userEvent.hover(collapse);
+    await expect.poll(() => getComputedStyle(collapse.element()).backgroundColor).toBe(paneSurface);
+    await commands.emulateMedia({ forcedColors: "active" });
+    try {
+      expect(parseFloat(getComputedStyle(nav!).borderInlineEndWidth)).toBeGreaterThan(0);
+    } finally {
+      await commands.emulateMedia({ forcedColors: "none" });
+    }
+  });
+
+  it("uses the muted badge and accent hover on the drawer's page surface", async () => {
+    await page.viewport(390, 844);
+    await render(<Sidebar label="Main" sections={[{ items: [{ label: "Inbox", href: "/inbox", badge: 12 }] }]} />);
+    await userEvent.click(page.getByRole("button", { name: "Menu", exact: true }));
+    const dialog = page.getByRole("dialog");
+    await expect.element(dialog).toBeVisible();
+    const link = dialog.getByRole("link", { name: "Inbox 12" });
+    const sample = document.createElement("span");
+    dialog.element().append(sample);
+    sample.style.backgroundColor = "var(--muted)";
+    const muted = getComputedStyle(sample).backgroundColor;
+    sample.style.backgroundColor = "var(--accent)";
+    const accent = getComputedStyle(sample).backgroundColor;
+    sample.style.color = "var(--accent-foreground)";
+    const accentForeground = getComputedStyle(sample).color;
+    sample.remove();
+    expect(getComputedStyle(link.element().querySelector("[data-ouro-sidebar-badge]")!).backgroundColor).toBe(muted);
+    await userEvent.hover(link);
+    await expect.poll(() => getComputedStyle(link.element()).backgroundColor).toBe(accent);
+    await expect.poll(() => getComputedStyle(link.element()).color).toBe(accentForeground);
+  });
+
+  for (const place of ["column", "drawer"] as const) {
+    it(`keeps group and nested-item highlights distinct on the ${place} surface`, async () => {
+      if (place === "drawer") await page.viewport(390, 844);
+      const sections = [{ items: [{ label: "Collection", badge: 3, items: [{ label: "Notes", href: "/notes", badge: 9 }, { label: "Add note", onClick: () => {}, badge: 4 }] }] }];
+      const { nav } = await render(<Sidebar label="Main" sections={sections} />);
+      let scope = nav!;
+      if (place === "drawer") {
+        await userEvent.click(page.getByRole("button", { name: "Menu", exact: true }));
+        const dialog = page.getByRole("dialog");
+        await expect.element(dialog).toBeVisible();
+        scope = dialog.element() as HTMLElement;
+      }
+
+      const sample = document.createElement("span");
+      scope.append(sample);
+      const background = (token: string) => {
+        sample.style.backgroundColor = `var(--${token})`;
+        return getComputedStyle(sample).backgroundColor;
+      };
+      const highlight = background(place === "column" ? "background" : "accent");
+      const badge = background(place === "column" ? "background" : "muted");
+      sample.remove();
+
+      const group = scope.querySelector<HTMLElement>('[data-ouro-part="group"]')!;
+      expect(getComputedStyle(group.querySelector("[data-ouro-sidebar-badge]")!).backgroundColor).toBe(badge);
+      await userEvent.hover(group);
+      await expect.poll(() => getComputedStyle(group).backgroundColor).toBe(highlight);
+      await userEvent.click(group);
+      const children = scope.querySelectorAll<HTMLElement>('[data-ouro-part="link"], [data-ouro-part="button"]');
+      expect(children).toHaveLength(2);
+      for (const child of children) {
+        expect(getComputedStyle(child.querySelector("[data-ouro-sidebar-badge]")!).backgroundColor).toBe(badge);
+        await userEvent.hover(child);
+        await expect.poll(() => getComputedStyle(child).backgroundColor).toBe(highlight);
+      }
+    });
+  }
+
+  it("keeps a collapsed group's icon and highlight on the rail surface", async () => {
+    const sections = [{ items: [{ label: "Collection", badge: 3, items: [{ label: "Notes", href: "/notes", badge: 9 }] }] }];
+    const { nav } = await render(<Sidebar label="Main" sections={sections} defaultCollapsed />);
+    const group = nav!.querySelector<HTMLElement>('[data-ouro-part="group"]')!;
+    const label = [...group.querySelectorAll<HTMLElement>("span")].find((span) => span.textContent === "Collection")!;
+    expect(group.querySelector('[aria-hidden="true"]')?.textContent).toBe("C");
+    expect(label.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+    expect(group.querySelector<HTMLElement>("[data-ouro-sidebar-badge]")!.getBoundingClientRect().width).toBeLessThanOrEqual(1);
+    const sample = document.createElement("span");
+    sample.style.backgroundColor = "var(--background)";
+    nav!.append(sample);
+    const highlight = getComputedStyle(sample).backgroundColor;
+    sample.remove();
+    await userEvent.hover(group);
+    await expect.poll(() => getComputedStyle(group).backgroundColor).toBe(highlight);
+    await userEvent.click(group);
+    const menu = page.getByRole("menu");
+    const item = menu.getByRole("menuitem", { name: "Notes 9" });
+    await expect.element(item).toBeVisible();
+    menu.element().append(sample);
+    sample.style.backgroundColor = "var(--muted)";
+    const badgeSurface = getComputedStyle(sample).backgroundColor;
+    sample.remove();
+    const badge = [...item.element().querySelectorAll<HTMLElement>("span")].find((span) => span.textContent === "9")!;
+    expect(getComputedStyle(badge).backgroundColor).toBe(badgeSurface);
+  });
+
   it("keeps its fixed sizes at a compact --spacing: the current bar, a group's chevron and the collapse button's icon", async () => {
     const { host } = await render(
       <Sidebar label="Main" sections={[{ items: [{ label: "Recipes", href: "/recipes" }, { label: "Library", items: [{ label: "Cookbooks", href: "/cookbooks" }] }] }]} currentPath="/recipes" />,

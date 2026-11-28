@@ -148,31 +148,32 @@ export interface SidebarProps {
 
 // Class strings are literal so the app's Tailwind finds them when it compiles.
 
-// The column: --ouro-sidebar-w, which the app may set on the Sidebar or around it, else 16rem; or a rail (a 44px target,
-// its padding and the border) when collapsed. The width changes at once: layout does not animate.
+// The column: --ouro-sidebar-w, which the app may set on the Sidebar or around it, else 16rem; or a rail when
+// collapsed. The rail keeps its former width, and the width changes at once: layout does not animate.
 const column =
-  "box-border flex h-full w-[var(--ouro-sidebar-w,16rem)] flex-col overflow-hidden border-0 border-e border-solid border-border bg-background text-foreground " +
+  "box-border flex h-full w-[var(--ouro-sidebar-w,16rem)] flex-col overflow-hidden border-0 bg-accent text-foreground " +
+  "forced-colors:border-e forced-colors:border-solid " +
   "data-collapsed:w-[calc(3.75rem+1px)] max-sm:hidden";
 
-// A count or tag at the row's end. Its muted text is mixed 20% toward the foreground, so it keeps
-// 4.5:1 on the muted tag under shadcn's stock values too (plain text-muted-foreground is 4.34:1).
-const badgeClass = "ms-auto shrink-0 rounded-ouro-sm bg-muted px-1.5 text-xs leading-5 font-medium text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] tabular-nums";
+// A count or tag at the row's end, distinct from the column's surface and the drawer's background.
+const badgeClass = "ms-auto shrink-0 rounded-ouro-sm px-1.5 text-xs leading-5 font-medium text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] tabular-nums";
 // A badge given as an element (`badge: <Badge>Idle</Badge>`) brings its own look, so it sits bare at the row's end (the label
 // takes the room before it):
 // the muted tag drawn around it too would be a frame in a frame, its corners off by the inner radius.
-const badgeSlot = (badge: ReactNode) => (isValidElement(badge) ? undefined : badgeClass);
+const badgeSlot = (badge: ReactNode, onAccent?: boolean) => (isValidElement(badge) ? undefined : cn(badgeClass, onAccent ? "bg-background" : "bg-muted"));
 
 // A row: 44px with 16px text on a coarse pointer at every width, 36px with 14px text with a
 // fine one. A full-width row highlights while pressed instead of scaling.
 const row =
   "relative m-0 box-border flex w-full min-h-ouro-11 pointer-fine:min-h-9 cursor-pointer items-center gap-3 rounded-ouro-md border-0 forced-colors:border forced-colors:border-solid bg-transparent px-3 py-2 " +
-  "text-start font-[inherit] text-base pointer-fine:text-sm leading-5 font-medium text-muted-foreground no-underline select-none touch-manipulation " +
+  "text-start font-[inherit] text-base pointer-fine:text-sm leading-5 font-medium text-[color-mix(in_oklab,var(--muted-foreground)_80%,var(--foreground))] no-underline select-none touch-manipulation " +
   "[-webkit-tap-highlight-color:transparent] transition-colors duration-(--ouro-duration-fast) ease-[ease] " +
-  "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground active:bg-accent active:text-accent-foreground " +
+  "pointer-fine:hover:bg-background pointer-fine:hover:text-foreground active:bg-background active:text-foreground " +
   "aria-[current=page]:font-semibold aria-[current=page]:text-foreground " +
   "aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-2 aria-[current=page]:before:start-0 aria-[current=page]:before:w-ouro-0_5 aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-current aria-[current=page]:before:content-[''] " +
   "forced-colors:aria-[current=page]:before:border-s-2 forced-colors:aria-[current=page]:before:border-solid forced-colors:aria-[current=page]:before:border-current " +
   "outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid";
+const rowOnPage = "pointer-fine:hover:bg-accent pointer-fine:hover:text-accent-foreground active:bg-accent active:text-accent-foreground";
 const railRow = "justify-center px-0";
 const iconSlot = "flex size-ouro-5 shrink-0 items-center justify-center text-sm [&_svg]:size-ouro-5 [&_svg]:shrink-0";
 const list = "m-0 grid grid-cols-1 list-none gap-1 p-0";
@@ -302,7 +303,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
 
   const id = useId();
   /** One row's inside: icon (or the rail's letter), label and badge. */
-  const rowContent = (item: SidebarItem, rail: boolean) => (
+  const rowContent = (item: SidebarItem, rail: boolean, onAccent?: boolean) => (
     <>
       {(item.icon !== undefined || rail) && (
         <span aria-hidden="true" className={iconSlot}>
@@ -313,7 +314,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
       {item.badge !== undefined && (
         <>
           {" "}
-          <span data-ouro-sidebar-badge="" className={rail ? "sr-only" : badgeSlot(item.badge)}>
+          <span data-ouro-sidebar-badge="" className={rail ? "sr-only" : badgeSlot(item.badge, onAccent)}>
             {item.badge}
           </span>
         </>
@@ -335,7 +336,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
       element
     );
   /** A link or a button row. */
-  const leaf = (item: SidebarLinkItem | SidebarButtonItem, rail: boolean, onNavigate: (() => void) | undefined) =>
+  const leaf = (item: SidebarLinkItem | SidebarButtonItem, rail: boolean, onNavigate: (() => void) | undefined, onAccent: boolean) =>
     tip(
       rail,
       item.label,
@@ -349,9 +350,9 @@ export function Sidebar(props: SidebarProps): JSX.Element {
             onNavigate?.();
             item.onClick?.(event);
           }}
-          className={cn(row, rail && railRow)}
+          className={cn(row, !onAccent && rowOnPage, rail && railRow)}
         >
-          {rowContent(item, rail)}
+          {rowContent(item, rail, onAccent)}
         </RouterLink>
       ) : (
         <button
@@ -362,15 +363,15 @@ export function Sidebar(props: SidebarProps): JSX.Element {
             onNavigate?.();
             item.onClick(event);
           }}
-          className={cn(row, rail && railRow)}
+          className={cn(row, !onAccent && rowOnPage, rail && railRow)}
         >
-          {rowContent(item, rail)}
+          {rowContent(item, rail, onAccent)}
         </button>
       ),
     );
 
   /** The sections as lists: in the column (`rail` when collapsed) or in the drawer. */
-  const renderSections = (place: string, rail: boolean, onNavigate?: () => void) =>
+  const renderSections = (place: "c" | "d", rail: boolean, onNavigate?: () => void) =>
     sections.map((section, index) => (
       // A rule above every section after the first, so a section's label reads as the start of a group.
       <div key={index} className={cn("grid grid-cols-1 gap-1", index > 0 && "border-0 border-t border-solid border-border pt-4")}>
@@ -381,7 +382,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
         )}
         <ul aria-labelledby={section.label !== undefined ? `${id}${place}${index}` : undefined} className={list}>
           {section.items.map((item, position) => {
-            if (item.items === undefined) return <li key={position}>{leaf(item, rail, onNavigate)}</li>;
+            if (item.items === undefined) return <li key={position}>{leaf(item, rail, onNavigate, place === "c")}</li>;
             const holdsCurrent = item.items.some(isCurrent);
             if (rail) {
               // On the rail a group's links open in a menu beside its button, so they are in
@@ -426,9 +427,9 @@ export function Sidebar(props: SidebarProps): JSX.Element {
                   data-ouro-part="group"
                   data-current={holdsCurrent && !open ? "" : undefined}
                   onClick={() => setOpened({ ...opened, [key]: !open })}
-                  className={cn(row, "data-current:text-foreground")}
+                  className={cn(row, place === "d" && rowOnPage, "data-current:text-foreground")}
                 >
-                  {rowContent(item, false)}
+                  {rowContent(item, false, place === "c")}
                   <svg
                     aria-hidden="true"
                     viewBox="0 0 16 16"
@@ -445,7 +446,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
                 {open && (
                   <ul id={`${id}${place}${key}`} className={cn(list, "ms-5 mt-1 border-0 border-s border-solid border-border ps-2")}>
                     {item.items.map((child, at) => (
-                      <li key={at}>{leaf(child, false, onNavigate)}</li>
+                      <li key={at}>{leaf(child, false, onNavigate, place === "c")}</li>
                     ))}
                   </ul>
                 )}
@@ -478,13 +479,13 @@ export function Sidebar(props: SidebarProps): JSX.Element {
       </Button>
       {wide && (
         <nav aria-label={label} data-collapsed={collapsed ? "" : undefined} className={column}>
-          {header !== undefined && <div className="flex min-h-14 shrink-0 items-center overflow-hidden px-3 py-2">{header}</div>}
-          <div data-ouro-sidebar-scroll="" className="grid grid-cols-1 min-h-0 flex-1 content-start gap-6 overflow-y-auto overscroll-contain p-2">
+          {header !== undefined && <div className="flex min-h-14 shrink-0 items-center overflow-hidden bg-background px-3 py-2">{header}</div>}
+          <div data-ouro-sidebar-scroll="" className="grid grid-cols-1 min-h-0 flex-1 content-start gap-6 overflow-y-auto overscroll-contain bg-accent p-2">
             {renderSections("c", collapsed)}
           </div>
           {collapsible && (
-            <div className="shrink-0 p-2">
-              <button type="button" aria-pressed={collapsed} data-ouro-control="sidebar" data-ouro-part="collapse" onClick={toggle} className={cn(row, collapsed && railRow)}>
+            <div className="shrink-0 bg-background p-2">
+              <button type="button" aria-pressed={collapsed} data-ouro-control="sidebar" data-ouro-part="collapse" onClick={toggle} className={cn(row, rowOnPage, collapsed && railRow)}>
                 <span aria-hidden="true" className={iconSlot}>
                   <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="rtl:-scale-x-100">
                     <rect x="3" y="4" width="14" height="12" rx="2" />
@@ -496,7 +497,7 @@ export function Sidebar(props: SidebarProps): JSX.Element {
             </div>
           )}
           {footer !== undefined && (
-            <div className="flex min-h-14 shrink-0 items-center overflow-hidden border-0 border-t border-solid border-border px-3 py-2">{footer}</div>
+            <div className="flex min-h-14 shrink-0 items-center overflow-hidden bg-background px-3 py-2">{footer}</div>
           )}
         </nav>
       )}

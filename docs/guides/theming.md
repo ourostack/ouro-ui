@@ -88,16 +88,20 @@ The site's Live theme is Pearl under your own sky. It reads only your device's c
 
 [^variant]: registry/ouro/components/ouro/hero/hero.tsx verify:fileLine(registry/ouro/components/ouro/hero/hero.tsx, /dark: "hidden dark:block"/)
 
-## Scrollers paint the surface behind them
+## Scrollers have a surface of their own
 
-`ScrollArea` and `MessageList` paint their scrolling element with `--ouro-scroller-surface`, which is `--background` unless a surface says otherwise. Card, Popover, Menu, Select, Combobox, Navigation menu, Dialog and Sheet set it to their own fill, so a scroller inside them looks the same as before. Chromium on Windows keeps a see-through scroller off the compositor where LCD text is on (ourostack/ouro-ui#2891), so an opaque scroller is what lets the list scroll without repainting.
+`ScrollArea` and `MessageList` paint their scrolling element with `--ouro-scroller-surface` when set, or their local `--muted` otherwise, including inside a nested theme.[^scroller-surface] Card, Popover, Menu, Select, Combobox, Navigation menu, Dialog and Sheet set it to their own fill, so a scroller inside them looks the same as before. Chromium on Windows keeps a see-through scroller off the compositor where LCD text is on (ourostack/ouro-ui#2891), so an opaque scroller is what lets the list scroll without repainting.
 
-When a scroller sits on a fill of your own, set the token on that surface:
+To choose a different surface, set the token on the scroller or its parent:
 
 ```css
 .panel {
-  --ouro-scroller-surface: var(--muted);
+  --ouro-scroller-surface: var(--card);
 }
 ```
 
 On glass (a blurred or see-through fill), set it to `transparent`, so the glass shows through the scroller.
+
+If your own CSS reads the token, use `var(--ouro-scroller-surface, var(--muted))`: the token is unset unless an app or surface sets it.[^scroller-surface]
+
+[^scroller-surface]: test:registry/ouro/components/ouro/scroll-area/scroll-area.surface.test.tsx::ScrollArea surface > paints its viewport with the muted surface, opaque, on the page (%s); test:registry/ouro/components/ouro/message/message-list.surface.test.tsx::MessageList surface > paints its scroller with the muted surface, opaque, on the page (%s) verify:testExists(registry/ouro/components/ouro/scroll-area/scroll-area.surface.test.tsx::ScrollArea surface > paints its viewport with the muted surface, opaque, on the page (%s)) verify:testExists(registry/ouro/components/ouro/scroll-area/scroll-area.surface.test.tsx::ScrollArea surface > uses the nested dark theme's muted surface without overriding an app's surface token) verify:testExists(registry/ouro/components/ouro/message/message-list.surface.test.tsx::MessageList surface > paints its scroller with the muted surface, opaque, on the page (%s))

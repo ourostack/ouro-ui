@@ -84,10 +84,10 @@ export const InContext: Story = {
         {...args}
         header={
           <Text>
-            <strong style={{ fontWeight: 600 }}>Spoonjoy</strong>
+            <strong style={{ fontWeight: 600 }}>Workspace</strong>
           </Text>
         }
-        footer={<Text tone="muted">Ari Mendelow</Text>}
+        footer={<Text tone="muted">Account</Text>}
       />
     </Surface>
   ),

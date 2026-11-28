@@ -121,15 +121,16 @@ export function ThreadLayout(props: ThreadLayoutProps): JSX.Element {
         aria-label={conversationLabel}
         tabIndex={-1}
         data-ouro-thread-layout-conversation=""
-        className={cn("min-w-0 flex-1 outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid", open && "@max-lg:hidden")}
+        className={cn(
+          "min-w-0 flex-1 outline-ring -outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid",
+          open && "@max-lg:hidden @lg:bg-background",
+        )}
         onFocus={remember}
       >
-        <div className="flex h-full min-h-0 min-w-0 flex-col">{conversation}</div>
+        <div className={cn("flex h-full min-h-0 min-w-0 flex-col", open && "@lg:pe-5")}>{conversation}</div>
       </div>
       {open && (
-        // Below 32rem the conversation is hidden, so the rail is alone against this box's own
-        // edge: its border-s would double the frame's own edge, so this drops it there.
-        <div ref={threadBox} className="flex h-full min-h-0 w-full min-w-0 flex-col @lg:max-w-ouro-80 @max-lg:[&_[data-ouro=thread-rail]]:border-s-0">
+        <div ref={threadBox} className="flex h-full min-h-0 w-full min-w-0 flex-col @lg:max-w-ouro-80">
           {thread}
         </div>
       )}
