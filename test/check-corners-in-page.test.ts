@@ -686,6 +686,19 @@ it("detects a protruding sibling without reporting an inset one", async () => {
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
 }, paintTimeout);
 
+it("keeps a detached rounded indicator distinct from square corner paint", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render('<div class="surface rounded-ouro-xl" style="position:relative;width:160px;height:120px;background:#eee"><span class="indicator" style="position:absolute;left:-4px;top:10px;width:3px;height:20px;border-radius:999px;background:#06c"></span></div>');
+    const indicator = root.querySelector<HTMLElement>(".indicator")!;
+    expect(await findSquirclePaint()).toEqual([]);
+    indicator.style.cssText = "position:absolute;left:-8px;top:0;width:8px;height:8px;background:#c30";
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-ouro-xl");
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
 it("keeps a round badge in a painted cutout but finds an uncovered corner", async () => {
   const shape = "M 0 32 C 0 19.616 -.2944 10.4768 5.0912 5.0912 C 10.4768 -.2944 19.616 0 32 0 H 48 C 60.384 0 69.5232 -.2944 74.9088 5.0912 C 80.2944 10.4768 80 19.616 80 32 V 48 C 80 60.384 80.2944 69.5232 74.9088 74.9088 C 69.5232 80.2944 60.384 80 48 80 H 32 C 19.616 80 10.4768 80.2944 5.0912 74.9088 C -.2944 69.5232 0 60.384 0 48 Z";
   const notch = "M 88 75 A 13 13 0 1 1 62 75 A 13 13 0 1 1 88 75 Z";
@@ -944,6 +957,20 @@ it("keeps a clipped fallback outline but finds a protruding sibling beside it", 
   expect(await findSquirclePaint()).toEqual([]);
   root.querySelector<HTMLElement>(".control")!.style.display = "block";
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+}, paintTimeout);
+
+it("keeps a fallback control's rounded focus outline separate from square paint", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render('<div class="surface rounded-ouro-md" style="position:relative;left:0.390625px;width:41.8px;height:95px;background:#eee;outline:2px solid #06c;outline-offset:2px"></div>');
+    const surface = root.querySelector<HTMLElement>(".surface")!;
+    expect(await findSquirclePaint()).toEqual([]);
+    surface.style.borderRadius = "0";
+    surface.style.clipPath = "none";
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-ouro-md");
+  } finally {
+    restore();
+  }
 }, paintTimeout);
 
 it("activates the compiled fallback in both browser engines", async () => {
