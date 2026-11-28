@@ -259,6 +259,24 @@ describe("Table scrolling", () => {
     expect(table.querySelector("thead")!.contains(hit)).toBe(true);
   });
 
+  it("uses the nested dark theme's muted surface for its sticky header", async () => {
+    const root = document.documentElement;
+    const wasDark = root.classList.contains("dark");
+    root.classList.remove("dark");
+    try {
+      const { host, table } = await render(
+        <div className="dark"><Table caption="Prep log" stickyHeader className="max-h-64" columns={wideColumns} rows={manyRows} /></div>,
+      );
+      const header = table.querySelector("thead th")!;
+      const probe = document.createElement("div");
+      probe.style.backgroundColor = "var(--muted)";
+      host.querySelector(".dark")!.append(probe);
+      expect(getComputedStyle(header).backgroundColor).toBe(getComputedStyle(probe).backgroundColor);
+    } finally {
+      root.classList.toggle("dark", wasDark);
+    }
+  });
+
   it("lets the header scroll away without stickyHeader", async () => {
     const { viewport, table } = await render(<Table caption="Prep log" className="max-h-64" columns={wideColumns} rows={manyRows} />, 358);
     viewport.scrollTop = 400;
