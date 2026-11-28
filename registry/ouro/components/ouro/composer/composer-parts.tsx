@@ -10,7 +10,7 @@ import { $findMatchingParent } from "@lexical/utils";
 import { $getNodeByKey, $createLineBreakNode, $createParagraphNode, $createTextNode, $getRoot, $isLineBreakNode, $isTextNode, $getSelection, $isRangeSelection, $isElementNode, $createRangeSelection, $createRangeSelectionFromDom, $setSelection, $getState, $setState, createState, COMMAND_PRIORITY_HIGH, createEditor, FOCUS_COMMAND, SKIP_DOM_SELECTION_TAG, FORMAT_TEXT_COMMAND, INSERT_LINE_BREAK_COMMAND, INSERT_PARAGRAPH_COMMAND, KEY_ESCAPE_COMMAND, PASTE_COMMAND, type EditorState, type ElementNode, type LexicalEditor, type LexicalNode, type TextFormatType, type TextNode, type RangeSelection, type NodeKey, type SerializedLexicalNode, type Spread, CONTROLLED_TEXT_INSERTION_COMMAND, DecoratorNode, $isDecoratorNode, $isParagraphNode } from "lexical";
 import { useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import type { FocusEventHandler, HTMLAttributes, FormEventHandler, JSX, KeyboardEvent, MutableRefObject, Ref, SyntheticEvent } from "react";
-import type { ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
+import type { ComposerEditor, ComposerFormat } from "@/registry/ouro/components/ouro/composer/composer";
 import type { EmojiCatalogue } from "@/registry/ouro/components/ouro/emoji/emoji";
 import { emojiToken, splitEmojiText, toneOf } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
 import type { EmojiTextPart } from "@/registry/ouro/components/ouro/emoji/emoji-styles";
@@ -31,8 +31,8 @@ export type { RichEditorHandle, RichEditorProps };
 interface RichEditorHandle {
   /** Applies a mark to the selection, or takes it away when the selection has it already. */
   format: (format: ComposerFormat) => void;
-  /** Puts plain text in place of the selection. */
-  insert: (text: string) => void;
+  /** Puts text or Markdown in place of the selection. */
+  insert: ComposerEditor["insert"];
   /** Puts the caret at the end of the text and focuses the editor. */
   focus: () => void;
 }
@@ -749,6 +749,7 @@ function definedOnly(props: HTMLAttributes<HTMLDivElement>) {
 function RichEditor({ label, value, onValueChange, placeholder, disabled, readOnly, describedBy, rows, maxRows, className, "data-slot": slot, onKeyDown, enterSends, composedRef, autoFocus, name, handleRef, controlRef, onInput, onSelect, onFocus, onBlur, markdownOffsets, catalogue, highlights, onHighlightsChange, pasteText, comboboxProps, ownAttrs }: RichEditorProps): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
+  const insertMarkdown = useRef<((text: string) => void) | null>(null);
   // The Markdown the editor holds, and the callbacks as of the last render, which its listeners read.
   const held = useRef(value);
   const report = useRef(onValueChange);
@@ -899,6 +900,10 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       const at = textOffsetOf(editor, copy(), from + text.length);
       // Stryker disable next-line ObjectLiteral,BooleanLiteral: the caret is placed in the same task either way, so only when it is drawn differs
       editor.update(() => $selectText(at, at), { discrete: true });
+    };
+    insertMarkdown.current = (text) => {
+      const { start, end } = readMarkdownControl(editor, copy());
+      putMarkdown(text, start, end);
     };
     Object.assign(root, {
       setSelectionRange: (start: number, end: number) => {
@@ -1098,8 +1103,12 @@ function RichEditor({ label, value, onValueChange, placeholder, disabled, readOn
       // Stryker disable next-line ConditionalExpression,LogicalOperator: Lexical drops a format command whose type is missing, and a read-only box takes none.
       if (command && !readOnly) editorRef.current!.dispatchCommand(FORMAT_TEXT_COMMAND, command);
     },
-    insert: (text) => {
+    insert: (text, options) => {
       if (readOnly) return;
+      if (options?.format === "markdown") {
+        insertMarkdown.current!(text);
+        return;
+      }
       editorRef.current!.update(() => {
         const selection = $getSelection();
         $insertWithEmoji($isRangeSelection(selection) ? selection : $getRoot().selectEnd(), text, emoji.current);

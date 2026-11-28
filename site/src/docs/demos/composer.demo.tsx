@@ -1,6 +1,6 @@
 import { useRef, useState, type JSX, type ReactNode, type SVGProps } from "react";
 import { Composer, type ComposerEditor } from "@/registry/ouro/components/ouro/composer/composer";
-import { Autocomplete, type AutocompleteTrigger } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
+import { Autocomplete, type AutocompleteItem } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import { Button } from "@/registry/ouro/components/ouro/button/button";
 import { CodeBlock } from "@/registry/ouro/components/ouro/code-block/code-block";
 import { Collapsible } from "@/registry/ouro/components/ouro/collapsible/collapsible";
@@ -11,16 +11,12 @@ import { announce } from "@/registry/ouro/lib/ouro/announce";
 
 // The live demo at the top of docs/composer/: the component as an app would use it, with its props, nothing else.
 
-const draft = "@[Noor](noor), let's make Friday a little special.\n\nFor the table:\n- Warm bread and something sparkling\n- Your favourite cake\n\nOur evening:\n1. Meet in the garden at six.\n2. Stay for [the sunset](https://example.com/friday).\n\n**I'll bring the lanterns.**";
-const people: AutocompleteTrigger[] = [{
-  char: "@",
-  label: "People",
-  items: [
-    { value: "noor", label: "Noor" },
-    { value: "avery", label: "Avery" },
-    { value: "jules", label: "Jules" },
-  ],
-}];
+const draft = "@[Noor](noor), let's make Friday a little special.\n\nFor the table:\n\n- Warm bread and something sparkling\n- Your favourite cake\n\nOur evening:\n\n1. Meet in the garden at six.\n2. Stay for [the sunset](https://example.com/friday).\n\n**I'll bring the lanterns.**";
+const people: AutocompleteItem[] = [
+  { value: "noor", label: "Noor", insert: "" },
+  { value: "avery", label: "Avery", insert: "" },
+  { value: "jules", label: "Jules", insert: "" },
+];
 
 function icon(path: ReactNode) {
   return function Icon(props: SVGProps<SVGSVGElement>) {
@@ -46,7 +42,12 @@ export default function ComposerDemo(): JSX.Element {
   const [receiptOpen, setReceiptOpen] = useState(false);
   return (
     <div className="grid w-full max-w-lg gap-4">
-      <Autocomplete triggers={people}>
+      <Autocomplete triggers={[{
+        char: "@",
+        label: "People",
+        items: people,
+        onPick: (item) => editor.current!.insert(`@[${item.label}](${item.value}) `, { format: "markdown" }),
+      }]}>
         <Composer
           ref={input}
           editorRef={editor}

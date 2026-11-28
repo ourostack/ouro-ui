@@ -1679,6 +1679,15 @@ describe("Composer formatting", () => {
     expect(textarea.value).toBe("Ship it");
   });
 
+  it("keeps an editorRef Markdown insertion literal in a plain composer", async () => {
+    const editor = createRef<ComposerEditor>();
+    const { textarea } = await render(<Composer label="Reply" editorRef={editor} defaultValue="Ask " onSend={() => {}} />);
+    textarea.focus();
+    textarea.setSelectionRange(4, 4);
+    await act(async () => editor.current!.insert("@[Noor](noor)", { format: "markdown" }));
+    expect(textarea.value).toBe("Ask @[Noor](noor)");
+  });
+
   it("formats and inserts from editorRef, each a step that Undo takes back", async () => {
     const editor = createRef<ComposerEditor>();
     const { textarea, host } = await render(

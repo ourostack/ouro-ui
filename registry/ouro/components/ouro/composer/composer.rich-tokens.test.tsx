@@ -1,10 +1,10 @@
-import { useState, type ReactNode } from "react";
+import { createRef, useState, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { Autocomplete } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
 import type { AutocompleteItem, AutocompleteTrigger } from "@/registry/ouro/components/ouro/autocomplete/autocomplete";
-import { Composer } from "@/registry/ouro/components/ouro/composer/composer";
+import { Composer, type ComposerEditor } from "@/registry/ouro/components/ouro/composer/composer";
 import { preloadRichEditor } from "@/registry/ouro/components/ouro/composer/composer-styles";
 import { Attachment } from "@/registry/ouro/components/ouro/message/attachment";
 import { act } from "@/registry/ouro/lib/ouro/testing/act";
@@ -31,6 +31,7 @@ beforeEach(() => {
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 afterEach(async () => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   await act(async () => roots.splice(0).forEach((root) => root.unmount()));
   for (const node of mounted) node.remove();
@@ -64,6 +65,74 @@ function Controlled({ onSend, onPick, defaultValue = "" }: { onSend?: (text: str
     </>
   );
 }
+
+describe("Composer rich Markdown insertion", () => {
+  it("replaces a selection with Markdown, keeping its neighbours, text offsets, focus and one-step undo", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    const handle = createRef<ComposerEditor>();
+    const original = "**Ask** today after [lunch](https://example.test/lunch).";
+    const { editor } = await render(<Composer label="Reply" format="rich" editorRef={handle} defaultValue={original} onSend={() => {}} />);
+    const control = editor as Control;
+    control.focus();
+    control.setSelectionRange(4, 9);
+    await act(async () => handle.current!.insert("@[Noor](noor)", { format: "markdown" }));
+    expect(editor.querySelector("[data-ouro-mention]")?.textContent).toBe("Noor");
+    expect(editor.querySelector("strong")?.textContent).toBe("Ask");
+    expect(editor.querySelector("a")?.getAttribute("href")).toBe("https://example.test/lunch");
+    expect(document.activeElement).toBe(editor);
+    expect(control.selectionStart).toBe(control.value.indexOf(" after"));
+    expect(control.selectionEnd).toBe(control.selectionStart);
+    expect(control.value).not.toContain("[");
+    const mod = /Mac|iPhone|iPad|iPod/.test(navigator.platform) ? "Meta" : "Control";
+    await userEvent.keyboard(`{${mod}>}z{/${mod}}`);
+    await expect.poll(() => editor.textContent).toBe("Ask today after lunch.");
+    expect([control.selectionStart, control.selectionEnd]).toEqual([4, 9]);
+    await act(async () => handle.current!.insert("@[Jules](jules)", { format: "text" }));
+    expect(editor.querySelector("[data-ouro-mention]")).toBeNull();
+    expect(editor.textContent).toBe("Ask @[Jules](jules) after lunch.");
+  });
+
+  it.each([false, true])("inserts Markdown at the end before a selection exists, unless read-only (%s)", async (readOnly) => {
+    const handle = createRef<ComposerEditor>();
+    const { editor } = await render(<Composer label="Reply" format="rich" editorRef={handle} defaultValue="Ask " readOnly={readOnly} onSend={() => {}} />);
+    await act(async () => handle.current!.insert("@[Noor](noor)", { format: "markdown" }));
+    expect(editor.textContent).toBe(readOnly ? "Ask " : "Ask Noor");
+    expect(editor.querySelector("[data-ouro-mention]")?.textContent).toBe(readOnly ? undefined : "Noor");
+  });
+
+  it("turns an actual suggestion pick into a pill without sending, leaving no query and keeping Autocomplete's text offsets", async () => {
+    const handle = createRef<ComposerEditor>();
+    const onSend = vi.fn();
+    function Setup() {
+      const [text, setText] = useState("Before after");
+      return (
+        <Autocomplete triggers={[{
+          char: "@",
+          label: "People",
+          items: [{ value: "noor", label: "Noor", insert: "" }],
+          onPick: (item) => handle.current!.insert(`@[${item.label}](${item.value}) `, { format: "markdown" }),
+        }]}>
+          <Composer label="Reply" format="rich" editorRef={handle} value={text} onValueChange={setText} onSend={onSend} />
+        </Autocomplete>
+      );
+    }
+    const { editor } = await render(<Setup />);
+    const control = editor as Control;
+    control.focus();
+    control.setSelectionRange(7, 7);
+    await userEvent.keyboard("@no");
+    await expect.poll(labels).toEqual(["Noor"]);
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => editor.querySelector("[data-ouro-mention]")?.textContent).toBe("Noor");
+    expect(editor.textContent).toBe("Before Noor after");
+    expect(control.value).not.toContain("[");
+    expect(onSend).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(editor);
+    await expect.poll(options).toEqual([]);
+    await userEvent.keyboard("{Enter}");
+    expect(onSend).toHaveBeenCalledWith("Before @[Noor](noor) after", expect.anything());
+  });
+});
 
 describe("Composer rich mentions and emoji", () => {
   it("draws an imported mention as an inset pill without changing its Markdown", async () => {

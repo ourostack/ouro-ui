@@ -93,8 +93,13 @@ export type ComposerFormat = "bold" | "italic" | "underline" | "strike" | "code"
 export interface ComposerEditor {
   /** Applies a format to the selection, or takes it away when the selection has it already. */
   format: (format: ComposerFormat) => void;
-  /** Puts text in place of the selection, or at the caret: an emoji, a link. */
-  insert: (text: string) => void;
+  /**
+   * Puts text in place of the selection, or at the caret: an emoji, a link.
+   * Pass `{ format: "markdown" }` to insert rich text or a mention token; a plain composer inserts its Markdown literally.
+   * @example
+   * editor.current?.insert("@[Noor](noor) ", { format: "markdown" });
+   */
+  insert: (text: string, options?: { format: "text" | "markdown" }) => void;
 }
 
 /** The props Composer adds to the `<textarea>` attributes it passes through. */
@@ -1000,7 +1005,7 @@ export function Composer(props: ComposerProps): JSX.Element {
       insertText(textarea, change.from, change.to, change.text);
       textarea.setSelectionRange(change.start, change.end);
     });
-  const insert = (text: string) => richOn ? richRef.current!.insert(text) : edit((textarea) => insertText(textarea, textarea.selectionStart, textarea.selectionEnd, text));
+  const insert: ComposerEditor["insert"] = (text, options) => richOn ? richRef.current!.insert(text, options) : edit((textarea) => insertText(textarea, textarea.selectionStart, textarea.selectionEnd, text));
   useImperativeHandle(editorRef, () => ({ format, insert }));
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement | HTMLDivElement>) => {
     onKeyDown?.(event as KeyboardEvent<HTMLTextAreaElement>);
