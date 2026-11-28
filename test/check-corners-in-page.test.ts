@@ -91,6 +91,28 @@ it("keeps explicitly declared fallback corners equal to a parent's tokens", asyn
   expect(parent.getAttribute("style")).toBe(original);
 }, paintTimeout);
 
+it("distinguishes inherited from declared nested corner tokens without changing the parent", () => {
+  const root = render(`<style>
+    .outer { position:relative; width:200px; height:160px; background:#ddd;
+      border-radius:17.376px; clip-path:inset(0); --sq-tl:32px; --sq-tr:32px; --sq-br:32px; --sq-bl:32px; }
+    .wrapper { position:absolute; left:8px; top:8px; width:100px; height:100px;
+      --sq-tl:24px; --sq-tr:24px; --sq-br:24px; --sq-bl:24px; }
+    .inner { position:absolute; inset:0; background:#579; clip-path:inset(0); }
+  </style><div class="outer"><div class="wrapper"><div class="inner"></div></div></div>`);
+  const wrapper = root.querySelector<HTMLElement>(".wrapper")!;
+  const inner = root.querySelector<HTMLElement>(".inner")!;
+  expect(findCornerIssues()[0]?.detail).toContain("0px, expected 24px");
+  expect(wrapper.hasAttribute("style")).toBe(false);
+  wrapper.setAttribute("style", "color : red ; --sq-tl:24px !important;");
+  const original = wrapper.getAttribute("style");
+  expect(findCornerIssues()[0]?.detail).toContain("0px, expected 24px");
+  expect(wrapper.getAttribute("style")).toBe(original);
+  inner.style.borderRadius = "13.032px";
+  for (const corner of ["tl", "tr", "br", "bl"]) inner.style.setProperty(`--sq-${corner}`, "24px");
+  expect(findCornerIssues()).toEqual([]);
+  expect(wrapper.getAttribute("style")).toBe(original);
+});
+
 it("ignores a neighboring raster change while finding real paint beyond the box", async () => {
   const root = render('<div id="surface" style="position:relative;width:160px;height:120px;background:white;border-radius:28px;corner-shape:squircle;box-shadow:0 4px 12px #0008"></div>');
   const surface = root.querySelector<HTMLElement>("#surface")!;
@@ -211,6 +233,8 @@ it("compares the visible curves through an unpainted clipping layer", () => {
   shape(clip, 24);
   shape(tile, 32);
   expect(findCornerIssues()[0]?.detail).toContain("32px, expected 24px");
+  shape(tile, 5, true);
+  expect(findCornerIssues()).toEqual([]);
   shape(tile, 14, true);
   expect(findCornerIssues()[0]?.detail).toContain("incompatible clipping curves");
 });
