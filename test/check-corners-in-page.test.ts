@@ -1326,6 +1326,35 @@ it("keeps an independent floating squircle separate from an unpainted focus wrap
   }
 }, paintTimeout);
 
+it("keeps a round sibling's curved shadow separate from a transparent focus surface", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render(`<div class="[&_[data-ouro-segment-thumb]]:rounded-full" style="position:relative;width:122px;height:34px;background:#fff">
+      <span data-ouro-segment-thumb class="rounded-ouro-control-md" style="position:absolute;inset:0;background:#eee;box-shadow:0 1px 3px #0004"></span>
+      <button class="focus rounded-ouro-control-md" style="position:absolute;inset:0;border:0;background:transparent"></button>
+    </div>`);
+    expect(await findSquirclePaint()).toEqual([]);
+    root.firstElementChild!.insertAdjacentHTML("beforeend", '<span style="position:absolute;left:-6px;top:-6px;width:10px;height:10px;background:#c30"></span>');
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("button.focus.rounded-ouro-control-md");
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
+it("keeps a glass surface's curved shadow distinct from an escaping child", async () => {
+  const restore = forceSquircleFallback();
+  try {
+    const root = render(`<div style="padding:24px;background:rgb(245,245,247)">
+      <button class="glass rounded-ouro-control" style="--ouro-control-radius:9999px;position:relative;width:40px;height:40px;border:1px solid #fff8;background:rgb(255 255 255 / 34%);box-shadow:0 1px 3px #0002;backdrop-filter:blur(24px)"></button>
+    </div>`);
+    expect(await findSquirclePaint()).toEqual([]);
+    root.querySelector(".glass")!.insertAdjacentHTML("beforeend", '<span style="position:absolute;left:-6px;top:-6px;width:10px;height:10px;background:#c30"></span>');
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("button.glass.rounded-ouro-control");
+  } finally {
+    restore();
+  }
+}, paintTimeout);
+
 it("ignores a bottom corner when only the opposite border is painted", async () => {
   const root = render(`<div class="wrapper" style="position:relative;width:160px;height:120px;border-top:2px solid #444;border-radius:0 0 28px 28px;corner-shape:squircle;--sq-br:28px;--sq-bl:28px">
     <div style="position:absolute;left:0;bottom:0;width:24px;height:24px;background:#d11"></div>
