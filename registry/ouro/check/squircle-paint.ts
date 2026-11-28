@@ -14,7 +14,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
   type Saved = { value: string; priority: string };
   type InlineElement = Element & { style: CSSStyleDeclaration };
   const capture = (window as unknown as { __ouroPaintCapture?: PaintCapture }).__ouroPaintCapture;
-  const diagnostic = (window as unknown as { __ouroPaintDiagnostic?: (data: { actual: string; hidden: string; masked: string; rect: DOMRect; clip: PaintClip; point: object; html: string }) => Promise<void> }).__ouroPaintDiagnostic;
+  const diagnostic = (window as unknown as { __ouroPaintDiagnostic?: (data: { actual: string; hidden: string; masked: string; solo: string | null; restored: string; rect: DOMRect; clip: PaintClip; point: object; html: string }) => Promise<void> }).__ouroPaintDiagnostic;
   if (!capture) throw new Error("squircle-paint needs a screenshot capture supplied by its host");
   const names = [
     { key: "tl", property: "TopLeft", shape: "top-left" },
@@ -132,15 +132,12 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           return points.every(([x, y]) => !document.elementsFromPoint(x, y).includes(surface));
         } finally {
           restore(surface, "pointer-events", prior);
-          if (surface.getAttribute("style") !== original && surface.style.cssText === normalized) {
-            if (original === null) surface.removeAttribute("style");
-            else surface.setAttribute("style", original);
-          }
+          restoreStyle(surface, original, normalized);
         }
       });
     });
   };
-  // An even-odd path keeps everything outside the box, but cuts its corner slivers to the ideal n=4 curve.
+  // Clip each layer to the ideal n=4 curve, including paint extending beyond the box.
   const clipPath = (width: number, height: number, corners: Corner[], offsetX: number, offsetY: number) => {
     const [tl, tr, br, bl] = corners as [Corner, Corner, Corner, Corner];
     const n = (value: number) => Number(value.toFixed(4));
@@ -148,8 +145,6 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     const y = (value: number) => n(value + offsetY);
     const [w, h] = [width, height];
     const path = [
-      `M -10000 -10000 H ${w + 10000} V ${h + 10000} H -10000 Z`,
-      `M ${x(0)} ${y(0)} H ${x(w)} V ${y(h)} H ${x(0)} Z`,
       `M ${x(0)} ${y(tl.y)}`,
       `C ${x(0)} ${y(0.613 * tl.y)} ${x(-0.0092 * tl.x)} ${y(0.3274 * tl.y)} ${x(0.1591 * tl.x)} ${y(0.1591 * tl.y)}`,
       `C ${x(0.3274 * tl.x)} ${y(-0.0092 * tl.y)} ${x(0.613 * tl.x)} ${y(0)} ${x(tl.x)} ${y(0)}`,
@@ -164,7 +159,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       `C ${x(-0.0092 * bl.x)} ${y(h - 0.3274 * bl.y)} ${x(0)} ${y(h - 0.613 * bl.y)} ${x(0)} ${y(h - bl.y)}`,
       "Z",
     ].join(" ");
-    return `path(evenodd, "${path}")`;
+    return `path("${path}")`;
   };
   const pixels = async (data: string) => {
     const comma = data.indexOf(",");
@@ -237,7 +232,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const behind = difference(b.data, c.data, index);
           if (delta < 2 || (!outsideCorner && behind > 4)) continue;
           if (outsideCorner && difference(a.data, c.data, index) < 2) continue;
-          if (outsideCorner && difference(a.data, b.data, index) > 4) continue;
+          if (outsideCorner && difference(a.data, b.data, index) < 2) continue;
           if (own && noStrokes && difference(a.data, noStrokes.data, index) >= 2 && difference(noStrokes.data, own.data, index) < 2 &&
             strokePads.some((pad) => {
               const dx = (left ? cornerX - px : px - cornerX) / (corner.x * rect.width / width + pad.x);
@@ -274,6 +269,12 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     if (saved.value) el.style.setProperty(property, saved.value, saved.priority);
     else el.style.removeProperty(property);
   };
+  const restoreStyle = (el: InlineElement, original: string | null, normalized: string) => {
+    if (el.getAttribute("style") !== original && el.style.cssText === normalized) {
+      if (original === null) el.removeAttribute("style");
+      else el.setAttribute("style", original);
+    }
+  };
   const hasInlineStyle = (el: Element): el is InlineElement => "style" in el && el.style instanceof CSSStyleDeclaration;
   const inverseCutout = (el: HTMLElement, shape: NonNullable<ReturnType<typeof geometry>>) => {
     if (getComputedStyle(el).clipPath === "none") return false;
@@ -299,10 +300,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       });
     } finally {
       restore(el, "pointer-events", previous);
-      if (el.getAttribute("style") !== original && el.style.cssText === normalized) {
-        if (original === null) el.removeAttribute("style");
-        else el.setAttribute("style", original);
-      }
+      restoreStyle(el, original, normalized);
     }
   };
   const colorContext = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
@@ -416,7 +414,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     const scroll = [...function* () { for (let n = el.parentElement; n; n = n.parentElement) yield n; }()]
       .map((node) => ({ node, left: node.scrollLeft, top: node.scrollTop }));
     const windowScroll = { x: scrollX, y: scrollY };
-    let found: { corner: number; x: number; y: number; debug: object } | null = null;
+    let found: { corner: number; x: number; y: number } | null = null;
     try {
       for (const layer of layers) layer.el.style.setProperty("transition", "none", "important");
       const blocks: ScrollLogicalPosition[] = el.getBoundingClientRect().height > innerHeight ? ["start", "end"] : ["nearest"];
@@ -483,10 +481,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               if (previous === null) el.removeAttribute(attribute);
               else el.setAttribute(attribute, previous);
               for (const { property, saved } of radii) restore(el, property, saved);
-              if (el.getAttribute("style") !== originalStyle && el.style.cssText === normalizedStyle) {
-                if (originalStyle === null) el.removeAttribute("style");
-                else el.setAttribute("style", originalStyle);
-              }
+              restoreStyle(el, originalStyle, normalizedStyle);
               for (const override of overrides) {
                 if (override.node.getAttribute("style") === override.temporary || override.node.getAttribute("style") === override.style) {
                   override.node.setAttribute("style", override.style);
@@ -547,10 +542,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
               for (const { node, style, normalized, opacity, transition } of saved) {
                 restore(node, "opacity", opacity);
                 restore(node, "transition", transition);
-                if (node.getAttribute("style") !== style && node.style.cssText === normalized) {
-                  if (style === null) node.removeAttribute("style");
-                  else node.setAttribute("style", style);
-                }
+                restoreStyle(node, style, normalized);
               }
             }
             differs = await differences(actual, masked, hidden, solo, null, [], withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native);
@@ -576,22 +568,37 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
                 for (const { badge, style, normalized, opacity, transition } of saved) {
                   restore(badge, "opacity", opacity);
                   restore(badge, "transition", transition);
-                  if (badge.getAttribute("style") !== style && badge.style.cssText === normalized) {
-                    if (style === null) badge.removeAttribute("style");
-                    else badge.setAttribute("style", style);
-                  }
+                  restoreStyle(badge, style, normalized);
                 }
               }
               differs = await differences(actual, masked, hidden, solo, withoutBadges, badges.map((badge) => badge.getBoundingClientRect()), withoutStrokes, strokes, clip, r, initial.width, initial.height, initial.corners, initial.native);
             }
           }
           if (differs) {
-            await diagnostic?.({ actual, hidden, masked, rect: r.toJSON(), clip, point: differs, html: el.outerHTML });
             const restored = await capture(clip);
+            const variants: Record<string, number[]> = {};
+            if (differs.x < 0 || differs.y < 0) {
+              for (const [property, value] of [["backdrop-filter", "none"], ["box-shadow", "none"], ["isolation", "auto"], ["clip-path", "none"], ["background-color", "transparent"], ["transform", "none"]] as const) {
+                const prior = el.style.getPropertyValue(property), priority = el.style.getPropertyPriority(property);
+                el.style.setProperty(property, value, "important");
+                const frame = await pixels(await capture(clip));
+                variants[property] = [...frame.data.slice(pixelIndex, pixelIndex + 4)];
+                if (prior) el.style.setProperty(property, prior, priority); else el.style.removeProperty(property);
+              }
+              for (const [index, child] of [...el.children].entries()) {
+                if (!(child instanceof HTMLElement || child instanceof SVGElement)) continue;
+                const prior = child.style.getPropertyValue("opacity"), priority = child.style.getPropertyPriority("opacity");
+                child.style.setProperty("opacity", "0", "important");
+                const frame = await pixels(await capture(clip));
+                variants[`child-${index}`] = [...frame.data.slice(pixelIndex, pixelIndex + 4)];
+                if (prior) child.style.setProperty("opacity", prior, priority); else child.style.removeProperty("opacity");
+              }
+            }
+            await diagnostic?.({ actual, hidden, masked, solo, restored, rect: r.toJSON(), clip, point: differs, html: el.outerHTML });
             const captures = await Promise.all([actual, masked, hidden, ...(solo ? [solo] : []), restored].map(pixels));
             const rgba = captures.map((image) => [...image.data.slice(pixelIndex, pixelIndex + 4)]);
-            found = { ...differs, debug: { rgba, images: [...document.querySelectorAll("[data-ouro=avatar]")].map((node) => node.getAttribute("data-image")), layers: active.map(({ el }) => describe(el)) } };
-            break;
+            console.log("SQUIRCLE-DIAGNOSTIC", JSON.stringify({ target: describe(el), point: differs, rgba, variants, shape: initial, computed: (() => { const s = getComputedStyle(el); const p = getComputedStyle(el, "::before"); return { radius: s.borderRadius, clip: s.clipPath, shape: s.cornerShape, sq: ["tl", "tr", "br", "bl"].map((k) => s.getPropertyValue(`--sq-${k}`)), control: s.getPropertyValue("--ouro-control-r"), pseudo: { opacity: p.opacity, background: p.backgroundColor, width: p.width, height: p.height, inset: [p.left, p.top, p.right, p.bottom] }, children: [...el.children].map((c) => { const cs = getComputedStyle(c); const r = c.getBoundingClientRect(); return { html: c.outerHTML.slice(0, 100), rect: r.toJSON(), display: cs.display, background: cs.backgroundColor, shadow: cs.boxShadow, opacity: cs.opacity }; }), coarse: matchMedia("(pointer: coarse)").matches }; })(), active: active.map(({ el }) => el.outerHTML.slice(0, 1000)) }));
+            found = differs; break;
           }
         }
         if (found) break;
@@ -601,17 +608,11 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       for (const position of scroll) position.node.scrollTo({ left: position.left, top: position.top, behavior: "instant" });
       window.scrollTo({ left: windowScroll.x, top: windowScroll.y, behavior: "instant" });
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      for (const layer of layers) {
-        const currentStyle = layer.el.getAttribute("style");
-        if (currentStyle !== layer.originalStyle && layer.el.style.cssText === layer.normalizedStyle) {
-          if (layer.originalStyle === null) layer.el.removeAttribute("style");
-          else layer.el.setAttribute("style", layer.originalStyle);
-        }
-      }
+      for (const layer of layers) restoreStyle(layer.el, layer.originalStyle, layer.normalizedStyle);
     }
     if (found) {
       const corner = ["top left", "top right", "bottom right", "bottom left"][found.corner]!;
-      issues.push({ ref: ref(el), rule: "squircle-paint", element: describe(el), detail: `paint shows outside the ${corner} squircle corner at (${found.x}, ${found.y}) ${JSON.stringify(found.debug)}` });
+      issues.push({ ref: ref(el), rule: "squircle-paint", element: describe(el), detail: `paint shows outside the ${corner} squircle corner at (${found.x}, ${found.y})` });
     }
   }
   return issues;

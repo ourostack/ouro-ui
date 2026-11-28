@@ -80,8 +80,7 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
     canvas.fillRect(0, 0, 1, 1);
     return [...canvas.getImageData(0, 0, 1, 1).data];
   };
-  const paintedBox = (el: Element) => {
-    const s = getComputedStyle(el);
+  const paintedFill = (el: Element, s: CSSStyleDeclaration) => {
     if (s.backgroundImage !== "none") return true;
     const fill = rgba(s.backgroundColor);
     if (fill[3]! > 12) {
@@ -94,10 +93,16 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
       }
       if (!behind || fill[3]! < 250 || Math.hypot(fill[0]! - behind[0]!, fill[1]! - behind[1]!, fill[2]! - behind[2]!) > 3) return true;
     }
-    for (const side of ["Top", "Right", "Bottom", "Left"] as const) {
-      if (s[`border${side}Style`] !== "none" && parseFloat(s[`border${side}Width`]) > 0 && rgba(s[`border${side}Color`])[3]! > 12) return true;
-    }
-    return (s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0 && rgba(s.outlineColor)[3]! > 12) || s.boxShadow !== "none";
+    return false;
+  };
+  type Side = "Top" | "Right" | "Bottom" | "Left";
+  const paintedSide = (s: CSSStyleDeclaration, side: Side) =>
+    s[`border${side}Style`] !== "none" && parseFloat(s[`border${side}Width`]) > 0 && rgba(s[`border${side}Color`])[3]! > 12;
+  const paintedEffect = (s: CSSStyleDeclaration) =>
+    (s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0 && rgba(s.outlineColor)[3]! > 12) || s.boxShadow !== "none";
+  const paintedBox = (el: Element) => {
+    const s = getComputedStyle(el);
+    return paintedFill(el, s) || (["Top", "Right", "Bottom", "Left"] as const).some((side) => paintedSide(s, side)) || paintedEffect(s);
   };
   const painted = (el: Element) =>
     paintedBox(el) || el.matches("video, canvas") || (el instanceof HTMLImageElement && el.complete && el.naturalWidth > 0 && el.naturalHeight > 0);
@@ -161,10 +166,15 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
   };
   const paintedCorner = (surface: Surface, index: number): CornerPaint => {
     const el = surface.el;
-    if (!(el instanceof HTMLImageElement)) return true;
+    if (!el) return true;
+    const s = getComputedStyle(el);
+    const horizontal = index === 0 || index === 3 ? "Left" : "Right";
+    const vertical = index < 2 ? "Top" : "Bottom";
+    if (paintedFill(el, s) || paintedSide(s, horizontal) || paintedSide(s, vertical) || paintedEffect(s) || el.matches("video, canvas")) return true;
+    if (!(el instanceof HTMLImageElement)) return false;
     let corners = imagePaint.get(el);
     if (!corners) {
-      corners = paintedBox(el) ? [true, true, true, true] : imageCorners(el);
+      corners = imageCorners(el);
       imagePaint.set(el, corners);
     }
     return corners[index]!;

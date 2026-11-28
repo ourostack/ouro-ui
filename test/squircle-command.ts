@@ -64,12 +64,12 @@ const cornerImageRoute: BrowserCommand<[{ data: string | null }]> = async (ctx, 
 };
 
 let saved = 0;
-const squircleDiagnostic: BrowserCommand<[{ actual: string; hidden: string; masked: string; rect: DOMRect; clip: PaintClip; point: object; html: string }]> = async (ctx, data) => {
-  if (saved++ >= 3) return;
+const squircleDiagnostic: BrowserCommand<[{ actual: string; hidden: string; masked: string; solo: string | null; restored: string; rect: DOMRect; clip: PaintClip; point: object; html: string }]> = async (ctx, data) => {
+  if (saved++ >= 10) return;
   const name = `.tmp/corner-images/${saved}`;
   await mkdir(".tmp/corner-images", { recursive: true });
-  for (const key of ["actual", "hidden", "masked"] as const) {
-    await writeFile(`${name}-${key}.png`, Buffer.from(data[key].split(",")[1]!, "base64"));
+  for (const key of ["actual", "hidden", "masked", "solo", "restored"] as const) {
+    if (data[key]) await writeFile(`${name}-${key}.png`, Buffer.from(data[key]!.split(",")[1]!, "base64"));
   }
   const frame = await ctx.frame();
   const bounds = await (await frame.frameElement()).boundingBox();
@@ -83,6 +83,6 @@ declare module "vitest/browser" {
     squircleCapture: (clip: PaintClip) => Promise<string>;
     squircleHostScroll: (options: { y: number | null }) => Promise<{ scroll: number; top: number }>;
     cornerImageRoute: (options: { data: string | null }) => Promise<void>;
-    squircleDiagnostic: (data: { actual: string; hidden: string; masked: string; rect: DOMRect; clip: PaintClip; point: object; html: string }) => Promise<void>;
+    squircleDiagnostic: (data: { actual: string; hidden: string; masked: string; solo: string | null; restored: string; rect: DOMRect; clip: PaintClip; point: object; html: string }) => Promise<void>;
   }
 }
