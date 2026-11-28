@@ -1,0 +1,4 @@
+{
+  "order": 2790,
+  "components": ["tool-call", "tool-call-group"]
+}

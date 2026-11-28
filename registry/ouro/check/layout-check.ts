@@ -39,7 +39,9 @@ import type { PageIssue } from "./size-check.ts";
 //                      surfaces: a floating one (fixed, sticky or absolutely positioned, or inside such an element
 //                      below their shared ancestor, such as a "Jump to latest" button) paired with one that scrolls under it, on the axis their shared scrolling ancestor
 //                      scrolls, since that gap is the scroll position's, not the design's. Two that both scroll, or
-//                      both float, are still judged: only a floating-over-scrolling pair is skipped
+//                      both float, are still judged: only a floating-over-scrolling pair is skipped.
+//                      Modal contents and the page behind their backdrop are separate visual planes, not neighbors;
+//                      gaps within each plane are still judged.
 //
 // An element opts out of a rule with data-ouro-allow="<rule ids>" and a reason in data-ouro-allow-why, as the other rules
 // do. `element` names the element by its words, the same at every size; `detail` has this size's numbers.
@@ -226,6 +228,7 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
     return r.width >= 16 && r.height >= 16 && isSurface(el);
   });
   const rects = new Map(surfaces.map((el) => [el, el.getBoundingClientRect()]));
+  const planes = new Map(surfaces.map((el) => [el, el.closest('[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"], dialog:modal')]));
   const hidden = new Map(surfaces.map((el) => [el, hiddenBy(el)]));
   // A surface hidden wholly is near nothing outside the box that hides it; two it hides, such as two scrolled out of
   // the same pane, are still apart by their design.
@@ -291,11 +294,11 @@ function findLayoutIssues({ cutPx = 2, minScroll = 1, maxScroll = 8, gapMin: gap
   const near: { a: Element; b: Element; gap: number }[] = [];
   surfaces.forEach((a, i) => {
     for (const b of surfaces.slice(i + 1)) {
-      const gap = a.contains(b) || b.contains(a) || sameGroup(a, b) || hiddenFrom(a, b) || hiddenFrom(b, a) ? 0 : apart(a, b);
+      const gap = planes.get(a) !== planes.get(b) || a.contains(b) || b.contains(a) || sameGroup(a, b) || hiddenFrom(a, b) || hiddenFrom(b, a) ? 0 : apart(a, b);
       if (gap) near.push({ a, b, gap });
     }
     const container = surfaces.filter((c) => c !== a && c.contains(a)).pop();
-    if (!container || isControlPiece(container) || sameGroup(a, container) || hiddenFrom(a, container)) return;
+    if (!container || planes.get(a) !== planes.get(container) || isControlPiece(container) || sameGroup(a, container) || hiddenFrom(a, container)) return;
     const r = rects.get(a)!;
     const c = rects.get(container)!;
     const scrollX = scrollsBetween(a, container, "x");

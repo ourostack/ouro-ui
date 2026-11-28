@@ -1,0 +1,1 @@
+- Fixed: [Emoji's text-to-token conversion initializes grapheme matching only for its first nonempty conversion](registry/ouro/components/ouro/emoji/emoji.test.tsx "verify:testExists(registry/ouro/components/ouro/emoji/emoji.test.tsx::Emoji helpers > initializes grapheme matching only for the first nonempty conversion and reuses it)").
