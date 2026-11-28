@@ -602,15 +602,8 @@ export function Composer(props: ComposerProps): JSX.Element {
     expandable: expandableHint,
     ...rest
   } = props;
-  const [mounted, setMounted] = useState(false);
-  useEffect(
-    () => {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setMounted(true);
-    },
-    // Stryker disable next-line ArrayDeclaration: an effect that only sets a flag to true runs the same whatever its list holds.
-    [],
-  );
+  const [initialQuote, setInitialQuote] = useState(quote);
+  if (initialQuote && quote === undefined) setInitialQuote(undefined);
   const [ownExpanded, setOwnExpanded] = useState(defaultExpanded ?? false);
   const expandable = expandedProp !== undefined || defaultExpanded !== undefined || onExpandedChange !== undefined;
   // The person can expand and collapse it: the composer holds the state, or the app listens.
@@ -790,6 +783,15 @@ export function Composer(props: ComposerProps): JSX.Element {
     // A render that leaves the box expanded or collapsed as it was lets the move run on.
     // Stryker disable next-line ConditionalExpression,OptionalChaining: a render that changes nothing during a move and one that restarts it with the same result differ only in frames a test cannot sample.
     if (running && height.current?.expanded === expanded) return;
+    // Let the browser take the initial layout in its own frame, without forcing it in the commit.
+    if (height.current === null) {
+      const first = { expanded, px: Number.NaN };
+      height.current = first;
+      requestAnimationFrame(() => {
+        if (height.current === first) first.px = frame.offsetHeight;
+      });
+      return;
+    }
     const shown = running ? running.full - clipTop(frame) : frame.offsetHeight;
     running?.end(true);
     const toolbarElement = frame.querySelector<HTMLElement>("[data-ouro-composer-toolbar]");
@@ -800,7 +802,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     if (toolbarElement) toolbarElement.style.display = "";
     const before = height.current;
     height.current = { expanded, px };
-    if (before === null || before.expanded === expanded) return;
+    if (before.expanded === expanded || Number.isNaN(before.px)) return;
     const reduced = matchMedia(reducedQuery).matches;
     if (reduced && !expanded) return;
     const from = running ? shown : before.px;
@@ -958,7 +960,7 @@ export function Composer(props: ComposerProps): JSX.Element {
         )}
         {quote && (
           <div className="px-2 pt-2">
-            <div data-ouro-composer-quote="" className={cn(quoteBoxClass, mounted && quoteFadeClass)}>
+            <div data-ouro-composer-quote="" className={cn(quoteBoxClass, !initialQuote && quoteFadeClass)}>
               {quote.onActivate ? (
                 <button type="button" data-ouro-control="composer" data-ouro-part="quote" onClick={quote.onActivate} className={quoteButtonClass}>
                   <QuoteBody quote={quote} id={id} />
