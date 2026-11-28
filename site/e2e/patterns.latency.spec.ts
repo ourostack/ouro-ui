@@ -1,6 +1,6 @@
 import { appendFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
-import { LATENCY } from "./latency";
+import { LATENCY, throttleApplied, throttleLoop as loop } from "./latency";
 
 // How long each page pattern an app installs whole takes to first paint on a phone: a 390px page on a CPU throttled
 // LATENCY.throttle×, from navigation to the first contentful paint. Each app's HTML is an empty root that React fills, so
@@ -25,11 +25,6 @@ const LOADS = { warmUps: 2, samples: 12 };
  * test.
  */
 const RETAKES = 12;
-
-/** Whether the throttle applied to a load: its CPU loop ran at least twice as slow as the runner's full speed. */
-function throttleApplied(loopMs: number, fullMs: number): boolean {
-  return loopMs / fullMs >= 2;
-}
 
 /** Appends a line to the CI job's summary, where there is one. */
 function summary(line: string): void {
@@ -88,22 +83,6 @@ function median(values: readonly number[]): number {
   const sorted = values.toSorted((a, b) => a - b);
   const middle = sorted.length / 2;
   return sorted.length % 2 ? sorted[Math.floor(middle)]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
-}
-
-/** A fixed loop's time in the page, ms: the fastest of three runs after one to compile it, since a busy runner only ever adds time. */
-async function loop(page: Page): Promise<number> {
-  return page.evaluate(() => {
-    const once = () => {
-      const started = performance.now();
-      let hash = 0;
-      for (let i = 0; i < 2_000_000; i++) hash = Math.imul(hash ^ i, 2654435761) >>> 0;
-      // Kept on the window so the loop's result is used and the engine cannot drop the loop.
-      (window as unknown as { __loopHash: number }).__loopHash = hash;
-      return performance.now() - started;
-    };
-    once();
-    return Math.min(once(), once(), once());
-  });
 }
 
 /**

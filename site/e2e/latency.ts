@@ -1,7 +1,7 @@
 import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { cpus } from "node:os";
 import { join } from "node:path";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type CDPSession, type Page } from "@playwright/test";
 
 // Click-to-paint latency for the voyage's controls, shared by every *.latency.spec.ts (run alone by
 // `pnpm test:latency`, playwright.latency.config.ts, and CI's latency job). Each control is pressed
@@ -354,6 +354,63 @@ function median(values: readonly number[]): number {
   return sorted.length % 2 ? sorted[Math.floor(middle)]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
 }
 
+/**
+ * A setup retry, never a timing one (ourostack/ouro-ui#2131, #4115). The CPU throttle is a precondition of every
+ * measurement: a navigation at times lands in a renderer the throttle was not set on, and what ran there ran at full
+ * speed. Whether it applied is read from a fixed loop's time (`throttleApplied`), never from a press's paint time, and
+ * `takeThrottle` takes it again on a new session, each retake logged, from one budget of THROTTLE_RETAKES for the page.
+ * A throttle still missing once the budget is spent fails as a harness error that names it, never as a latency result.
+ */
+export const THROTTLE_RETAKES = 12;
+
+/** Whether the throttle applied: a loop on the throttled page ran at least twice as slow as on the runner's full speed. */
+export function throttleApplied(loopMs: number, fullMs: number): boolean {
+  return loopMs / fullMs >= 2;
+}
+
+/** A fixed loop's time in the page, ms: the fastest of three runs after one to compile it, since a busy runner only ever adds time. */
+export async function throttleLoop(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const once = () => {
+      const started = performance.now();
+      let hash = 0;
+      for (let i = 0; i < 2_000_000; i++) hash = Math.imul(hash ^ i, 2654435761) >>> 0;
+      // Kept on the window so the loop's result is used and the engine cannot drop the loop.
+      (window as unknown as { __loopHash: number }).__loopHash = hash;
+      return performance.now() - started;
+    };
+    once();
+    return Math.min(once(), once(), once());
+  });
+}
+
+/** How many throttle retakes this worker has spent, for the one budget. */
+let throttleRetakes = 0;
+
+/**
+ * Sets the CPU throttle on a new CDP session of the page and checks it applied, taking it again on a fresh session when
+ * it did not. Returns the session whose throttle holds; throws a harness error naming the throttle when the budget of
+ * retakes is spent.
+ */
+export async function takeThrottle(page: Page, rate: number, label: string): Promise<CDPSession> {
+  const full = await throttleLoop(page);
+  for (;;) {
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate });
+    const throttled = await throttleLoop(page);
+    if (throttleApplied(throttled, full)) return cdp;
+    const ratio = Math.round((throttled / full) * 10) / 10;
+    if (throttleRetakes >= THROTTLE_RETAKES) {
+      throw new Error(`latency harness error, not a latency result: the ${rate}× CPU throttle did not apply to ${label} (its loop ran ${ratio}× full speed) after ${THROTTLE_RETAKES} retakes`);
+    }
+    throttleRetakes += 1;
+    const line = `${label}: the ${rate}× throttle did not apply (its loop ran ${ratio}× full speed); taking it again (retake ${throttleRetakes} of ${THROTTLE_RETAKES})`;
+    test.info().annotations.push({ type: "latency-throttle-retake", description: line });
+    console.log(`latency-throttle-retake ${line}`);
+    await cdp.detach().catch(() => undefined);
+  }
+}
+
 /** Whether this worker's browser has measured a control yet (LATENCY.firstWarmUps). */
 let browserWarmed = false;
 
@@ -403,7 +460,7 @@ export async function measure(
       // A browser without long animation frames records none.
     }
   });
-  const cdp = await page.context().newCDPSession(page);
+  let cdp = await page.context().newCDPSession(page);
   const settle = () => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 100)))));
   const unthrottled = async (work: () => Promise<unknown>) => {
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
@@ -419,7 +476,7 @@ export async function measure(
   const runnerLine = `${label}: script ${speed.script} ms, frame ${speed.frame} ms (full speed), CPU ${host[0]?.model ?? "unknown CPU"} × ${host.length}`;
   test.info().annotations.push({ type: "latency-runner", description: runnerLine });
   console.log(`latency-runner ${runnerLine}`);
-  await cdp.send("Emulation.setCPUThrottlingRate", { rate: throttle });
+  cdp = await takeThrottle(page, throttle, label);
   if (prepare) await unthrottled(prepare);
   // The calibration probe's presses, at the same throttle as the control's: the first of each round is a warm-up.
   const probeRound = async (): Promise<number[]> => {

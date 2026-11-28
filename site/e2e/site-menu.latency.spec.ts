@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LATENCY, expectPressesWithinBudget, medianCeiling } from "./latency";
+import { LATENCY, expectPressesWithinBudget, medianCeiling, takeThrottle } from "./latency";
 
 // The site menu's press answers within budget on a phone, press to the paint that draws its sheet, on a CPU throttled
 // LATENCY.throttle×: on the home page, with the stage's fish and caustics running behind the header, and on a docs page,
@@ -17,7 +17,7 @@ const sheet = (page: Page) => page.locator("[role='dialog']", { has: page.getByR
 const BASELINE_MEDIAN: Record<string, number> = { "./": 64, "docs/button/": 64 };
 
 /** One press's press-to-paint time in ms on a CPU throttled LATENCY.throttle×, as measure() times each of its presses. */
-async function firstPress(page: Page, press: () => Promise<unknown>): Promise<number> {
+async function firstPress(page: Page, label: string, press: () => Promise<unknown>): Promise<number> {
   await page.evaluate(() => {
     const store: number[] = [];
     (window as unknown as { __first: number[] }).__first = store;
@@ -25,8 +25,7 @@ async function firstPress(page: Page, press: () => Promise<unknown>): Promise<nu
       for (const entry of list.getEntries() as PerformanceEventTiming[]) if (entry.interactionId) store.push(entry.duration);
     }).observe({ type: "event", durationThreshold: 16, buffered: false } as PerformanceObserverInit);
   });
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send("Emulation.setCPUThrottlingRate", { rate: LATENCY.throttle });
+  const cdp = await takeThrottle(page, LATENCY.throttle, `${label}, first open`);
   await press();
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))));
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
@@ -65,7 +64,7 @@ test.describe("interaction latency", () => {
       // first open shows.
       // real clock: the sheet is built when the browser says the page is idle, which no page clock drives.
       await expect(page.locator('[data-ouro="sheet"][hidden]')).toBeAttached();
-      const first = await firstPress(page, () => menuButton(page).click());
+      const first = await firstPress(page, label, () => menuButton(page).click());
       // real clock: the menu stays open until it is closed; no timer ends it.
       await expect(sheet(page)).toBeVisible();
       test.info().annotations.push({ type: "latency", description: `${label}, first open: ${first} ms` });
