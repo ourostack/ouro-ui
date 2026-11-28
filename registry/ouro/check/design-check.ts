@@ -482,7 +482,13 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
           const caption = [inner, ...inner.querySelectorAll("*")].some((el) =>
             visibleSet.has(el) && hasText(el) && !el.closest('button, [role="button"]'));
           const mediaFrame = noHeading && !caption && covered >= drawn.width * drawn.height * 0.8;
-          lighter = !fieldFrame && !mediaFrame && sideNames.some((side) => visibleEdge(inner, side, surface));
+          lighter = !fieldFrame && !mediaFrame && sideNames.some((side) => {
+            const edgeDrawn = side === "top" ? drawn.top <= i.top + 0.5
+              : side === "right" ? drawn.right >= i.right - 0.5
+                : side === "bottom" ? drawn.bottom >= i.bottom - 0.5
+                  : drawn.left <= i.left + 0.5;
+            return edgeDrawn && visibleEdge(inner, side, surface);
+          });
         }
       }
       if (hugs || lighter) {

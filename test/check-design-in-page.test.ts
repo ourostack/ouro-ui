@@ -279,6 +279,14 @@ describe("findDesignIssues: nested-frame", () => {
     ]);
   });
 
+  it("does not report a lighter surface when its entire border is clipped away", () => {
+    render(`
+      <div style="position:relative;box-sizing:border-box;width:300px;height:180px;overflow:hidden;border:1px solid #888;background:#ddd">
+        <div style="position:absolute;top:-50px;left:-50px;width:400px;height:280px;border:1px solid #888;background:#fff">A collection</div>
+      </div>`);
+    expect(of("nested-frame")).toEqual([]);
+  });
+
   it("finds lighter framed surfaces at different insets and leaves unfilled, darker, hidden and allowed ones alone", () => {
     render(`
       <div id="shell" style="position:relative;box-sizing:border-box;width:360px;height:340px;overflow:hidden;border:1px solid #888;background:#c8cdd1;padding:20px">
