@@ -4034,6 +4034,17 @@ test("install prep caches a base keyed on the runtime files, then adds the shipp
   assert.ok(script.includes("OURO_BASE_ONLY") && script.includes("OURO_DELTA"));
 });
 
+test("install prep's restore key reads only the fixtures its variants build from, so a change to another fixture still restores the earlier app", () => {
+  const ciText = readFileSync(".github/workflows/ci.yml", "utf8");
+  const prep = ciText.slice(ciText.indexOf("\n  install-prep:"), ciText.indexOf("\n  install-shard:"));
+  const key = prep.match(/key: (install-app-[^\n]*)/)[1];
+  const restore = prep.match(/restore-keys: \|\n\s+(install-app-[^\n]*)/)[1];
+  assert.ok(key.startsWith(restore.trim()), "the restore key is a prefix of the key");
+  assert.ok(restore.includes("'test/install-fixture/**', 'test/install-fixture-tests/**'"), "it reads the bare app and the shipped tests' setup");
+  for (const other of ["install-fixture-next", "install-fixture-upgrade", "install-fixture-themes", "install-fixture*"]) assert.ok(!restore.includes(other), `the restore key does not read ${other}`);
+  assert.ok(key.includes("'test/install-fixture*/**'"), "the exact key still reads every fixture");
+});
+
 test("install prep runs on a push to main whose tree passed, so main saves the prepared app the merge queue restores", () => {
   const block = ciJobs()["install-prep"];
   assert.doesNotMatch(block.match(/^ {4}if: (.+)$/m)[1], /tested/);
