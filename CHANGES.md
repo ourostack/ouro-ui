@@ -1,0 +1,3 @@
+# Changes in this release
+
+- Fix: [Ouro check reads color-profile alpha for opaque overlays and glass backings, while reporting see-through overlaps](test/check-in-page.test.ts "verify:testExists(test/check-in-page.test.ts::findOverlaps > passes page text under an opaque overlay: a dialog, a menu, a popover or a floating panel, on a fill of its own or a box in it) verify:testExists(test/check-in-page.test.ts::findOverlaps > passes text on a glass scrim of its own over a picture, around it or a layer beside it, but not on a faint fill or on glass too thin) verify:testExists(test/check-in-page.test.ts::findOverlaps > finds page text under a see-through overlay, a small badge, or a floating box with no fill)").
