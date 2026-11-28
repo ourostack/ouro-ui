@@ -139,7 +139,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       });
     });
   };
-  // An even-odd path keeps everything outside the box, but cuts its corner slivers to the ideal n=4 curve.
+  // Clip each layer to the ideal n=4 curve, including paint extending beyond the box.
   const clipPath = (width: number, height: number, corners: Corner[], offsetX: number, offsetY: number) => {
     const [tl, tr, br, bl] = corners as [Corner, Corner, Corner, Corner];
     const n = (value: number) => Number(value.toFixed(4));
@@ -147,8 +147,6 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
     const y = (value: number) => n(value + offsetY);
     const [w, h] = [width, height];
     const path = [
-      `M -10000 -10000 H ${w + 10000} V ${h + 10000} H -10000 Z`,
-      `M ${x(0)} ${y(0)} H ${x(w)} V ${y(h)} H ${x(0)} Z`,
       `M ${x(0)} ${y(tl.y)}`,
       `C ${x(0)} ${y(0.613 * tl.y)} ${x(-0.0092 * tl.x)} ${y(0.3274 * tl.y)} ${x(0.1591 * tl.x)} ${y(0.1591 * tl.y)}`,
       `C ${x(0.3274 * tl.x)} ${y(-0.0092 * tl.y)} ${x(0.613 * tl.x)} ${y(0)} ${x(tl.x)} ${y(0)}`,
@@ -163,7 +161,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
       `C ${x(-0.0092 * bl.x)} ${y(h - 0.3274 * bl.y)} ${x(0)} ${y(h - 0.613 * bl.y)} ${x(0)} ${y(h - bl.y)}`,
       "Z",
     ].join(" ");
-    return `path(evenodd, "${path}")`;
+    return `path("${path}")`;
   };
   const pixels = async (data: string) => {
     const comma = data.indexOf(",");
@@ -235,7 +233,7 @@ async function findSquirclePaint(): Promise<PageIssue[]> {
           const behind = difference(b.data, c.data, index);
           if (delta < 2 || (!outsideCorner && behind > 4)) continue;
           if (outsideCorner && difference(a.data, c.data, index) < 2) continue;
-          if (outsideCorner && difference(a.data, b.data, index) > 4) continue;
+          if (outsideCorner && difference(a.data, b.data, index) < 2) continue;
           if (own && noStrokes && difference(a.data, noStrokes.data, index) >= 2 && difference(noStrokes.data, own.data, index) < 2 &&
             strokePads.some((pad) => {
               const dx = (left ? cornerX - px : px - cornerX) / (corner.x * rect.width / width + pad.x);
