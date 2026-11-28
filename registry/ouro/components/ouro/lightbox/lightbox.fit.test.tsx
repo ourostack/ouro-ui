@@ -411,6 +411,31 @@ describe("Lightbox fit", () => {
     expect(onCorner(dialog)).toEqual({ right: true, top: true });
   });
 
+  it("keeps the controls centered when a resized picture moves back into its slide", async () => {
+    const host = await render(true);
+    await userEvent.click(thumbnail(host));
+    await settled();
+    const dialog = popup()!;
+    const viewport = dialog.querySelector<HTMLElement>("[data-ouro-carousel-viewport]")!;
+    const img = dialog.querySelector<HTMLImageElement>("[data-ouro-lightbox-figure] > img")!;
+    const header = dialog.querySelector<HTMLElement>("[data-ouro-lightbox-header]")!;
+    await expect.poll(() => onCorner(dialog)).toEqual({ right: true, top: true });
+
+    viewport.style.scrollSnapType = "none";
+    viewport.scrollLeft = 32;
+    expect(viewport.scrollLeft).toBe(32);
+    const width = img.style.width;
+    expect(parseFloat(width)).toBeGreaterThan(2);
+    const before = header.style.insetInlineEnd;
+    img.style.width = `${parseFloat(width) - 2}px`;
+    await expect.poll(() => header.style.insetInlineEnd).not.toBe(before);
+    const during = header.style.insetInlineEnd;
+    img.style.width = width;
+    await expect.poll(() => header.style.insetInlineEnd).not.toBe(during);
+    viewport.scrollLeft = 0;
+    await expect.poll(() => onCorner(dialog)).toEqual({ right: true, top: true });
+  });
+
   it("puts the controls on the picture's top-left corner right to left", async () => {
     document.documentElement.dir = "rtl";
     try {
