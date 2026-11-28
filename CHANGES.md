@@ -1,0 +1,3 @@
+# Changes in this release
+
+- New: [MessageList grows a new message's bubble in on the bounce tokens](registry/ouro/components/ouro/message/message-list.arrival.test.tsx "verify:testExists(registry/ouro/components/ouro/message/message-list.arrival.test.tsx::MessageList arrival > grows a new message's bubble in from its tail's corner on the bounce tokens, and with reduced motion only fades it)"): a sent bubble from its tail's corner, another's from its sender's side, with no translate, and only a fade under reduced motion.
