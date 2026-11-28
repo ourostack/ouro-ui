@@ -88,6 +88,15 @@ describe("SegmentedControl", () => {
     }
   });
 
+  it("keeps the track's themed corner shape on the selected segment", async () => {
+    const { host, thumb } = await render(<SegmentedControl label="View" items={items} />);
+    host.style.setProperty("--ouro-control-corner-shape", "superellipse(1.05)");
+    expect(getComputedStyle(thumb).getPropertyValue("--corner-shape").trim()).toBe("superellipse(1.05)");
+    if (CSS.supports("corner-shape", "superellipse(1.05)")) {
+      expect(getComputedStyle(thumb).getPropertyValue("corner-shape")).toContain("superellipse");
+    }
+  });
+
   it("hides the label visually with hideLabel, and still names the group", async () => {
     const { host } = await render(<SegmentedControl label="View" hideLabel items={items} />);
     await expect.element(page.getByRole("radiogroup", { name: "View" })).toBeInTheDocument();
