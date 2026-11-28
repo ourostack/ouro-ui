@@ -11,6 +11,8 @@ import { Message } from "@/registry/ouro/components/ouro/message/message";
 import { MessageList } from "@/registry/ouro/components/ouro/message/message-list";
 import { ThreadSummary } from "@/registry/ouro/components/ouro/message/thread-summary";
 import { Kbd } from "@/registry/ouro/components/ouro/kbd/kbd";
+import { ReadReceipt } from "@/registry/ouro/components/ouro/read-receipt/read-receipt";
+import { ScrollArea } from "@/registry/ouro/components/ouro/scroll-area/scroll-area";
 import { Separator } from "@/registry/ouro/components/ouro/separator/separator";
 import { Sidebar } from "@/registry/ouro/components/ouro/sidebar/sidebar";
 import { SwipeActions } from "@/registry/ouro/components/ouro/swipe-actions/swipe-actions";
@@ -19,7 +21,9 @@ import { Heading } from "@/registry/ouro/components/ouro/text/heading";
 import { Text, type TextProps } from "@/registry/ouro/components/ouro/text/text";
 import { TimeGrid } from "@/registry/ouro/components/ouro/time-grid/time-grid";
 import { Table } from "@/registry/ouro/components/ouro/table/table";
+import { TabsIndicator, TabsList, TabsPanel, TabsRoot, TabsTab } from "@/registry/ouro/components/ouro/tabs/tabs-parts";
 import { ThreadRail } from "@/registry/ouro/components/ouro/thread-rail/thread-rail";
+import { ToggleGroup } from "@/registry/ouro/components/ouro/toggle/toggle-group";
 import { page } from "vitest/browser";
 import stockCss from "./shadcn-stock.css?raw";
 
@@ -312,6 +316,95 @@ for (const [name, css] of Object.entries(themes)) {
         const button = host.querySelector('[data-ouro-control="thread-summary"]')!;
         const behind = backdrop(button);
         expect(ratio(over(getComputedStyle(button).color, behind), behind)).toBeGreaterThanOrEqual(4.5);
+      });
+
+      it("keeps controls and metadata readable on a tinted scroller", async () => {
+        document.documentElement.classList.toggle("dark", scheme === "dark");
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.append(style);
+        mounted.push(style);
+        const host = document.createElement("div");
+        host.setAttribute("data-theme-probe", "");
+        host.style.cssText = "--background:#fff;--muted:#f5f5f5;--foreground:#171717;--muted-foreground:#737373;--destructive:#e7000b;background:var(--background)";
+        document.body.append(host);
+        mounted.push(host);
+        const root = createRoot(host);
+        roots.push(root);
+        await act(async () => root.render(
+          <>
+            <MessageList label="Conversation">
+              <Message
+                variant="chat"
+                role="user"
+                name="You"
+                failed={{ onRetry: () => {} }}
+                footer={<ReadReceipt readers={[{ name: "One" }, { name: "Two" }, { name: "Three" }, { name: "Four" }]} />}
+              >
+                Hello
+              </Message>
+            </MessageList>
+            <Table caption="Items" columns={[{ key: "name", header: "Item" }]} rows={[] as { name: string }[]} empty="Nothing here" />
+            <ScrollArea label="Sections">
+              <TabsRoot defaultValue="one">
+                <TabsList aria-label="Sections" sticky>
+                  <TabsTab value="one">One</TabsTab>
+                  <TabsTab value="two">Two</TabsTab>
+                  <TabsIndicator />
+                </TabsList>
+                <TabsPanel value="one">First</TabsPanel>
+                <TabsPanel value="two">Second</TabsPanel>
+              </TabsRoot>
+            </ScrollArea>
+          </>,
+        ));
+        const targets = [
+          host.querySelector('[data-ouro-message-failed] > span')!,
+          host.querySelector('[data-ouro-read-receipt-more]')!,
+          host.querySelector("tbody td span")!,
+          host.querySelector('[role="tab"][aria-selected="false"]')!,
+        ];
+        const failures = targets.flatMap((element) => {
+          const behind = backdrop(element);
+          const value = ratio(over(getComputedStyle(element).color, behind), behind);
+          return value < 4.5 ? [`${element.textContent}: ${value.toFixed(2)}`] : [];
+        });
+        expect(failures).toEqual([]);
+      });
+
+      it("keeps a plain action and a pressed scrolling pill readable with a warm primary", async () => {
+        document.documentElement.classList.toggle("dark", scheme === "dark");
+        const style = document.createElement("style");
+        style.textContent = css;
+        document.head.append(style);
+        mounted.push(style);
+        const host = document.createElement("div");
+        host.setAttribute("data-theme-probe", "");
+        host.style.cssText = "--background:#fbfaf4;--muted:#e8e9df;--primary:#9b6834;--foreground:#28231d;background:var(--background)";
+        document.body.append(host);
+        mounted.push(host);
+        const root = createRoot(host);
+        roots.push(root);
+        await act(async () => root.render(
+          <>
+            <ScrollArea label="Actions"><Button variant="plain">Open</Button></ScrollArea>
+            <MessageList label="Conversation">
+              <Message variant="chat" role="user" name="You" failed={{ onRetry: () => {} }}>Hello</Message>
+            </MessageList>
+            <ToggleGroup label="Filter" overflow="scroll" shape="pill" variant="outline" items={[{ value: "all", label: "All" }]} defaultValue="all" />
+          </>,
+        ));
+        const targets = [
+          host.querySelector('[data-scroll-viewport] button')!,
+          host.querySelector('[data-ouro-message-failed] button')!,
+          host.querySelector('[data-ouro="toggle-group"] [data-pressed]')!,
+        ];
+        const failures = targets.flatMap((element) => {
+          const behind = backdrop(element);
+          const value = ratio(over(getComputedStyle(element).color, behind), behind);
+          return value < 4.5 ? [`${element.textContent}: ${value.toFixed(2)}`] : [];
+        });
+        expect(failures).toEqual([]);
       });
 
       it("a TimeGrid's muted labels keep 4.5:1 or more on its scrolling surface and marked days", async () => {

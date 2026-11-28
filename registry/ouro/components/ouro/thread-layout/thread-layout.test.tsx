@@ -132,12 +132,13 @@ describe("ThreadLayout", () => {
       const { host, rerender } = await render(<ThreadLayout conversation={<Conversation />} thread={thread} />, 800);
       host.style.height = "400px";
       const pane = host.querySelector<HTMLElement>("[data-ouro-thread-layout-conversation]")!;
+      const rail = host.querySelector<HTMLElement>('[data-ouro="thread-rail"]')!;
       const railScroller = () => host.querySelector<HTMLElement>('[data-ouro="thread-rail"] [data-ouro-message-list-scroller]')!;
       const surface = document.createElement("div");
       surface.style.backgroundColor = "var(--background)";
       host.append(surface);
       expect(getComputedStyle(pane).backgroundColor).toBe(getComputedStyle(surface).backgroundColor);
-      expect(getComputedStyle(pane).backgroundColor).not.toBe(getComputedStyle(railScroller()).backgroundColor);
+      expect(getComputedStyle(pane).backgroundColor).not.toBe(getComputedStyle(rail).backgroundColor);
 
       await rerender(
         <ThreadLayout
@@ -147,6 +148,7 @@ describe("ThreadLayout", () => {
       );
       const conversationScroller = pane.querySelector<HTMLElement>("[data-ouro-message-list-scroller]")!;
       expect(getComputedStyle(conversationScroller).backgroundColor).not.toBe(getComputedStyle(railScroller()).backgroundColor);
+      expect(pane.getBoundingClientRect().right - conversationScroller.getBoundingClientRect().right).toBeGreaterThanOrEqual(20);
     } finally {
       root.classList.toggle("dark", wasDark);
     }
