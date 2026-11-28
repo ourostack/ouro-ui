@@ -324,6 +324,38 @@ describe("findDesignIssues: nested-frame", () => {
     expect(of("nested-frame").map((issue) => issue.element)).toEqual(["div#card in div"]);
   });
 
+  it("recognizes a file-picker label and an editor with tools without hiding a card with a field", () => {
+    render(`
+      <div style="width:400px;padding:20px;border:1px solid #888;background:#ddd">
+        <label id="picker" style="display:block;width:300px;height:100px;border:1px solid #888;background:#fff">
+          Choose a file<input type="file" style="position:absolute;width:1px;height:1px;opacity:0">
+        </label>
+        <div id="editor-tools" style="width:300px;height:220px;border:1px solid #888;background:#fff">
+          <div style="height:40px"><button>Bold</button></div>
+          <div style="height:100px"><textarea aria-label="Message" style="width:95%;height:45px"></textarea><button>Send</button></div>
+          <div role="group" aria-label="Attachments" style="height:70px"><button>Remove file</button></div>
+        </div>
+        <div id="card" style="width:300px;height:150px;border:1px solid #888;background:#fff">
+          <div style="height:120px"><p>Describe the collection.</p><input aria-label="Name" style="width:95%"></div>
+        </div>
+      </div>`);
+    expect(of("nested-frame").map((issue) => issue.element)).toEqual(["div#card in div"]);
+  });
+
+  it("distinguishes a frame around a mosaic of pictures from a lighter card with a small picture", () => {
+    render(`
+      <div style="width:400px;padding:20px;border:1px solid #888;background:#ddd">
+        <ul id="pictures" style="box-sizing:border-box;display:grid;grid-template-columns:1fr 1fr;gap:2px;width:300px;height:160px;margin:0;padding:0;border:1px solid #888;background:#fff">
+          <li style="list-style:none"><img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" style="display:block;width:100%;height:100%"></li>
+          <li style="list-style:none"><img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" style="display:block;width:100%;height:100%"></li>
+        </ul>
+        <div id="card" style="width:300px;height:120px;margin-top:20px;border:1px solid #888;background:#fff">
+          <img alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E" style="width:30px;height:30px">A collection
+        </div>
+      </div>`);
+    expect(of("nested-frame").map((issue) => issue.element)).toEqual(["div#card in div"]);
+  });
+
   it("distinguishes composite colour and chip fields from a framed card", () => {
     render(`
       <div style="width:360px;padding:20px;border:1px solid #888;background:#ddd">
