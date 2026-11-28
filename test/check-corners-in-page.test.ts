@@ -190,11 +190,15 @@ it("attributes protruding pseudo-elements without changing hit-test styles", asy
   const computed = window.getComputedStyle.bind(window);
   const styles = vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
     const style = computed(element, pseudo);
-    if (element === surface && !pseudo) {
-      Object.defineProperty(style, "filter", { value: "" });
-      Object.defineProperty(style, "textShadow", { value: "" });
-    }
-    return style;
+    return element !== surface || pseudo ? style : new Proxy(style, {
+      get(target, property) {
+        if (property === "filter" || property === "textShadow" || property === "outlineWidth") return "";
+        if (property === "boxShadow") return "unresolved";
+        if (property === "outlineStyle") return "solid";
+        const value = Reflect.get(target, property, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
   });
   try {
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.shadow");
@@ -215,6 +219,30 @@ it("detects protruding pseudo paint beside an SVG shadow", async () => {
   const original = svg.getAttribute("style");
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
   expect(svg.getAttribute("style")).toBe(original);
+  const capture = state.__ouroPaintCapture!;
+  const computed = window.getComputedStyle.bind(window);
+  let captures = 0;
+  state.__ouroPaintCapture = async (clip) => {
+    const image = await capture(clip);
+    captures++;
+    return image;
+  };
+  const styles = vi.spyOn(window, "getComputedStyle").mockImplementation((element, pseudo) => {
+    const style = computed(element, pseudo);
+    return element !== svg || captures < 3 ? style : new Proxy(style, {
+      get(target, property) {
+        if (property === "width") return "0px";
+        const value = Reflect.get(target, property, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+  });
+  try {
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+  } finally {
+    styles.mockRestore();
+    state.__ouroPaintCapture = capture;
+  }
 }, paintTimeout);
 
 it("separates an unrelated changing overlay from a surface with a pseudo-element", async () => {
