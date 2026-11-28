@@ -107,9 +107,15 @@ test("squircle corners: separate longhand classes preserve each other's corners"
       await tab.setContent(`<style>${css}</style><div class="surface top bottom"></div>`);
       const corners = await tab.locator(".surface").evaluate((element) => {
         const style = globalThis.getComputedStyle(element);
-        return ["tl", "tr", "br", "bl"].map((corner) => parseFloat(style.getPropertyValue(`--sq-${corner}`)));
+        return {
+          clip: ["tl", "tr", "br", "bl"].map((corner) => parseFloat(style.getPropertyValue(`--sq-${corner}`))),
+          border: ["borderTopLeftRadius", "borderTopRightRadius", "borderBottomRightRadius", "borderBottomLeftRadius"].map((property) => parseFloat(style[property])),
+        };
       });
-      assert.deepEqual(corners, [20, 20, 12, 12], `${engine.name()}: opposite corners compose`);
+      assert.deepEqual(corners.clip, [20, 20, 12, 12], `${engine.name()}: opposite corner clips compose`);
+      corners.border.forEach((actual, index) => {
+        assert.ok(Math.abs(actual - corners.clip[index] * 0.543) < 0.01, `${engine.name()}: the enclosing border follows each corner`);
+      });
     } finally {
       await browser.close();
     }
@@ -153,6 +159,9 @@ test("squircle corners: grouping fallback rules preserves the source cascade", a
     .first { border-radius: 8px; }
     .middle { border-radius: 24px; }
     .last { border-radius: 8px; }
+    .early { border-radius: 8px; }
+    .reset { all: unset; }
+    .again { border-radius: 8px; }
     @media (min-width: 500px) { .wide { border-radius: 28px; } }
   `);
   const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-native-corner-shape: squircle)");
@@ -166,6 +175,61 @@ test("squircle corners: grouping fallback rules preserves the source cascade", a
       await tab.locator(".surface").evaluate((element) => { element.className = "surface first wide"; });
       const wide = await tab.locator(".surface").evaluate((element) => parseFloat(globalThis.getComputedStyle(element).getPropertyValue("--sq-tl")));
       assert.equal(wide, 28, `${engine.name()}: the later media rule wins`);
+      await tab.locator(".surface").evaluate((element) => { element.className = "surface early reset"; });
+      const reset = await tab.locator(".surface").evaluate((element) => globalThis.getComputedStyle(element).borderTopLeftRadius);
+      assert.equal(reset, "0px", `${engine.name()}: an intervening all reset wins`);
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
+test("squircle corners: a later circle clears an earlier squircle", async () => {
+  const generated = await run(`
+    .surface { width: 120px; height: 80px; background: #dce5ef; }
+    .squircle { border-radius: 20px; }
+    .circle { border-radius: 50%; }
+    .later { border-radius: 12px; }
+  `);
+  const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-native-corner-shape: squircle)");
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage();
+    try {
+      await tab.setContent(`<style>${css}</style><div class="surface squircle circle"></div>`);
+      const read = () => tab.locator(".surface").evaluate((element) => {
+        const style = globalThis.getComputedStyle(element);
+        return [parseFloat(style.getPropertyValue("--sq-tl")), style.borderTopLeftRadius];
+      });
+      assert.deepEqual(await read(), [0, "50%"], `${engine.name()}: a circle has no stale squircle clip`);
+      await tab.locator(".surface").evaluate((element) => { element.classList.add("later"); });
+      const later = await read();
+      assert.equal(later[0], 12, `${engine.name()}: a still-later squircle wins`);
+      assert.ok(Math.abs(parseFloat(later[1]) - 6.516) < 0.01, `${engine.name()}: its enclosing border wins too`);
+    } finally {
+      await browser.close();
+    }
+  }
+});
+
+test("squircle corners: fallback radii honor important declarations", async () => {
+  const generated = await run(`
+    .surface { width: 120px; height: 80px; background: #dce5ef; }
+    .first { border-top-left-radius: 20px !important; border-top-right-radius: 10px !important; border-top-right-radius: 5px; }
+    .later { border-top-left-radius: 8px; }
+  `);
+  const css = generated.replaceAll("(corner-shape: squircle)", "(ouro-native-corner-shape: squircle)");
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    const tab = await browser.newPage();
+    try {
+      await tab.setContent(`<style>${css}</style><div class="surface first later"></div>`);
+      const corners = await tab.locator(".surface").evaluate((element) => {
+        const style = globalThis.getComputedStyle(element);
+        return ["--sq-tl", "--sq-tr", "border-top-left-radius", "border-top-right-radius"].map((property) => parseFloat(style.getPropertyValue(property)));
+      });
+      assert.deepEqual(corners.slice(0, 2), [20, 10], `${engine.name()}: important radii keep their clip`);
+      assert.ok(Math.abs(corners[2] - 10.86) < 0.01 && Math.abs(corners[3] - 5.43) < 0.01, `${engine.name()}: their enclosing borders match`);
     } finally {
       await browser.close();
     }
