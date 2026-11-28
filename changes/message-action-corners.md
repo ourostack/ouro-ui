@@ -1,1 +1,0 @@
-- Fix: [Message keeps a focused action's outline inside its raised bar, including at compact spacing](registry/ouro/components/ouro/message/message.test.tsx "verify:testExists(registry/ouro/components/ouro/message/message.test.tsx::Message actions > keeps each focused action's outline inside its raised bar)").

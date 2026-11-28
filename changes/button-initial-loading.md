@@ -1,0 +1,1 @@
+- Fixed: A Button that starts loading [draws its spinner before its first style pass, even when passive effects have run](registry/ouro/components/ouro/button/button.test.tsx "verify:testExists(registry/ouro/components/ouro/button/button.test.tsx::loading > draws the spinner at once when the button mounts loading, and fades it in when loading turns on later)").

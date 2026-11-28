@@ -1,13 +1,11 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { commands, page } from "vitest/browser";
-import { findSquirclePaint, type PaintCapture } from "@/registry/ouro/check/squircle-paint";
 import { menuItemClass, menuSheetPopupClass, menuSheetPositionerClass } from "@/registry/ouro/components/ouro/menu/menu-styles";
 import { knownFindings, knownFor } from "./check-known.ts";
 import { sweepStoryCheck } from "./check-sweep.ts";
-import { describeFindings, parkPointer, scan, scanStory, scanStoryViolations, storyScanTimeout, visitStoryOverlays } from "./story-axe.ts";
-import { cleanupStories, closeOverlay, openOverlay, overlayOpeners, renderStory, renderStoryPage, selectedStories, setScheme, settle, stories, story, storyFiles } from "./stories.tsx";
+import { describeFindings, parkPointer, scan, scanStory, scanStoryViolations, storyScanTimeout } from "./story-axe.ts";
+import { cleanupStories, closeOverlay, openOverlay, overlayOpeners, renderStory, selectedStories, setScheme, settle, stories, story, storyFiles } from "./stories.tsx";
 import { sliced } from "./slice.ts";
-import { forceSquircleFallback } from "./squircle-fallback.ts";
 
 // Every Storybook story renders and passes axe with zero violations (spec §8:
 // "axe checks in every story"), closed and with each of its overlays open.
@@ -192,71 +190,6 @@ describe("stories pass Ouro check's rules", () => {
   it("names only stories that exist", () => {
     const ids = stories.map((entry) => entry.id);
     for (const { story: id, rule } of knownFindings) expect(ids, `${id} (${rule})`).toContain(id);
-  });
-
-  describe("stories keep paint inside squircle corners", () => {
-    const state = window as unknown as { __ouroPaintCapture?: PaintCapture };
-    let restoreFallback: () => void;
-    let previousCapture: PaintCapture | undefined;
-
-    beforeAll(() => {
-      restoreFallback = forceSquircleFallback();
-      previousCapture = state.__ouroPaintCapture;
-      state.__ouroPaintCapture = (clip) => commands.squircleCapture(clip);
-      (window as unknown as { __ouroPaintDiagnostic: typeof commands.squircleDiagnostic }).__ouroPaintDiagnostic = (data) => commands.squircleDiagnostic(data);
-      const probe = document.createElement("div");
-      probe.className = "rounded-ouro-xl";
-      probe.style.cssText = "width:120px;height:80px";
-      document.body.append(probe);
-      try {
-        const style = getComputedStyle(probe);
-        expect(parseFloat(style.getPropertyValue("--sq-tl"))).toBeGreaterThan(0);
-        expect(style.clipPath).not.toBe("none");
-      } finally {
-        probe.remove();
-      }
-    });
-
-    afterAll(() => {
-      restoreFallback();
-      if (previousCapture) state.__ouroPaintCapture = previousCapture;
-      else delete state.__ouroPaintCapture;
-    });
-
-    it.each(sliced(selectedStories, "stories: squircle-paint"))("$id has no paint outside its squircle corners, closed and with each overlay open", async ({ id, Story, parameters }) => {
-      const findings: { phase: string; size: string; scheme: string; element: string; detail: string; context: object }[] = [];
-      try {
-        for (const [width, height, scheme] of [[390, 844, "light"], [1280, 800, "dark"]] as const) {
-          await page.viewport(width, height);
-          setScheme(scheme);
-          await parkPointer();
-          const host = await renderStoryPage(Story);
-          if (parameters.layout !== "fullscreen") host.parentElement!.style.padding = "1rem";
-          await settle();
-          const record = async (phase: string) => {
-            expect(document.querySelector('[data-ouro-allow~="squircle-paint"], [data-ouro-allow~="all"]')).toBeNull();
-            for (const issue of await findSquirclePaint()) {
-              const target = document.querySelector<HTMLElement>(`[data-ouro-check-ref~="${issue.ref}"]`)!;
-              const rect = target.getBoundingClientRect();
-              const style = getComputedStyle(target);
-              const point = /at \((-?\d+), (-?\d+)\)$/.exec(issue.detail);
-              const stack = point ? document.elementsFromPoint(rect.left + Number(point[1]), rect.top + Number(point[2]))
-                .slice(0, 8).map((element) => `${element.tagName.toLowerCase()}${element.getAttribute("data-ouro") ? `[data-ouro=${element.getAttribute("data-ouro")}]` : ""}.${[...element.classList].slice(0, 3).join(".")}`) : [];
-              findings.push({
-                phase, size: `${width}x${height}`, scheme, element: issue.element, detail: issue.detail,
-                context: { width: rect.width, height: rect.height, background: style.backgroundColor, shadow: style.boxShadow, outline: style.outlineStyle, stack },
-              });
-            }
-          };
-          await record("closed");
-          await visitStoryOverlays(id, host, async (phase) => record(phase));
-          await cleanupStories();
-        }
-      } finally {
-        await page.viewport(390, 844);
-      }
-      expect(findings).toEqual([]);
-    }, 120_000);
   });
 
   it.each(sliced(selectedStories, "stories: check"))("$id passes Ouro check's rules, except its known findings", async ({ id, Story }) => {

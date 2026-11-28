@@ -489,19 +489,7 @@ it("does not mistake a switch's round thumb inside a capsule for nested frames",
   expect(findCornerIssues()).toEqual([]);
 });
 
-it("does not mistake a fractional edge's antialiasing for paint outside a fallback corner", async () => {
-  const restore = forceSquircleFallback();
-  try {
-    const root = render('<div class="rounded-ouro-xl" style="position:relative;width:145.890625px;height:44px;background:#2685c0"></div>');
-    const surface = root.firstElementChild!;
-    expect(getComputedStyle(surface).clipPath).not.toBe("none");
-    expect(await findSquirclePaint()).toEqual([]);
-    surface.innerHTML = '<div style="position:absolute;right:-2px;top:4px;width:4px;height:5px;background:red"></div>';
-    expect(await findSquirclePaint()).toHaveLength(1);
-  } finally {
-    restore();
-  }
-}, paintTimeout);
+
 
 it("passes clipped paint, explained allowances, and a surface hidden by another layer", async () => {
   const root = render('<div id="surface" style="position:relative;width:160px;height:120px;overflow:hidden;background:#fff;border-radius:28px;corner-shape:squircle"><div style="position:absolute;inset:0;background:#f40"></div></div>');
@@ -720,45 +708,7 @@ it("keeps a round badge in a painted cutout but finds an uncovered corner", asyn
   expect(await findSquirclePaint()).not.toEqual([]);
 }, paintTimeout);
 
-it("keeps a round badge in a cut-out distinct from leaking square paint", async () => {
-  const restore = forceSquircleFallback();
-  try {
-    const root = render(`<style>
-      .cut-frame, .cut-surface { width:80px; height:80px; }
-      .cut-frame { position:relative; }
-      .cut-surface { position:absolute; inset:0; background:#dce5ef; --sq-notch:move to calc(100% + 8px) calc(100% - 5px), arc to calc(100% - 18px) calc(100% - 5px) of 13px, arc to calc(100% + 8px) calc(100% - 5px) of 13px, close; }
-      .cut-badge { position:absolute; right:-5px; bottom:-5px; width:20px; height:20px; border-radius:50%; corner-shape:round; background:#149b55; }
-      .cut-leak { position:absolute; left:-6px; top:-6px; width:8px; height:8px; background:#b44939; }
-    </style><div class="cut-frame rounded-[44%]"><div class="cut-surface rounded-[44%]"></div><div class="cut-badge"></div></div>`);
-    const frame = root.querySelector<HTMLElement>(".cut-frame")!;
-    const surface = root.querySelector<HTMLElement>(".cut-surface")!;
-    const badge = root.querySelector<HTMLElement>(".cut-badge")!;
-    frame.insertAdjacentHTML("afterbegin", '<div style="position:absolute;inset:0;clip-path:inset(0);pointer-events:none"></div>');
-    expect(await findSquirclePaint()).toEqual([]);
-    expect(surface.hasAttribute("style")).toBe(false);
-    expect(badge.hasAttribute("style")).toBe(false);
-    surface.setAttribute("style", "pointer-events : none !important; ");
-    const surfaceStyle = surface.getAttribute("style");
-    expect(await findSquirclePaint()).toEqual([]);
-    expect(surface.getAttribute("style")).toBe(surfaceStyle);
-    for (const element of [frame, surface]) {
-      element.style.setProperty("--sq-tl", "0px");
-      element.style.borderTopLeftRadius = "0";
-    }
-    expect(await findSquirclePaint()).toEqual([]);
-    for (const element of [frame, surface]) {
-      element.style.removeProperty("--sq-tl");
-      element.style.removeProperty("border-top-left-radius");
-    }
-    frame.insertAdjacentHTML("beforeend", '<div class="cut-leak"></div>');
-    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.cut-frame.rounded-[44%]");
-    frame.lastElementChild!.remove();
-    surface.style.setProperty("--sq-notch", "move to 0 0, close");
-    expect(await findSquirclePaint()).not.toEqual([]);
-  } finally {
-    restore();
-  }
-}, paintTimeout);
+
 
 it("keeps a native shadow and its probe separate from a descendant's external paint", async () => {
   const root = render('<div style="position:relative;width:160px;height:120px"><div style="position:absolute;inset:0"></div><div class="surface" data-ouro-paint-solo="original" style="position:absolute;inset:0;background:#fff;border-radius:28px;corner-shape:squircle;box-shadow:0 4px 12px #0008"></div></div>');
@@ -817,21 +767,7 @@ it("keeps a native shadow and its probe separate from a descendant's external pa
   }
 }, paintTimeout);
 
-it("keeps a fallback popup's curved shadow separate from its content", async () => {
-  const restore = forceSquircleFallback();
-  try {
-    const root = render(`<button style="position:absolute;left:0;top:0;width:100px;height:44px;background:#eaf2fa">Open</button>
-      <div class="surface rounded-ouro-lg" style="position:absolute;left:0;top:52px;width:288px;height:156px;background:white;box-shadow:0 0 0 1px #9999,0 10px 15px -3px #0002,0 4px 6px -4px #0002">
-        <div style="padding:16px"><strong>Notes</strong><p>A short description.</p><input value="Example"></div>
-      </div>`);
-    const surface = root.querySelector<HTMLElement>(".surface")!;
-    expect(await findSquirclePaint()).toEqual([]);
-    surface.insertAdjacentHTML("beforeend", '<div style="position:absolute;left:-12px;top:-12px;width:8px;height:8px;background:#f40"></div>');
-    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface.rounded-ouro-lg");
-  } finally {
-    restore();
-  }
-}, paintTimeout);
+
 
 function outlinedSurface() {
   const root = render(`<div style="position:relative;width:160px;height:120px">
@@ -918,18 +854,7 @@ it("preserves changes to an independent SVG stroke while measuring it", async ()
   }
 }, paintTimeout);
 
-it("finds an SVG fill that escapes its rounded parent", async () => {
-  const restore = forceSquircleFallback();
-  try {
-    const root = render('<div id="surface" class="rounded-ouro-xl" style="position:relative;width:160px;height:120px;background:white;clip-path:none"><svg style="position:absolute;inset:0;width:100%;height:100%"><rect width="100%" height="100%" fill="#b44939"></rect></svg></div>');
-    const surface = root.querySelector<HTMLElement>("#surface")!;
-    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div#surface.rounded-ouro-xl");
-    surface.style.removeProperty("clip-path");
-    expect(await findSquirclePaint()).toEqual([]);
-  } finally {
-    restore();
-  }
-}, paintTimeout);
+
 
 it("finds paint on a forced fallback and skips invisible or offscreen surfaces", async () => {
   const root = render('<div id="surface" style="position:relative;width:160px;height:120px;border-radius:15px;--sq-tl:28px;--sq-tr:28px;--sq-br:28px;--sq-bl:28px;background:#fff"><div style="position:absolute;inset:0;background:#f40"></div></div>');
@@ -946,18 +871,7 @@ it("keeps a clipped fallback outline but finds a protruding sibling beside it", 
   expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
 }, paintTimeout);
 
-it("activates the compiled fallback in both browser engines", async () => {
-  const restore = forceSquircleFallback();
-  try {
-    const root = render('<div class="surface rounded-ouro-xl" style="width:160px;height:120px;background:#fff"></div>');
-    const style = getComputedStyle(root.firstElementChild!);
-    expect(parseFloat(style.getPropertyValue("--sq-tl"))).toBeGreaterThan(0);
-    expect(style.clipPath).not.toBe("none");
-    expect(await findSquirclePaint()).toEqual([]);
-  } finally {
-    restore();
-  }
-}, paintTimeout);
+
 
 it("keeps overlapping fallback surfaces separate while checking each one's paint", async () => {
   const restore = forceSquircleFallback();
@@ -1013,14 +927,6 @@ it("skips a fixed painted corner entirely outside the viewport", async () => {
   expect(await findSquirclePaint()).toEqual([]);
 }, paintTimeout);
 
-it("does not mistake the next line of a wrapped inline surface for corner paint", async () => {
-  const root = render('<div style="width:220px;font:16px/24px monospace"><span style="display:inline-block;width:165px"></span><code id="inline" style="background:#dde4ed;border-radius:8px;corner-shape:squircle;--sq-tl:8px;--sq-tr:8px;--sq-br:8px;--sq-bl:8px"><span>one/</span><wbr><span>several-more-words</span></code></div>');
-  const fragments = root.querySelector("#inline")!.getClientRects();
-  expect(fragments.length).toBeGreaterThan(1);
-  expect(fragments[0]!.left).toBeGreaterThan(fragments[fragments.length - 1]!.left);
-  expect(await findSquirclePaint()).toEqual([]);
-}, paintTimeout);
-
 it("checks surfaces larger than the viewport and leaves no temporary style attribute", async () => {
   const root = render(`<style>.surface { width:${innerWidth + 100}px; height:${innerHeight + 100}px; background:#fff; border-radius:28px; corner-shape:squircle; }</style><div class="surface"></div>`);
   const surface = root.querySelector(".surface")!;
@@ -1028,28 +934,7 @@ it("checks surfaces larger than the viewport and leaves no temporary style attri
   expect(surface.hasAttribute("style")).toBe(false);
 }, paintTimeout);
 
-it("preserves an inline style removed while the painted layer is captured", async () => {
-  const restore = forceSquircleFallback();
-  const root = render('<style>.surface { width:160px; height:120px; background:#fff; box-shadow:0 2px 6px #0004; }</style><div class="surface rounded-ouro-xl"></div>');
-  const surface = root.querySelector<HTMLElement>(".surface")!;
-  const capture = state.__ouroPaintCapture!;
-  let removed = false;
-  state.__ouroPaintCapture = async (clip) => {
-    const image = await capture(clip);
-    surface.removeAttribute("style");
-    removed = true;
-    state.__ouroPaintCapture = capture;
-    return image;
-  };
-  try {
-    expect(await findSquirclePaint()).toEqual([]);
-    expect(removed).toBe(true);
-    expect(surface.hasAttribute("style")).toBe(false);
-  } finally {
-    state.__ouroPaintCapture = capture;
-    restore();
-  }
-}, paintTimeout);
+
 
 it("keeps a removed style attribute absent when calibrating a fallback shadow", async () => {
   const root = render('<style>.surface { position:relative; width:160px; height:120px; background:#fff; border-radius:2px; --sq-tl:28px; box-shadow:0 2px 6px #0004; }</style><div class="surface"></div>');

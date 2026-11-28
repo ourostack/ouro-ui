@@ -1,45 +1,31 @@
-name: Corner diagnostic probe
+name: Windowing probe
+# Probe: runs message-list.windowing.test.tsx in ouro-chromium repeatedly, once on a quiet runner and once under controlled CPU
+# load (scripts/load.mjs, at most the runner's cores minus two, killed on every exit path), printing each run's time and, on a
+# hang, the wait that was in flight. Dispatch by hand only; never a push or a pull request. Remove it once the cause is fixed.
 on:
   workflow_dispatch:
+    inputs:
+      runs:
+        description: Runs in each mode
+        required: false
+        default: "30"
+        type: string
 permissions:
   contents: read
 jobs:
-  probe:
+  measure:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 150
     container:
       image: mcr.microsoft.com/playwright@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe # v1.65.0-noble
+      options: --user 1001 -v /usr/bin/zstd:/usr/bin/zstd:ro
       env:
         OURO_SYSTEM_PACKAGES: image
     strategy:
+      max-parallel: 2
       fail-fast: false
-      max-parallel: 4
       matrix:
-        include:
-          - name: kbd
-            project: ouro-webkit
-            selector: "Menu/Items"
-          - name: attachment
-            project: ouro-chromium
-            selector: "Attachment/Kinds"
-          - name: avatar
-            project: ouro-chromium
-            selector: "Avatar/Presence"
-          - name: picker
-            project: ouro-chromium
-            selector: "ThemePicker/Playground"
-          - name: glass
-            project: ouro-chromium
-            selector: "Button/Glass"
-          - name: time
-            project: ouro-chromium
-            selector: "TimeGrid/WorkWeek"
-          - name: segmented
-            project: ouro-webkit
-            selector: "SegmentedControl/Glass"
-          - name: navigation
-            project: ouro-chromium
-            selector: "NavigationRail/IconsOnly"
+        mode: [unloaded, loaded]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -48,20 +34,10 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
+          cache: ""
       - run: pnpm i --frozen-lockfile
-      - name: Inspect painted corners
-        shell: bash
+      - name: Measure
         env:
-          PROJECT: ${{ matrix.project }}
-          SELECTOR: ${{ matrix.selector }}
-        run: |
-          set -o pipefail
-          mkdir -p .tmp
-          pnpm exec vitest run test/stories.test.tsx --project "$PROJECT" -t "$SELECTOR has no paint outside" 2>&1 | tee .tmp/corner-diagnostic.log
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
-        with:
-          name: corner-diagnostic-${{ matrix.name }}
-          path: |
-            .tmp/corner-diagnostic.log
-            .tmp/corner-images/
+          MODE: ${{ matrix.mode }}
+          RUNS: ${{ inputs.runs }}
+        run: node scripts/probe-windowing.mjs "$MODE" "$RUNS" 240
