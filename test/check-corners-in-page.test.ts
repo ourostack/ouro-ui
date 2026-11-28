@@ -1374,6 +1374,9 @@ it("does not attribute an unrelated neighbor's pixels to an overflowing corner",
     expect(await findSquirclePaint()).toEqual([]);
     surface.insertAdjacentHTML("beforeend", '<span style="position:absolute;left:178px;top:4px;width:8px;height:8px;background:#c30;pointer-events:none"></span>');
     expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
+    surface.firstElementChild!.remove();
+    root.insertAdjacentHTML("beforeend", '<style>.surface::after { content:""; position:absolute; left:178px; top:4px; width:8px; height:8px; background:#c30; pointer-events:none }</style>');
+    expect((await findSquirclePaint()).map((issue) => issue.element)).toContain("div.surface");
   } finally {
     state.__ouroPaintCapture = capture;
   }
