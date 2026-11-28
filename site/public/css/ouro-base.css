@@ -247,7 +247,7 @@
 
 @keyframes ouro-composer-reveal {
   from {
-    --ouro-composer-inset: var(--ouro-composer-gap);
+    --ouro-composer-inset: calc(var(--ouro-composer-gap));
   }
   to {
     --ouro-composer-inset: 0;
@@ -259,7 +259,7 @@
     --ouro-composer-inset: 0;
   }
   to {
-    --ouro-composer-inset: var(--ouro-composer-gap);
+    --ouro-composer-inset: calc(var(--ouro-composer-gap));
   }
 }
 
