@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kind: [stories]
+        kind: [message-ring]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -32,6 +32,7 @@ jobs:
           set -o pipefail
           mkdir -p .tmp
           case "$KIND" in
+            message-ring) pnpm exec vitest run registry/ouro/components/ouro/message/message.test.tsx --project ouro-chromium --project ouro-webkit -t 'keeps each focused action' ;;
             edge) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium --project ouro-webkit -t 'captures paint at the bottom edge' ;;
             priority) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium -t 'keeps a native shadow and its probe separate' ;;
             fixture) node --test --test-name-pattern='rounded surface in the nested-frame pass fixture' scripts/check/check-corners.test.mts ;;
