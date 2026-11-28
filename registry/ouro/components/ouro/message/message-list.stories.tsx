@@ -153,6 +153,61 @@ export const Live: Story = {
   render: () => <LiveChat />,
 };
 
+/** A composer that grows as its draft gets longer, floating over the conversation's foot as a phone's messaging app does. */
+function FloatingComposer() {
+  const [draft, setDraft] = useState("");
+  const grow = (node: HTMLTextAreaElement | null) => {
+    if (!node) return;
+    node.style.height = "auto";
+    node.style.height = `${Math.min(node.scrollHeight, 160)}px`;
+  };
+  return (
+    <textarea
+      ref={grow}
+      data-test-harness=""
+      value={draft}
+      onChange={(event) => {
+        setDraft(event.target.value);
+        grow(event.target);
+      }}
+      placeholder="Message Ouro…"
+      rows={1}
+      className="placeholder:text-muted-foreground"
+      style={{
+        width: "100%",
+        resize: "none",
+        overflow: "hidden",
+        font: "inherit",
+        padding: "10px 14px",
+        borderRadius: "var(--radius)",
+        border: "1px solid var(--border)",
+        background: "var(--background)",
+        color: "var(--foreground)",
+        boxShadow: "var(--shadow-lg)",
+      }}
+    />
+  );
+}
+
+/** The composer floats over the list's bottom edge with `foot`; type a longer draft and the last message stays just above it. */
+export const WithFloatingComposer: Story = {
+  args: { label: "Conversation with Ouro", children: null },
+  parameters: { screenshot: { name: "message-list-foot" } },
+  render: () => (
+    <div data-ouro-allow="overlap" data-ouro-allow-why="The composer floats over the last message by design, as foot does.">
+      <Surface>
+        <MessageList label="Conversation with Ouro" style={{ height: 420 }} foot={<FloatingComposer />}>
+          {start.map((item) => (
+            <Message key={item.id} role={item.role} name={item.role === "user" ? "Ana Lind" : "Ouro"}>
+              {item.text}
+            </Message>
+          ))}
+        </MessageList>
+      </Surface>
+    </div>
+  ),
+};
+
 /** A reader who scrolls back through the conversation gets "Jump to latest". The story scrolls to the top. */
 export const ScrolledBack: Story = {
   args: { label: "Conversation with Ouro", children: null },
