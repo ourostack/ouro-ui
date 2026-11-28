@@ -52,6 +52,11 @@
     "summary": "Two dividing lines side by side where one would separate, such as a list's last row's border against its card's; each finding names both elements."
   },
   {
+    "rule": "nested-frame",
+    "widened": "a lighter framed surface inside a frame at any inset, including when clipped",
+    "summary": "Remove the inner border and use a step between theme surface tokens."
+  },
+  {
     "rule": "count-badge",
     "summary": "A count badge on an icon that is clipped by a box around it, whose numerals sit off its middle, or that sits at another offset from its icon than the page's other badges."
   },
