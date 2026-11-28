@@ -339,9 +339,7 @@ const looks = {
     warning: `${outlineToneClass} [--ouro-tone:var(--warning)] text-warning`,
   },
   plain: {
-    primary:
-      "[--ouro-bd:transparent] [--ouro-bg:transparent] text-primary " +
-      "[:is([data-scroll-viewport],[data-ouro-message-list-scroller])_&]:text-[color-mix(in_oklab,var(--primary)_80%,var(--foreground))]",
+    primary: "[--ouro-bd:transparent] [--ouro-bg:transparent] text-primary",
     secondary: "[--ouro-bd:transparent] [--ouro-bg:transparent] text-foreground",
     destructive: "[--ouro-bd:transparent] [--ouro-bg:transparent] text-destructive",
     success: "[--ouro-bd:transparent] [--ouro-bg:transparent] text-success",
