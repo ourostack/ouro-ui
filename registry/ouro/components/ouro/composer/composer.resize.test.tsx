@@ -125,6 +125,35 @@ describe("Composer resizable edge", () => {
     await expect.poll(() => short.edge.getAttribute("aria-valuemax")).toBe(String(Math.floor(window.innerHeight * 0.6)));
   });
 
+  it("limits the whole frame with tallest, rereading the available space when the edge takes focus", async () => {
+    let ceiling = 240;
+    const tallest = vi.fn(() => ceiling);
+    const view = await render(<Composer label="Reply" resizable tallest={tallest} defaultExpanded onSend={() => {}} />);
+    const frame = view.edge.closest<HTMLElement>("[data-ouro-composer-frame]")!;
+    const chrome = height(frame) - height(view.textarea);
+    await act(async () => view.edge.focus());
+    expect(tallest).toHaveBeenLastCalledWith(frame);
+    expect(Number(view.edge.getAttribute("aria-valuemax"))).toBeCloseTo(Math.max(Number(view.edge.getAttribute("aria-valuemin")), ceiling - chrome), 0);
+    await userEvent.keyboard("{End}");
+    expect(height(frame)).toBeLessThanOrEqual(ceiling);
+    ceiling = 320;
+    await act(async () => {
+      view.edge.blur();
+      view.edge.focus();
+    });
+    await userEvent.keyboard("{End}");
+    expect(height(frame)).toBeGreaterThan(240);
+    expect(height(frame)).toBeLessThanOrEqual(ceiling);
+  });
+
+  it("never makes the ceiling shorter than its minimum writing space", async () => {
+    const view = await render(<Composer label="Reply" resizable rows={3} tallest={() => 0} onSend={() => {}} />);
+    await act(async () => view.edge.focus());
+    expect(view.edge.getAttribute("aria-valuemax")).toBe(view.edge.getAttribute("aria-valuemin"));
+    await userEvent.keyboard("{End}");
+    expect(wholeLines(view.textarea)).toBeCloseTo(3, 1);
+  });
+
   it("leaves a controlled height to the app: a key reports the new height and the box stays until the app sets it", async () => {
     const onHeightChange = vi.fn();
     const view = await render(<Composer label="Reply" resizable resizeLabel={label} rows={1} height={100} onHeightChange={onHeightChange} onSend={() => {}} />);

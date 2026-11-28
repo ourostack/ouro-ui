@@ -262,6 +262,13 @@ export interface ComposerOwnProps {
   /** The resize edge's name, read aloud. Use it with `resizable`. @default "Resize the message box" */
   resizeLabel?: string | undefined;
   /**
+   * The maximum height of the whole frame in px, read when the resize edge takes focus or a gesture starts.
+   * The minimum writing space still wins when it is taller. Use this to keep a reply box clear of surrounding content.
+   * @claim "The maximum height of the whole frame" registry/ouro/components/ouro/composer/composer.resize.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.resize.test.tsx::Composer resizable edge > limits the whole frame with tallest, rereading the available space when the edge takes focus)
+   * @claim "The minimum writing space still wins" registry/ouro/components/ouro/composer/composer.resize.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.resize.test.tsx::Composer resizable edge > never makes the ceiling shorter than its minimum writing space)
+   */
+  tallest?: ((frame: HTMLElement) => number) | undefined;
+  /**
    * The text's height in px, for a composer whose app keeps it; pair it with `onHeightChange`. `null` is the `rows` height.
    * It lands on the nearest whole line.
    */
@@ -541,6 +548,7 @@ const onServer = () => false;
  * Use `format="rich"` for formatting, links, lists and mention pills, with Markdown text in
  * `value` and `onSend`. Add `defaultExpanded={false}` for a long-compose toggle: the same
  * draft and caret, a `toolbar` while expanded, and a quiet line naming the platform's send key.
+ * Add `resizable` for a draggable top edge; `tallest` keeps the whole frame within the space around it.
  * Keep `format="plain"` (the default) for a text-only box.
  *
  * Text grows from one line as the person writes, with a send button and
@@ -567,7 +575,7 @@ const onServer = () => false;
  * @see https://ui.ouroboros.bot/docs/composer
  *
  * @example
- * <Composer label="Message" format="rich" defaultExpanded={false} placeholder="Write a message" onSend={(text) => send(text)} />
+ * <Composer label="Message" format="rich" defaultExpanded={false} resizable resizeLabel="Resize your draft" placeholder="Write a message" onSend={(text) => send(text)} />
  *
  * @example
  * <Composer
@@ -599,6 +607,7 @@ const onServer = () => false;
  * @claim "A press anywhere around the" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer presses around the text > puts the caret at the end of a line on a press between the line and the send button)
  * @claim "room for the rest of a composer" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer > draws one focus outline, on the frame, while the text has focus, and none on the text itself)
  * @claim "formatting, links, lists and mention pills" registry/ouro/components/ouro/composer/composer.rich.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.rich.test.tsx::Composer rich mode > shows Markdown marks as formatting, and writes formatting back out as the same Markdown) verify:testExists(registry/ouro/components/ouro/composer/composer.rich-tokens.test.tsx::Composer rich mentions and emoji > draws an imported mention as an inset pill without changing its Markdown)
+ * @claim "Add `resizable` for a draggable top edge" registry/ouro/components/ouro/composer/composer.resize.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.resize.test.tsx::Composer resizable edge > limits the whole frame with tallest, rereading the available space when the edge takes focus)
  * @claim "the same draft and caret" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > keeps the text, focus and the caret when it expands and collapses)
  * @claim "a quiet line naming the platform's send key" registry/ouro/components/ouro/composer/composer.test.tsx verify:testExists(registry/ouro/components/ouro/composer/composer.test.tsx::Composer expanded > names the send key below the expanded box on %s and removes it when collapsed)
  */
@@ -636,6 +645,7 @@ export function Composer(props: ComposerProps): JSX.Element {
     expandedMaxRows = 20,
     resizable = false,
     resizeLabel = "Resize the message box",
+    tallest,
     height: heightProp,
     defaultHeight,
     onHeightChange,
@@ -791,7 +801,11 @@ export function Composer(props: ComposerProps): JSX.Element {
   const readEdge = (): ResizeRange => {
     const m = edgeMetrics();
     const least = Math.round(baseRows * m.line + m.offset);
-    const most = Math.max(Math.round(baseMaxRows * m.line + m.offset), Math.floor(window.innerHeight * 0.6));
+    const frame = frameRef.current;
+    const ceiling = tallest && frame
+      ? tallest(frame) - (frame.getBoundingClientRect().height - m.now)
+      : Math.max(Math.round(baseMaxRows * m.line + m.offset), Math.floor(window.innerHeight * 0.6));
+    const most = Math.max(least, ceiling);
     return { least, most, step: m.line, offset: m.offset, now: Math.round(m.now) };
   };
   const resizeTo = (px: number, settled: boolean) => {

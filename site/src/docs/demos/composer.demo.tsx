@@ -26,6 +26,7 @@ export default function ComposerDemo(): JSX.Element {
   const editor = useRef<ComposerEditor>(null);
   const box = useRef<HTMLTextAreaElement>(null);
   const [sent, setSent] = useState<string[]>([]);
+  const [height, setHeight] = useState<number | null>(null);
   return (
     <div className="grid w-full max-w-lg gap-4">
       {sent.map((message, index) => (
@@ -43,6 +44,11 @@ export default function ComposerDemo(): JSX.Element {
         defaultExpanded={false}
         expandLabel="Long compose"
         maxRows={6}
+        resizable
+        resizeLabel="Resize your draft"
+        tallest={() => window.innerHeight * 0.6}
+        height={height}
+        onHeightChange={setHeight}
         toolbar={
           <Toolbar
             label="Message formatting"
@@ -57,7 +63,10 @@ export default function ComposerDemo(): JSX.Element {
             ]}
           />
         }
-        onSend={() => setSent((messages) => [...messages, box.current!.value])}
+        onSend={() => {
+          setSent((messages) => [...messages, box.current!.value]);
+          setHeight(null);
+        }}
       />
     </div>
   );
