@@ -417,7 +417,14 @@ it("treats a picture clipped at the top corners as the frame's paint", async () 
   expect(findCornerIssues()).toEqual([]);
 });
 
-it("judges only the corners an image actually paints", async () => {
+it.each(Array.from({ length: 300 }, (_, index) => index))("judges only the corners an image actually paints, repetition %i", async () => {
+  const decode = async (image: HTMLImageElement, stage: string) => {
+    try {
+      await image.decode();
+    } catch (error) {
+      throw new Error(`image decode failed at ${stage}: src=${image.currentSrc || image.src}; complete=${image.complete}; natural=${image.naturalWidth}x${image.naturalHeight}`, { cause: error });
+    }
+  };
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 40;
   const pen = canvas.getContext("2d")!;
@@ -428,10 +435,10 @@ it("judges only the corners an image actually paints", async () => {
   const opaque = canvas.toDataURL();
   const root = render(`<div id="frame" style="position:relative;width:160px;height:120px;background:#345;border-radius:24px;corner-shape:squircle"><img id="image" alt="" src="${transparent}" style="position:absolute;inset:4px;width:152px;height:112px"></div>`);
   const image = root.querySelector<HTMLImageElement>("#image")!;
-  await image.decode();
+  await decode(image, "transparent initial");
   expect(findCornerIssues()).toEqual([]);
   image.src = opaque;
-  await image.decode();
+  await decode(image, "opaque initial");
   expect(findCornerIssues()[0]?.detail).toContain("top left");
   image.style.objectFit = "contain";
   expect(findCornerIssues()).toEqual([]);
@@ -457,7 +464,7 @@ it("judges only the corners an image actually paints", async () => {
   canvas.height = 40;
   canvas.getContext("2d")!.fillRect(0, 0, 80, 40);
   image.src = canvas.toDataURL();
-  await image.decode();
+  await decode(image, "wide opaque");
   image.style.objectFit = "contain";
   image.style.objectPosition = "center top";
   expect(findCornerIssues()[0]?.detail).toContain("top left");
@@ -466,7 +473,7 @@ it("judges only the corners an image actually paints", async () => {
   expect(findCornerIssues()[0]?.detail).toContain("bottom left");
   expect(findCornerIssues()[0]?.detail).not.toContain("top left");
   image.src = opaque;
-  await image.decode();
+  await decode(image, "opaque restored");
   image.style.objectFit = "cover";
   image.style.padding = "2px";
   expect(findCornerIssues()).toEqual([]);
@@ -478,26 +485,27 @@ it("judges only the corners an image actually paints", async () => {
     drawing.mockRestore();
   }
   image.src = transparent;
-  await image.decode();
+  await decode(image, "transparent restored");
   image.style.border = "1px solid red";
   expect(findCornerIssues()[0]?.detail).toContain("top right");
-  await commands.cornerImageRoute({ data: opaque });
+  const imageUrl = await commands.cornerImageServer({ data: opaque });
+  if (imageUrl === null) throw new Error("The corner image server did not start.");
   try {
     image.style.border = "";
     image.style.objectFit = "fill";
-    image.src = "https://images.invalid/picture.png";
-    await image.decode();
+    image.src = imageUrl;
+    await decode(image, "cross-origin child");
     expect(findCornerIssues()[0]?.detail).toContain("cannot inspect");
     image.style.border = "1px solid red";
     expect(findCornerIssues()[0]?.detail).toContain("expected 20px");
     root.innerHTML = `<div style="position:relative;width:160px;height:120px">
-      <img alt="" src="https://images.invalid/picture.png" style="position:absolute;inset:0;width:160px;height:120px;border-radius:24px;corner-shape:squircle">
+      <img alt="" src="${imageUrl}" style="position:absolute;inset:0;width:160px;height:120px;border-radius:24px;corner-shape:squircle">
       <div style="position:absolute;inset:4px;background:#789;border-radius:6px;corner-shape:squircle"></div>
     </div>`;
-    await root.querySelector("img")!.decode();
+    await decode(root.querySelector("img")!, "cross-origin outer");
     expect(findCornerIssues()[0]?.detail).toContain("cannot inspect");
   } finally {
-    await commands.cornerImageRoute({ data: null });
+    await commands.cornerImageServer({ data: null });
   }
 });
 
