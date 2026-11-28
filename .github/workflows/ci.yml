@@ -3311,15 +3311,17 @@ jobs:
       # passed), and the prepare steps are skipped. A commit that changes some restores the newest
       # earlier app built from the same install scripts and fixture (the restore key), and the add
       # below installs again only the items whose built content changed (scripts/install-delta.mjs).
+      # The Next.js fixture is left out: only the next variant reads it, and every new component adds a
+      # section to it, which would otherwise rebuild this app from nothing for the component's pull request.
       # Only main saves these caches (every save in this job checks for main): a pull request
       # restores them, and a cache a pull request saves is readable by that pull request alone.
       - id: prepared
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/app.tar.zst
-          key: install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-${{ hashFiles('registry/**', 'docs/**', 'test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/readme-steps.mjs', 'scripts/shard.mjs', 'scripts/test-impact.mjs', 'scripts/upgrade-note.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml', 'README.md', 'UPGRADING.md') }}
+          key: install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', '!test/install-fixture-next/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-${{ hashFiles('registry/**', 'docs/**', 'test/install-fixture*/**', '!test/install-fixture-next/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/readme-steps.mjs', 'scripts/shard.mjs', 'scripts/test-impact.mjs', 'scripts/upgrade-note.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml', 'README.md', 'UPGRADING.md') }}
           restore-keys: |
-            install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-
+            install-app-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('test/install-fixture*/**', '!test/install-fixture-next/**', 'scripts/install-test.sh', 'scripts/split-items.mjs', 'pnpm-lock.yaml') }}-
       # npm's download cache, seeded from the newest earlier one, so a changed registry file does not
       # download every package again.
       - id: npmcache
@@ -3338,7 +3340,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/base.tar.zst
-          key: install-base-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('registry/**', '!registry/**/*.test.ts', '!registry/**/*.test.tsx', '!registry/**/*.test-d.ts', '!registry/**/*.stories.tsx', '!registry/ouro/e2e/**', '!registry/ouro/lib/ouro/testing/**', 'test/install-fixture*/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml') }}
+          key: install-base-pw1.65.0-${{ matrix.variant }}-${{ matrix.preset }}-${{ hashFiles('registry/**', '!registry/**/*.test.ts', '!registry/**/*.test.tsx', '!registry/**/*.test-d.ts', '!registry/**/*.stories.tsx', '!registry/ouro/e2e/**', '!registry/ouro/lib/ouro/testing/**', 'test/install-fixture*/**', '!test/install-fixture-next/**', 'scripts/install-test.sh', 'scripts/namespace.sh', 'scripts/generated-files.mjs', 'scripts/install-check.mjs', 'scripts/latest-release.mjs', 'scripts/*.mts', '!scripts/*.test.mts', 'package.json', 'pnpm-lock.yaml') }}
       - if: steps.prepared.outputs.cache-hit != 'true'
         id: install
         run: pnpm i --frozen-lockfile
