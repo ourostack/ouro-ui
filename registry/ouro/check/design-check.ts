@@ -437,8 +437,9 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
             let region = el;
             while (region.parentElement && region.parentElement !== inner) region = region.parentElement;
             const box = region.getBoundingClientRect();
-            return r.width >= i.width / 2 && (r.height >= i.height * 0.35
-              || (box.height >= i.height * 0.35 && !region.querySelector("p, article, section")));
+            const share = el.matches('textarea, [role="textbox"], [contenteditable="true"]') ? 0.3 : 0.35;
+            return r.width >= i.width / 2 && (r.height >= i.height * share
+              || (box.height >= i.height * share && !region.querySelector("p, article, section")));
           });
           const flexItems = (parent: Element): Element[] => [...parent.children].flatMap((el) =>
             getComputedStyle(el).display === "contents" ? flexItems(el) : visibleSet.has(el) ? [el] : []);
@@ -473,7 +474,9 @@ function findDesignIssues({ pictureShare = 0.55, pictureRatio = 1.25, pictureMin
               bottom = Math.max(bottom, span.bottom);
             }
           }
-          const mediaFrame = covered >= drawn.width * drawn.height * 0.8;
+          const caption = [inner, ...inner.querySelectorAll("*")].some((el) =>
+            visibleSet.has(el) && hasText(el) && !el.closest('button, [role="button"]'));
+          const mediaFrame = noHeading && !caption && covered >= drawn.width * drawn.height * 0.8;
           lighter = !fieldFrame && !mediaFrame && sideNames.some((side) => visibleEdge(inner, side, surface));
         }
       }
