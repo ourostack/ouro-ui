@@ -176,6 +176,21 @@ it("judges only the corners an image actually paints", async () => {
   }
 });
 
+it("does not nest against a transparent corner of an outer picture", async () => {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 40;
+  canvas.getContext("2d")!.fillRect(10, 10, 20, 20);
+  const root = render(`<div style="position:relative;width:160px;height:120px">
+    <img alt="" src="${canvas.toDataURL()}" style="position:absolute;inset:0;width:160px;height:120px;border-radius:24px;corner-shape:squircle">
+    <div style="position:absolute;inset:4px;background:#789;border-radius:6px;corner-shape:squircle"></div>
+  </div>`);
+  const image = root.querySelector("img")!;
+  await image.decode();
+  expect(findCornerIssues()).toEqual([]);
+  image.style.background = "#345";
+  expect(findCornerIssues().map((issue) => issue.detail)).toContainEqual(expect.stringContaining("expected 20px"));
+});
+
 it("reads elliptical, percentage, scaled and fallback radii on painted geometric siblings", () => {
   const root = render('<div id="area" style="position:relative;width:200px;height:160px;transform:scale(.8);transform-origin:top left"><div class="shell" style="position:absolute;inset:0;background:linear-gradient(red,blue);border-radius:32px / 24px;corner-shape:squircle"></div><div class="panel" style="position:absolute;inset:4px;background:rgba(255,255,255,.5);border-radius:28px / 20px;corner-shape:squircle"></div></div>');
   const panel = root.querySelector<HTMLElement>(".panel")!;
@@ -257,6 +272,24 @@ it("reads the visible corner of an independently painted inverse cutout", () => 
   expect(findCornerIssues()).toEqual([]);
   cutout.style.clipPath = `path(evenodd, "${box} M 0 28 A 28 28 0 0 1 28 0 H 152 V 112 H 0 Z")`;
   expect(findCornerIssues().map((issue) => issue.detail)).toContainEqual(expect.stringContaining("cutout does not match"));
+});
+
+it("reads an inverse cutout at each physical corner", () => {
+  for (const [key, side, left, top] of [
+    ["tl", "top-left", true, true], ["tr", "top-right", false, true],
+    ["br", "bottom-right", false, false], ["bl", "bottom-left", true, false],
+  ] as const) {
+    const root = render(`<div style="position:relative;width:160px;height:120px;background:#eef4fa;border-${side}-radius:17.376px;--sq-${key}:32px;clip-path:inset(0)">
+      <div style="position:absolute;inset:4px;background:#789">
+        <div class="cutout" style="position:absolute;inset:0;background:#eef4fa;--sq-${key}:28px"></div>
+      </div>
+    </div>`);
+    const x = (n: number) => left ? n : 152 - n;
+    const y = (n: number) => top ? n : 112 - n;
+    root.querySelector<HTMLElement>(".cutout")!.style.clipPath = `path("M ${x(0)} ${y(0)} L ${x(0)} ${y(28)} C ${x(0)} ${y(17.164)} ${x(-0.2576)} ${y(9.1672)} ${x(4.4548)} ${y(4.4548)} C ${x(9.1672)} ${y(-0.2576)} ${x(17.164)} ${y(0)} ${x(28)} ${y(0)} Z")`;
+    expect(findCornerIssues(), side).toEqual([]);
+    root.remove();
+  }
 });
 
 it("does not mistake a switch's round thumb inside a capsule for nested frames", () => {

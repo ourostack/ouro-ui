@@ -104,8 +104,6 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
   type CornerPaint = boolean | "cross-origin" | "position";
   const imagePaint = new Map<HTMLImageElement, CornerPaint[]>();
   const imageCorners = (image: HTMLImageElement): CornerPaint[] => {
-    const cached = imagePaint.get(image);
-    if (cached) return cached;
     const style = getComputedStyle(image);
     const left = parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft);
     const right = parseFloat(style.borderRightWidth) + parseFloat(style.paddingRight);
@@ -159,7 +157,6 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
         throw error;
       }
     });
-    imagePaint.set(image, corners);
     return corners;
   };
   const paintedCorner = (surface: Surface, index: number): CornerPaint => {
@@ -194,7 +191,7 @@ function findCornerIssues({ windowRadius, windowBounds, windowInsets }: CornerOp
     return { el, rect, corners };
   };
   const surfaces = [document.documentElement, document.body, ...document.body.querySelectorAll("*")]
-    .filter((el) => !el.closest("svg, script, style, template") && !el.hasAttribute("data-ouro-surface") && !el.hasAttribute("data-ouro-avatar-surface") && visible(el) && painted(el))
+    .filter((el) => !el.closest("svg, script, style, template") && visible(el) && painted(el))
     .map(surface);
   const cutouts = surfaces.filter(({ el, corners }) => {
     const s = getComputedStyle(el!);
