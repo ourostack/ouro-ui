@@ -11,7 +11,7 @@ node xray.ts --cli "<command>" [--http <url> --routes <manifest.json>] [--mcp "<
 In-turn tools are the tools a harness gives a model inside a turn. `--tools` runs a command that serves them over stdio, one JSON-RPC message a line: `tools/list` answers `{ tools: [{ type: "function", function: { name, description, parameters }, ax: { effect, when, errors: [{ code, means, fix }], confirm? } }], errors? }`, where the top-level `errors` are the cards of the dispatcher's shared codes, and `tools/call` (`{ name, arguments }`) answers the call's typed outcome, `{ state, text, code? }`: `state` is an ax-outcome state, `text` is what the model reads, and `code` is the error card's code when it was not done.
 
 ```sh
-npx shadcn@latest add ourostack/ouro-ui/ax-xray#v1.3.570
+npx shadcn@latest add ourostack/ouro-ui/ax-xray#v1.3.645
 ```
 
 It installs `scripts/ouro/ax/xray.kit.mts` and `scripts/ouro/ax/xray.ts`, with `ax-checks`, `ax-claims`, `ax-cli`, `ax-command`, `ax-component`, `ax-dev-commands`, `ax-exit-codes`, `ax-outcome`, `ax-precise-copy`, `ax-problem`, `ax-terminal`, `ax-wait`, `ax-work-event`. Its tests are `ax-xray-tests`. Every item runs on Node 22.18 or later as it is copied: the files import each other as `./<file>.ts`, and the shared kit as `#ouro-ax/<file>`. The [Ouro AX guide](../guides/ax.md) shows how they fit together.
