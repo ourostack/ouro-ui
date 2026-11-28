@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kind: [inline-device]
+        kind: [kbd]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -35,6 +35,7 @@ jobs:
             message) pnpm exec vitest run registry/ouro/components/ouro/message/message.test.tsx --project ouro-chromium --project ouro-webkit ;;
             inline) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium --project ouro-webkit -t '(wrapped inline surface|independent floating squircle)' ;;
             inline-device) node --test --test-name-pattern='wrapped inline fragments' scripts/check/check-corners.test.mts ;;
+            kbd) pnpm exec vitest run registry/ouro/components/ouro/kbd/kbd.test.tsx --project ouro-chromium --project ouro-webkit -t 'corner radius within half' ;;
             message-ring) pnpm exec vitest run registry/ouro/components/ouro/message/message.test.tsx --project ouro-chromium --project ouro-webkit -t 'keeps each focused action' ;;
             edge) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium --project ouro-webkit -t 'captures paint at the bottom edge' ;;
             priority) pnpm exec vitest run test/check-corners-in-page.test.ts --project ouro-chromium -t 'keeps a native shadow and its probe separate' ;;
